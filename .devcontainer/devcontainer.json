@@ -1,0 +1,52 @@
+{
+  "name": "Rails Engine + Postgres (Codespaces)",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [3000, 5432],
+  "portsAttributes": {
+    "3000": {
+      "label": "Rails Server",
+      "onAutoForward": "notify"
+    },
+    "5432": {
+      "label": "PostgreSQL"
+    }
+  },
+  "customizations": {
+    "codespaces": {
+      "repositories": {
+        "bowerbird-app/makeup-artist": {
+          "permissions": "read-all"
+        },
+        "bowerbird-app/captain-hook": {
+          "permissions": "read-all"
+        },
+        "bowerbird-app/mothball": {
+          "permissions": "read-all"
+        },
+        "bowerbird-app/gem_docs": {
+          "permissions": "read-all"
+        }
+      }
+    },
+    "vscode": {
+      "extensions": [
+        "Shopify.ruby-lsp",
+        "KoichiSasada.vscode-rdbg",
+        "bradlc.vscode-tailwindcss"
+      ],
+      "settings": {
+        "ruby.lsp.enabledFeatures": {
+          "diagnostics": true
+        }
+      }
+    }
+  },
+  "remoteUser": "root",
+  "features": {},
+  "postCreateCommand": "git lfs install && cd test/dummy && bundle install && bundle exec rails db:prepare && bundle exec rails tailwindcss:build",
+  "env": {
+    "CODESPACES": "true"
+  }
+}
