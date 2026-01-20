@@ -4,6 +4,8 @@ ControlRoom is a Rails engine foundation that implements Basecamp-style **Record
 using `delegated_type`. It provides an append-only event timeline with polymorphic actors, a container-first API, and a
 stable mixin surface for capabilities like comments, attachments, and reactions.
 
+**Requirements:** Ruby 3.3+ and Rails 8.1+.
+
 ## Identity vs State vs History
 
 | Layer | Model | Responsibility |
