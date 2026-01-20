@@ -8,7 +8,12 @@ module ControlRoom
       types = Array(ControlRoom.configuration.recordable_types).map(&:to_s).uniq.sort
       return if types.empty?
 
-      recording_class = ControlRoom::Recording
+      recording_class = if ControlRoom.const_defined?(:Recording, false)
+        ControlRoom::Recording
+      else
+        ActiveSupport::Inflector.safe_constantize("ControlRoom::Recording")
+      end
+      return unless recording_class
       current_types = recording_class.instance_variable_get(:@control_room_recordable_types)
       return if current_types == types
 
