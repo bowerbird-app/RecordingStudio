@@ -1,7 +1,14 @@
 Rails.application.routes.draw do
   mount MakeupArtist::Engine => "/makeup_artist", as: "makeup_artist"
-  # Mount the GemTemplate engine
-  mount GemTemplate::Engine, at: "/gem_template"
+  # Mount the ControlRoom engine
+  mount ControlRoom::Engine, at: "/control_room"
+
+  resource :actor, only: :update
+
+  resources :pages, param: :recording_id
+  resources :recordings, only: [:show] do
+    post :log_event, on: :member
+  end
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
@@ -14,5 +21,5 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   # Defines the root path route ("/")
-  root to: redirect("/gem_template")
+  root "pages#index"
 end

@@ -1,0 +1,46 @@
+# frozen_string_literal: true
+
+require_relative "hooks"
+
+module ControlRoom
+  class Configuration
+    attr_accessor :recordable_types, :actor_provider, :instrumentation_enabled,
+                  :idempotency_mode, :unrecord_mode, :recordable_dup_strategy
+    attr_reader :hooks
+
+    def initialize
+      @recordable_types = []
+      @actor_provider = -> { defined?(Current) ? Current.actor : nil }
+      @instrumentation_enabled = true
+      @idempotency_mode = :return_existing
+      @unrecord_mode = :soft
+      @recordable_dup_strategy = :dup
+      @hooks = Hooks.new
+    end
+
+    def recordable_types=(types)
+      @recordable_types = Array(types).map { |type| type.is_a?(Class) ? type.name : type.to_s }.uniq
+    end
+
+    def to_h
+      {
+        recordable_types: recordable_types,
+        instrumentation_enabled: instrumentation_enabled,
+        idempotency_mode: idempotency_mode,
+        unrecord_mode: unrecord_mode,
+        recordable_dup_strategy: recordable_dup_strategy,
+        hooks_registered: hooks.instance_variable_get(:@registry).transform_values(&:size)
+      }
+    end
+
+    def merge!(hash)
+      return unless hash.respond_to?(:each)
+
+      hash.each do |k, v|
+        key = k.to_s
+        setter = "#{key}="
+        public_send(setter, v) if respond_to?(setter)
+      end
+    end
+  end
+end

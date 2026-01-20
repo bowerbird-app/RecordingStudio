@@ -1,0 +1,16 @@
+<%= form_with url: form_url, method: form_method, scope: :page, class: "space-y-6" do |form| %>
+  <div>
+    <%= form.label :title, class: "block text-sm font-medium text-slate-600" %>
+    <%= form.text_field :title, value: recordable.title, class: "mt-2 w-full rounded-md border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <div>
+    <%= form.label :summary, class: "block text-sm font-medium text-slate-600" %>
+    <%= form.text_area :summary, value: recordable.summary, rows: 5, class: "mt-2 w-full rounded-md border border-slate-300 px-3 py-2" %>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <%= form.submit submit_label, class: "rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white" %>
+    <%= link_to "Cancel", pages_path, class: "text-sm font-medium text-slate-500" %>
+  </div>
+<% end %>

@@ -41,6 +41,9 @@ module Dummy
       g.orm :active_record, primary_key_type: :uuid
     end
 
+    # Load engine migrations for the sandbox database
+    config.paths["db/migrate"] << ControlRoom::Engine.root.join("db/migrate")
+
     # Don't generate system test files.
     config.generators.system_tests = nil
   end

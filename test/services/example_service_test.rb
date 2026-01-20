@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-module GemTemplate
+module ControlRoom
   module Services
     class ExampleServiceTest < Minitest::Test
       def test_success_with_valid_name
