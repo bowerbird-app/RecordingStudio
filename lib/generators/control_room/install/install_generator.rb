@@ -11,13 +11,13 @@ module ControlRoom
         route 'mount ControlRoom::Engine, at: "/control_room"'
       end
 
-    def copy_initializer
-      template "control_room_initializer.rb", "config/initializers/control_room.rb"
-    end
+      def copy_initializer
+        template "control_room_initializer.rb", "config/initializers/control_room.rb"
+      end
 
-    def install_migrations
-      invoke "control_room:migrations"
-    end
+      def install_migrations
+        invoke "control_room:migrations"
+      end
 
       def add_yaml_config
         return unless yes?("Would you like to add `config/control_room.yml` for environment-specific settings? [y/N]")
