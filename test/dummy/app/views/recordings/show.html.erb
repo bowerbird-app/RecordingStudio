@@ -34,8 +34,7 @@
 
     <div class="rounded-lg border border-slate-200 bg-white p-6">
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Event Timeline</h3>
-        <%= button_to "Log Comment Event", log_event_recording_path(@recording), method: :post, class: "rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white" %>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Events</h3>
       </div>
       <div class="mt-4 space-y-4">
         <% @events.each do |event| %>

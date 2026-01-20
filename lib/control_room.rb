@@ -41,6 +41,9 @@ module ControlRoom
         recordable.save! unless recordable.persisted?
         if recording
           previous_recordable = recording.recordable
+          if previous_recordable && previous_recordable.class.name != recordable.class.name
+            raise ArgumentError, "recordable type must remain #{previous_recordable.class.name}"
+          end
           recording.update!(recordable: recordable) if recordable != previous_recordable
         else
           recording = ControlRoom::Recording.create!(container: container, recordable: recordable)
