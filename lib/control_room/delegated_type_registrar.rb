@@ -9,9 +9,11 @@ module ControlRoom
       return if types.empty?
 
       recording_class = ControlRoom::Recording
-      return if recording_class.respond_to?(:recordable_types) && recording_class.recordable_types == types
+      current_types = recording_class.instance_variable_get(:@control_room_recordable_types)
+      return if current_types == types
 
       recording_class.delegated_type :recordable, types: types
+      recording_class.instance_variable_set(:@control_room_recordable_types, types)
     end
   end
 end
