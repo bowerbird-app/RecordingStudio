@@ -3,9 +3,10 @@
 require_relative "hooks"
 
 module ControlRoom
-  class Configuration
-    attr_accessor :recordable_types, :actor_provider, :event_notifications_enabled,
-                  :idempotency_mode, :unrecord_mode, :recordable_dup_strategy
+    class Configuration
+      attr_accessor :recordable_types, :actor_provider, :event_notifications_enabled,
+            :idempotency_mode, :unrecord_mode, :recordable_dup_strategy,
+            :cascade_unrecord, :unrecord_children
     attr_reader :hooks
 
     def initialize
@@ -14,7 +15,9 @@ module ControlRoom
       @event_notifications_enabled = true
       @idempotency_mode = :return_existing
       @unrecord_mode = :soft
-      @recordable_dup_strategy = :dup
+        @recordable_dup_strategy = :dup
+        @cascade_unrecord = ->(recording) { recording.child_recordings }
+        @unrecord_children = false
       @hooks = Hooks.new
     end
 
@@ -36,6 +39,7 @@ module ControlRoom
         event_notifications_enabled: event_notifications_enabled,
         idempotency_mode: idempotency_mode,
         unrecord_mode: unrecord_mode,
+          unrecord_children: unrecord_children,
         recordable_dup_strategy: recordable_dup_strategy,
         hooks_registered: hooks.instance_variable_get(:@registry).transform_values(&:size)
       }

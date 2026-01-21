@@ -6,9 +6,38 @@
     <p class="text-sm uppercase tracking-wide text-slate-500">Recording</p>
     <h2 class="text-2xl font-semibold"><%= @recording.recordable.title %></h2>
     <p class="mt-2 text-sm text-slate-600"><%= @recording.recordable.summary %></p>
-    <div class="mt-4">
-      <%= link_to "Edit", edit_page_path(@recording), class: "inline-flex rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700" %>
+    <div class="mt-4 flex flex-wrap items-center gap-2">
+      <% if @recording.discarded_at %>
+        <%= button_to "Restore", restore_page_path(@recording), method: :post, class: "inline-flex rounded-md border border-emerald-300 px-3 py-2 text-sm font-medium text-emerald-700", form: { data: { turbo_confirm: "Restore this page and its children?" } } %>
+      <% else %>
+        <%= link_to "Edit", edit_page_path(@recording), class: "inline-flex rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700" %>
+        <%= button_to "Archive", page_path(@recording), method: :delete, class: "inline-flex rounded-md border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700", form: { data: { turbo_confirm: "Archive this page and its children?" } } %>
+      <% end %>
     </div>
+  </div>
+
+  <% child_recordings = @recording.child_recordings.recent %>
+  <div class="w-full rounded-lg border border-slate-200 bg-white p-6">
+    <p class="text-sm uppercase tracking-wide text-slate-500">Child recordings</p>
+    <% if child_recordings.any? %>
+      <div class="mt-4 space-y-3">
+        <% child_recordings.each do |child| %>
+          <div class="rounded-md border border-slate-200 p-4">
+            <div class="text-sm font-medium text-slate-900">
+              <%= recordable_label(child.recordable) %>
+            </div>
+            <% if child.recordable.respond_to?(:body) && child.recordable.body.present? %>
+              <div class="mt-2 text-sm text-slate-600"><%= child.recordable.body %></div>
+            <% end %>
+            <div class="mt-2 text-xs text-slate-500">Recording ID: <%= child.id %></div>
+            <div class="mt-1 text-xs text-slate-500">Parent Recording ID: <%= child.parent_recording_id %></div>
+            <div class="mt-1 text-xs text-slate-500">Status: <%= child.discarded_at ? "Archived" : "Active" %></div>
+          </div>
+        <% end %>
+      </div>
+    <% else %>
+      <p class="mt-2 text-sm text-slate-600">No child recordings yet.</p>
+    <% end %>
   </div>
 </div>
 
@@ -49,12 +78,14 @@
           Each entry captures what changed for this page at a point in time, including actor and recordable context.
         </p>
         <div class="mt-4 space-y-4">
+          <% current_recordable_id = @recording.recordable.id %>
+          <% current_event_id = @events.find { |entry| entry.recordable&.id == current_recordable_id && !%w[deleted restored].include?(entry.action) }&.id %>
           <% @events.each do |event| %>
             <div class="rounded-md border border-slate-200 p-4">
               <div class="text-sm">
                 <div class="flex flex-wrap items-center gap-2 font-semibold text-slate-900">
                   <span><%= event.action %></span>
-                  <% if event.recordable && event.recordable.id == @recording.recordable.id %>
+                  <% if current_event_id && event.id == current_event_id %>
                     <span class="rounded-full bg-slate-900 px-2 py-0.5 text-xs font-semibold text-white">Current</span>
                   <% end %>
                 </div>

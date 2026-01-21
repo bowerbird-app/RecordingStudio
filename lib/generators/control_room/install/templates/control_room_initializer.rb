@@ -16,6 +16,12 @@ ControlRoom.configure do |config|
   # Unrecording behavior
   config.unrecord_mode = :soft # or :hard
 
+  # Unrecord child recordings by default
+  config.unrecord_children = false
+
+  # Cascade unrecord: return child recordings to delete alongside the parent
+  config.cascade_unrecord = ->(recording) { recording.child_recordings }
+
   # Recordable duplication strategy for revisions
   config.recordable_dup_strategy = :dup
 end

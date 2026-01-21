@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "set"
+
 module ControlRoom
   module HasRecordingsContainer
     extend ActiveSupport::Concern
@@ -8,7 +10,7 @@ module ControlRoom
       has_many :recordings, as: :container, class_name: "ControlRoom::Recording", dependent: :destroy
     end
 
-    def record(recordable_or_class, actor: nil, metadata: {}, &block)
+    def record(recordable_or_class, actor: nil, metadata: {}, parent_recording: nil, &block)
       recordable = build_recordable(recordable_or_class)
       yield(recordable) if block_given?
       recordable.save!
@@ -17,6 +19,7 @@ module ControlRoom
         action: "created",
         recordable: recordable,
         container: self,
+        parent_recording: parent_recording,
         actor: actor,
         metadata: metadata
       ).recording
@@ -37,23 +40,14 @@ module ControlRoom
       ).recording
     end
 
-    def unrecord(recording, actor: nil, metadata: {})
-      event = ControlRoom.record!(
-        action: "deleted",
-        recordable: recording.recordable,
-        recording: recording,
-        container: self,
-        actor: actor,
-        metadata: metadata
-      )
+    def unrecord(recording, actor: nil, metadata: {}, cascade: false)
+      cascade ||= ControlRoom.configuration.unrecord_children
+      unrecord_with_cascade(recording, actor: actor, metadata: metadata, cascade: cascade, seen: Set.new)
+    end
 
-      if ControlRoom.configuration.unrecord_mode == :hard
-        recording.destroy!
-      else
-        recording.update!(discarded_at: Time.current)
-      end
-
-      event.recording
+    def restore(recording, actor: nil, metadata: {}, cascade: false)
+      cascade ||= ControlRoom.configuration.unrecord_children
+      restore_with_cascade(recording, actor: actor, metadata: metadata, cascade: cascade, seen: Set.new)
     end
 
     def log_event(recording, action:, actor: nil, metadata: {}, occurred_at: Time.current, idempotency_key: nil)
@@ -82,6 +76,70 @@ module ControlRoom
     end
 
     private
+
+    def unrecord_with_cascade(recording, actor:, metadata:, cascade:, seen:)
+      return recording if recording.nil?
+
+      key = [recording.class.name, recording.id || recording.object_id]
+      return recording if seen.include?(key)
+
+      seen.add(key)
+
+      if cascade
+        children = Array(ControlRoom.configuration.cascade_unrecord&.call(recording)).compact
+        children.each do |child|
+          unrecord_with_cascade(child, actor: actor, metadata: metadata, cascade: true, seen: seen)
+        end
+      end
+
+      event = ControlRoom.record!(
+        action: "deleted",
+        recordable: recording.recordable,
+        recording: recording,
+        container: self,
+        actor: actor,
+        metadata: metadata
+      )
+
+      if ControlRoom.configuration.unrecord_mode == :hard
+        recording.destroy!
+      else
+        recording.update!(discarded_at: Time.current)
+      end
+
+      event.recording
+    end
+
+    def restore_with_cascade(recording, actor:, metadata:, cascade:, seen:)
+      return recording if recording.nil?
+
+      key = [recording.class.name, recording.id || recording.object_id]
+      return recording if seen.include?(key)
+
+      seen.add(key)
+
+      if cascade
+        children = Array(ControlRoom.configuration.cascade_unrecord&.call(recording)).compact
+        children.each do |child|
+          restore_with_cascade(child, actor: actor, metadata: metadata, cascade: true, seen: seen)
+        end
+      end
+
+      if recording.discarded_at
+        ControlRoom.record!(
+          action: "restored",
+          recordable: recording.recordable,
+          recording: recording,
+          container: self,
+          actor: actor,
+          metadata: metadata
+        )
+
+        recording.update!(discarded_at: nil)
+      end
+
+      recording
+    end
 
     def build_recordable(recordable_or_class)
       recordable_or_class.is_a?(Class) ? recordable_or_class.new : recordable_or_class

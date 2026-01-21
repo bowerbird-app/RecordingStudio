@@ -44,9 +44,23 @@ Recordables are immutable snapshots. Recordings repoint to newer recordables. Ev
 ## Data Model
 
 - `Recording` holds identity and points at the current recordable snapshot.
+- Recordings can form hierarchies via `parent_recording_id` (nullable).
 - Recordables are immutable snapshots (versioned state).
 - `Event` is the append-only timeline tied to a `Recording`.
 - Containers (e.g., `Workspace`) own recordings and provide the primary API.
+
+## Recording Hierarchy
+
+Recordings can be arranged in a tree via `parent_recording_id`. Roots have `parent_recording_id = nil` and children
+point at their parent recording. Use `recording.child_recordings` to traverse children.
+
+Example hierarchy:
+
+Workspace
+└─ Page Recording (root)
+  ├─ Comment Recording
+  ├─ Comment Recording
+  └─ Comment Recording
 
 ## Delegated Type Registration
 
@@ -72,18 +86,24 @@ ControlRoom.configure do |config|
   config.recordable_types = []
   config.actor_provider = -> { Current.actor }
   config.event_notifications_enabled = true
-  config.idempotency_mode = :return_existing # or :raise
+  config.idempotency_mode = :return_existing # or :raise (avoids duplicates when using idempotency keys; see below)
   config.unrecord_mode = :soft # or :hard
+  config.unrecord_children = true
   config.recordable_dup_strategy = :dup
+  config.cascade_unrecord = ->(recording) { recording.child_recordings }
 end
 ```
 
 ### Configuration Notes
 
-- `idempotency_mode`: `:return_existing` will return the existing event when `idempotency_key` matches; `:raise`
-  raises an error.
-- `unrecord_mode`: `:soft` keeps the recording (default) and marks it deleted; `:hard` removes it.
+- `idempotency_mode`: Controls how duplicate `idempotency_key` values are handled. `:return_existing` returns the
+  original event when the key matches, so retries are safe and do not create duplicates. `:raise` raises an error when
+  the key matches, so callers must handle duplicates explicitly.
+- `unrecord_mode`: `:soft` keeps the recording (default) and marks it deleted; `:hard` removes it. This is a global
+  setting (no per-call override).
+- `unrecord_children`: When `true`, `unrecord` and `restore` will cascade to child recordings by default.
 - `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
+- `cascade_unrecord`: Callable that returns child recordings to delete (defaults to `recording.child_recordings`).
 
 ## Container-First API
 
@@ -104,6 +124,12 @@ recording = workspace.record(Page, actor: current_user) do |page|
 end
 ```
 
+To create a child recording under a parent:
+
+```ruby
+child = workspace.record(Page, actor: current_user, parent_recording: recording)
+```
+
 ### Revise
 
 ```ruby
@@ -118,11 +144,49 @@ end
 workspace.unrecord(recording, actor: current_user)
 ```
 
-Unrecording appends a terminal `deleted` event and soft-deletes the recording by default.
+Unrecording appends a terminal `deleted` event and soft-deletes the recording by default. Hard deletes are controlled
+by `unrecord_mode` and are not configurable per call. If you need a one-off hard delete, destroy the recording
+directly (no additional event is emitted):
 
-### Idempotency Keys
+```ruby
+recording.destroy!
+```
 
-Use `idempotency_key` to safely retry requests:
+To cascade deletes to child recordings, pass `cascade: true` or set `unrecord_children = true`:
+
+```ruby
+ControlRoom.configure do |config|
+  config.unrecord_children = true
+  config.cascade_unrecord = ->(recording) { recording.child_recordings }
+end
+
+workspace.unrecord(recording, actor: current_user)
+```
+
+### Archive & Restore
+
+Archive (soft delete) a recording and its children:
+
+```ruby
+workspace.unrecord(recording, actor: current_user, cascade: true)
+```
+
+Restore (un-archive) a recording and its children:
+
+```ruby
+workspace.restore(recording, actor: current_user, cascade: true)
+```
+
+Archive writes a `deleted` event and sets `discarded_at`. Restore writes a `restored` event and clears `discarded_at`.
+
+### Idempotency Keys (Avoid duplicates)
+
+Use `idempotency_key` to safely retry the *same* request without creating duplicates. Think of it as a dedupe key you
+attach to an action. If the same key is seen again, ControlRoom treats it as a retry of the original request instead
+of a new event.
+
+Simple example: if a client retries a “comment” request due to a timeout, you can pass a stable key so ControlRoom
+does not create a second comment event.
 
 ```ruby
 recording.log_event!(
@@ -133,7 +197,11 @@ recording.log_event!(
 )
 ```
 
-Behavior is controlled by `idempotency_mode`.
+Behavior is controlled by `idempotency_mode`:
+- `:return_existing` returns the original event when the key is reused (default retry-safe behavior).
+- `:raise` raises an error when the key is reused (forces explicit duplicate handling).
+
+If you don’t pass a key, every call creates a new event.
 
 ## Mixin / Capability Pipeline
 
@@ -186,15 +254,17 @@ end
 
 ## Query API
 
-```ruby
-ControlRoom::Recording.recent.kept
-ControlRoom::Recording.for_container(workspace)
-ControlRoom::Recording.of_type(Page)
-
-ControlRoom::Event.for_recording(recording).recent
-ControlRoom::Event.by_actor(current_user)
-ControlRoom::Event.with_action("commented")
-```
+| Query | Description |
+| --- | --- |
+| `ControlRoom::Recording.recent` | Latest recordings first; excludes archived recordings by default. |
+| `ControlRoom::Recording.with_archived` | Includes both active and archived recordings. |
+| `ControlRoom::Recording.discarded` | Archived recordings only. |
+| `ControlRoom::Recording.archived` | Alias for archived recordings only. |
+| `ControlRoom::Recording.for_container(workspace)` | All recordings belonging to a container. |
+| `ControlRoom::Recording.of_type(Page)` | Recordings whose current recordable is a given type. |
+| `ControlRoom::Event.for_recording(recording).recent` | Events for a single recording, newest first. |
+| `ControlRoom::Event.by_actor(current_user)` | Events performed by a specific (polymorphic) actor. |
+| `ControlRoom::Event.with_action("commented")` | Events with a specific action string. |
 
 Containers can filter by recordable class:
 
@@ -202,11 +272,13 @@ Containers can filter by recordable class:
 workspace.recordings_of(Page)
 ```
 
-### Deleted vs Kept
+### Archived vs Active
 
 ```ruby
 ControlRoom::Recording.kept
-ControlRoom::Recording.deleted
+ControlRoom::Recording.discarded
+ControlRoom::Recording.archived
+ControlRoom::Recording.with_archived
 ```
 
 ## Generators

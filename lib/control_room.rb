@@ -25,7 +25,7 @@ module ControlRoom
     end
 
     def record!(action:, recordable:, recording: nil, container: nil, actor: nil,
-                metadata: {}, occurred_at: Time.current, idempotency_key: nil)
+          metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)
       ControlRoom::DelegatedTypeRegistrar.apply!
       container ||= recording&.container
       raise ArgumentError, "container is required" if container.nil?
@@ -46,7 +46,11 @@ module ControlRoom
           end
           recording.update!(recordable: recordable) if recordable != previous_recordable
         else
-          recording = ControlRoom::Recording.create!(container: container, recordable: recordable)
+          recording = ControlRoom::Recording.create!(
+            container: container,
+            recordable: recordable,
+            parent_recording: parent_recording
+          )
           previous_recordable = nil
         end
 

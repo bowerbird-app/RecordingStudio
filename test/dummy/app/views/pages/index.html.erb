@@ -5,7 +5,14 @@
     <h2 class="text-2xl font-semibold">Pages</h2>
     <p class="text-sm text-slate-500">Recordings tracked inside the workspace.</p>
   </div>
-  <%= link_to "New Page", new_page_path, class: "rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white" %>
+  <div class="flex items-center gap-2">
+    <%= link_to "New Page", new_page_path, class: "rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white" %>
+    <% if params[:archived].to_s == "true" %>
+      <%= link_to "Show active", pages_path, class: "rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
+    <% else %>
+      <%= link_to "Show archived", pages_path(archived: true), class: "rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
+    <% end %>
+  </div>
 </div>
 
 <div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
@@ -13,7 +20,9 @@
     <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
       <tr>
         <th class="px-6 py-3">Title</th>
-        <th class="px-6 py-3">Summary</th>
+        <th class="px-6 py-3">Children</th>
+        <th class="px-6 py-3">Status</th>
+        <th class="px-6 py-3">Last updated by</th>
         <th class="px-6 py-3">Updated</th>
         <th class="px-6 py-3 text-right">Actions</th>
       </tr>
@@ -24,7 +33,10 @@
           <td class="px-6 py-4 font-medium text-slate-900">
             <%= link_to recording.recordable.title, recording_path(recording), class: "hover:underline" %>
           </td>
-          <td class="px-6 py-4 text-slate-600"><%= recording.recordable.summary %></td>
+          <td class="px-6 py-4 text-slate-600"><%= recording.child_recordings.kept.count %></td>
+          <td class="px-6 py-4 text-slate-600"><%= recording.discarded_at ? "Archived" : "Active" %></td>
+          <% last_event = recording.events.recent.first %>
+          <td class="px-6 py-4 text-slate-600"><%= actor_label(last_event&.actor) %></td>
           <td class="px-6 py-4 text-slate-500"><%= l(recording.updated_at, format: :short) %></td>
           <td class="px-6 py-4 text-right">
             <div class="inline-flex items-center gap-3">

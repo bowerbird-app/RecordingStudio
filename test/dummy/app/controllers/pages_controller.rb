@@ -1,9 +1,14 @@
 class PagesController < ApplicationController
   before_action :load_workspace
-  before_action :load_recording, only: %i[show edit update destroy]
+  before_action :load_recording, only: %i[show edit update destroy restore]
 
   def index
-    @recordings = @workspace.recordings_of(Page).kept.recent
+    scope = @workspace.recordings_of(Page)
+    @recordings = if params[:archived].to_s == "true"
+      scope.discarded.recent
+    else
+      scope.recent
+    end
   end
 
   def show
@@ -36,8 +41,13 @@ class PagesController < ApplicationController
   end
 
   def destroy
-    @workspace.unrecord(@recording, actor: current_actor, metadata: { source: "ui" })
+    @workspace.unrecord(@recording, actor: current_actor, metadata: { source: "ui" }, cascade: true)
     redirect_to pages_path
+  end
+
+  def restore
+    @workspace.restore(@recording, actor: current_actor, metadata: { source: "ui" }, cascade: true)
+    redirect_to recording_path(@recording)
   end
 
   private
@@ -47,7 +57,7 @@ class PagesController < ApplicationController
   end
 
   def load_recording
-    @recording = @workspace.recordings.find(params[:recording_id])
+    @recording = @workspace.recordings.with_archived.find(params[:recording_id])
   end
 
   def page_params

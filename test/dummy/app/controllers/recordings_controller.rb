@@ -33,6 +33,6 @@ class RecordingsController < ApplicationController
 
   def load_recording
     recording_id = params[:id] || params[:recording_id]
-    @recording = ControlRoom::Recording.find(recording_id)
+    @recording = ControlRoom::Recording.with_archived.find(recording_id)
   end
 end

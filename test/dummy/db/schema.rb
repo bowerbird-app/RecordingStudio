@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_01_01_000011) do
+ActiveRecord::Schema[8.1].define(version: 2025_01_01_000014) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -38,11 +38,22 @@ ActiveRecord::Schema[8.1].define(version: 2025_01_01_000011) do
     t.string "container_type", null: false
     t.datetime "created_at", null: false
     t.datetime "discarded_at"
+    t.uuid "parent_recording_id"
     t.uuid "recordable_id", null: false
     t.string "recordable_type", null: false
     t.datetime "updated_at", null: false
     t.index ["container_type", "container_id"], name: "index_control_room_recordings_on_container"
+    t.index ["parent_recording_id"], name: "index_control_room_recordings_on_parent_recording_id"
     t.index ["recordable_type", "recordable_id"], name: "index_control_room_recordings_on_recordable"
+  end
+
+  create_table "comments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.uuid "original_id"
+    t.datetime "updated_at", null: false
+    t.integer "version", default: 1, null: false
+    t.index ["original_id"], name: "index_comments_on_original_id"
   end
 
   create_table "pages", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -75,4 +86,5 @@ ActiveRecord::Schema[8.1].define(version: 2025_01_01_000011) do
   end
 
   add_foreign_key "control_room_events", "control_room_recordings", column: "recording_id"
+  add_foreign_key "control_room_recordings", "control_room_recordings", column: "parent_recording_id"
 end

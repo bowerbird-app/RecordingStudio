@@ -8,3 +8,4 @@ ControlRoom.configure do |config|
 end
 
 ControlRoom.register_recordable_type("Page")
+ControlRoom.register_recordable_type("Comment")

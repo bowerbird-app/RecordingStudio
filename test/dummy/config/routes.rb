@@ -5,7 +5,9 @@ Rails.application.routes.draw do
 
   resource :actor, only: :update
 
-  resources :pages, param: :recording_id
+  resources :pages, param: :recording_id do
+    post :restore, on: :member
+  end
   resources :recordings, only: [:show] do
     post :log_event, on: :member
     post "revert/:recordable_id", to: "recordings#revert", as: :revert
