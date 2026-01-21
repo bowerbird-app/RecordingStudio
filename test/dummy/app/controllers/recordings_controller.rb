@@ -3,6 +3,9 @@ class RecordingsController < ApplicationController
 
   def show
     @events = @recording.events.recent
+    @recordables = ([@recording.recordable] + @events.flat_map { |event| [event.recordable, event.previous_recordable] })
+      .compact
+      .uniq { |recordable| recordable.id }
   end
 
   def log_event

@@ -149,7 +149,10 @@ module ControlRoom
       strategy = ControlRoom.configuration.recordable_dup_strategy
       return strategy.call(recordable) if strategy.respond_to?(:call)
 
-      recordable.dup
+      duplicated = recordable.dup
+      duplicated.recordings_count = 0 if duplicated.respond_to?(:recordings_count=)
+      duplicated.events_count = 0 if duplicated.respond_to?(:events_count=)
+      duplicated
     end
   end
 end

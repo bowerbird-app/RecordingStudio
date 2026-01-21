@@ -10,10 +10,21 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_01_01_000014) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_21_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
+
+  create_table "comments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.integer "events_count", default: 0, null: false
+    t.uuid "original_id"
+    t.integer "recordings_count", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.integer "version", default: 1, null: false
+    t.index ["original_id"], name: "index_comments_on_original_id"
+  end
 
   create_table "control_room_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "action", null: false
@@ -47,18 +58,11 @@ ActiveRecord::Schema[8.1].define(version: 2025_01_01_000014) do
     t.index ["recordable_type", "recordable_id"], name: "index_control_room_recordings_on_recordable"
   end
 
-  create_table "comments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.text "body", null: false
-    t.datetime "created_at", null: false
-    t.uuid "original_id"
-    t.datetime "updated_at", null: false
-    t.integer "version", default: 1, null: false
-    t.index ["original_id"], name: "index_comments_on_original_id"
-  end
-
   create_table "pages", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.integer "events_count", default: 0, null: false
     t.uuid "original_id"
+    t.integer "recordings_count", default: 0, null: false
     t.text "summary"
     t.string "title", null: false
     t.datetime "updated_at", null: false

@@ -123,9 +123,8 @@
         <p class="mt-2 text-sm text-slate-600">
           All snapshots referenced by this recording, including previous versions.
         </p>
-        <% recordables = ([@recording.recordable] + @events.flat_map { |event| [event.recordable, event.previous_recordable] }).compact.uniq { |recordable| recordable.id } %>
         <div class="mt-4 space-y-3">
-          <% recordables.each do |recordable| %>
+          <% @recordables.each do |recordable| %>
             <div class="rounded-md border border-slate-200 p-4">
               <% if recordable.id == @recording.recordable.id %>
                 <div>
@@ -138,6 +137,12 @@
               <% if recordable.respond_to?(:summary) && recordable.summary.present? %>
                 <div class="mt-2 text-xs text-slate-500"><%= recordable.summary %></div>
               <% end %>
+              <div class="mt-2 text-xs text-slate-500">
+                Recordings pointing here: <%= recordable.respond_to?(:recordings_count) ? recordable.recordings_count : 0 %>
+              </div>
+              <div class="mt-1 text-xs text-slate-500">
+                Events pointing here: <%= recordable.respond_to?(:events_count) ? recordable.events_count : 0 %>
+              </div>
               <div class="mt-1 text-xs text-slate-500">ID: <%= recordable.id %></div>
               <% if recordable.respond_to?(:created_at) && recordable.created_at.present? %>
                 <div class="mt-1 text-xs text-slate-500">Created: <%= l(recordable.created_at, format: :short) %></div>
