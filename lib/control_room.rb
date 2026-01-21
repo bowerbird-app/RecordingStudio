@@ -5,6 +5,7 @@ require "control_room/engine"
 require "control_room/configuration"
 require "control_room/delegated_type_registrar"
 require "control_room/errors"
+require "control_room/recordable"
 require "control_room/services/base_service"
 require "control_room/services/example_service"
 

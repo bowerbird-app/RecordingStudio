@@ -19,6 +19,19 @@ module ControlRoom
 
       recording_class.delegated_type :recordable, types: types
       recording_class.instance_variable_set(:@control_room_recordable_types, types)
+
+      types.each do |type_name|
+        recordable_class = ActiveSupport::Inflector.safe_constantize(type_name)
+        next unless recordable_class
+
+        unless recordable_class < ActiveRecord::Base
+          next
+        end
+
+        unless recordable_class.included_modules.include?(ControlRoom::Recordable)
+          recordable_class.include(ControlRoom::Recordable)
+        end
+      end
     end
   end
 end
