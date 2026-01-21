@@ -8,7 +8,7 @@ ControlRoom.configure do |config|
   config.actor_provider = -> { Current.actor }
 
   # Emit ActiveSupport::Notifications events
-  config.instrumentation_enabled = true
+  config.event_notifications_enabled = true
 
   # Idempotency behavior for log_event!
   config.idempotency_mode = :return_existing # or :raise

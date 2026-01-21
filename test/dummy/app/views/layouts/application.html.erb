@@ -24,6 +24,7 @@
   </head>
 
   <body class="bg-slate-50 text-slate-900">
+    <%= turbo_stream_from "control_room_toasts" %>
     <div class="min-h-screen">
       <header class="border-b border-slate-200 bg-white">
         <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -42,5 +43,6 @@
         <%= yield %>
       </main>
     </div>
+    <div id="toast-container" data-turbo-permanent class="pointer-events-none fixed inset-y-4 right-4 z-50 flex flex-col items-end gap-3"></div>
   </body>
 </html>

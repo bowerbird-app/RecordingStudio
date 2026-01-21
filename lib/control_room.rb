@@ -87,7 +87,7 @@ module ControlRoom
     end
 
     def instrument_event(event)
-      return unless configuration.instrumentation_enabled
+      return unless configuration.event_notifications_enabled
 
       ActiveSupport::Notifications.instrument(
         "recordings.event_created",

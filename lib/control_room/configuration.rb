@@ -4,18 +4,26 @@ require_relative "hooks"
 
 module ControlRoom
   class Configuration
-    attr_accessor :recordable_types, :actor_provider, :instrumentation_enabled,
+    attr_accessor :recordable_types, :actor_provider, :event_notifications_enabled,
                   :idempotency_mode, :unrecord_mode, :recordable_dup_strategy
     attr_reader :hooks
 
     def initialize
       @recordable_types = []
       @actor_provider = -> { defined?(Current) ? Current.actor : nil }
-      @instrumentation_enabled = true
+      @event_notifications_enabled = true
       @idempotency_mode = :return_existing
       @unrecord_mode = :soft
       @recordable_dup_strategy = :dup
       @hooks = Hooks.new
+    end
+
+    def instrumentation_enabled
+      event_notifications_enabled
+    end
+
+    def instrumentation_enabled=(value)
+      self.event_notifications_enabled = value
     end
 
     def recordable_types=(types)
@@ -25,7 +33,7 @@ module ControlRoom
     def to_h
       {
         recordable_types: recordable_types,
-        instrumentation_enabled: instrumentation_enabled,
+        event_notifications_enabled: event_notifications_enabled,
         idempotency_mode: idempotency_mode,
         unrecord_mode: unrecord_mode,
         recordable_dup_strategy: recordable_dup_strategy,

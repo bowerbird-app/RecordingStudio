@@ -7,7 +7,7 @@ class ConfigurationTest < Minitest::Test
     config = ControlRoom::Configuration.new
 
     assert_equal [], config.recordable_types
-    assert config.instrumentation_enabled
+    assert config.event_notifications_enabled
     assert_equal :return_existing, config.idempotency_mode
     assert_equal :soft, config.unrecord_mode
     assert_equal :dup, config.recordable_dup_strategy
