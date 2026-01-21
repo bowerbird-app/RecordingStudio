@@ -66,6 +66,17 @@ module ControlRoom
       )
     end
 
+    def revert(recording, to_recordable:, actor: nil, metadata: {})
+      ControlRoom.record!(
+        action: "reverted",
+        recordable: to_recordable,
+        recording: recording,
+        container: self,
+        actor: actor,
+        metadata: metadata
+      ).recording
+    end
+
     def recordings_of(recordable_class)
       recordings.of_type(recordable_class)
     end

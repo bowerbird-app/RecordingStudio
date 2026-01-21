@@ -17,7 +17,6 @@ class PagesController < ApplicationController
   def create
     recording = @workspace.record(Page, actor: current_actor, metadata: { source: "ui" }) do |page|
       page.assign_attributes(page_params)
-      page.version = 1
     end
 
     redirect_to recording_path(recording)
@@ -30,7 +29,6 @@ class PagesController < ApplicationController
   def update
     updated_recording = @workspace.revise(@recording, actor: current_actor, metadata: { source: "ui" }) do |page|
       page.assign_attributes(page_params)
-      page.version = @recording.recordable.version.to_i + 1
       page.original_id = @recording.recordable.original_id || @recording.recordable.id
     end
 

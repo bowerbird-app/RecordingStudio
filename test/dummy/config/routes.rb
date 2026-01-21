@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   resources :pages, param: :recording_id
   resources :recordings, only: [:show] do
     post :log_event, on: :member
+    post "revert/:recordable_id", to: "recordings#revert", as: :revert
   end
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html

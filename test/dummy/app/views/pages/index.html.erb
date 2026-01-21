@@ -14,7 +14,6 @@
       <tr>
         <th class="px-6 py-3">Title</th>
         <th class="px-6 py-3">Summary</th>
-        <th class="px-6 py-3">Version</th>
         <th class="px-6 py-3">Updated</th>
         <th class="px-6 py-3 text-right">Actions</th>
       </tr>
@@ -22,9 +21,10 @@
     <tbody class="divide-y divide-slate-200 text-sm">
       <% @recordings.each do |recording| %>
         <tr>
-          <td class="px-6 py-4 font-medium text-slate-900"><%= recording.recordable.title %></td>
+          <td class="px-6 py-4 font-medium text-slate-900">
+            <%= link_to recording.recordable.title, recording_path(recording), class: "hover:underline" %>
+          </td>
           <td class="px-6 py-4 text-slate-600"><%= recording.recordable.summary %></td>
-          <td class="px-6 py-4 text-slate-600"><%= recording.recordable.version %></td>
           <td class="px-6 py-4 text-slate-500"><%= l(recording.updated_at, format: :short) %></td>
           <td class="px-6 py-4 text-right">
             <div class="inline-flex items-center gap-3">
