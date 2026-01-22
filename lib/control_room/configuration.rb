@@ -16,7 +16,7 @@ module ControlRoom
       @idempotency_mode = :return_existing
       @unrecord_mode = :soft
         @recordable_dup_strategy = :dup
-        @cascade_unrecord = ->(recording) { recording.child_recordings }
+        @cascade_unrecord = ->(recording) { recording.child_recordings.with_archived }
         @unrecord_children = false
       @hooks = Hooks.new
     end
