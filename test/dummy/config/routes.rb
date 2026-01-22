@@ -1,7 +1,7 @@
 Rails.application.routes.draw do
   mount MakeupArtist::Engine => "/makeup_artist", as: "makeup_artist"
-  # Mount the ControlRoom engine
-  mount ControlRoom::Engine, at: "/control_room"
+  # Mount the RecordingStudio engine
+  mount RecordingStudio::Engine, at: "/recording_studio"
 
   resource :actor, only: :update
 

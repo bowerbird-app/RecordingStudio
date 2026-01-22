@@ -26,17 +26,17 @@ else
 end
 
 actors.each do |actor|
-  existing_recording = ControlRoom::Recording
+  existing_recording = RecordingStudio::Recording
     .for_container(workspace)
     .of_type(Page)
     .where(recordable_id: template_page.id)
     .joins(:events)
-    .merge(ControlRoom::Event.with_action("created").by_actor(actor))
+    .merge(RecordingStudio::Event.with_action("created").by_actor(actor))
     .first
 
   next if existing_recording
 
-  new_recording = ControlRoom.record!(
+  new_recording = RecordingStudio.record!(
     action: "created",
     recordable: template_page,
     container: workspace,
@@ -46,12 +46,12 @@ actors.each do |actor|
   page_recording ||= new_recording
 end
 
-page_recording ||= ControlRoom::Recording
+page_recording ||= RecordingStudio::Recording
   .for_container(workspace)
   .of_type(Page)
   .where(recordable_id: template_page.id)
   .joins(:events)
-  .merge(ControlRoom::Event.with_action("created").by_actor(actors.first))
+  .merge(RecordingStudio::Event.with_action("created").by_actor(actors.first))
   .first
 
 if workspace.recordings_of(Comment).where(parent_recording_id: page_recording.id).none?
@@ -71,7 +71,7 @@ end
 [Page, Comment].each do |recordable_class|
   recordable_class.update_all(recordings_count: 0, events_count: 0)
 
-  ControlRoom::Recording
+  RecordingStudio::Recording
     .where(recordable_type: recordable_class.name)
     .group(:recordable_id)
     .count
@@ -79,7 +79,7 @@ end
       recordable_class.where(id: recordable_id).update_all(recordings_count: count)
     end
 
-  ControlRoom::Event
+  RecordingStudio::Event
     .where(recordable_type: recordable_class.name)
     .group(:recordable_id)
     .count

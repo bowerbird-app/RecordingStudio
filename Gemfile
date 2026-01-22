@@ -2,7 +2,7 @@
 
 source "https://rubygems.org"
 
-# Specify your gem's dependencies in control_room.gemspec
+# Specify your gem's dependencies in recording_studio.gemspec
 gemspec
 
 gem "puma"

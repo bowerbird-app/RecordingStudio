@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_21_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_22_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -26,7 +26,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_21_000001) do
     t.index ["original_id"], name: "index_comments_on_original_id"
   end
 
-  create_table "control_room_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+  create_table "pages", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "events_count", default: 0, null: false
+    t.uuid "original_id"
+    t.integer "recordings_count", default: 0, null: false
+    t.text "summary"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.integer "version", default: 1, null: false
+    t.index ["original_id"], name: "index_pages_on_original_id"
+  end
+
+  create_table "recording_studio_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "action", null: false
     t.uuid "actor_id"
     t.string "actor_type"
@@ -40,11 +52,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_21_000001) do
     t.string "recordable_type", null: false
     t.uuid "recording_id", null: false
     t.datetime "updated_at", null: false
-    t.index ["recording_id", "idempotency_key"], name: "index_control_room_events_on_recording_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
-    t.index ["recording_id"], name: "index_control_room_events_on_recording_id"
+    t.index ["recording_id", "idempotency_key"], name: "index_recording_studio_events_on_recording_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
+    t.index ["recording_id"], name: "index_recording_studio_events_on_recording_id"
   end
 
-  create_table "control_room_recordings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+  create_table "recording_studio_recordings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.uuid "container_id", null: false
     t.string "container_type", null: false
     t.datetime "created_at", null: false
@@ -53,21 +65,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_21_000001) do
     t.uuid "recordable_id", null: false
     t.string "recordable_type", null: false
     t.datetime "updated_at", null: false
-    t.index ["container_type", "container_id"], name: "index_control_room_recordings_on_container"
-    t.index ["parent_recording_id"], name: "index_control_room_recordings_on_parent_recording_id"
-    t.index ["recordable_type", "recordable_id"], name: "index_control_room_recordings_on_recordable"
-  end
-
-  create_table "pages", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.integer "events_count", default: 0, null: false
-    t.uuid "original_id"
-    t.integer "recordings_count", default: 0, null: false
-    t.text "summary"
-    t.string "title", null: false
-    t.datetime "updated_at", null: false
-    t.integer "version", default: 1, null: false
-    t.index ["original_id"], name: "index_pages_on_original_id"
+    t.index ["container_type", "container_id"], name: "index_recording_studio_recordings_on_container"
+    t.index ["parent_recording_id"], name: "index_recording_studio_recordings_on_parent_recording_id"
+    t.index ["recordable_type", "recordable_id"], name: "index_recording_studio_recordings_on_recordable"
   end
 
   create_table "service_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -89,6 +89,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_21_000001) do
     t.datetime "updated_at", null: false
   end
 
-  add_foreign_key "control_room_events", "control_room_recordings", column: "recording_id"
-  add_foreign_key "control_room_recordings", "control_room_recordings", column: "parent_recording_id"
+  add_foreign_key "recording_studio_events", "recording_studio_recordings", column: "recording_id"
+  add_foreign_key "recording_studio_recordings", "recording_studio_recordings", column: "parent_recording_id"
 end

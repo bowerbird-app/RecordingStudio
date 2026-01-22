@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "ControlRoom Sandbox" %></title>
+    <title><%= content_for(:title) || "RecordingStudio Sandbox" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Dummy">
@@ -24,12 +24,12 @@
   </head>
 
   <body class="bg-slate-50 text-slate-900">
-    <%= turbo_stream_from "control_room_toasts" %>
+    <%= turbo_stream_from "recording_studio_toasts" %>
     <div class="min-h-screen">
       <header class="border-b border-slate-200 bg-white">
         <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <div>
-            <p class="text-sm uppercase tracking-wide text-slate-500">ControlRoom</p>
+            <p class="text-sm uppercase tracking-wide text-slate-500">RecordingStudio</p>
             <h1 class="text-lg font-semibold">Recording Sandbox</h1>
           </div>
           <%= form_with url: actor_path, method: :patch, local: true, class: "flex items-center gap-3" do |form| %>

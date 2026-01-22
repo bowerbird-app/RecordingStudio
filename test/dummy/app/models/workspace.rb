@@ -1,5 +1,5 @@
 class Workspace < ApplicationRecord
-  include ControlRoom::HasRecordingsContainer
+  include RecordingStudio::HasRecordingsContainer
 
   validates :name, presence: true
 end

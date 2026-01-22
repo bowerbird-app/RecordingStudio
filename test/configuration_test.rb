@@ -4,7 +4,7 @@ require "test_helper"
 
 class ConfigurationTest < Minitest::Test
   def test_default_configuration_values
-    config = ControlRoom::Configuration.new
+    config = RecordingStudio::Configuration.new
 
     assert_equal [], config.recordable_types
     assert config.event_notifications_enabled
@@ -14,20 +14,20 @@ class ConfigurationTest < Minitest::Test
   end
 
   def test_recordable_types_normalization
-    config = ControlRoom::Configuration.new
+    config = RecordingStudio::Configuration.new
     config.recordable_types = ["Page", :Page]
 
     assert_equal ["Page"], config.recordable_types
   end
 
   def test_register_recordable_type_updates_configuration
-    original = ControlRoom.configuration.recordable_types
-    ControlRoom.configuration.recordable_types = []
+    original = RecordingStudio.configuration.recordable_types
+    RecordingStudio.configuration.recordable_types = []
 
-    ControlRoom.register_recordable_type("Page")
+    RecordingStudio.register_recordable_type("Page")
 
-    assert_includes ControlRoom.configuration.recordable_types, "Page"
+    assert_includes RecordingStudio.configuration.recordable_types, "Page"
   ensure
-    ControlRoom.configuration.recordable_types = original
+    RecordingStudio.configuration.recordable_types = original
   end
 end

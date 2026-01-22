@@ -1,14 +1,14 @@
-# ControlRoom
+# RecordingStudio
 
-ControlRoom is a Rails engine foundation that implements Basecamp-style **Recordings**, **Recordables**, and **Events**
+RecordingStudio is a Rails engine foundation that implements Basecamp-style **Recordings**, **Recordables**, and **Events**
 using `delegated_type`. It provides an append-only event timeline with polymorphic actors, a container-first API, and a
 stable mixin surface for capabilities like comments, attachments, and reactions.
 
 **Requirements:** Ruby 3.3+ and Rails 8.1+.
 
-## Why ControlRoom
+## Why RecordingStudio
 
-ControlRoom separates identity, state, and history so you can build durable collaboration features without mutating
+RecordingStudio separates identity, state, and history so you can build durable collaboration features without mutating
 history or coupling mixins to specific recordable models. It supports immutable snapshots, a stable capability surface,
 and a consistent event timeline with polymorphic actors.
 
@@ -17,15 +17,15 @@ and a consistent event timeline with polymorphic actors.
 Add the gem to your Gemfile:
 
 ```ruby
-gem "control_room"
+gem "recording_studio"
 ```
 
 Install and set up:
 
 ```bash
 bundle install
-rails g control_room:install
-rails g control_room:migrations
+rails g recording_studio:install
+rails g recording_studio:migrations
 rails db:migrate
 ```
 
@@ -64,17 +64,17 @@ Workspace
 
 ## Delegated Type Registration
 
-ControlRoom uses `delegated_type` but cannot know your recordable classes ahead of time. Register types at runtime:
+RecordingStudio uses `delegated_type` but cannot know your recordable classes ahead of time. Register types at runtime:
 
 ```ruby
-ControlRoom.configure do |config|
+RecordingStudio.configure do |config|
   config.recordable_types = ["Page"]
 end
 
-ControlRoom.register_recordable_type("Page")
+RecordingStudio.register_recordable_type("Page")
 ```
 
-Each entry is an ActiveRecord model class name (as a String). ControlRoom constantizes these names and registers them
+Each entry is an ActiveRecord model class name (as a String). RecordingStudio constantizes these names and registers them
 with `delegated_type`, so the class must be loadable in your app.
 
 The engine applies `delegated_type` on boot and reload via a Railtie, and registration is idempotent.
@@ -82,7 +82,7 @@ The engine applies `delegated_type` on boot and reload via a Railtie, and regist
 ## Configuration
 
 ```ruby
-ControlRoom.configure do |config|
+RecordingStudio.configure do |config|
   config.recordable_types = []
   config.actor_provider = -> { Current.actor }
   config.event_notifications_enabled = true
@@ -107,11 +107,11 @@ end
 
 ## Container-First API
 
-Include `ControlRoom::HasRecordingsContainer` in your container model:
+Include `RecordingStudio::HasRecordingsContainer` in your container model:
 
 ```ruby
 class Workspace < ApplicationRecord
-  include ControlRoom::HasRecordingsContainer
+  include RecordingStudio::HasRecordingsContainer
 end
 ```
 
@@ -155,7 +155,7 @@ recording.destroy!
 To cascade deletes to child recordings, pass `cascade: true` or set `unrecord_children = true`:
 
 ```ruby
-ControlRoom.configure do |config|
+RecordingStudio.configure do |config|
   config.unrecord_children = true
   config.cascade_unrecord = ->(recording) { recording.child_recordings }
 end
@@ -182,10 +182,10 @@ Archive writes a `deleted` event and sets `discarded_at`. Restore writes a `rest
 ### Idempotency Keys (Avoid duplicates)
 
 Use `idempotency_key` to safely retry the *same* request without creating duplicates. Think of it as a dedupe key you
-attach to an action. If the same key is seen again, ControlRoom treats it as a retry of the original request instead
+attach to an action. If the same key is seen again, RecordingStudio treats it as a retry of the original request instead
 of a new event.
 
-Simple example: if a client retries a “comment” request due to a timeout, you can pass a stable key so ControlRoom
+Simple example: if a client retries a “comment” request due to a timeout, you can pass a stable key so RecordingStudio
 does not create a second comment event.
 
 ```ruby
@@ -218,7 +218,7 @@ Idempotency keys are supported through `idempotency_key` and respect `idempotenc
 All entry points delegate to:
 
 ```ruby
-ControlRoom.record!(
+RecordingStudio.record!(
   action: "created",
   recordable: page,
   recording: recording,
@@ -238,7 +238,7 @@ module HasComments
   end
 end
 
-ControlRoom::Recording.include(HasComments)
+RecordingStudio::Recording.include(HasComments)
 ```
 
 ## Actor Model
@@ -247,7 +247,7 @@ Events capture polymorphic actors (User, ServiceAccount, AI agent, etc). Provide
 an actor explicitly.
 
 ```ruby
-ControlRoom.configure do |config|
+RecordingStudio.configure do |config|
   config.actor_provider = -> { Current.actor }
 end
 ```
@@ -256,15 +256,15 @@ end
 
 | Query | Description |
 | --- | --- |
-| `ControlRoom::Recording.recent` | Latest recordings first; excludes archived recordings by default. |
-| `ControlRoom::Recording.with_archived` | Includes both active and archived recordings. |
-| `ControlRoom::Recording.discarded` | Archived recordings only. |
-| `ControlRoom::Recording.archived` | Alias for archived recordings only. |
-| `ControlRoom::Recording.for_container(workspace)` | All recordings belonging to a container. |
-| `ControlRoom::Recording.of_type(Page)` | Recordings whose current recordable is a given type. |
-| `ControlRoom::Event.for_recording(recording).recent` | Events for a single recording, newest first. |
-| `ControlRoom::Event.by_actor(current_user)` | Events performed by a specific (polymorphic) actor. |
-| `ControlRoom::Event.with_action("commented")` | Events with a specific action string. |
+| `RecordingStudio::Recording.recent` | Latest recordings first; excludes archived recordings by default. |
+| `RecordingStudio::Recording.with_archived` | Includes both active and archived recordings. |
+| `RecordingStudio::Recording.discarded` | Archived recordings only. |
+| `RecordingStudio::Recording.archived` | Alias for archived recordings only. |
+| `RecordingStudio::Recording.for_container(workspace)` | All recordings belonging to a container. |
+| `RecordingStudio::Recording.of_type(Page)` | Recordings whose current recordable is a given type. |
+| `RecordingStudio::Event.for_recording(recording).recent` | Events for a single recording, newest first. |
+| `RecordingStudio::Event.by_actor(current_user)` | Events performed by a specific (polymorphic) actor. |
+| `RecordingStudio::Event.with_action("commented")` | Events with a specific action string. |
 
 Containers can filter by recordable class:
 
@@ -275,17 +275,17 @@ workspace.recordings_of(Page)
 ### Archived vs Active
 
 ```ruby
-ControlRoom::Recording.kept
-ControlRoom::Recording.discarded
-ControlRoom::Recording.archived
-ControlRoom::Recording.with_archived
+RecordingStudio::Recording.kept
+RecordingStudio::Recording.discarded
+RecordingStudio::Recording.archived
+RecordingStudio::Recording.with_archived
 ```
 
 ## Generators
 
 ```bash
-rails g control_room:install
-rails g control_room:migrations
+rails g recording_studio:install
+rails g recording_studio:migrations
 ```
 
 The install generator creates the initializer and mounts the engine. The migrations generator installs the engine tables.
@@ -296,9 +296,9 @@ When `event_notifications_enabled` is `true`, the engine emits ActiveSupport not
 Subscribe with:
 
 ```ruby
-ActiveSupport::Notifications.subscribe("control_room.record") do |*args|
+ActiveSupport::Notifications.subscribe("recording_studio.record") do |*args|
   event = ActiveSupport::Notifications::Event.new(*args)
-  Rails.logger.info("ControlRoom: #{event.payload.inspect}")
+  Rails.logger.info("RecordingStudio: #{event.payload.inspect}")
 end
 ```
 

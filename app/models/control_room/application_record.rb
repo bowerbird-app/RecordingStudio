@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
+require "recording_studio/application_record"
+
 module ControlRoom
-  class ApplicationRecord < ActiveRecord::Base
-    self.abstract_class = true
-  end
+  ApplicationRecord = RecordingStudio::ApplicationRecord
 end
