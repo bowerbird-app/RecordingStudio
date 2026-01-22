@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_01_22_000004) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_22_000005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -60,10 +60,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_22_000004) do
     t.uuid "container_id", null: false
     t.string "container_type", null: false
     t.datetime "created_at", null: false
-    t.datetime "discarded_at"
     t.uuid "parent_recording_id"
     t.uuid "recordable_id", null: false
     t.string "recordable_type", null: false
+    t.datetime "trashed_at"
     t.datetime "updated_at", null: false
     t.index ["container_type", "container_id"], name: "index_recording_studio_recordings_on_container"
     t.index ["parent_recording_id"], name: "index_recording_studio_recordings_on_parent_recording_id"

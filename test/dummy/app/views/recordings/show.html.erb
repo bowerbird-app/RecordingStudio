@@ -7,16 +7,16 @@
     <h2 class="text-2xl font-semibold"><%= @recording.recordable.title %></h2>
     <p class="mt-2 text-sm text-slate-600"><%= @recording.recordable.summary %></p>
     <div class="mt-4 flex flex-wrap items-center gap-2">
-      <% if @recording.discarded_at %>
+      <% if @recording.trashed_at %>
         <%= button_to "Restore", restore_page_path(@recording), method: :post, class: "inline-flex rounded-md border border-emerald-300 px-3 py-2 text-sm font-medium text-emerald-700", form: { data: { turbo_confirm: "Restore this page and its children?" } } %>
       <% else %>
         <%= link_to "Edit", edit_page_path(@recording), class: "inline-flex rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700" %>
-        <%= button_to "Archive", page_path(@recording), method: :delete, class: "inline-flex rounded-md border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700", form: { data: { turbo_confirm: "Archive this page and its children?" } } %>
+        <%= button_to "Trash", page_path(@recording), method: :delete, class: "inline-flex rounded-md border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700", form: { data: { turbo_confirm: "Trash this page and its children?" } } %>
       <% end %>
     </div>
   </div>
 
-  <% child_recordings = @recording.child_recordings.with_archived.recent %>
+  <% child_recordings = @recording.child_recordings.including_trashed.recent %>
   <div class="w-full rounded-lg border border-slate-200 bg-white p-6">
     <p class="text-sm uppercase tracking-wide text-slate-500">Child recordings</p>
     <% if child_recordings.any? %>
@@ -25,8 +25,8 @@
           <div class="rounded-md border border-slate-200 p-4">
             <div class="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
               <span><%= recordable_label(child.recordable) %></span>
-              <% if child.discarded_at.present? %>
-                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700">Archived</span>
+              <% if child.trashed_at.present? %>
+                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700">Trashed</span>
               <% end %>
             </div>
             <% if child.recordable.respond_to?(:body) && child.recordable.body.present? %>
@@ -34,7 +34,7 @@
             <% end %>
             <div class="mt-2 text-xs text-slate-500">Recording ID: <%= child.id %></div>
             <div class="mt-1 text-xs text-slate-500">Parent Recording ID: <%= child.parent_recording_id %></div>
-            <div class="mt-1 text-xs text-slate-500">Status: <%= child.discarded_at ? "Archived" : "Active" %></div>
+            <div class="mt-1 text-xs text-slate-500">Status: <%= child.trashed_at ? "Trashed" : "Active" %></div>
           </div>
         <% end %>
       </div>
@@ -67,7 +67,7 @@
         </div>
         <div>
           <dt class="text-slate-500">Status</dt>
-          <dd class="font-medium text-slate-900"><%= @recording.discarded_at ? "Archived" : "Active" %></dd>
+          <dd class="font-medium text-slate-900"><%= @recording.trashed_at ? "Trashed" : "Active" %></dd>
         </div>
       </dl>
     </div>

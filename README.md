@@ -65,12 +65,11 @@ point at their parent recording. Use `recording.child_recordings` to traverse ch
 
 Example hierarchy:
 
-Workspace
-└─ Page Recording (root)
-  ├─ Comment Recording
-  ├─ Comment Recording
-  └─ Comment Recording
-
+- Workspace
+  - Page (recording)
+    - Comment (recording)
+    - Comment (recording)
+    - Comment (recording)
 ## Delegated Type Registration
 
 RecordingStudio uses `delegated_type` but cannot know your recordable classes ahead of time. Register types at runtime:
@@ -186,7 +185,7 @@ Restore (un-archive) a recording and its children:
 workspace.restore(recording, actor: current_user, cascade: true)
 ```
 
-Archive writes a `deleted` event and sets `discarded_at`. Restore writes a `restored` event and clears `discarded_at`.
+Trash writes a `deleted` event and sets `trashed_at`. Restore writes a `restored` event and clears `trashed_at`.
 
 ### Idempotency Keys (Avoid duplicates)
 
@@ -265,10 +264,9 @@ end
 
 | Query | Description |
 | --- | --- |
-| `RecordingStudio::Recording.recent` | Latest recordings first; excludes archived recordings by default. |
-| `RecordingStudio::Recording.with_archived` | Includes both active and archived recordings. |
-| `RecordingStudio::Recording.discarded` | Archived recordings only. |
-| `RecordingStudio::Recording.archived` | Alias for archived recordings only. |
+| `RecordingStudio::Recording.recent` | Latest recordings first; excludes trashed recordings by default. |
+| `RecordingStudio::Recording.including_trashed` | Includes both active and trashed recordings. |
+| `RecordingStudio::Recording.trashed` | Trashed recordings only. |
 | `RecordingStudio::Recording.for_container(workspace)` | All recordings belonging to a container. |
 | `RecordingStudio::Recording.of_type(Page)` | Recordings whose current recordable is a given type. |
 | `RecordingStudio::Event.for_recording(recording).recent` | Events for a single recording, newest first. |
@@ -281,13 +279,12 @@ Containers can filter by recordable class:
 workspace.recordings_of(Page)
 ```
 
-### Archived vs Active
+### Default scope and trashed
 
 ```ruby
-RecordingStudio::Recording.kept
-RecordingStudio::Recording.discarded
-RecordingStudio::Recording.archived
-RecordingStudio::Recording.with_archived
+RecordingStudio::Recording.all            # default scope: active only (excludes trashed)
+RecordingStudio::Recording.trashed        # only trashed recordings
+RecordingStudio::Recording.including_trashed # active + trashed recordings
 ```
 
 ## Generators

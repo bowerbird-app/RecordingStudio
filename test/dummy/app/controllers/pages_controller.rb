@@ -4,8 +4,8 @@ class PagesController < ApplicationController
 
   def index
     scope = @workspace.recordings_of(Page)
-    @recordings = if params[:archived].to_s == "true"
-      scope.discarded.recent
+    @recordings = if params[:trashed].to_s == "true"
+      scope.trashed.recent
     else
       scope.recent
     end
@@ -57,7 +57,7 @@ class PagesController < ApplicationController
   end
 
   def load_recording
-    @recording = @workspace.recordings.with_archived.find(params[:recording_id])
+    @recording = @workspace.recordings.including_trashed.find(params[:recording_id])
   end
 
   def page_params

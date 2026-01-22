@@ -14,13 +14,11 @@ module RecordingStudio
     after_commit :decrement_recordable_recordings_count, on: :destroy
     after_commit :adjust_recordable_recordings_count, on: :update
 
-    default_scope { where(discarded_at: nil) }
+    default_scope { where(trashed_at: nil) }
     scope :recent, -> { order(updated_at: :desc) }
     scope :for_container, ->(container) { where(container_type: container.class.name, container_id: container.id) }
-    scope :kept, -> { unscope(where: :discarded_at).where(discarded_at: nil) }
-    scope :discarded, -> { unscope(where: :discarded_at).where.not(discarded_at: nil) }
-    scope :archived, -> { discarded }
-    scope :with_archived, -> { unscope(where: :discarded_at) }
+    scope :trashed, -> { unscope(where: :trashed_at).where.not(trashed_at: nil) }
+    scope :including_trashed, -> { unscope(where: :trashed_at) }
     scope :of_type, ->(klass) { where(recordable_type: klass.to_s) }
 
     def log_event!(action:, actor: nil, metadata: {}, occurred_at: Time.current, idempotency_key: nil)
@@ -39,28 +37,28 @@ module RecordingStudio
     private
 
     def increment_recordable_recordings_count
-      return if discarded_at.present?
+      return if trashed_at.present?
 
       update_recordable_counter(recordable_type, recordable_id, :recordings_count, 1)
     end
 
     def decrement_recordable_recordings_count
-      return if discarded_at.present?
+      return if trashed_at.present?
 
       update_recordable_counter(recordable_type, recordable_id, :recordings_count, -1)
     end
 
     def adjust_recordable_recordings_count
-      if saved_change_to_discarded_at?
-        if discarded_at_previously_was.nil? && discarded_at.present?
+      if saved_change_to_trashed_at?
+        if trashed_at_previously_was.nil? && trashed_at.present?
           update_recordable_counter(recordable_type, recordable_id, :recordings_count, -1)
-        elsif discarded_at_previously_was.present? && discarded_at.nil?
+        elsif trashed_at_previously_was.present? && trashed_at.nil?
           update_recordable_counter(recordable_type, recordable_id, :recordings_count, 1)
         end
       end
 
       return unless (saved_change_to_recordable_id? || saved_change_to_recordable_type?)
-      return if discarded_at.present?
+      return if trashed_at.present?
 
       previous_type = recordable_type_before_last_save
       previous_id = recordable_id_before_last_save

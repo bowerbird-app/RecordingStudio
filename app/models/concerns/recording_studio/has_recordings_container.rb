@@ -104,7 +104,7 @@ module RecordingStudio
       if RecordingStudio.configuration.unrecord_mode == :hard
         recording.destroy!
       else
-        recording.update!(discarded_at: Time.current)
+        recording.update!(trashed_at: Time.current)
       end
 
       event.recording
@@ -125,7 +125,7 @@ module RecordingStudio
         end
       end
 
-      if recording.discarded_at
+      if recording.trashed_at
         RecordingStudio.record!(
           action: "restored",
           recordable: recording.recordable,
@@ -135,7 +135,7 @@ module RecordingStudio
           metadata: metadata
         )
 
-        recording.update!(discarded_at: nil)
+        recording.update!(trashed_at: nil)
       end
 
       recording

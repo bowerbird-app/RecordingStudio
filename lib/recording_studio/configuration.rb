@@ -16,7 +16,7 @@ module RecordingStudio
       @idempotency_mode = :return_existing
       @unrecord_mode = :soft
         @recordable_dup_strategy = :dup
-        @cascade_unrecord = ->(recording) { recording.child_recordings.with_archived }
+        @cascade_unrecord = ->(recording) { recording.child_recordings.including_trashed }
         @unrecord_children = false
       @hooks = Hooks.new
     end

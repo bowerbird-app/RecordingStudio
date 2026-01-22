@@ -36,6 +36,6 @@ class RecordingsController < ApplicationController
 
   def load_recording
     recording_id = params[:id] || params[:recording_id]
-    @recording = RecordingStudio::Recording.with_archived.find(recording_id)
+    @recording = RecordingStudio::Recording.including_trashed.find(recording_id)
   end
 end
