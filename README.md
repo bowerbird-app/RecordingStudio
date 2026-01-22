@@ -12,6 +12,15 @@ RecordingStudio separates identity, state, and history so you can build durable 
 history or coupling mixins to specific recordable models. It supports immutable snapshots, a stable capability surface,
 and a consistent event timeline with polymorphic actors.
 
+## Naming Convention for Extensions
+
+Gems built on top of RecordingStudio should use the prefix **recording-studio-** followed by the feature name.
+
+Examples:
+- `recording-studio-pages`
+- `recording-studio-comments`
+- `recording-studio-attachments`
+
 ## Installation
 
 Add the gem to your Gemfile:
