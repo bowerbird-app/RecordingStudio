@@ -5,12 +5,12 @@ require "test_helper"
 class RecordingApiTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
-    @original_actor_provider = RecordingStudio.configuration.actor_provider
+    @original_actor = RecordingStudio.configuration.actor
     @original_idempotency_mode = RecordingStudio.configuration.idempotency_mode
     @original_notifications = RecordingStudio.configuration.event_notifications_enabled
 
     RecordingStudio.configuration.recordable_types = ["Page", "Comment"]
-    RecordingStudio.configuration.actor_provider = -> { nil }
+    RecordingStudio.configuration.actor = -> { nil }
     RecordingStudio.configuration.idempotency_mode = :return_existing
     RecordingStudio.configuration.event_notifications_enabled = true
 
@@ -26,7 +26,7 @@ class RecordingApiTest < ActiveSupport::TestCase
 
   def teardown
     RecordingStudio.configuration.recordable_types = @original_types
-    RecordingStudio.configuration.actor_provider = @original_actor_provider
+    RecordingStudio.configuration.actor = @original_actor
     RecordingStudio.configuration.idempotency_mode = @original_idempotency_mode
     RecordingStudio.configuration.event_notifications_enabled = @original_notifications
   end
@@ -58,10 +58,10 @@ class RecordingApiTest < ActiveSupport::TestCase
     end
   end
 
-  def test_record_uses_actor_provider_when_actor_missing
+  def test_record_uses_actor_when_actor_missing
     workspace = Workspace.create!(name: "Workspace")
-    user = User.create!(name: "Actor")
-    RecordingStudio.configuration.actor_provider = -> { user }
+    user = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
+    RecordingStudio.configuration.actor = -> { user }
 
     event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
 

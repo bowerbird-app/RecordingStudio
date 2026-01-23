@@ -6,6 +6,27 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 
 **Requirements:** Ruby 3.3+ and Rails 8.1+.
 
+## Contents
+
+- [Why RecordingStudio](#why-recordingstudio)
+- [Naming Convention for Extensions](#naming-convention-for-extensions)
+- [Installation](#installation)
+- [Identity vs State vs History](#identity-vs-state-vs-history)
+- [Data Model](#data-model)
+- [Recording Hierarchy](#recording-hierarchy)
+- [Delegated Type Registration](#delegated-type-registration)
+- [Configuration](#configuration)
+- [Container-First API](#container-first-api)
+- [Actors](#actors)
+- [Query API](#query-api)
+- [Generators](#generators)
+- [Instrumentation](#instrumentation)
+- [Dummy Sandbox](#dummy-sandbox)
+- [Testing Guidance](#testing-guidance)
+- [Extension Philosophy](#extension-philosophy)
+- [Glossary](#glossary)
+- [Limitations](#limitations)
+
 ## Why RecordingStudio
 
 RecordingStudio separates identity, state, and history so you can build durable collaboration features without mutating
@@ -92,7 +113,7 @@ The engine applies `delegated_type` on boot and reload via a Railtie, and regist
 ```ruby
 RecordingStudio.configure do |config|
   config.recordable_types = []
-  config.actor_provider = -> { Current.actor }
+  config.actor = -> { Current.actor }
   config.event_notifications_enabled = true
   config.idempotency_mode = :return_existing # or :raise (avoids duplicates when using idempotency keys; see below)
   # Include child recordings by default when trashing/restoring
@@ -282,16 +303,31 @@ end
 RecordingStudio::Recording.include(HasComments)
 ```
 
-## Actor Model
+## Actors
 
-Events capture polymorphic actors (User, ServiceAccount, AI agent, etc). Provide an actor provider if you do not pass
-an actor explicitly.
+Actors identify who performed an action. Events record a polymorphic actor (User, ServiceAccount, AI agent, etc.) so
+your timeline can attribute activity to the right identity.
+
+RecordingStudio expects your app to define `current_actor` and assign it to `Current.actor` in the application
+controller. If you use Devise with a single actor, `current_actor` can just return `current_user`. If you support
+multiple actor types, implement the selection logic inside `current_actor`.
+
+Example in `ApplicationController`:
 
 ```ruby
-RecordingStudio.configure do |config|
-  config.actor_provider = -> { Current.actor }
+class ApplicationController < ActionController::Base
+  before_action :current_actor
+
+  private
+
+  def current_actor
+    Current.actor = current_user
+  end
 end
 ```
+
+With this setup, you can omit `actor:` when calling RecordingStudio APIs, and the configured `actor` will
+use `Current.actor`.
 
 ## Query API
 
@@ -336,14 +372,6 @@ Containers can filter by recordable class:
 
 ```ruby
 workspace.recordings_of(Page)
-```
-
-### Default scope and trashed
-
-```ruby
-RecordingStudio::Recording.all            # default scope: active only (excludes trashed)
-RecordingStudio::Recording.trashed        # only trashed recordings
-RecordingStudio::Recording.including_trashed # active + trashed recordings
 ```
 
 ## Generators

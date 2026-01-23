@@ -59,9 +59,7 @@ class HooksTest < Minitest::Test
   end
 
   def test_around_service_registration
-    called = false
     @hooks.around_service do |_service, block|
-      called = true
       block.call
     end
 

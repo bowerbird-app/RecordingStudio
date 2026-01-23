@@ -20,5 +20,6 @@ group :development do
 end
 
 group :test do
+  gem "devise"
   gem "simplecov", require: false
 end

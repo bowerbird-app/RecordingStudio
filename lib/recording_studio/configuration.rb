@@ -4,14 +4,14 @@ require_relative "hooks"
 
 module RecordingStudio
     class Configuration
-      attr_accessor :recordable_types, :actor_provider, :event_notifications_enabled,
+      attr_accessor :recordable_types, :actor, :event_notifications_enabled,
         :idempotency_mode, :recordable_dup_strategy,
         :include_children
     attr_reader :hooks
 
     def initialize
       @recordable_types = []
-      @actor_provider = -> { defined?(Current) ? Current.actor : nil }
+      @actor = -> { defined?(Current) ? Current.actor : nil }
       @event_notifications_enabled = true
       @idempotency_mode = :return_existing
         @recordable_dup_strategy = :dup

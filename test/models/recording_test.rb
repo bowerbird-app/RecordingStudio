@@ -37,7 +37,7 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_events_filtering
     workspace = Workspace.create!(name: "Workspace")
-    actor = User.create!(name: "Actor")
+    actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
     created_at = 3.days.ago
     updated_at = 2.days.ago
     archived_at = 1.day.ago

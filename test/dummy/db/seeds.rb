@@ -1,7 +1,25 @@
 Workspace.find_or_create_by!(name: "Studio Workspace")
 
-User.find_or_create_by!(name: "Avery Editor", email: "avery@example.com")
-User.find_or_create_by!(name: "Quinn Writer", email: "quinn@example.com")
+default_password = "password123"
+
+admin_user = User.find_or_initialize_by(email: "admin@example.com")
+admin_user.name = "Admin User"
+admin_user.password = default_password if admin_user.encrypted_password.blank?
+admin_user.password_confirmation = default_password if admin_user.encrypted_password.blank?
+admin_user.admin = true
+admin_user.save! if admin_user.changed?
+
+avery = User.find_or_initialize_by(email: "avery@example.com")
+avery.name = "Avery Editor"
+avery.password = default_password if avery.encrypted_password.blank?
+avery.password_confirmation = default_password if avery.encrypted_password.blank?
+avery.save! if avery.changed?
+
+quinn = User.find_or_initialize_by(email: "quinn@example.com")
+quinn.name = "Quinn Writer"
+quinn.password = default_password if quinn.encrypted_password.blank?
+quinn.password_confirmation = default_password if quinn.encrypted_password.blank?
+quinn.save! if quinn.changed?
 
 ServiceAccount.find_or_create_by!(name: "Automation Bot")
 
@@ -73,6 +91,7 @@ end
 
   RecordingStudio::Recording
     .where(recordable_type: recordable_class.name)
+    .reorder(nil)
     .group(:recordable_id)
     .count
     .each do |recordable_id, count|
@@ -81,6 +100,7 @@ end
 
   RecordingStudio::Event
     .where(recordable_type: recordable_class.name)
+    .reorder(nil)
     .group(:recordable_id)
     .count
     .each do |recordable_id, count|

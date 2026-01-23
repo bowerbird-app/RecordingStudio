@@ -1,4 +1,6 @@
 Rails.application.routes.draw do
+  devise_for :users
+
   mount MakeupArtist::Engine => "/makeup_artist", as: "makeup_artist"
   # Mount the RecordingStudio engine
   mount RecordingStudio::Engine, at: "/recording_studio"

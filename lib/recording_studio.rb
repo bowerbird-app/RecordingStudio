@@ -31,7 +31,7 @@ module RecordingStudio
       container ||= recording&.container
       raise ArgumentError, "container is required" if container.nil?
 
-      resolved_actor = actor || configuration.actor_provider&.call
+      resolved_actor = actor || configuration.actor&.call
       metadata = metadata.presence || {}
       idempotency_key = idempotency_key.presence
 

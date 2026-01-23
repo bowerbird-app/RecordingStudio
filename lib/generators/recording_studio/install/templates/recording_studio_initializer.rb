@@ -4,8 +4,8 @@ RecordingStudio.configure do |config|
   # Registered delegated_type recordables (strings or classes)
   config.recordable_types = []
 
-  # Actor provider for events when no actor is explicitly supplied
-  config.actor_provider = -> { Current.actor }
+  # Actor resolver for events when no actor is explicitly supplied
+  config.actor = -> { Current.actor }
 
   # Emit ActiveSupport::Notifications events
   config.event_notifications_enabled = true

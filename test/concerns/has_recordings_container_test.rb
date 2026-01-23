@@ -88,7 +88,7 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
   def test_recordings_filters_and_helpers
     workspace = Workspace.create!(name: "Workspace")
     parent = workspace.record(Page) { |page| page.title = "Parent" }
-    child = workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
+    workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
 
     assert_equal 1, workspace.recordings.count
     assert_equal 2, workspace.recordings(include_children: true).count

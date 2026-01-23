@@ -21,7 +21,7 @@ class EventTest < ActiveSupport::TestCase
 
   def test_scopes_filter_events
     workspace = Workspace.create!(name: "Workspace")
-    actor = User.create!(name: "Actor")
+    actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
     recording = RecordingStudio.record!(
       action: "created",
       recordable: Page.new(title: "One"),

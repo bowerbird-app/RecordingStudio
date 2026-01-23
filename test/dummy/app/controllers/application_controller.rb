@@ -5,18 +5,16 @@ class ApplicationController < ActionController::Base
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
-  before_action :load_current_actor
+  before_action :authenticate_user!, unless: :devise_controller?
+  before_action :current_actor
 
   helper_method :current_actor, :actor_options, :current_actor_key
 
   private
 
-  def load_current_actor
-    Current.actor = current_actor
-  end
-
   def current_actor
-    @current_actor ||= actor_from_session || User.first || ServiceAccount.first
+    @current_actor ||= current_user || actor_from_session
+    Current.actor = @current_actor
   end
 
   def current_actor_key
