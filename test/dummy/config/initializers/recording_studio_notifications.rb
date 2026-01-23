@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+return unless defined?(Turbo::StreamsChannel)
+
 ActiveSupport::Notifications.subscribe("recordings.event_created") do |*args|
   event = ActiveSupport::Notifications::Event.new(*args)
   payload = event.payload

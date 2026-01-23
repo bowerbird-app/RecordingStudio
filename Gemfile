@@ -10,9 +10,15 @@ gem "sprockets-rails"
 
 group :development, :test do
   gem "debug"
+  gem "bootsnap", require: false
+  gem "pg", "~> 1.1"
 end
 
 group :development do
   gem "rubocop", require: false
   gem "rubocop-rails", require: false
+end
+
+group :test do
+  gem "simplecov", require: false
 end

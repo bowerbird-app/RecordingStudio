@@ -19,6 +19,33 @@ class ConfigurationTest < Minitest::Test
     assert_equal ["Page"], config.recordable_types
   end
 
+  def test_instrumentation_enabled_alias
+    config = RecordingStudio::Configuration.new
+
+    config.instrumentation_enabled = false
+
+    refute config.event_notifications_enabled
+    refute config.instrumentation_enabled
+  end
+
+  def test_merge_ignores_unknown_keys
+    config = RecordingStudio::Configuration.new
+
+    config.merge!(unknown: "value", idempotency_mode: :raise)
+
+    assert_equal :raise, config.idempotency_mode
+    refute config.respond_to?(:unknown)
+  end
+
+  def test_to_h_includes_hook_counts
+    config = RecordingStudio::Configuration.new
+    config.hooks.before_initialize { nil }
+
+    result = config.to_h
+
+    assert_equal 1, result[:hooks_registered][:before_initialize]
+  end
+
   def test_register_recordable_type_updates_configuration
     original = RecordingStudio.configuration.recordable_types
     RecordingStudio.configuration.recordable_types = []

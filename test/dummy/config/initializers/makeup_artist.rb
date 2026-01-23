@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+return unless defined?(MakeupArtist) && MakeupArtist.respond_to?(:configure)
+
 MakeupArtist.configure do |config|
   # === Admin Layout ===
   # Layout file used by all makeup_artist admin pages
