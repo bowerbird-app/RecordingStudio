@@ -72,6 +72,29 @@ class RecordingTest < ActiveSupport::TestCase
     assert_equal "updated", logged.action
   end
 
+  def test_log_event_supports_idempotency_and_timestamp
+    workspace = Workspace.create!(name: "Workspace")
+    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "One"), container: workspace)
+    recording = event.recording
+
+    occurred_at = 5.minutes.ago
+    logged = recording.log_event!(action: "reviewed", occurred_at: occurred_at, idempotency_key: "event-123")
+
+    assert_equal "reviewed", logged.action
+    assert_equal "event-123", logged.idempotency_key
+    assert_in_delta occurred_at.to_f, logged.occurred_at.to_f, 1
+  end
+
+  def test_trash_delegates_to_container
+    workspace = Workspace.create!(name: "Workspace")
+    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "One"), container: workspace)
+    recording = event.recording
+
+    recording.trash
+
+    assert recording.reload.trashed_at
+  end
+
   def test_recordings_count_updates_on_trash_and_restore
     workspace = Workspace.create!(name: "Workspace")
     page = Page.new(title: "Page")

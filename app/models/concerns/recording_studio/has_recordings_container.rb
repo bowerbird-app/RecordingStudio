@@ -95,7 +95,7 @@ module RecordingStudio
           recordable_table = recordable_class.connection.quote_table_name(recordable_class.table_name)
           scope = scope.where(recordable_type: recordable_class.name)
           scope = scope.joins("INNER JOIN #{recordable_table} ON #{recordable_table}.id = recording_studio_recordings.recordable_id")
-          scope = apply_recordable_filters(scope, recordable_filters)
+          scope = apply_recordable_filters(scope, recordable_filters, recordable_class)
           scope = recordable_scope.call(scope) if recordable_scope.respond_to?(:call)
           safe_recordable_order = sanitize_order_for_model(recordable_order, recordable_class)
           scope = scope.reorder(safe_recordable_order) if safe_recordable_order.present?
@@ -244,11 +244,21 @@ module RecordingStudio
       fragments.presence&.map { |fragment| Arel.sql(fragment) }
     end
 
-    def apply_recordable_filters(scope, recordable_filters)
+    def apply_recordable_filters(scope, recordable_filters, recordable_class = nil)
       return scope if recordable_filters.blank?
 
       if recordable_filters.is_a?(Hash)
-        scope.where(recordable_filters)
+        return scope.where(recordable_filters) unless recordable_class
+
+        allowed_columns = recordable_class.column_names.to_set
+        sanitized = recordable_filters.each_with_object({}) do |(column, value), acc|
+          column_name = column.to_s
+          next unless allowed_columns.include?(column_name)
+
+          acc[column_name] = value
+        end
+
+        sanitized.present? ? scope.where(recordable_class.table_name => sanitized) : scope
       elsif recordable_filters.is_a?(ActiveRecord::Relation)
         scope.merge(recordable_filters)
       elsif defined?(Arel::Nodes::Node) && recordable_filters.is_a?(Arel::Nodes::Node)

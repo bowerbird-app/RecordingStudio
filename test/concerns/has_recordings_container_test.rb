@@ -147,6 +147,113 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     assert_equal [first.id, second.id], recordings.map(&:id)
   end
 
+  def test_recordings_order_hash_sanitizes_columns
+    workspace = Workspace.create!(name: "Workspace")
+    first = workspace.record(Page) { |page| page.title = "First" }
+    second = workspace.record(Page) { |page| page.title = "Second" }
+
+    first.update_column(:updated_at, 1.minute.ago)
+    second.update_column(:updated_at, Time.current)
+
+    recordings = workspace.recordings(order: { updated_at: :asc, unknown: :desc })
+
+    assert_equal [first.id, second.id], recordings.map(&:id)
+  end
+
+  def test_recordings_with_recordable_scope
+    workspace = Workspace.create!(name: "Workspace")
+    workspace.record(Page) { |page| page.title = "Alpha" }
+    workspace.record(Page) { |page| page.title = "Beta" }
+
+    recordings = workspace.recordings(
+      include_children: true,
+      type: Page,
+      recordable_scope: ->(scope) { scope.where(pages: { title: "Alpha" }) }
+    )
+
+    assert_equal 1, recordings.count
+  end
+
+  def test_recordings_with_recordable_filters_relation_and_arel
+    workspace = Workspace.create!(name: "Workspace")
+    workspace.record(Page) { |page| page.title = "Alpha" }
+    workspace.record(Page) { |page| page.title = "Beta" }
+
+    relation_filtered = workspace.recordings(
+      include_children: true,
+      type: Page,
+      recordable_filters: Page.where(title: "Alpha")
+    )
+    assert_equal 1, relation_filtered.count
+
+    arel_filtered = workspace.recordings(
+      include_children: true,
+      type: Page,
+      recordable_filters: Page.arel_table[:title].eq("Beta")
+    )
+    assert_equal 1, arel_filtered.count
+  end
+
+  def test_recordings_limit_offset_and_date_filters
+    workspace = Workspace.create!(name: "Workspace")
+    first = workspace.record(Page) { |page| page.title = "First" }
+    second = workspace.record(Page) { |page| page.title = "Second" }
+    third = workspace.record(Page) { |page| page.title = "Third" }
+
+    first.update_columns(created_at: 3.days.ago, updated_at: 3.days.ago)
+    second.update_columns(created_at: 2.days.ago, updated_at: 2.days.ago)
+    third.update_columns(created_at: 1.day.ago, updated_at: 1.day.ago)
+
+    filters = {
+      created_after: 4.days.ago,
+      created_before: 12.hours.ago,
+      updated_after: 3.days.ago,
+      updated_before: 12.hours.ago,
+      order: "created_at asc"
+    }
+
+    expected = workspace.recordings(**filters).offset(1).limit(1).map(&:id)
+    recordings = workspace.recordings(**filters, limit: 1, offset: 1)
+
+    assert_equal expected, recordings.map(&:id)
+  end
+
+  def test_recordings_ignores_invalid_type
+    workspace = Workspace.create!(name: "Workspace")
+    workspace.record(Page) { |page| page.title = "Alpha" }
+
+    recordings = workspace.recordings(type: "MissingType")
+
+    assert_equal 0, recordings.count
+  end
+
+  def test_recordable_order_accepts_quoted_table
+    workspace = Workspace.create!(name: "Workspace")
+    first = workspace.record(Page) { |page| page.title = "A" }
+    second = workspace.record(Page) { |page| page.title = "Z" }
+
+    recordings = workspace.recordings(
+      include_children: true,
+      type: Page,
+      recordable_order: '"pages"."title" desc'
+    )
+
+    assert_equal [second.id, first.id], recordings.map(&:id)
+  end
+
+  def test_trash_uses_configuration_include_children
+    workspace = Workspace.create!(name: "Workspace")
+    RecordingStudio.configuration.include_children = true
+
+    parent = workspace.record(Page) { |page| page.title = "Parent" }
+    child = workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
+
+    workspace.trash(parent)
+
+    assert parent.reload.trashed_at
+    assert child.reload.trashed_at
+  end
+
   def test_custom_dup_strategy_used
     workspace = Workspace.create!(name: "Workspace")
     recording = workspace.record(Page) { |page| page.title = "Draft" }
