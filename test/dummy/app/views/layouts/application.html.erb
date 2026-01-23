@@ -28,10 +28,9 @@
     <div class="min-h-screen">
       <header class="border-b border-slate-200 bg-white">
         <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div>
-            <p class="text-sm uppercase tracking-wide text-slate-500">RecordingStudio</p>
-            <h1 class="text-lg font-semibold">Recording Sandbox</h1>
-          </div>
+          <%= link_to root_path, class: "block" do %>
+            <span class="text-lg font-semibold">Recording Studio</span>
+          <% end %>
           <%= form_with url: actor_path, method: :patch, local: true, class: "flex items-center gap-3" do |form| %>
             <%= form.label :actor_id, "Actor", class: "text-sm font-medium text-slate-600" %>
             <%= form.select :actor_id, options_for_select(actor_options, current_actor_key), {}, class: "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" %>
