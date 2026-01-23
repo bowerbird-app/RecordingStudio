@@ -95,12 +95,14 @@ module RecordingStudio
           recordable_table = recordable_class.connection.quote_table_name(recordable_class.table_name)
           scope = scope.where(recordable_type: recordable_class.name)
           scope = scope.joins("INNER JOIN #{recordable_table} ON #{recordable_table}.id = recording_studio_recordings.recordable_id")
-          scope = scope.where(recordable_filters) if recordable_filters.present?
+          scope = apply_recordable_filters(scope, recordable_filters)
           scope = recordable_scope.call(scope) if recordable_scope.respond_to?(:call)
-          scope = scope.reorder(recordable_order) if recordable_order.present?
+          safe_recordable_order = sanitize_order_for_model(recordable_order, recordable_class)
+          scope = scope.reorder(safe_recordable_order) if safe_recordable_order.present?
         end
       end
-      scope = scope.reorder(order) if order.present?
+      safe_recording_order = sanitize_order_for_model(order, RecordingStudio::Recording)
+      scope = scope.reorder(safe_recording_order) if safe_recording_order.present?
       scope = scope.limit(limit) if limit.present?
       scope = scope.offset(offset) if offset.present?
       scope
@@ -189,6 +191,71 @@ module RecordingStudio
       duplicated.recordings_count = 0 if duplicated.respond_to?(:recordings_count=)
       duplicated.events_count = 0 if duplicated.respond_to?(:events_count=)
       duplicated
+    end
+
+    def sanitize_order_for_model(order, model_class)
+      return if order.blank? || model_class.nil?
+
+      case order
+      when Hash
+        sanitize_order_hash(order, model_class)
+      when String, Symbol
+        sanitize_order_string(order.to_s, model_class)
+      else
+        nil
+      end
+    end
+
+    def sanitize_order_hash(order_hash, model_class)
+      allowed_columns = model_class.column_names
+      sanitized = order_hash.each_with_object({}) do |(column, direction), acc|
+        column_name = column.to_s
+        next unless allowed_columns.include?(column_name)
+
+        dir = direction.to_s.downcase == "desc" ? :desc : :asc
+        acc[column_name] = dir
+      end
+
+      sanitized.presence
+    end
+
+    def sanitize_order_string(order_string, model_class)
+      allowed_columns = model_class.column_names
+      table_name = model_class.table_name
+      quoted_table = model_class.connection.quote_table_name(table_name)
+
+      fragments = order_string.split(",").filter_map do |segment|
+        cleaned = segment.strip
+        next if cleaned.blank?
+
+        match = cleaned.match(/\A(?:(?<table>[a-zA-Z0-9_"`]+)\.)?(?<column>[a-zA-Z0-9_"`]+)(?:\s+(?<dir>asc|desc))?\z/i)
+        next unless match
+
+        table = match[:table]&.gsub(/["`]/, "")
+        column = match[:column]&.gsub(/["`]/, "")
+        next unless allowed_columns.include?(column)
+        next if table.present? && table != table_name
+
+        direction = match[:dir].to_s.downcase == "desc" ? "DESC" : "ASC"
+        quoted_column = model_class.connection.quote_column_name(column)
+        "#{quoted_table}.#{quoted_column} #{direction}"
+      end
+
+      fragments.presence&.map { |fragment| Arel.sql(fragment) }
+    end
+
+    def apply_recordable_filters(scope, recordable_filters)
+      return scope if recordable_filters.blank?
+
+      if recordable_filters.is_a?(Hash)
+        scope.where(recordable_filters)
+      elsif recordable_filters.is_a?(ActiveRecord::Relation)
+        scope.merge(recordable_filters)
+      elsif defined?(Arel::Nodes::Node) && recordable_filters.is_a?(Arel::Nodes::Node)
+        scope.where(recordable_filters)
+      else
+        scope
+      end
     end
   end
 end

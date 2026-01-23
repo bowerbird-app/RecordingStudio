@@ -97,6 +97,56 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     assert_equal parent.id, workspace.recordings(include_children: true, type: Page, recordable_order: "pages.title desc").first.id
   end
 
+  def test_recordings_sanitizes_recordable_order
+    workspace = Workspace.create!(name: "Workspace")
+    first = workspace.record(Page) { |page| page.title = "A" }
+    second = workspace.record(Page) { |page| page.title = "Z" }
+
+    first.update_column(:updated_at, Time.current)
+    second.update_column(:updated_at, 1.minute.ago)
+
+    recordings = workspace.recordings(
+      include_children: true,
+      type: Page,
+      recordable_order: "pages.title desc; select * from users"
+    )
+
+    assert_equal [first.id, second.id], recordings.map(&:id)
+  end
+
+  def test_recordings_sanitizes_recordable_filters
+    workspace = Workspace.create!(name: "Workspace")
+    workspace.record(Page) { |page| page.title = "Alpha" }
+    workspace.record(Page) { |page| page.title = "Beta" }
+
+    filtered = workspace.recordings(
+      include_children: true,
+      type: Page,
+      recordable_filters: { title: "Alpha" }
+    )
+    assert_equal 1, filtered.count
+
+    unsafe = workspace.recordings(
+      include_children: true,
+      type: Page,
+      recordable_filters: "pages.title = 'Alpha' OR 1=1"
+    )
+    assert_equal 2, unsafe.count
+  end
+
+  def test_recordings_order_ignores_unknown_columns
+    workspace = Workspace.create!(name: "Workspace")
+    first = workspace.record(Page) { |page| page.title = "First" }
+    second = workspace.record(Page) { |page| page.title = "Second" }
+
+    first.update_column(:updated_at, 1.minute.ago)
+    second.update_column(:updated_at, Time.current)
+
+    recordings = workspace.recordings(order: "nonexistent desc, updated_at asc")
+
+    assert_equal [first.id, second.id], recordings.map(&:id)
+  end
+
   def test_custom_dup_strategy_used
     workspace = Workspace.create!(name: "Workspace")
     recording = workspace.record(Page) { |page| page.title = "Draft" }

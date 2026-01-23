@@ -119,6 +119,26 @@ class Workspace < ApplicationRecord
 end
 ```
 
+### Querying Recordings (Filters & Ordering)
+
+`recordings` supports optional filters and ordering. For safety, **filters must be provided as a Hash, Relation, or Arel node**.
+Raw SQL strings are ignored. Ordering is allowlisted to actual columns on the target model.
+
+```ruby
+# Filter by recordable attributes
+workspace.recordings(type: "Page", recordable_filters: { title: "Quarterly Plan" })
+
+# Order by recordable attributes (sanitized to allowed columns)
+workspace.recordings(type: "Page", recordable_order: "title desc, created_at asc")
+
+# Order recordings table columns (sanitized)
+workspace.recordings(order: "updated_at desc")
+```
+
+For advanced cases, pass a Relation/Arel node as `recordable_filters`.
+`recordable_scope` should only be used with trusted, code-defined callables (never user-provided),
+since it can inject arbitrary query logic.
+
 ### Record
 
 Create a new recording (like `new`/`create`, but for recordings). This creates a new recordable snapshot and appends a `created` event.

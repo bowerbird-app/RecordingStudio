@@ -85,7 +85,9 @@ module RecordingStudio
       when :return_existing
         event
       when :raise
-        raise IdempotencyError, "Event already exists for idempotency key #{event.idempotency_key}"
+        masked_key = event.idempotency_key.to_s
+        masked_key = masked_key.length <= 4 ? "****" : "****#{masked_key[-4, 4]}"
+        raise IdempotencyError, "Event already exists for idempotency key (masked): #{masked_key}"
       else
         event
       end
