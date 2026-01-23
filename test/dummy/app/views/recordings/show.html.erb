@@ -82,7 +82,7 @@
         </p>
         <div class="mt-4 space-y-4">
           <% current_recordable_id = @recording.recordable.id %>
-          <% current_event_id = @events.find { |entry| entry.recordable&.id == current_recordable_id && !%w[deleted restored].include?(entry.action) }&.id %>
+          <% current_event_id = @events.find { |entry| entry.recordable&.id == current_recordable_id && !%w[trashed deleted restored].include?(entry.action) }&.id %>
           <% @events.each do |event| %>
             <div class="rounded-md border border-slate-200 p-4">
               <div class="text-sm">

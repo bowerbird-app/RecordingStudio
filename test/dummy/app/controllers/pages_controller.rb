@@ -5,7 +5,7 @@ class PagesController < ApplicationController
   def index
     scope = @workspace.recordings_of(Page)
     @recordings = if params[:trashed].to_s == "true"
-      scope.trashed.recent
+      scope.including_trashed.trashed.recent
     else
       scope.recent
     end
@@ -41,12 +41,12 @@ class PagesController < ApplicationController
   end
 
   def destroy
-    @workspace.unrecord(@recording, actor: current_actor, metadata: { source: "ui" }, cascade: true)
+    @workspace.trash(@recording, actor: current_actor, metadata: { source: "ui" }, include_children: true)
     redirect_to pages_path
   end
 
   def restore
-    @workspace.restore(@recording, actor: current_actor, metadata: { source: "ui" }, cascade: true)
+    @workspace.restore(@recording, actor: current_actor, metadata: { source: "ui" }, include_children: true)
     redirect_to recording_path(@recording)
   end
 

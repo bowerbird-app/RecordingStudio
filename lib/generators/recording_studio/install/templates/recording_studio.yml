@@ -3,12 +3,10 @@ development:
     - Page
   instrumentation_enabled: true
   idempotency_mode: return_existing
-  unrecord_mode: soft
   recordable_dup_strategy: dup
 
 production:
   recordable_types: []
   instrumentation_enabled: true
   idempotency_mode: return_existing
-  unrecord_mode: soft
   recordable_dup_strategy: dup

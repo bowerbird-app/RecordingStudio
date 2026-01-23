@@ -13,14 +13,8 @@ RecordingStudio.configure do |config|
   # Idempotency behavior for log_event!
   config.idempotency_mode = :return_existing # or :raise
 
-  # Unrecording behavior
-  config.unrecord_mode = :soft # or :hard
-
-  # Unrecord child recordings by default
-  config.unrecord_children = false
-
-  # Cascade unrecord: return child recordings to delete alongside the parent
-  config.cascade_unrecord = ->(recording) { recording.child_recordings }
+  # Include child recordings by default when trashing/restoring
+  config.include_children = false
 
   # Recordable duplication strategy for revisions
   config.recordable_dup_strategy = :dup

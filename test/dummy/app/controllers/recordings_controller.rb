@@ -2,7 +2,7 @@ class RecordingsController < ApplicationController
   before_action :load_recording
 
   def show
-    @events = @recording.events.recent
+    @events = @recording.events
     @recordables = ([@recording.recordable] + @events.flat_map { |event| [event.recordable, event.previous_recordable] })
       .compact
       .uniq { |recordable| recordable.id }

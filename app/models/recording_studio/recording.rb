@@ -8,18 +8,32 @@ module RecordingStudio
     belongs_to :parent_recording, class_name: "RecordingStudio::Recording", optional: true, inverse_of: :child_recordings
     has_many :child_recordings, class_name: "RecordingStudio::Recording", foreign_key: :parent_recording_id,
                   inverse_of: :parent_recording
-    has_many :events, class_name: "RecordingStudio::Event", inverse_of: :recording, dependent: :destroy
+    has_many :events, -> { recent }, class_name: "RecordingStudio::Event", inverse_of: :recording, dependent: :destroy
 
     after_commit :increment_recordable_recordings_count, on: :create
     after_commit :decrement_recordable_recordings_count, on: :destroy
     after_commit :adjust_recordable_recordings_count, on: :update
 
-    default_scope { where(trashed_at: nil) }
+    default_scope { where(trashed_at: nil).order(updated_at: :desc) }
     scope :recent, -> { order(updated_at: :desc) }
     scope :for_container, ->(container) { where(container_type: container.class.name, container_id: container.id) }
     scope :trashed, -> { unscope(where: :trashed_at).where.not(trashed_at: nil) }
     scope :including_trashed, -> { unscope(where: :trashed_at) }
+    scope :include_trashed, -> { unscope(where: :trashed_at) }
     scope :of_type, ->(klass) { where(recordable_type: klass.to_s) }
+
+    def events(actions: nil, actor: nil, actor_type: nil, actor_id: nil, from: nil, to: nil, limit: nil, offset: nil)
+      scope = association(:events).scope
+      scope = scope.with_action(actions) if actions.present?
+      scope = scope.by_actor(actor) if actor.present?
+      scope = scope.where(actor_type: actor_type) if actor_type.present?
+      scope = scope.where(actor_id: actor_id) if actor_id.present?
+      scope = scope.where("occurred_at >= ?", from) if from.present?
+      scope = scope.where("occurred_at <= ?", to) if to.present?
+      scope = scope.limit(limit) if limit.present?
+      scope = scope.offset(offset) if offset.present?
+      scope
+    end
 
     def log_event!(action:, actor: nil, metadata: {}, occurred_at: Time.current, idempotency_key: nil)
       RecordingStudio.record!(
@@ -32,6 +46,10 @@ module RecordingStudio
         occurred_at: occurred_at,
         idempotency_key: idempotency_key
       )
+    end
+
+    def trash(actor: nil, metadata: {}, include_children: false)
+      container.trash(self, actor: actor, metadata: metadata, include_children: include_children)
     end
 
     private

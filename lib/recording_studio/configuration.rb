@@ -5,8 +5,8 @@ require_relative "hooks"
 module RecordingStudio
     class Configuration
       attr_accessor :recordable_types, :actor_provider, :event_notifications_enabled,
-            :idempotency_mode, :unrecord_mode, :recordable_dup_strategy,
-            :cascade_unrecord, :unrecord_children
+        :idempotency_mode, :recordable_dup_strategy,
+        :include_children
     attr_reader :hooks
 
     def initialize
@@ -14,10 +14,8 @@ module RecordingStudio
       @actor_provider = -> { defined?(Current) ? Current.actor : nil }
       @event_notifications_enabled = true
       @idempotency_mode = :return_existing
-      @unrecord_mode = :soft
         @recordable_dup_strategy = :dup
-        @cascade_unrecord = ->(recording) { recording.child_recordings.including_trashed }
-        @unrecord_children = false
+        @include_children = false
       @hooks = Hooks.new
     end
 
@@ -38,8 +36,7 @@ module RecordingStudio
         recordable_types: recordable_types,
         event_notifications_enabled: event_notifications_enabled,
         idempotency_mode: idempotency_mode,
-        unrecord_mode: unrecord_mode,
-          unrecord_children: unrecord_children,
+        include_children: include_children,
         recordable_dup_strategy: recordable_dup_strategy,
         hooks_registered: hooks.instance_variable_get(:@registry).transform_values(&:size)
       }

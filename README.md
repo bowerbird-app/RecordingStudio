@@ -95,10 +95,9 @@ RecordingStudio.configure do |config|
   config.actor_provider = -> { Current.actor }
   config.event_notifications_enabled = true
   config.idempotency_mode = :return_existing # or :raise (avoids duplicates when using idempotency keys; see below)
-  config.unrecord_mode = :soft # or :hard
-  config.unrecord_children = true
+  # Include child recordings by default when trashing/restoring
+  config.include_children = true
   config.recordable_dup_strategy = :dup
-  config.cascade_unrecord = ->(recording) { recording.child_recordings }
 end
 ```
 
@@ -107,11 +106,8 @@ end
 - `idempotency_mode`: Controls how duplicate `idempotency_key` values are handled. `:return_existing` returns the
   original event when the key matches, so retries are safe and do not create duplicates. `:raise` raises an error when
   the key matches, so callers must handle duplicates explicitly.
-- `unrecord_mode`: `:soft` keeps the recording (default) and marks it deleted; `:hard` removes it. This is a global
-  setting (no per-call override).
-- `unrecord_children`: When `true`, `unrecord` and `restore` will cascade to child recordings by default.
+- `include_children`: When `true`, `trash` and `restore` will include child recordings by default.
 - `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
-- `cascade_unrecord`: Callable that returns child recordings to delete (defaults to `recording.child_recordings`).
 
 ## Container-First API
 
@@ -124,6 +120,8 @@ end
 ```
 
 ### Record
+
+Create a new recording (like `new`/`create`, but for recordings). This creates a new recordable snapshot and appends a `created` event.
 
 ```ruby
 recording = workspace.record(Page, actor: current_user) do |page|
@@ -140,52 +138,67 @@ child = workspace.record(Page, actor: current_user, parent_recording: recording)
 
 ### Revise
 
+Create a new recording version (like `edit`/`update`, but for recordings). This creates a new recordable snapshot and appends an `updated` event.
+
 ```ruby
 recording = workspace.revise(recording, actor: current_user) do |page|
   page.title = "Updated title"
 end
 ```
 
-### Unrecord
+### Trash
+
+Soft-delete a recording (similar to destroying, but for recordings).
 
 ```ruby
-workspace.unrecord(recording, actor: current_user)
+workspace.trash(recording, actor: current_user)
 ```
 
-Unrecording appends a terminal `deleted` event and soft-deletes the recording by default. Hard deletes are controlled
-by `unrecord_mode` and are not configurable per call. If you need a one-off hard delete, destroy the recording
-directly (no additional event is emitted):
+You can also call `trash` on a recording instance:
 
 ```ruby
-recording.destroy!
+recording.trash(actor: current_user)
 ```
 
-To cascade deletes to child recordings, pass `cascade: true` or set `unrecord_children = true`:
+Trashing appends a terminal `trashed` event and soft-deletes the recording by setting `trashed_at`.
+
+To hard delete (writes a `deleted` event), use `hard_delete`:
+
+```ruby
+workspace.hard_delete(recording, actor: current_user)
+```
+
+To include child recordings, pass `include_children: true` or set `include_children = true`:
 
 ```ruby
 RecordingStudio.configure do |config|
-  config.unrecord_children = true
-  config.cascade_unrecord = ->(recording) { recording.child_recordings }
+  config.include_children = true
 end
 
-workspace.unrecord(recording, actor: current_user)
+workspace.trash(recording, actor: current_user)
 ```
 
-### Archive & Restore
+### Trash & Restore
 
-Archive (soft delete) a recording and its children:
+Trash (soft delete) a recording and its children:
 
 ```ruby
-workspace.unrecord(recording, actor: current_user, cascade: true)
+workspace.trash(recording, actor: current_user, include_children: true)
 ```
 
-Restore (un-archive) a recording and its children:
+Or using the recording instance:
 
 ```ruby
-workspace.restore(recording, actor: current_user, cascade: true)
+recording.trash(actor: current_user, include_children: true)
 ```
 
-Trash writes a `deleted` event and sets `trashed_at`. Restore writes a `restored` event and clears `trashed_at`.
+Restore (un-trash) a recording and its children:
+
+```ruby
+workspace.restore(recording, actor: current_user, include_children: true)
+```
+
+Trash writes a `trashed` event and sets `trashed_at`. Restore writes a `restored` event and clears `trashed_at`.
 
 ### Idempotency Keys (Avoid duplicates)
 
@@ -262,14 +275,40 @@ end
 
 ## Query API
 
+### Recordings
+
 | Query | Description |
 | --- | --- |
-| `RecordingStudio::Recording.recent` | Latest recordings first; excludes trashed recordings by default. |
+| `workspace.recordings` | Direct recordings for a container (excludes trashed items, newest first). |
+| `workspace.recordings(type: "Page")` | Recordings filtered by recordable type. |
+| `workspace.recordings(id: page.id)` | Recordings filtered by recordable ID. |
+| `workspace.recordings(parent_id: recording.id)` | Recordings filtered by parent recording. |
+| `workspace.recordings(created_after: 1.week.ago, created_before: Time.current)` | Recordings created in a time range. |
+| `workspace.recordings(updated_after: 1.week.ago, updated_before: Time.current)` | Recordings updated in a time range. |
+| `workspace.recordings(order: { updated_at: :asc })` | Recordings ordered by a recording column. |
+| `workspace.recordings(type: "Page", recordable_order: { score: :asc })` | Recordings ordered by recordable attributes. |
+| `workspace.recordings(type: "Page", recordable_filters: { topic: "Plans" })` | Recordings filtered by recordable attributes. |
+| `workspace.recordings(type: "Page", recordable_scope: ->(scope) { scope.where("topic ILIKE ?", "%Plans%") })` | Recordings filtered by a custom recordable scope. |
+| `workspace.recordings(limit: 50, offset: 100)` | Paginated recordings. |
+| `workspace.recordings(include_children: true)` | Recordings for a container (includes nested children). |
+| `workspace.recordings.trashed` | Trashed recordings for a container. |
+| `workspace.recordings.include_trashed` | Direct recordings for a container including trashed items. |
+| `RecordingStudio::Recording.for_container(workspace).trashed` | Trashed recordings for a container (scope-based). |
+| `RecordingStudio::Recording.all` | Latest recordings first; excludes trashed recordings by default. |
 | `RecordingStudio::Recording.including_trashed` | Includes both active and trashed recordings. |
 | `RecordingStudio::Recording.trashed` | Trashed recordings only. |
 | `RecordingStudio::Recording.for_container(workspace)` | All recordings belonging to a container. |
 | `RecordingStudio::Recording.of_type(Page)` | Recordings whose current recordable is a given type. |
-| `RecordingStudio::Event.for_recording(recording).recent` | Events for a single recording, newest first. |
+
+### Events
+
+| Query | Description |
+| --- | --- |
+| `recording.events` | Events for a single recording, newest first. |
+| `recording.events(actions: ["commented", "reverted"], actor: current_user)` | Events filtered by actions and actor. |
+| `recording.events(actor_type: "User", actor_id: current_user.id)` | Events filtered by actor type and ID. |
+| `recording.events(from: 2.days.ago, to: Time.current)` | Events within a time range. |
+| `recording.events(limit: 50, offset: 100)` | Paginated events. |
 | `RecordingStudio::Event.by_actor(current_user)` | Events performed by a specific (polymorphic) actor. |
 | `RecordingStudio::Event.with_action("commented")` | Events with a specific action string. |
 
