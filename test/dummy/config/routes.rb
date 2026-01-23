@@ -10,7 +10,8 @@ Rails.application.routes.draw do
   resources :pages, param: :recording_id do
     post :restore, on: :member
   end
-  resources :recordings, only: [:show] do
+  resources :events, only: [:index]
+  resources :recordings, only: [:index, :show] do
     post :log_event, on: :member
     post :revert, on: :member
   end

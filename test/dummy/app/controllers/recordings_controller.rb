@@ -1,5 +1,12 @@
 class RecordingsController < ApplicationController
-  before_action :load_recording
+  def index
+    @recordings = RecordingStudio::Recording
+      .including_trashed
+      .includes(:recordable, :container, :events)
+      .recent
+  end
+
+  before_action :load_recording, except: [:index]
 
   def show
     @events = @recording.events
