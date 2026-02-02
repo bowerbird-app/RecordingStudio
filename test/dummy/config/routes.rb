@@ -1,7 +1,20 @@
 Rails.application.routes.draw do
+  devise_for :users
+
   mount MakeupArtist::Engine => "/makeup_artist", as: "makeup_artist"
-  # Mount the GemTemplate engine
-  mount GemTemplate::Engine, at: "/gem_template"
+  # Mount the RecordingStudio engine
+  mount RecordingStudio::Engine, at: "/recording_studio"
+
+  resource :actor, only: :update
+
+  resources :pages, param: :recording_id do
+    post :restore, on: :member
+  end
+  resources :events, only: [:index]
+  resources :recordings, only: [:index, :show] do
+    post :log_event, on: :member
+    post :revert, on: :member
+  end
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
@@ -14,5 +27,5 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   # Defines the root path route ("/")
-  root to: redirect("/gem_template")
+  root "home#index"
 end

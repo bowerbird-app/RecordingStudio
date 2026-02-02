@@ -1,0 +1,65 @@
+<% content_for :title, "Pages" %>
+
+<div class="flex items-center justify-between">
+  <div>
+    <h2 class="text-2xl font-semibold">Pages</h2>
+    <p class="text-sm text-slate-500">Recordings tracked inside the workspace.</p>
+  </div>
+  <div class="flex items-center gap-2">
+    <%= link_to "New Page", new_page_path, class: "rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white" %>
+    <% if params[:trashed].to_s == "true" %>
+      <%= link_to "Show active", pages_path, class: "rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
+    <% else %>
+      <%= link_to "Show trashed", pages_path(trashed: true), class: "rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700" %>
+    <% end %>
+  </div>
+</div>
+
+<div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
+  <table class="min-w-full divide-y divide-slate-200">
+    <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+      <tr>
+        <th class="px-6 py-3">Title</th>
+        <th class="px-6 py-3">Children</th>
+        <th class="px-6 py-3">Status</th>
+        <th class="px-6 py-3">Last updated by</th>
+        <th class="px-6 py-3">Updated</th>
+        <th class="px-6 py-3 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-200 text-sm">
+      <% @recordings.each do |recording| %>
+        <tr>
+          <td class="px-6 py-4 font-medium text-slate-900">
+            <%= link_to recording.recordable.title, recording_path(recording), class: "hover:underline" %>
+          </td>
+          <td class="px-6 py-4 text-slate-600">
+            <% child_count = if params[:trashed].to_s == "true"
+              recording.child_recordings.including_trashed.count
+            else
+              recording.child_recordings.count
+            end %>
+            <%= child_count %>
+          </td>
+          <td class="px-6 py-4 text-slate-600"><%= recording.trashed_at ? "Trashed" : "Active" %></td>
+          <% last_event = recording.events.recent.first %>
+          <td class="px-6 py-4 text-slate-600"><%= actor_label(last_event&.actor) %></td>
+          <td class="px-6 py-4 text-slate-500"><%= l(recording.updated_at, format: :short) %></td>
+          <td class="px-6 py-4 text-right">
+            <div class="inline-flex items-center gap-3">
+              <%= link_to "View", recording_path(recording), class: "text-sm font-medium text-slate-700" %>
+              <%= link_to "Edit", edit_page_path(recording), class: "text-sm font-medium text-slate-700" %>
+              <%= button_to "Delete", page_path(recording), method: :delete, class: "text-sm font-medium text-rose-600", form: { data: { turbo_confirm: "Archive this page?" } } %>
+            </div>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <% if @recordings.empty? %>
+    <div class="px-6 py-10 text-center text-sm text-slate-500">
+      No pages yet. Create one to see recordings in action.
+    </div>
+  <% end %>
+</div>

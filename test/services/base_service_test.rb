@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-module GemTemplate
+module RecordingStudio
   module Services
     class BaseServiceTest < Minitest::Test
       # Test subclass for testing BaseService
@@ -26,6 +26,18 @@ module GemTemplate
 
       # Test subclass that doesn't implement perform
       class IncompleteService < BaseService
+      end
+
+      class HookedService < BaseService
+        private
+
+        def perform
+          success("ok")
+        end
+
+        def service_args
+          { payload: "data" }
+        end
       end
 
       def test_call_class_method_delegates_to_instance
@@ -137,6 +149,34 @@ module GemTemplate
         )
 
         assert_equal ["Detail 1", "Detail 2"], result.errors
+      end
+
+      def test_hooks_run_for_service
+        hooks = RecordingStudio.configuration.hooks
+        hooks.clear!
+
+        before_args = nil
+        after_args = nil
+        around_events = []
+
+        hooks.before_service { |service_class, args| before_args = [service_class, args] }
+        hooks.after_service { |service_class, result| after_args = [service_class, result] }
+        hooks.around_service do |_service, block|
+          around_events << :before
+          result = block.call
+          around_events << :after
+          result
+        end
+
+        result = HookedService.call
+
+        assert_equal HookedService, before_args.first
+        assert_equal({ payload: "data" }, before_args.last)
+        assert_equal HookedService, after_args.first
+        assert_equal result, after_args.last
+        assert_equal %i[before after], around_events
+      ensure
+        hooks.clear!
       end
     end
   end

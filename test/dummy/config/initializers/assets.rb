@@ -7,4 +7,9 @@ Rails.application.config.assets.version = "1.0"
 # Rails.application.config.assets.paths << Emoji.images_path
 
 # Add MakeupArtist gem JavaScript path for Propshaft (Rails 8+)
-Rails.application.config.assets.paths << Gem::Specification.find_by_name("makeup_artist").gem_dir + "/app/javascript"
+begin
+	makeup_artist_dir = Gem::Specification.find_by_name("makeup_artist").gem_dir
+	Rails.application.config.assets.paths << "#{makeup_artist_dir}/app/javascript"
+rescue Gem::LoadError
+	# Skip when the gem is not available (test environment)
+end

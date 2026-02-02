@@ -1,7 +1,10 @@
 source "https://rubygems.org"
 
-# Use the gem_template engine
-gem "gem_template", path: "../.."
+# Use the recording_studio engine
+gem "recording_studio", path: "../.."
+
+# Authentication for the dummy app
+gem "devise"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.1.1"

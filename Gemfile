@@ -2,7 +2,7 @@
 
 source "https://rubygems.org"
 
-# Specify your gem's dependencies in gem_template.gemspec
+# Specify your gem's dependencies in recording_studio.gemspec
 gemspec
 
 gem "puma"
@@ -10,9 +10,16 @@ gem "sprockets-rails"
 
 group :development, :test do
   gem "debug"
+  gem "bootsnap", require: false
+  gem "pg", "~> 1.1"
 end
 
 group :development do
   gem "rubocop", require: false
   gem "rubocop-rails", require: false
+end
+
+group :test do
+  gem "devise"
+  gem "simplecov", require: false
 end

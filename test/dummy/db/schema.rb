@@ -10,9 +10,92 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2025_01_01_000000) do
+ActiveRecord::Schema[8.1].define(version: 2026_01_23_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
 
+  create_table "comments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.integer "events_count", default: 0, null: false
+    t.uuid "original_id"
+    t.integer "recordings_count", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.integer "version", default: 1, null: false
+    t.index ["original_id"], name: "index_comments_on_original_id"
+  end
+
+  create_table "pages", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "events_count", default: 0, null: false
+    t.uuid "original_id"
+    t.integer "recordings_count", default: 0, null: false
+    t.text "summary"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.integer "version", default: 1, null: false
+    t.index ["original_id"], name: "index_pages_on_original_id"
+  end
+
+  create_table "recording_studio_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "action", null: false
+    t.uuid "actor_id"
+    t.string "actor_type"
+    t.datetime "created_at", null: false
+    t.string "idempotency_key"
+    t.jsonb "metadata", default: {}, null: false
+    t.datetime "occurred_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
+    t.uuid "previous_recordable_id"
+    t.string "previous_recordable_type"
+    t.uuid "recordable_id", null: false
+    t.string "recordable_type", null: false
+    t.uuid "recording_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["recording_id", "idempotency_key"], name: "index_recording_studio_events_on_recording_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
+    t.index ["recording_id"], name: "index_recording_studio_events_on_recording_id"
+  end
+
+  create_table "recording_studio_recordings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.uuid "container_id", null: false
+    t.string "container_type", null: false
+    t.datetime "created_at", null: false
+    t.uuid "parent_recording_id"
+    t.uuid "recordable_id", null: false
+    t.string "recordable_type", null: false
+    t.datetime "trashed_at"
+    t.datetime "updated_at", null: false
+    t.index ["container_type", "container_id"], name: "index_recording_studio_recordings_on_container"
+    t.index ["parent_recording_id"], name: "index_recording_studio_recordings_on_parent_recording_id"
+    t.index ["recordable_type", "recordable_id"], name: "index_recording_studio_recordings_on_recordable"
+  end
+
+  create_table "service_accounts", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "users", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.boolean "admin", default: false, null: false
+    t.datetime "created_at", null: false
+    t.string "email", default: "", null: false
+    t.string "encrypted_password", default: "", null: false
+    t.string "name", null: false
+    t.datetime "remember_created_at"
+    t.datetime "reset_password_sent_at"
+    t.string "reset_password_token"
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_users_on_email", unique: true
+    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+  end
+
+  create_table "workspaces", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  add_foreign_key "recording_studio_events", "recording_studio_recordings", column: "recording_id"
+  add_foreign_key "recording_studio_recordings", "recording_studio_recordings", column: "parent_recording_id"
 end

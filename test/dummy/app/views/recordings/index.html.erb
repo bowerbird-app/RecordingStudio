@@ -1,0 +1,54 @@
+<% content_for :title, "Recordings" %>
+
+<div class="space-y-6">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <p class="text-sm uppercase tracking-wide text-slate-500">Library</p>
+      <h2 class="text-2xl font-semibold text-slate-900">Recordings</h2>
+    </div>
+  </div>
+
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Recordable</th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Type</th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Container</th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Status</th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Last updated by</th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Updated</th>
+          <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200">
+        <% if @recordings.any? %>
+          <% @recordings.each do |recording| %>
+            <tr class="hover:bg-slate-50">
+              <td class="px-6 py-4 text-sm font-medium text-slate-900">
+                <%= link_to recordable_label(recording.recordable), recording_path(recording), class: "hover:underline" %>
+              </td>
+              <td class="px-6 py-4 text-sm text-slate-600">
+                <%= recording.recordable_type %>
+              </td>
+              <td class="px-6 py-4 text-sm text-slate-600">
+                <%= recording.container_type %> #<%= recording.container_id %>
+              </td>
+              <td class="px-6 py-4 text-sm text-slate-600"><%= recording.trashed_at ? "Trashed" : "Active" %></td>
+              <% last_event = recording.events.recent.first %>
+              <td class="px-6 py-4 text-sm text-slate-600"><%= actor_label(last_event&.actor) %></td>
+              <td class="px-6 py-4 text-sm text-slate-500"><%= l(recording.updated_at, format: :short) %></td>
+              <td class="px-6 py-4 text-right text-sm">
+                <%= link_to "View", recording_path(recording), class: "text-sm font-medium text-slate-700 hover:text-slate-900" %>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="7" class="px-6 py-6 text-center text-sm text-slate-500">No recordings yet.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

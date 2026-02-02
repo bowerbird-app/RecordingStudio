@@ -1,0 +1,54 @@
+<% content_for :title, "Events" %>
+
+<div class="space-y-6">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <p class="text-sm uppercase tracking-wide text-slate-500">Activity</p>
+      <h2 class="text-2xl font-semibold text-slate-900">Events</h2>
+    </div>
+  </div>
+
+  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Action</th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Occurred</th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Actor</th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Recordable</th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Recording</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-200">
+        <% if @events.any? %>
+          <% @events.each do |event| %>
+            <tr class="hover:bg-slate-50">
+              <td class="px-6 py-4 text-sm font-medium text-slate-900"><%= event.action %></td>
+              <td class="px-6 py-4 text-sm text-slate-600">
+                <span title="<%= l(event.occurred_at, format: :long) %>"><%= time_ago_in_words(event.occurred_at) %> ago</span>
+              </td>
+              <td class="px-6 py-4 text-sm text-slate-600"><%= actor_label(event.actor) %></td>
+              <td class="px-6 py-4 text-sm text-slate-600">
+                <div><%= recordable_label(event.recordable) %></div>
+                <% if event.previous_recordable %>
+                  <div class="text-xs text-slate-500">Previous: <%= recordable_label(event.previous_recordable) %></div>
+                <% end %>
+              </td>
+              <td class="px-6 py-4 text-sm text-slate-600">
+                <% if event.recording %>
+                  <%= link_to "Recording ##{event.recording.id}", recording_path(event.recording), class: "text-indigo-600 hover:text-indigo-700" %>
+                <% else %>
+                  —
+                <% end %>
+              </td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="5" class="px-6 py-6 text-center text-sm text-slate-500">No events yet.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
