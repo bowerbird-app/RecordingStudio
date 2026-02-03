@@ -3,7 +3,7 @@
 require "simplecov"
 
 SimpleCov.start do
-	add_filter "/test/"
+  add_filter "/test/"
 end
 
 ENV["RAILS_ENV"] ||= "test"
@@ -15,7 +15,7 @@ require "minitest/autorun"
 require "rails"
 
 module MakeupArtist
-	class Engine < ::Rails::Engine; end
+  class Engine < ::Rails::Engine; end
 end
 
 require File.expand_path("dummy/config/environment", __dir__)

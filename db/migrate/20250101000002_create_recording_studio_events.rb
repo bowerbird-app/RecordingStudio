@@ -12,6 +12,8 @@ class CreateRecordingStudioEvents < ActiveRecord::Migration[7.1]
       t.uuid :previous_recordable_id
       t.string :actor_type
       t.uuid :actor_id
+      t.string :impersonator_type
+      t.uuid :impersonator_id
       t.datetime :occurred_at, null: false, default: -> { "CURRENT_TIMESTAMP" }
       t.jsonb :metadata, null: false, default: {}
       t.string :idempotency_key
@@ -19,7 +21,7 @@ class CreateRecordingStudioEvents < ActiveRecord::Migration[7.1]
       t.timestamps
     end
 
-    add_index :recording_studio_events, [:recording_id, :idempotency_key],
+    add_index :recording_studio_events, %i[recording_id idempotency_key],
               unique: true,
               where: "idempotency_key IS NOT NULL",
               name: "index_recording_studio_events_on_recording_and_idempotency_key"

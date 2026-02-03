@@ -31,14 +31,35 @@
           <%= link_to root_path, class: "block" do %>
             <span class="text-lg font-semibold">Recording Studio</span>
           <% end %>
-          <%= form_with url: actor_path, method: :patch, local: true, class: "flex items-center gap-3" do |form| %>
-            <%= form.label :actor_id, "Actor", class: "text-sm font-medium text-slate-600" %>
-            <%= form.select :actor_id, options_for_select(actor_options, current_actor_key), {}, class: "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" %>
-            <%= form.submit "Switch", class: "rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white" %>
-          <% end %>
+          <div class="flex items-center gap-3">
+            <% if admin_user? %>
+              <% grouped_options, selected_actor_selection, blank_label = actor_switcher_options(
+                current_actor: current_actor,
+                current_user: current_user,
+                true_user: true_user,
+                system_actors: system_actor_options,
+                impersonating: impersonating?
+              ) %>
+
+              <%= form_with url: actor_switch_path, method: :post, local: true, class: "flex items-center gap-3" do |form| %>
+                <%= form.label :actor_selection, "Actor", class: "text-sm font-medium text-slate-600" %>
+                <%= form.select :actor_selection, grouped_options_for_select(grouped_options, selected_actor_selection), { include_blank: blank_label }, class: "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm", onchange: "this.form.requestSubmit()" %>
+              <% end %>
+            <% end %>
+          </div>
         </div>
       </header>
       <main class="mx-auto max-w-6xl px-6 py-8">
+        <% if flash[:notice].present? %>
+          <div class="mb-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <%= flash[:notice] %>
+          </div>
+        <% end %>
+        <% if flash[:alert].present? %>
+          <div class="mb-6 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <%= flash[:alert] %>
+          </div>
+        <% end %>
         <%= yield %>
       </main>
     </div>

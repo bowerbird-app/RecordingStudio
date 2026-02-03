@@ -5,7 +5,7 @@ require "test_helper"
 class RecordingTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
-    RecordingStudio.configuration.recordable_types = ["Page", "Comment"]
+    RecordingStudio.configuration.recordable_types = %w[Page Comment]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     RecordingStudio::Event.delete_all
@@ -22,8 +22,10 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_scopes_filter_recordings
     workspace = Workspace.create!(name: "Workspace")
-    first = RecordingStudio.record!(action: "created", recordable: Page.new(title: "One"), container: workspace).recording
-    second = RecordingStudio.record!(action: "created", recordable: Comment.new(body: "Two"), container: workspace).recording
+    first = RecordingStudio.record!(action: "created", recordable: Page.new(title: "One"),
+                                    container: workspace).recording
+    second = RecordingStudio.record!(action: "created", recordable: Comment.new(body: "Two"),
+                                     container: workspace).recording
 
     second.update!(trashed_at: Time.current)
 
@@ -132,5 +134,18 @@ class RecordingTest < ActiveSupport::TestCase
 
     assert_equal 0, first_recordable.recordings_count
     assert_equal 1, second_recordable.recordings_count
+  end
+
+  def test_recordings_counter_skips_when_recordable_missing_column
+    workspace = Workspace.create!(name: "Workspace")
+    system_actor = SystemActor.create!(name: "Background task")
+
+    recording = RecordingStudio::Recording.create!(container: workspace, recordable: system_actor)
+
+    assert recording.persisted?
+    refute_includes SystemActor.column_names, "recordings_count"
+
+    recording.update!(trashed_at: Time.current)
+    assert recording.reload.trashed_at
   end
 end

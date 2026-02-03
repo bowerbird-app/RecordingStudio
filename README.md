@@ -305,8 +305,13 @@ RecordingStudio::Recording.include(HasComments)
 
 ## Actors
 
-Actors identify who performed an action. Events record a polymorphic actor (User, ServiceAccount, AI agent, etc.) so
+Actors identify who performed an action. Events record a polymorphic actor (User, SystemActor, AI agent, etc.) so
 your timeline can attribute activity to the right identity.
+
+Actors referenced by events must be persisted records (the event stores `actor_type` + `actor_id`). That means
+system actors live in the `system_actors` table and **must** have a row there to be referenced in events. You can
+create them via seeds, migrations, or lazy creation on first use. A simple pattern for extensions is to keep a
+configured name and `find_or_create_by!` the corresponding record when needed.
 
 RecordingStudio expects your app to define `current_actor` and assign it to `Current.actor` in the application
 controller. If you use Devise with a single actor, `current_actor` can just return `current_user`. If you support
@@ -328,6 +333,47 @@ end
 
 With this setup, you can omit `actor:` when calling RecordingStudio APIs, and the configured `actor` will
 use `Current.actor`.
+
+### System Actors
+
+System actors represent automated or non-human agents (background jobs, integrations, scheduled tasks). They are
+stored as real records so events can attribute activity to a stable identity.
+
+System actors must be persisted (the event stores `actor_type` + `actor_id`). Create them via seeds, migrations, or
+lazy creation on first use. A simple pattern is to keep a configured name and `find_or_create_by!` the record:
+
+```ruby
+# e.g. db/seeds.rb
+SystemActor.find_or_create_by!(name: "Automations")
+```
+
+When logging events, pass the system actor explicitly or set `Current.actor` to the system actor record in the
+execution context.
+
+### Impersonation
+
+Impersonation lets an admin act “as” another user while preserving who the real actor was. RecordingStudio stores
+both values: the event `actor` is the user being impersonated, and the `impersonator` is the admin who initiated the
+impersonation.
+
+If you use the Pretender gem, `current_user` returns the impersonated user and `true_user` returns the admin. You
+can wire this into RecordingStudio by setting both `Current.actor` and `Current.impersonator`:
+
+```ruby
+class ApplicationController < ActionController::Base
+  before_action :current_actor
+
+  private
+
+  def current_actor
+    Current.actor = current_user
+    Current.impersonator = respond_to?(:true_user) ? true_user : nil
+  end
+end
+```
+
+You can also pass `impersonator:` explicitly when calling RecordingStudio APIs. Either way, events will capture
+both identities.
 
 ## Query API
 
@@ -398,7 +444,7 @@ end
 ## Dummy Sandbox
 
 The dummy app in `test/dummy` showcases the architecture with a `Workspace` container, `Page` recordables, and polymorphic
-actors (`User`, `ServiceAccount`). It demonstrates:
+actors (`User`, `SystemActor`). It demonstrates:
 
 - Recording creation, revisions, and unrecording via the container API
 - Event timeline with actors, recordables, and metadata

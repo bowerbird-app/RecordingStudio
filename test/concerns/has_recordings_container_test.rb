@@ -17,6 +17,7 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     RecordingStudio::Recording.delete_all
     Page.delete_all
     Workspace.delete_all
+    User.delete_all
   end
 
   def teardown
@@ -50,12 +51,12 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     parent = workspace.record(Page) { |page| page.title = "Parent" }
     child = workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
 
-    workspace.trash(parent, include_children: true)
+    workspace.trash(parent, include_children: true, impersonator: nil)
 
     assert parent.reload.trashed_at
     assert child.reload.trashed_at
 
-    workspace.restore(parent, include_children: true)
+    workspace.restore(parent, include_children: true, impersonator: nil)
 
     assert_nil parent.reload.trashed_at
     assert_nil child.reload.trashed_at
@@ -66,7 +67,7 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     parent = workspace.record(Page) { |page| page.title = "Parent" }
     child = workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
 
-    workspace.hard_delete(parent, include_children: true)
+    workspace.hard_delete(parent, include_children: true, impersonator: nil)
 
     assert_nil RecordingStudio::Recording.including_trashed.find_by(id: parent.id)
     assert_nil RecordingStudio::Recording.including_trashed.find_by(id: child.id)
@@ -85,6 +86,17 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     assert_equal "reverted", reverted.events.first.action
   end
 
+  def test_log_event_records_impersonator
+    workspace = Workspace.create!(name: "Workspace")
+    actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
+    impersonator = User.create!(name: "Admin", email: "admin@example.com", password: "password123")
+    recording = workspace.record(Page, actor: actor) { |page| page.title = "Draft" }
+
+    event = workspace.log_event(recording, action: "reviewed", actor: actor, impersonator: impersonator)
+
+    assert_equal impersonator, event.impersonator
+  end
+
   def test_recordings_filters_and_helpers
     workspace = Workspace.create!(name: "Workspace")
     parent = workspace.record(Page) { |page| page.title = "Parent" }
@@ -94,7 +106,8 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     assert_equal 2, workspace.recordings(include_children: true).count
     assert_equal 1, workspace.recordings_of(Page).count
     assert_equal 1, workspace.recordings(include_children: true, parent_id: parent.id).count
-    assert_equal parent.id, workspace.recordings(include_children: true, type: Page, recordable_order: "pages.title desc").first.id
+    assert_equal parent.id,
+                 workspace.recordings(include_children: true, type: Page, recordable_order: "pages.title desc").first.id
   end
 
   def test_recordings_sanitizes_recordable_order
@@ -248,10 +261,19 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     parent = workspace.record(Page) { |page| page.title = "Parent" }
     child = workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
 
-    workspace.trash(parent)
+    workspace.trash(parent, impersonator: nil)
 
     assert parent.reload.trashed_at
     assert child.reload.trashed_at
+  end
+
+  def test_trash_restore_and_hard_delete_ignore_nil
+    workspace = Workspace.create!(name: "Workspace")
+
+    assert_nil workspace.trash(nil, impersonator: nil)
+    assert_nil workspace.restore(nil, impersonator: nil)
+    assert_nil workspace.hard_delete(nil, impersonator: nil)
+    assert_equal 0, RecordingStudio::Event.count
   end
 
   def test_custom_dup_strategy_used

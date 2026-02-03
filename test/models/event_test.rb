@@ -51,4 +51,19 @@ class EventTest < ActiveSupport::TestCase
     page.reload
     assert_equal 0, page.events_count
   end
+
+  def test_events_count_skips_when_recordable_missing_column
+    workspace = Workspace.create!(name: "Workspace")
+    system_actor = SystemActor.create!(name: "Background task")
+    recording = RecordingStudio::Recording.create!(container: workspace, recordable: system_actor)
+
+    event = RecordingStudio::Event.create!(
+      action: "created",
+      recordable: system_actor,
+      recording: recording
+    )
+
+    assert event.persisted?
+    refute_includes SystemActor.column_names, "events_count"
+  end
 end

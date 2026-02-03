@@ -9,11 +9,12 @@ module RecordingStudio
       return if types.empty?
 
       recording_class = if RecordingStudio.const_defined?(:Recording, false)
-        RecordingStudio::Recording
-      else
-        ActiveSupport::Inflector.safe_constantize("RecordingStudio::Recording")
-      end
+                          RecordingStudio::Recording
+                        else
+                          ActiveSupport::Inflector.safe_constantize("RecordingStudio::Recording")
+                        end
       return unless recording_class
+
       current_types = recording_class.instance_variable_get(:@recording_studio_recordable_types)
       return if current_types == types
 
@@ -24,9 +25,7 @@ module RecordingStudio
         recordable_class = ActiveSupport::Inflector.safe_constantize(type_name)
         next unless recordable_class
 
-        unless recordable_class < ActiveRecord::Base
-          next
-        end
+        next unless recordable_class < ActiveRecord::Base
 
         unless recordable_class.included_modules.include?(RecordingStudio::Recordable)
           recordable_class.include(RecordingStudio::Recordable)

@@ -20,7 +20,7 @@ class PagesController < ApplicationController
   end
 
   def create
-    recording = @workspace.record(Page, actor: current_actor, metadata: { source: "ui" }) do |page|
+    recording = @workspace.record(Page, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }) do |page|
       page.assign_attributes(page_params)
     end
 
@@ -32,7 +32,7 @@ class PagesController < ApplicationController
   end
 
   def update
-    updated_recording = @workspace.revise(@recording, actor: current_actor, metadata: { source: "ui" }) do |page|
+    updated_recording = @workspace.revise(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }) do |page|
       page.assign_attributes(page_params)
       page.original_id = @recording.recordable.original_id || @recording.recordable.id
     end
@@ -41,12 +41,12 @@ class PagesController < ApplicationController
   end
 
   def destroy
-    @workspace.trash(@recording, actor: current_actor, metadata: { source: "ui" }, include_children: true)
+    @workspace.trash(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }, include_children: true)
     redirect_to pages_path
   end
 
   def restore
-    @workspace.restore(@recording, actor: current_actor, metadata: { source: "ui" }, include_children: true)
+    @workspace.restore(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }, include_children: true)
     redirect_to recording_path(@recording)
   end
 

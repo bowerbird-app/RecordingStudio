@@ -5,7 +5,10 @@ Rails.application.routes.draw do
   # Mount the RecordingStudio engine
   mount RecordingStudio::Engine, at: "/recording_studio"
 
+  resources :impersonations, only: :create
+  resource :impersonation, only: :destroy
   resource :actor, only: :update
+  post "actor_switch" => "actors#switch", as: :actor_switch
 
   resources :pages, param: :recording_id do
     post :restore, on: :member

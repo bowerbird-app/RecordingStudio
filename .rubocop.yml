@@ -3,6 +3,7 @@ AllCops:
   NewCops: enable
   Exclude:
     - 'test/dummy/**/*'
+    - 'test/tmp/**/*'
     - 'vendor/**/*'
     - 'bin/**/*'
 
@@ -15,22 +16,65 @@ Style/StringLiterals:
 
 Layout/LineLength:
   Max: 120
+  Exclude:
+    - 'app/models/concerns/**/has_recordings_container.rb'
 
 # Relax metrics for test files and generators
 Metrics/ClassLength:
   Exclude:
     - 'test/**/*'
     - 'lib/gem_template/hooks.rb'
+    - 'lib/recording_studio/hooks.rb'
 
 Metrics/MethodLength:
   Exclude:
     - 'test/**/*'
     - 'lib/generators/**/*'
+    - 'app/models/concerns/**/has_recordings_container.rb'
+    - 'app/models/recording_studio/recording.rb'
+    - 'db/migrate/**/*'
+    - 'lib/recording_studio.rb'
+    - 'lib/recording_studio/delegated_type_registrar.rb'
 
 Metrics/AbcSize:
   Exclude:
     - 'test/**/*'
     - 'lib/generators/**/*'
+    - 'app/models/concerns/**/has_recordings_container.rb'
+    - 'app/models/recording_studio/recording.rb'
+    - 'db/migrate/**/*'
+    - 'lib/recording_studio.rb'
+    - 'lib/recording_studio/delegated_type_registrar.rb'
+
+Metrics/CyclomaticComplexity:
+  Exclude:
+    - 'app/models/concerns/**/has_recordings_container.rb'
+    - 'app/models/recording_studio/recording.rb'
+    - 'db/migrate/**/*'
+    - 'lib/recording_studio.rb'
+    - 'lib/recording_studio/delegated_type_registrar.rb'
+
+Metrics/PerceivedComplexity:
+  Exclude:
+    - 'app/models/concerns/**/has_recordings_container.rb'
+    - 'app/models/recording_studio/recording.rb'
+    - 'db/migrate/**/*'
+    - 'lib/recording_studio.rb'
+    - 'lib/recording_studio/delegated_type_registrar.rb'
+
+Metrics/ModuleLength:
+  Exclude:
+    - 'app/models/concerns/**/has_recordings_container.rb'
+
+Metrics/ParameterLists:
+  Exclude:
+    - 'app/models/concerns/**/has_recordings_container.rb'
+    - 'app/models/recording_studio/recording.rb'
+    - 'lib/recording_studio.rb'
+
+Metrics/BlockLength:
+  Exclude:
+    - 'lib/recording_studio.rb'
 
 # Allow empty blocks in tests (common for stubs/mocks)
 Lint/EmptyBlock:

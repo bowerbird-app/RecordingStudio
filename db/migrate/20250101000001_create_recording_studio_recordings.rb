@@ -12,9 +12,9 @@ class CreateRecordingStudioRecordings < ActiveRecord::Migration[7.1]
       t.timestamps
     end
 
-    add_index :recording_studio_recordings, [:container_type, :container_id],
+    add_index :recording_studio_recordings, %i[container_type container_id],
               name: "index_recording_studio_recordings_on_container"
-    add_index :recording_studio_recordings, [:recordable_type, :recordable_id],
+    add_index :recording_studio_recordings, %i[recordable_type recordable_id],
               name: "index_recording_studio_recordings_on_recordable"
   end
 end

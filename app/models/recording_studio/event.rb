@@ -8,6 +8,7 @@ module RecordingStudio
     belongs_to :recordable, polymorphic: true
     belongs_to :previous_recordable, polymorphic: true, optional: true
     belongs_to :actor, polymorphic: true, optional: true
+    belongs_to :impersonator, polymorphic: true, optional: true
 
     scope :for_recording, ->(recording) { where(recording: recording) }
     scope :by_actor, lambda { |actor|
@@ -39,7 +40,7 @@ module RecordingStudio
 
       quoted_column = recordable_class.connection.quote_column_name(column)
       recordable_class.where(id: recordable_id)
-        .update_all("#{quoted_column} = COALESCE(#{quoted_column}, 0) + #{delta}")
+                      .update_all("#{quoted_column} = COALESCE(#{quoted_column}, 0) + #{delta}")
     end
   end
 end

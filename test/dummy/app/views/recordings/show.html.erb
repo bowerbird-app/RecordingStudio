@@ -97,7 +97,7 @@
                 </div>
               </div>
               <div class="mt-2 text-xs text-slate-500">
-                Actor: <span class="font-medium text-slate-700"><%= actor_label(event.actor) %></span>
+                Actor: <span class="font-medium text-slate-700"><%= actor_with_impersonator_label(event.actor, event.impersonator) %></span>
               </div>
               <div class="mt-2 text-xs text-slate-500">
                 Recordable: <span class="font-medium text-slate-700"><%= recordable_label(event.recordable) %></span>

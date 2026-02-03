@@ -3,34 +3,63 @@ class ApplicationController < ActionController::Base
   allow_browser versions: :modern
 
   # Changes to the importmap will invalidate the etag for HTML responses
-  stale_when_importmap_changes
+  stale_when_importmap_changes if respond_to?(:stale_when_importmap_changes)
+
+  impersonates :user
 
   before_action :authenticate_user!, unless: :devise_controller?
   before_action :current_actor
 
-  helper_method :current_actor, :actor_options, :current_actor_key
+  helper_method :current_actor, :impersonating?, :admin_user?, :system_actor_options
 
   private
 
   def current_actor
-    @current_actor ||= current_user || actor_from_session
-    Current.actor = @current_actor
+    actor, impersonator = resolve_actor_context
+
+    @current_actor = actor
+    Current.actor = actor
+    Current.impersonator = impersonator
+    actor
   end
 
-  def current_actor_key
-    actor_key(current_actor)
+  def resolve_actor_context
+    system_actor = system_actor_from_session
+    impersonated_user = impersonated_user_from_session
+
+    if system_actor
+      [system_actor, nil]
+    else
+      actor = impersonated_user || current_user
+      impersonator = impersonated_user ? true_user : nil
+      [actor, impersonator]
+    end
   end
 
-  def actor_options
-    users = User.order(:name).map { |user| ["#{user.name} (User)", actor_key(user)] }
-    services = ServiceAccount.order(:name).map { |service| ["#{service.name} (Service)", actor_key(service)] }
-    users + services
+  def impersonating?
+    impersonated_user_from_session.present?
   end
 
-  def actor_key(actor)
-    return nil unless actor
+  def admin_user?
+    true_user&.admin?
+  end
 
-    "#{actor.class.name}:#{actor.id}"
+  def require_admin!
+    return if admin_user?
+
+    redirect_to root_path, alert: "You are not authorized to impersonate."
+  end
+
+  def system_actor_options
+    SystemActor.order(:name)
+  end
+
+  def impersonated_user_from_session
+    return @impersonated_user_from_session if defined?(@impersonated_user_from_session)
+
+    @impersonated_user_from_session = if session[:impersonated_user_id].present?
+      User.find_by(id: session[:impersonated_user_id])
+    end
   end
 
   def actor_from_key(value)
@@ -42,7 +71,14 @@ class ApplicationController < ActionController::Base
     nil
   end
 
+  def system_actor_from_session
+    return if session[:actor_type].blank? || session[:actor_id].blank?
+
+    actor = actor_from_key("#{session[:actor_type]}:#{session[:actor_id]}")
+    actor if actor.is_a?(SystemActor)
+  end
+
   def actor_from_session
-    actor_from_key("#{session[:actor_type]}:#{session[:actor_id]}")
+    system_actor_from_session
   end
 end

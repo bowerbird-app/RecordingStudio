@@ -19,6 +19,7 @@ class RecordingsController < ApplicationController
     @recording.log_event!(
       action: "commented",
       actor: current_actor,
+      impersonator: Current.impersonator,
       metadata: { source: "demo" }
     )
 
@@ -33,6 +34,7 @@ class RecordingsController < ApplicationController
       @recording,
       to_recordable: recordable,
       actor: current_actor,
+      impersonator: Current.impersonator,
       metadata: { source: "ui", reverted_to_id: recordable.id }
     )
 

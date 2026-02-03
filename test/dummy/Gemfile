@@ -5,6 +5,7 @@ gem "recording_studio", path: "../.."
 
 # Authentication for the dummy app
 gem "devise"
+gem "pretender"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
 gem "rails", "~> 8.1.1"
@@ -27,7 +28,7 @@ gem "jbuilder"
 gem "tailwindcss-rails"
 
 # MakeupArtist UI component library
-gem "makeup_artist", git: "https://#{ENV['PERSONAL_ACCESS_TOKEN']}@github.com/bowerbird-app/makeup-artist.git"
+gem "makeup_artist", git: "https://github.com/bowerbird-app/makeup-artist.git"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"

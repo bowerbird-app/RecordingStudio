@@ -34,24 +34,24 @@ class RenameControlRoomTablesToRecordingStudio < ActiveRecord::Migration[7.1]
         foreign_key_exists?(:recording_studio_recordings, :recording_studio_recordings, column: :parent_recording_id)
     end
 
-    if table_exists?(:recording_studio_events)
-      rename_index_if_needed(
-        :recording_studio_events,
-        "index_control_room_events_on_recording_id",
-        "index_recording_studio_events_on_recording_id"
-      )
-      rename_index_if_needed(
-        :recording_studio_events,
-        "index_control_room_events_on_recording_and_idempotency_key",
-        "index_recording_studio_events_on_recording_and_idempotency_key"
-      )
+    return unless table_exists?(:recording_studio_events)
 
-      if foreign_key_exists?(:recording_studio_events, :control_room_recordings, column: :recording_id)
-        remove_foreign_key :recording_studio_events, column: :recording_id
-      end
-      add_foreign_key :recording_studio_events, :recording_studio_recordings, column: :recording_id unless
-        foreign_key_exists?(:recording_studio_events, :recording_studio_recordings, column: :recording_id)
+    rename_index_if_needed(
+      :recording_studio_events,
+      "index_control_room_events_on_recording_id",
+      "index_recording_studio_events_on_recording_id"
+    )
+    rename_index_if_needed(
+      :recording_studio_events,
+      "index_control_room_events_on_recording_and_idempotency_key",
+      "index_recording_studio_events_on_recording_and_idempotency_key"
+    )
+
+    if foreign_key_exists?(:recording_studio_events, :control_room_recordings, column: :recording_id)
+      remove_foreign_key :recording_studio_events, column: :recording_id
     end
+    add_foreign_key :recording_studio_events, :recording_studio_recordings, column: :recording_id unless
+      foreign_key_exists?(:recording_studio_events, :recording_studio_recordings, column: :recording_id)
   end
 
   def down
@@ -90,21 +90,21 @@ class RenameControlRoomTablesToRecordingStudio < ActiveRecord::Migration[7.1]
         foreign_key_exists?(:control_room_recordings, :control_room_recordings, column: :parent_recording_id)
     end
 
-    if table_exists?(:control_room_events)
-      rename_index_if_needed(
-        :control_room_events,
-        "index_recording_studio_events_on_recording_id",
-        "index_control_room_events_on_recording_id"
-      )
-      rename_index_if_needed(
-        :control_room_events,
-        "index_recording_studio_events_on_recording_and_idempotency_key",
-        "index_control_room_events_on_recording_and_idempotency_key"
-      )
+    return unless table_exists?(:control_room_events)
 
-      add_foreign_key :control_room_events, :control_room_recordings, column: :recording_id unless
-        foreign_key_exists?(:control_room_events, :control_room_recordings, column: :recording_id)
-    end
+    rename_index_if_needed(
+      :control_room_events,
+      "index_recording_studio_events_on_recording_id",
+      "index_control_room_events_on_recording_id"
+    )
+    rename_index_if_needed(
+      :control_room_events,
+      "index_recording_studio_events_on_recording_and_idempotency_key",
+      "index_control_room_events_on_recording_and_idempotency_key"
+    )
+
+    add_foreign_key :control_room_events, :control_room_recordings, column: :recording_id unless
+      foreign_key_exists?(:control_room_events, :control_room_recordings, column: :recording_id)
   end
 
   private
