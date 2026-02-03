@@ -12,6 +12,7 @@ module RecordingStudio
     #
     class ExampleService < BaseService
       def initialize(name:)
+        super()
         @name = name
       end
 

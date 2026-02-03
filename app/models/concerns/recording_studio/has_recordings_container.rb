@@ -1,17 +1,15 @@
 # frozen_string_literal: true
 
-require "set"
-
 module RecordingStudio
   module HasRecordingsContainer
     extend ActiveSupport::Concern
 
     included do
       has_many :recordings, -> { where(parent_recording_id: nil) }, as: :container,
-              class_name: "RecordingStudio::Recording", dependent: :destroy
+                                                                    class_name: "RecordingStudio::Recording", dependent: :destroy
     end
 
-    def record(recordable_or_class, actor: nil, impersonator: nil, metadata: {}, parent_recording: nil, &block)
+    def record(recordable_or_class, actor: nil, impersonator: nil, metadata: {}, parent_recording: nil)
       recordable = build_recordable(recordable_or_class)
       yield(recordable) if block_given?
       recordable.save!
@@ -27,7 +25,7 @@ module RecordingStudio
       ).recording
     end
 
-    def revise(recording, actor: nil, impersonator: nil, metadata: {}, &block)
+    def revise(recording, actor: nil, impersonator: nil, metadata: {})
       recordable = duplicate_recordable(recording.recordable)
       yield(recordable) if block_given?
       recordable.save!
@@ -45,20 +43,24 @@ module RecordingStudio
 
     def trash(recording, actor: nil, impersonator: nil, metadata: {}, include_children: false)
       include_children ||= RecordingStudio.configuration.include_children
-      delete_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata, cascade: include_children, seen: Set.new, mode: :soft)
+      delete_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata,
+                                     cascade: include_children, seen: Set.new, mode: :soft)
     end
 
     def hard_delete(recording, actor: nil, impersonator: nil, metadata: {}, include_children: false)
       include_children ||= RecordingStudio.configuration.include_children
-      delete_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata, cascade: include_children, seen: Set.new, mode: :hard)
+      delete_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata,
+                                     cascade: include_children, seen: Set.new, mode: :hard)
     end
 
     def restore(recording, actor: nil, impersonator: nil, metadata: {}, include_children: false)
       include_children ||= RecordingStudio.configuration.include_children
-      restore_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata, cascade: include_children, seen: Set.new)
+      restore_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata,
+                                      cascade: include_children, seen: Set.new)
     end
 
-    def log_event(recording, action:, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current, idempotency_key: nil)
+    def log_event(recording, action:, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current,
+                  idempotency_key: nil)
       recording.log_event!(
         action: action,
         actor: actor,
@@ -129,7 +131,8 @@ module RecordingStudio
       if cascade
         children = recording.child_recordings.including_trashed
         children.each do |child|
-          delete_with_cascade(child, actor: actor, impersonator: impersonator, metadata: metadata, cascade: true, seen: seen, mode: mode)
+          delete_with_cascade(child, actor: actor, impersonator: impersonator, metadata: metadata, cascade: true,
+                                     seen: seen, mode: mode)
         end
       end
 
@@ -164,7 +167,8 @@ module RecordingStudio
       if cascade
         children = recording.child_recordings.including_trashed
         children.each do |child|
-          restore_with_cascade(child, actor: actor, impersonator: impersonator, metadata: metadata, cascade: true, seen: seen)
+          restore_with_cascade(child, actor: actor, impersonator: impersonator, metadata: metadata, cascade: true,
+                                      seen: seen)
         end
       end
 
@@ -207,8 +211,6 @@ module RecordingStudio
         sanitize_order_hash(order, model_class)
       when String, Symbol
         sanitize_order_string(order.to_s, model_class)
-      else
-        nil
       end
     end
 

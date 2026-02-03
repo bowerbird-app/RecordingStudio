@@ -5,7 +5,7 @@ require "test_helper"
 class RecordingTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
-    RecordingStudio.configuration.recordable_types = ["Page", "Comment"]
+    RecordingStudio.configuration.recordable_types = %w[Page Comment]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     RecordingStudio::Event.delete_all
@@ -22,8 +22,10 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_scopes_filter_recordings
     workspace = Workspace.create!(name: "Workspace")
-    first = RecordingStudio.record!(action: "created", recordable: Page.new(title: "One"), container: workspace).recording
-    second = RecordingStudio.record!(action: "created", recordable: Comment.new(body: "Two"), container: workspace).recording
+    first = RecordingStudio.record!(action: "created", recordable: Page.new(title: "One"),
+                                    container: workspace).recording
+    second = RecordingStudio.record!(action: "created", recordable: Comment.new(body: "Two"),
+                                     container: workspace).recording
 
     second.update!(trashed_at: Time.current)
 

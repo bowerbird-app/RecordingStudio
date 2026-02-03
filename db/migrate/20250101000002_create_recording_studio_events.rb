@@ -21,7 +21,7 @@ class CreateRecordingStudioEvents < ActiveRecord::Migration[7.1]
       t.timestamps
     end
 
-    add_index :recording_studio_events, [:recording_id, :idempotency_key],
+    add_index :recording_studio_events, %i[recording_id idempotency_key],
               unique: true,
               where: "idempotency_key IS NOT NULL",
               name: "index_recording_studio_events_on_recording_and_idempotency_key"

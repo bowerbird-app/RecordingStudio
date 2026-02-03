@@ -23,7 +23,7 @@ class ApplicationHelperTest < ActionView::TestCase
 
     assert_equal "SystemActor:#{@system_actor.id}", selected
     assert_equal "Signed in as #{@admin.name}", blank
-    assert_equal [@user.name, "User:#{@user.id}"], (grouped["Users"].find { |pair| pair.last == "User:#{@user.id}" })
+    assert_equal([@user.name, "User:#{@user.id}"], grouped["Users"].find { |pair| pair.last == "User:#{@user.id}" })
     assert_equal ["#{@system_actor.name} (System)", "SystemActor:#{@system_actor.id}"], grouped["System actors"].first
   end
 

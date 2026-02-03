@@ -9,8 +9,8 @@ gem "puma"
 gem "sprockets-rails"
 
 group :development, :test do
-  gem "debug"
   gem "bootsnap", require: false
+  gem "debug"
   gem "pg", "~> 1.1"
 end
 

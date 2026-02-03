@@ -26,13 +26,13 @@ module RecordingStudio
     end
 
     def record!(action:, recordable:, recording: nil, container: nil, actor: nil, impersonator: nil,
-          metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)
+                metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)
       RecordingStudio::DelegatedTypeRegistrar.apply!
       container ||= recording&.container
       raise ArgumentError, "container is required" if container.nil?
 
-        resolved_actor = actor || configuration.actor&.call
-        resolved_impersonator = impersonator || configuration.impersonator&.call
+      resolved_actor = actor || configuration.actor&.call
+      resolved_impersonator = impersonator || configuration.impersonator&.call
       metadata = metadata.presence || {}
       idempotency_key = idempotency_key.presence
 
@@ -46,6 +46,7 @@ module RecordingStudio
           if previous_recordable && previous_recordable.class.name != recordable.class.name
             raise ArgumentError, "recordable type must remain #{previous_recordable.class.name}"
           end
+
           recording.update!(recordable: recordable) if recordable != previous_recordable
         else
           recording = RecordingStudio::Recording.create!(
@@ -84,8 +85,6 @@ module RecordingStudio
       return unless event
 
       case configuration.idempotency_mode.to_sym
-      when :return_existing
-        event
       when :raise
         masked_key = event.idempotency_key.to_s
         masked_key = masked_key.length <= 4 ? "****" : "****#{masked_key[-4, 4]}"

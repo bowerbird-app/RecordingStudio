@@ -9,8 +9,8 @@ class RecordingApiTest < ActiveSupport::TestCase
     @original_idempotency_mode = RecordingStudio.configuration.idempotency_mode
     @original_notifications = RecordingStudio.configuration.event_notifications_enabled
 
-    RecordingStudio.configuration.recordable_types = ["Page", "Comment"]
-    RecordingStudio.configuration.actor = -> { nil }
+    RecordingStudio.configuration.recordable_types = %w[Page Comment]
+    RecordingStudio.configuration.actor = -> {}
     RecordingStudio.configuration.idempotency_mode = :return_existing
     RecordingStudio.configuration.event_notifications_enabled = true
 
@@ -102,7 +102,8 @@ class RecordingApiTest < ActiveSupport::TestCase
 
   def test_record_rejects_recordable_type_change
     workspace = Workspace.create!(name: "Workspace")
-    initial_event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
+    initial_event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"),
+                                            container: workspace)
     recording = initial_event.recording
 
     assert_raises(ArgumentError) do
@@ -118,7 +119,8 @@ class RecordingApiTest < ActiveSupport::TestCase
   def test_record_normalizes_metadata
     workspace = Workspace.create!(name: "Workspace")
 
-    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace, metadata: nil)
+    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace,
+                                    metadata: nil)
 
     assert_equal({}, event.metadata)
   end

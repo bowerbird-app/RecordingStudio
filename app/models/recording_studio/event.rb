@@ -40,7 +40,7 @@ module RecordingStudio
 
       quoted_column = recordable_class.connection.quote_column_name(column)
       recordable_class.where(id: recordable_id)
-        .update_all("#{quoted_column} = COALESCE(#{quoted_column}, 0) + #{delta}")
+                      .update_all("#{quoted_column} = COALESCE(#{quoted_column}, 0) + #{delta}")
     end
   end
 end
