@@ -5,6 +5,8 @@ Rails.application.routes.draw do
   # Mount the RecordingStudio engine
   mount RecordingStudio::Engine, at: "/recording_studio"
 
+  resources :impersonations, only: :create
+  resource :impersonation, only: :destroy
   resource :actor, only: :update
 
   resources :pages, param: :recording_id do

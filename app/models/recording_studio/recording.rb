@@ -35,13 +35,14 @@ module RecordingStudio
       scope
     end
 
-    def log_event!(action:, actor: nil, metadata: {}, occurred_at: Time.current, idempotency_key: nil)
+    def log_event!(action:, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current, idempotency_key: nil)
       RecordingStudio.record!(
         action: action,
         recordable: recordable,
         recording: self,
         container: container,
         actor: actor,
+        impersonator: impersonator,
         metadata: metadata,
         occurred_at: occurred_at,
         idempotency_key: idempotency_key

@@ -44,6 +44,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_01_23_000001) do
     t.string "actor_type"
     t.datetime "created_at", null: false
     t.string "idempotency_key"
+    t.uuid "impersonator_id"
+    t.string "impersonator_type"
     t.jsonb "metadata", default: {}, null: false
     t.datetime "occurred_at", default: -> { "CURRENT_TIMESTAMP" }, null: false
     t.uuid "previous_recordable_id"

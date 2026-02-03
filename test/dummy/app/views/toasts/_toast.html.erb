@@ -31,6 +31,12 @@
             <dt class="font-medium">actor</dt>
             <dd><%= [payload[:actor_type], payload[:actor_id]].compact.join("#") %></dd>
           </div>
+          <% if payload[:impersonator_type].present? %>
+            <div class="flex justify-between gap-2">
+              <dt class="font-medium">impersonator</dt>
+              <dd><%= [payload[:impersonator_type], payload[:impersonator_id]].compact.join("#") %></dd>
+            </div>
+          <% end %>
           <div class="flex justify-between gap-2">
             <dt class="font-medium">action</dt>
             <dd><%= payload[:action] %></dd>

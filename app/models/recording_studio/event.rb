@@ -8,6 +8,7 @@ module RecordingStudio
     belongs_to :recordable, polymorphic: true
     belongs_to :previous_recordable, polymorphic: true, optional: true
     belongs_to :actor, polymorphic: true, optional: true
+    belongs_to :impersonator, polymorphic: true, optional: true
 
     scope :for_recording, ->(recording) { where(recording: recording) }
     scope :by_actor, lambda { |actor|

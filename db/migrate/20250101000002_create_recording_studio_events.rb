@@ -12,6 +12,8 @@ class CreateRecordingStudioEvents < ActiveRecord::Migration[7.1]
       t.uuid :previous_recordable_id
       t.string :actor_type
       t.uuid :actor_id
+      t.string :impersonator_type
+      t.uuid :impersonator_id
       t.datetime :occurred_at, null: false, default: -> { "CURRENT_TIMESTAMP" }
       t.jsonb :metadata, null: false, default: {}
       t.string :idempotency_key

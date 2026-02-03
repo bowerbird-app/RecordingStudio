@@ -5,32 +5,41 @@ class ApplicationController < ActionController::Base
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
+  impersonates :user
+
   before_action :authenticate_user!, unless: :devise_controller?
   before_action :current_actor
 
-  helper_method :current_actor, :actor_options, :current_actor_key
+  helper_method :current_actor, :impersonating?, :admin_user?, :service_account_options
 
   private
 
   def current_actor
-    @current_actor ||= current_user || actor_from_session
+    @current_actor ||= if impersonating?
+      current_user
+    else
+      actor_from_session || current_user
+    end
     Current.actor = @current_actor
+    Current.impersonator = impersonating? ? true_user : nil
   end
 
-  def current_actor_key
-    actor_key(current_actor)
+  def impersonating?
+    current_user.present? && current_user != true_user
   end
 
-  def actor_options
-    users = User.order(:name).map { |user| ["#{user.name} (User)", actor_key(user)] }
-    services = ServiceAccount.order(:name).map { |service| ["#{service.name} (Service)", actor_key(service)] }
-    users + services
+  def admin_user?
+    true_user&.admin?
   end
 
-  def actor_key(actor)
-    return nil unless actor
+  def require_admin!
+    return if admin_user?
 
-    "#{actor.class.name}:#{actor.id}"
+    redirect_to root_path, alert: "You are not authorized to impersonate."
+  end
+
+  def service_account_options
+    ServiceAccount.order(:name)
   end
 
   def actor_from_key(value)
@@ -43,6 +52,9 @@ class ApplicationController < ActionController::Base
   end
 
   def actor_from_session
-    actor_from_key("#{session[:actor_type]}:#{session[:actor_id]}")
+    return if session[:actor_type].blank? || session[:actor_id].blank?
+
+    actor = actor_from_key("#{session[:actor_type]}:#{session[:actor_id]}")
+    actor if actor.is_a?(ServiceAccount)
   end
 end

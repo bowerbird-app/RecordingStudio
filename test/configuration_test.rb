@@ -7,6 +7,7 @@ class ConfigurationTest < Minitest::Test
     config = RecordingStudio::Configuration.new
 
     assert_equal [], config.recordable_types
+    assert_nil config.impersonator.call
     assert config.event_notifications_enabled
     assert_equal :return_existing, config.idempotency_mode
     assert_equal :dup, config.recordable_dup_strategy

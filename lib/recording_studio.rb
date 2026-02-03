@@ -25,13 +25,14 @@ module RecordingStudio
       RecordingStudio::DelegatedTypeRegistrar.apply!
     end
 
-    def record!(action:, recordable:, recording: nil, container: nil, actor: nil,
+    def record!(action:, recordable:, recording: nil, container: nil, actor: nil, impersonator: nil,
           metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)
       RecordingStudio::DelegatedTypeRegistrar.apply!
       container ||= recording&.container
       raise ArgumentError, "container is required" if container.nil?
 
-      resolved_actor = actor || configuration.actor&.call
+        resolved_actor = actor || configuration.actor&.call
+        resolved_impersonator = impersonator || configuration.impersonator&.call
       metadata = metadata.presence || {}
       idempotency_key = idempotency_key.presence
 
@@ -60,6 +61,7 @@ module RecordingStudio
           recordable: recordable,
           previous_recordable: previous_recordable,
           actor: resolved_actor,
+          impersonator: resolved_impersonator,
           occurred_at: occurred_at,
           metadata: metadata,
           idempotency_key: idempotency_key
@@ -110,6 +112,8 @@ module RecordingStudio
         previous_recordable_id: event.previous_recordable_id,
         actor_type: event.actor_type,
         actor_id: event.actor_id,
+        impersonator_type: event.impersonator_type,
+        impersonator_id: event.impersonator_id,
         occurred_at: event.occurred_at
       )
     end

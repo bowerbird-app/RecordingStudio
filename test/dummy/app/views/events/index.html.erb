@@ -15,6 +15,7 @@
           <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Action</th>
           <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Occurred</th>
           <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Actor</th>
+          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Impersonator</th>
           <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Recordable</th>
           <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Recording</th>
         </tr>
@@ -28,6 +29,7 @@
                 <span title="<%= l(event.occurred_at, format: :long) %>"><%= time_ago_in_words(event.occurred_at) %> ago</span>
               </td>
               <td class="px-6 py-4 text-sm text-slate-600"><%= actor_label(event.actor) %></td>
+              <td class="px-6 py-4 text-sm text-slate-600"><%= actor_label(event.impersonator) %></td>
               <td class="px-6 py-4 text-sm text-slate-600">
                 <div><%= recordable_label(event.recordable) %></div>
                 <% if event.previous_recordable %>
@@ -45,7 +47,7 @@
           <% end %>
         <% else %>
           <tr>
-            <td colspan="5" class="px-6 py-6 text-center text-sm text-slate-500">No events yet.</td>
+            <td colspan="6" class="px-6 py-6 text-center text-sm text-slate-500">No events yet.</td>
           </tr>
         <% end %>
       </tbody>
