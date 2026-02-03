@@ -1,5 +1,5 @@
 GIT
-  remote: https://@github.com/bowerbird-app/makeup-artist.git
+  remote: https://github.com/bowerbird-app/makeup-artist.git
   revision: 25cdda45f17693559d2a48920c70d9619eb9a266
   specs:
     makeup_artist (0.4.3)
