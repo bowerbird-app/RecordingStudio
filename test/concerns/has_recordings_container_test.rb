@@ -51,12 +51,12 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     parent = workspace.record(Page) { |page| page.title = "Parent" }
     child = workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
 
-    workspace.trash(parent, include_children: true)
+    workspace.trash(parent, include_children: true, impersonator: nil)
 
     assert parent.reload.trashed_at
     assert child.reload.trashed_at
 
-    workspace.restore(parent, include_children: true)
+    workspace.restore(parent, include_children: true, impersonator: nil)
 
     assert_nil parent.reload.trashed_at
     assert_nil child.reload.trashed_at
@@ -67,7 +67,7 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     parent = workspace.record(Page) { |page| page.title = "Parent" }
     child = workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
 
-    workspace.hard_delete(parent, include_children: true)
+    workspace.hard_delete(parent, include_children: true, impersonator: nil)
 
     assert_nil RecordingStudio::Recording.including_trashed.find_by(id: parent.id)
     assert_nil RecordingStudio::Recording.including_trashed.find_by(id: child.id)
@@ -261,7 +261,7 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     parent = workspace.record(Page) { |page| page.title = "Parent" }
     child = workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
 
-    workspace.trash(parent)
+    workspace.trash(parent, impersonator: nil)
 
     assert parent.reload.trashed_at
     assert child.reload.trashed_at
@@ -270,9 +270,9 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
   def test_trash_restore_and_hard_delete_ignore_nil
     workspace = Workspace.create!(name: "Workspace")
 
-    assert_nil workspace.trash(nil)
-    assert_nil workspace.restore(nil)
-    assert_nil workspace.hard_delete(nil)
+    assert_nil workspace.trash(nil, impersonator: nil)
+    assert_nil workspace.restore(nil, impersonator: nil)
+    assert_nil workspace.hard_delete(nil, impersonator: nil)
     assert_equal 0, RecordingStudio::Event.count
   end
 
