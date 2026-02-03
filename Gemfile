@@ -21,5 +21,6 @@ end
 
 group :test do
   gem "devise"
+  gem "pretender"
   gem "simplecov", require: false
 end
