@@ -13,6 +13,20 @@ class ConfigurationTest < Minitest::Test
     assert_equal :dup, config.recordable_dup_strategy
   end
 
+  def test_default_actor_and_impersonator_use_current
+    config = RecordingStudio::Configuration.new
+    actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
+    impersonator = User.create!(name: "Admin", email: "admin@example.com", password: "password123")
+
+    Current.actor = actor
+    Current.impersonator = impersonator
+
+    assert_equal actor, config.actor.call
+    assert_equal impersonator, config.impersonator.call
+  ensure
+    Current.reset_all
+  end
+
   def test_recordable_types_normalization
     config = RecordingStudio::Configuration.new
     config.recordable_types = ["Page", :Page]
@@ -38,6 +52,15 @@ class ConfigurationTest < Minitest::Test
     refute config.respond_to?(:unknown)
   end
 
+  def test_merge_accepts_string_keys_and_nil
+    config = RecordingStudio::Configuration.new
+
+    config.merge!("idempotency_mode" => :raise)
+    assert_equal :raise, config.idempotency_mode
+
+    assert_nil config.merge!(nil)
+  end
+
   def test_to_h_includes_hook_counts
     config = RecordingStudio::Configuration.new
     config.hooks.before_initialize { nil }
@@ -45,6 +68,8 @@ class ConfigurationTest < Minitest::Test
     result = config.to_h
 
     assert_equal 1, result[:hooks_registered][:before_initialize]
+    assert_equal config.recordable_dup_strategy, result[:recordable_dup_strategy]
+    assert_equal config.include_children, result[:include_children]
   end
 
   def test_register_recordable_type_updates_configuration

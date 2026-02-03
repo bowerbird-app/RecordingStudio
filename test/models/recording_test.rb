@@ -133,4 +133,17 @@ class RecordingTest < ActiveSupport::TestCase
     assert_equal 0, first_recordable.recordings_count
     assert_equal 1, second_recordable.recordings_count
   end
+
+  def test_recordings_counter_skips_when_recordable_missing_column
+    workspace = Workspace.create!(name: "Workspace")
+    system_actor = SystemActor.create!(name: "Background task")
+
+    recording = RecordingStudio::Recording.create!(container: workspace, recordable: system_actor)
+
+    assert recording.persisted?
+    refute_includes SystemActor.column_names, "recordings_count"
+
+    recording.update!(trashed_at: Time.current)
+    assert recording.reload.trashed_at
+  end
 end

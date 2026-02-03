@@ -17,6 +17,7 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     RecordingStudio::Recording.delete_all
     Page.delete_all
     Workspace.delete_all
+    User.delete_all
   end
 
   def teardown
@@ -83,6 +84,17 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     reverted = workspace.revert(recording, to_recordable: recording.recordable)
 
     assert_equal "reverted", reverted.events.first.action
+  end
+
+  def test_log_event_records_impersonator
+    workspace = Workspace.create!(name: "Workspace")
+    actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
+    impersonator = User.create!(name: "Admin", email: "admin@example.com", password: "password123")
+    recording = workspace.record(Page, actor: actor) { |page| page.title = "Draft" }
+
+    event = workspace.log_event(recording, action: "reviewed", actor: actor, impersonator: impersonator)
+
+    assert_equal impersonator, event.impersonator
   end
 
   def test_recordings_filters_and_helpers
@@ -252,6 +264,15 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
     assert parent.reload.trashed_at
     assert child.reload.trashed_at
+  end
+
+  def test_trash_restore_and_hard_delete_ignore_nil
+    workspace = Workspace.create!(name: "Workspace")
+
+    assert_nil workspace.trash(nil)
+    assert_nil workspace.restore(nil)
+    assert_nil workspace.hard_delete(nil)
+    assert_equal 0, RecordingStudio::Event.count
   end
 
   def test_custom_dup_strategy_used

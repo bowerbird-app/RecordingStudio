@@ -68,6 +68,38 @@ class RecordingApiTest < ActiveSupport::TestCase
     assert_equal user, event.actor
   end
 
+  def test_record_uses_impersonator_from_configuration
+    workspace = Workspace.create!(name: "Workspace")
+    actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
+    impersonator = User.create!(name: "Admin", email: "admin@example.com", password: "password123")
+    RecordingStudio.configuration.actor = -> { actor }
+    RecordingStudio.configuration.impersonator = -> { impersonator }
+
+    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
+
+    assert_equal actor, event.actor
+    assert_equal impersonator, event.impersonator
+  end
+
+  def test_record_impersonator_explicitly_overrides_configuration
+    workspace = Workspace.create!(name: "Workspace")
+    actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
+    impersonator = User.create!(name: "Admin", email: "admin@example.com", password: "password123")
+    override = User.create!(name: "Override", email: "override@example.com", password: "password123")
+    RecordingStudio.configuration.actor = -> { actor }
+    RecordingStudio.configuration.impersonator = -> { impersonator }
+
+    event = RecordingStudio.record!(
+      action: "created",
+      recordable: Page.new(title: "Hello"),
+      container: workspace,
+      impersonator: override
+    )
+
+    assert_equal actor, event.actor
+    assert_equal override, event.impersonator
+  end
+
   def test_record_rejects_recordable_type_change
     workspace = Workspace.create!(name: "Workspace")
     initial_event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
@@ -140,6 +172,33 @@ class RecordingApiTest < ActiveSupport::TestCase
     end
   end
 
+  def test_idempotency_error_masks_key
+    workspace = Workspace.create!(name: "Workspace")
+    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
+    recording = event.recording
+    RecordingStudio.configuration.idempotency_mode = :raise
+
+    RecordingStudio.record!(
+      action: "updated",
+      recordable: recording.recordable,
+      recording: recording,
+      container: workspace,
+      idempotency_key: "abcdef"
+    )
+
+    error = assert_raises(RecordingStudio::IdempotencyError) do
+      RecordingStudio.record!(
+        action: "updated",
+        recordable: recording.recordable,
+        recording: recording,
+        container: workspace,
+        idempotency_key: "abcdef"
+      )
+    end
+
+    assert_includes error.message, "****cdef"
+  end
+
   def test_event_notifications_fire_when_enabled
     workspace = Workspace.create!(name: "Workspace")
     events = []
@@ -151,6 +210,31 @@ class RecordingApiTest < ActiveSupport::TestCase
     RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
 
     assert_equal 1, events.size
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
+  end
+
+  def test_event_notification_payload_includes_impersonator
+    workspace = Workspace.create!(name: "Workspace")
+    actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
+    impersonator = User.create!(name: "Admin", email: "admin@example.com", password: "password123")
+    events = []
+
+    subscriber = ActiveSupport::Notifications.subscribe("recordings.event_created") do |*args|
+      events << ActiveSupport::Notifications::Event.new(*args)
+    end
+
+    RecordingStudio.record!(
+      action: "created",
+      recordable: Page.new(title: "Hello"),
+      container: workspace,
+      actor: actor,
+      impersonator: impersonator
+    )
+
+    payload = events.first.payload
+    assert_equal impersonator.id, payload[:impersonator_id]
+    assert_equal impersonator.class.name, payload[:impersonator_type]
   ensure
     ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
   end

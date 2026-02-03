@@ -10,22 +10,34 @@ class ApplicationController < ActionController::Base
   before_action :authenticate_user!, unless: :devise_controller?
   before_action :current_actor
 
-  helper_method :current_actor, :impersonating?, :admin_user?, :service_account_options
+  helper_method :current_actor, :impersonating?, :admin_user?, :system_actor_options
 
   private
 
   def current_actor
-    @current_actor ||= if impersonating?
-      current_user
+    actor, impersonator = resolve_actor_context
+
+    @current_actor = actor
+    Current.actor = actor
+    Current.impersonator = impersonator
+    actor
+  end
+
+  def resolve_actor_context
+    system_actor = system_actor_from_session
+    impersonated_user = impersonated_user_from_session
+
+    if system_actor
+      [system_actor, nil]
     else
-      actor_from_session || current_user
+      actor = impersonated_user || current_user
+      impersonator = impersonated_user ? true_user : nil
+      [actor, impersonator]
     end
-    Current.actor = @current_actor
-    Current.impersonator = impersonating? ? true_user : nil
   end
 
   def impersonating?
-    current_user.present? && current_user != true_user
+    impersonated_user_from_session.present?
   end
 
   def admin_user?
@@ -38,8 +50,16 @@ class ApplicationController < ActionController::Base
     redirect_to root_path, alert: "You are not authorized to impersonate."
   end
 
-  def service_account_options
-    ServiceAccount.order(:name)
+  def system_actor_options
+    SystemActor.order(:name)
+  end
+
+  def impersonated_user_from_session
+    return @impersonated_user_from_session if defined?(@impersonated_user_from_session)
+
+    @impersonated_user_from_session = if session[:impersonated_user_id].present?
+      User.find_by(id: session[:impersonated_user_id])
+    end
   end
 
   def actor_from_key(value)
@@ -51,10 +71,14 @@ class ApplicationController < ActionController::Base
     nil
   end
 
-  def actor_from_session
+  def system_actor_from_session
     return if session[:actor_type].blank? || session[:actor_id].blank?
 
     actor = actor_from_key("#{session[:actor_type]}:#{session[:actor_id]}")
-    actor if actor.is_a?(ServiceAccount)
+    actor if actor.is_a?(SystemActor)
+  end
+
+  def actor_from_session
+    system_actor_from_session
   end
 end

@@ -32,29 +32,34 @@
             <span class="text-lg font-semibold">Recording Studio</span>
           <% end %>
           <div class="flex items-center gap-3">
-            <% if impersonating? %>
-              <div class="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-                <span>Signed in as <%= true_user.name %>, impersonating <%= current_user.name %></span>
-              </div>
-              <%= button_to "Stop impersonating", impersonation_path, method: :delete, class: "rounded-md border border-amber-200 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50" %>
-            <% elsif admin_user? %>
-              <%= form_with url: impersonations_path, method: :post, local: true, class: "flex items-center gap-3" do |form| %>
-                <%= form.label :user_id, "Impersonate", class: "text-sm font-medium text-slate-600" %>
-                <%= form.select :user_id, options_from_collection_for_select(User.where.not(id: current_user.id).order(:name), :id, :name), {}, class: "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" %>
-                <%= form.submit "Start", class: "rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white" %>
-              <% end %>
-              <% if service_account_options.any? %>
-                <%= form_with url: actor_path, method: :patch, local: true, class: "flex items-center gap-3" do |form| %>
-                  <%= form.label :actor_id, "Service", class: "text-sm font-medium text-slate-600" %>
-                  <%= form.select :actor_id, options_for_select(service_account_options.map { |service| ["#{service.name} (Service)", "ServiceAccount:#{service.id}"] }, current_actor&.is_a?(ServiceAccount) ? "ServiceAccount:#{current_actor.id}" : nil), {}, class: "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm" %>
-                  <%= form.submit "Switch", class: "rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50" %>
-                <% end %>
+            <% if admin_user? %>
+              <% grouped_options, selected_actor_selection, blank_label = actor_switcher_options(
+                current_actor: current_actor,
+                current_user: current_user,
+                true_user: true_user,
+                system_actors: system_actor_options,
+                impersonating: impersonating?
+              ) %>
+
+              <%= form_with url: actor_switch_path, method: :post, local: true, class: "flex items-center gap-3" do |form| %>
+                <%= form.label :actor_selection, "Actor", class: "text-sm font-medium text-slate-600" %>
+                <%= form.select :actor_selection, grouped_options_for_select(grouped_options, selected_actor_selection), { include_blank: blank_label }, class: "rounded-md border border-slate-300 bg-white px-3 py-2 text-sm", onchange: "this.form.requestSubmit()" %>
               <% end %>
             <% end %>
           </div>
         </div>
       </header>
       <main class="mx-auto max-w-6xl px-6 py-8">
+        <% if flash[:notice].present? %>
+          <div class="mb-6 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+            <%= flash[:notice] %>
+          </div>
+        <% end %>
+        <% if flash[:alert].present? %>
+          <div class="mb-6 rounded-md border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <%= flash[:alert] %>
+          </div>
+        <% end %>
         <%= yield %>
       </main>
     </div>
