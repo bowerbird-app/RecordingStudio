@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   resources :impersonations, only: :create
   resource :impersonation, only: :destroy
   resource :actor, only: :update
+  post "actor_switch" => "actors#switch", as: :actor_switch
 
   resources :pages, param: :recording_id do
     post :restore, on: :member

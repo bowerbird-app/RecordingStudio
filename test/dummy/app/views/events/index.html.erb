@@ -28,7 +28,7 @@
               <td class="px-6 py-4 text-sm text-slate-600">
                 <span title="<%= l(event.occurred_at, format: :long) %>"><%= time_ago_in_words(event.occurred_at) %> ago</span>
               </td>
-              <td class="px-6 py-4 text-sm text-slate-600"><%= actor_label(event.actor) %></td>
+              <td class="px-6 py-4 text-sm text-slate-600"><%= actor_with_impersonator_label(event.actor, event.impersonator) %></td>
               <td class="px-6 py-4 text-sm text-slate-600"><%= actor_label(event.impersonator) %></td>
               <td class="px-6 py-4 text-sm text-slate-600">
                 <div><%= recordable_label(event.recordable) %></div>

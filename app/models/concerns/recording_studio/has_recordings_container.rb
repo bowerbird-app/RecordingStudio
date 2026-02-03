@@ -129,7 +129,7 @@ module RecordingStudio
       if cascade
         children = recording.child_recordings.including_trashed
         children.each do |child|
-          delete_with_cascade(child, actor: actor, metadata: metadata, cascade: true, seen: seen, mode: mode)
+          delete_with_cascade(child, actor: actor, impersonator: impersonator, metadata: metadata, cascade: true, seen: seen, mode: mode)
         end
       end
 
@@ -164,7 +164,7 @@ module RecordingStudio
       if cascade
         children = recording.child_recordings.including_trashed
         children.each do |child|
-          restore_with_cascade(child, actor: actor, metadata: metadata, cascade: true, seen: seen)
+          restore_with_cascade(child, actor: actor, impersonator: impersonator, metadata: metadata, cascade: true, seen: seen)
         end
       end
 
