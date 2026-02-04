@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_03_000006) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_04_000008) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -36,6 +36,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_000006) do
     t.datetime "updated_at", null: false
     t.integer "version", default: 1, null: false
     t.index ["original_id"], name: "index_pages_on_original_id"
+  end
+
+  create_table "recording_studio_accesses", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "access_level", default: "view", null: false
+    t.datetime "created_at", null: false
+    t.uuid "grantee_id", null: false
+    t.string "grantee_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["grantee_type", "grantee_id"], name: "index_recording_studio_accesses_on_grantee"
   end
 
   create_table "recording_studio_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -73,6 +82,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_000006) do
   end
 
   create_table "system_actors", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "teams", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false

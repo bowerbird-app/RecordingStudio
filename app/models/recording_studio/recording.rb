@@ -23,6 +23,22 @@ module RecordingStudio
     scope :include_trashed, -> { unscope(where: :trashed_at) }
     scope :of_type, ->(klass) { where(recordable_type: klass.to_s) }
 
+    def grants_access?
+      recordable_type == "RecordingStudioAccess"
+    end
+
+    def granted_to
+      return unless grants_access?
+
+      recordable.grantee
+    end
+
+    def granted_access_level
+      return unless grants_access?
+
+      recordable.access_level
+    end
+
     def events(actions: nil, actor: nil, actor_type: nil, actor_id: nil, from: nil, to: nil, limit: nil, offset: nil)
       scope = association(:events).scope
       scope = scope.with_action(actions) if actions.present?
