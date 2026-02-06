@@ -65,7 +65,8 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_log_event_delegates_to_record
     workspace = Workspace.create!(name: "Workspace")
-    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
+                                    container: workspace)
     recording = event.recording
 
     logged = recording.log_event!(action: "updated")
@@ -76,7 +77,8 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_log_event_supports_idempotency_and_timestamp
     workspace = Workspace.create!(name: "Workspace")
-    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
+                                    container: workspace)
     recording = event.recording
 
     occurred_at = 5.minutes.ago
@@ -89,7 +91,8 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_trash_delegates_to_container
     workspace = Workspace.create!(name: "Workspace")
-    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
+                                    container: workspace)
     recording = event.recording
 
     recording.trash

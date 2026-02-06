@@ -16,7 +16,8 @@ class ImpersonationEventTest < ActiveSupport::TestCase
     admin = User.create!(name: "Admin", email: "admin@example.com", password: "password123")
     actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
 
-    recording = workspace.record(RecordingStudioPage, actor: actor, impersonator: admin, metadata: { source: "test" }) do |page|
+    recording = workspace.record(RecordingStudioPage, actor: actor, impersonator: admin,
+                                                      metadata: { source: "test" }) do |page|
       page.title = "Hello"
     end
 

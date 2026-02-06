@@ -63,7 +63,8 @@ class RecordingApiTest < ActiveSupport::TestCase
     user = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
     RecordingStudio.configuration.actor = -> { user }
 
-    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"),
+                                    container: workspace)
 
     assert_equal user, event.actor
   end
@@ -75,7 +76,8 @@ class RecordingApiTest < ActiveSupport::TestCase
     RecordingStudio.configuration.actor = -> { actor }
     RecordingStudio.configuration.impersonator = -> { impersonator }
 
-    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"),
+                                    container: workspace)
 
     assert_equal actor, event.actor
     assert_equal impersonator, event.impersonator
@@ -119,15 +121,20 @@ class RecordingApiTest < ActiveSupport::TestCase
   def test_record_normalizes_metadata
     workspace = Workspace.create!(name: "Workspace")
 
-    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace,
-                                    metadata: nil)
+    event = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Hello"),
+      container: workspace,
+      metadata: nil
+    )
 
     assert_equal({}, event.metadata)
   end
 
   def test_idempotency_returns_existing_event
     workspace = Workspace.create!(name: "Workspace")
-    first_event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
+    first_event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"),
+                                          container: workspace)
     recording = first_event.recording
 
     second_event = RecordingStudio.record!(
@@ -151,7 +158,8 @@ class RecordingApiTest < ActiveSupport::TestCase
 
   def test_idempotency_raises_when_configured
     workspace = Workspace.create!(name: "Workspace")
-    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"),
+                                    container: workspace)
     recording = event.recording
     RecordingStudio.configuration.idempotency_mode = :raise
 
@@ -176,7 +184,8 @@ class RecordingApiTest < ActiveSupport::TestCase
 
   def test_idempotency_error_masks_key
     workspace = Workspace.create!(name: "Workspace")
-    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"),
+                                    container: workspace)
     recording = event.recording
     RecordingStudio.configuration.idempotency_mode = :raise
 
@@ -209,7 +218,8 @@ class RecordingApiTest < ActiveSupport::TestCase
       events << ActiveSupport::Notifications::Event.new(*args)
     end
 
-    RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
+    RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"),
+                            container: workspace)
 
     assert_equal 1, events.size
   ensure
@@ -250,7 +260,8 @@ class RecordingApiTest < ActiveSupport::TestCase
       events << ActiveSupport::Notifications::Event.new(*args)
     end
 
-    RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
+    RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"),
+                            container: workspace)
 
     assert_empty events
   ensure
