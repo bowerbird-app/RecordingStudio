@@ -5,12 +5,12 @@ require "test_helper"
 class EventTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
-    RecordingStudio.configuration.recordable_types = ["Page"]
+    RecordingStudio.configuration.recordable_types = ["RecordingStudioPage"]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     RecordingStudio::Event.delete_all
     RecordingStudio::Recording.delete_all
-    Page.delete_all
+    RecordingStudioPage.delete_all
     Workspace.delete_all
     User.delete_all
   end
@@ -24,7 +24,7 @@ class EventTest < ActiveSupport::TestCase
     actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
     recording = RecordingStudio.record!(
       action: "created",
-      recordable: Page.new(title: "One"),
+      recordable: RecordingStudioPage.new(title: "One"),
       container: workspace,
       occurred_at: 3.days.ago
     ).recording
@@ -41,7 +41,7 @@ class EventTest < ActiveSupport::TestCase
 
   def test_events_count_updates_on_create_and_destroy
     workspace = Workspace.create!(name: "Workspace")
-    page = Page.new(title: "Page")
+    page = RecordingStudioPage.new(title: "RecordingStudioPage")
     event = RecordingStudio.record!(action: "created", recordable: page, container: workspace)
 
     page.reload

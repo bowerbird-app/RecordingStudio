@@ -12,7 +12,7 @@ class DelegatedTypeRegistrarTest < ActiveSupport::TestCase
   end
 
   def test_apply_adds_delegated_type_association
-    RecordingStudio.configuration.recordable_types = ["Page"]
+    RecordingStudio.configuration.recordable_types = ["RecordingStudioPage"]
 
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
@@ -20,15 +20,15 @@ class DelegatedTypeRegistrarTest < ActiveSupport::TestCase
   end
 
   def test_apply_includes_recordable_concern
-    RecordingStudio.configuration.recordable_types = ["Page"]
+    RecordingStudio.configuration.recordable_types = ["RecordingStudioPage"]
 
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
-    assert Page.included_modules.include?(RecordingStudio::Recordable)
+    assert RecordingStudioPage.included_modules.include?(RecordingStudio::Recordable)
   end
 
   def test_apply_is_idempotent_for_same_types
-    RecordingStudio.configuration.recordable_types = ["Page"]
+    RecordingStudio.configuration.recordable_types = ["RecordingStudioPage"]
 
     RecordingStudio::DelegatedTypeRegistrar.apply!
     first_types = RecordingStudio::Recording.instance_variable_get(:@recording_studio_recordable_types)

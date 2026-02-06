@@ -50,8 +50,8 @@
       <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Recording Snapshot</h3>
       <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
         <div>
-          <dt class="text-slate-500">Original ID</dt>
-          <dd class="font-medium text-slate-900"><%= @recording.recordable.original_id || @recording.recordable.id %></dd>
+          <dt class="text-slate-500">Recordable ID</dt>
+          <dd class="font-medium text-slate-900"><%= @recording.recordable.id %></dd>
         </div>
         <div>
           <dt class="text-slate-500">Last updated</dt>
@@ -147,9 +147,6 @@
                 Events pointing here: <%= recordable.respond_to?(:events_count) ? recordable.events_count : 0 %>
               </div>
               <div class="mt-1 text-xs text-slate-500">ID: <%= recordable.id %></div>
-              <% if recordable.respond_to?(:created_at) && recordable.created_at.present? %>
-                <div class="mt-1 text-xs text-slate-500">Created: <%= l(recordable.created_at, format: :short) %></div>
-              <% end %>
             </div>
           <% end %>
         </div>

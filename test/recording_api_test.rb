@@ -9,7 +9,7 @@ class RecordingApiTest < ActiveSupport::TestCase
     @original_idempotency_mode = RecordingStudio.configuration.idempotency_mode
     @original_notifications = RecordingStudio.configuration.event_notifications_enabled
 
-    RecordingStudio.configuration.recordable_types = %w[Page Comment]
+    RecordingStudio.configuration.recordable_types = %w[RecordingStudioPage RecordingStudioComment]
     RecordingStudio.configuration.actor = -> {}
     RecordingStudio.configuration.idempotency_mode = :return_existing
     RecordingStudio.configuration.event_notifications_enabled = true
@@ -18,8 +18,8 @@ class RecordingApiTest < ActiveSupport::TestCase
 
     RecordingStudio::Event.delete_all
     RecordingStudio::Recording.delete_all
-    Page.delete_all
-    Comment.delete_all
+    RecordingStudioPage.delete_all
+    RecordingStudioComment.delete_all
     Workspace.delete_all
     User.delete_all
   end
@@ -33,7 +33,7 @@ class RecordingApiTest < ActiveSupport::TestCase
 
   def test_record_creates_recording_and_event
     workspace = Workspace.create!(name: "Workspace")
-    page = Page.new(title: "Hello")
+    page = RecordingStudioPage.new(title: "Hello")
 
     event = RecordingStudio.record!(
       action: "created",
@@ -51,7 +51,7 @@ class RecordingApiTest < ActiveSupport::TestCase
   end
 
   def test_record_raises_when_container_missing
-    page = Page.new(title: "Hello")
+    page = RecordingStudioPage.new(title: "Hello")
 
     assert_raises(ArgumentError) do
       RecordingStudio.record!(action: "created", recordable: page, container: nil)
@@ -63,7 +63,7 @@ class RecordingApiTest < ActiveSupport::TestCase
     user = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
     RecordingStudio.configuration.actor = -> { user }
 
-    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
 
     assert_equal user, event.actor
   end
@@ -75,7 +75,7 @@ class RecordingApiTest < ActiveSupport::TestCase
     RecordingStudio.configuration.actor = -> { actor }
     RecordingStudio.configuration.impersonator = -> { impersonator }
 
-    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
 
     assert_equal actor, event.actor
     assert_equal impersonator, event.impersonator
@@ -91,7 +91,7 @@ class RecordingApiTest < ActiveSupport::TestCase
 
     event = RecordingStudio.record!(
       action: "created",
-      recordable: Page.new(title: "Hello"),
+      recordable: RecordingStudioPage.new(title: "Hello"),
       container: workspace,
       impersonator: override
     )
@@ -102,14 +102,14 @@ class RecordingApiTest < ActiveSupport::TestCase
 
   def test_record_rejects_recordable_type_change
     workspace = Workspace.create!(name: "Workspace")
-    initial_event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"),
+    initial_event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"),
                                             container: workspace)
     recording = initial_event.recording
 
     assert_raises(ArgumentError) do
       RecordingStudio.record!(
         action: "updated",
-        recordable: Comment.create!(body: "Note"),
+        recordable: RecordingStudioComment.create!(body: "Note"),
         recording: recording,
         container: workspace
       )
@@ -119,7 +119,7 @@ class RecordingApiTest < ActiveSupport::TestCase
   def test_record_normalizes_metadata
     workspace = Workspace.create!(name: "Workspace")
 
-    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace,
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace,
                                     metadata: nil)
 
     assert_equal({}, event.metadata)
@@ -127,7 +127,7 @@ class RecordingApiTest < ActiveSupport::TestCase
 
   def test_idempotency_returns_existing_event
     workspace = Workspace.create!(name: "Workspace")
-    first_event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
+    first_event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
     recording = first_event.recording
 
     second_event = RecordingStudio.record!(
@@ -151,7 +151,7 @@ class RecordingApiTest < ActiveSupport::TestCase
 
   def test_idempotency_raises_when_configured
     workspace = Workspace.create!(name: "Workspace")
-    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
     recording = event.recording
     RecordingStudio.configuration.idempotency_mode = :raise
 
@@ -176,7 +176,7 @@ class RecordingApiTest < ActiveSupport::TestCase
 
   def test_idempotency_error_masks_key
     workspace = Workspace.create!(name: "Workspace")
-    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
     recording = event.recording
     RecordingStudio.configuration.idempotency_mode = :raise
 
@@ -209,7 +209,7 @@ class RecordingApiTest < ActiveSupport::TestCase
       events << ActiveSupport::Notifications::Event.new(*args)
     end
 
-    RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
+    RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
 
     assert_equal 1, events.size
   ensure
@@ -228,7 +228,7 @@ class RecordingApiTest < ActiveSupport::TestCase
 
     RecordingStudio.record!(
       action: "created",
-      recordable: Page.new(title: "Hello"),
+      recordable: RecordingStudioPage.new(title: "Hello"),
       container: workspace,
       actor: actor,
       impersonator: impersonator
@@ -250,7 +250,7 @@ class RecordingApiTest < ActiveSupport::TestCase
       events << ActiveSupport::Notifications::Event.new(*args)
     end
 
-    RecordingStudio.record!(action: "created", recordable: Page.new(title: "Hello"), container: workspace)
+    RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "Hello"), container: workspace)
 
     assert_empty events
   ensure

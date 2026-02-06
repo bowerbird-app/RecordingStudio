@@ -8,14 +8,14 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     @original_dup_strategy = RecordingStudio.configuration.recordable_dup_strategy
     @original_include_children = RecordingStudio.configuration.include_children
 
-    RecordingStudio.configuration.recordable_types = ["Page"]
+    RecordingStudio.configuration.recordable_types = ["RecordingStudioPage"]
     RecordingStudio.configuration.recordable_dup_strategy = :dup
     RecordingStudio.configuration.include_children = false
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     RecordingStudio::Event.delete_all
     RecordingStudio::Recording.delete_all
-    Page.delete_all
+    RecordingStudioPage.delete_all
     Workspace.delete_all
     User.delete_all
   end
@@ -29,7 +29,7 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
   def test_record_creates_recording_and_event
     workspace = Workspace.create!(name: "Workspace")
 
-    recording = workspace.record(Page) { |page| page.title = "Draft" }
+    recording = workspace.record(RecordingStudioPage) { |page| page.title = "Draft" }
 
     assert_equal "Draft", recording.recordable.title
     assert_equal "created", recording.events.first.action
@@ -37,7 +37,7 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
   def test_revise_creates_new_recordable_snapshot
     workspace = Workspace.create!(name: "Workspace")
-    recording = workspace.record(Page) { |page| page.title = "Draft" }
+    recording = workspace.record(RecordingStudioPage) { |page| page.title = "Draft" }
     original_recordable_id = recording.recordable_id
 
     revised = workspace.revise(recording) { |page| page.title = "Updated" }
@@ -48,8 +48,8 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
   def test_trash_and_restore_with_children
     workspace = Workspace.create!(name: "Workspace")
-    parent = workspace.record(Page) { |page| page.title = "Parent" }
-    child = workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
+    parent = workspace.record(RecordingStudioPage) { |page| page.title = "Parent" }
+    child = workspace.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child" }
 
     workspace.trash(parent, include_children: true, impersonator: nil)
 
@@ -64,8 +64,8 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
   def test_hard_delete_removes_recordings
     workspace = Workspace.create!(name: "Workspace")
-    parent = workspace.record(Page) { |page| page.title = "Parent" }
-    child = workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
+    parent = workspace.record(RecordingStudioPage) { |page| page.title = "Parent" }
+    child = workspace.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child" }
 
     workspace.hard_delete(parent, include_children: true, impersonator: nil)
 
@@ -75,7 +75,7 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
   def test_log_event_and_revert
     workspace = Workspace.create!(name: "Workspace")
-    recording = workspace.record(Page) { |page| page.title = "Draft" }
+    recording = workspace.record(RecordingStudioPage) { |page| page.title = "Draft" }
 
     event = workspace.log_event(recording, action: "reviewed")
 
@@ -90,7 +90,7 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     workspace = Workspace.create!(name: "Workspace")
     actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
     impersonator = User.create!(name: "Admin", email: "admin@example.com", password: "password123")
-    recording = workspace.record(Page, actor: actor) { |page| page.title = "Draft" }
+    recording = workspace.record(RecordingStudioPage, actor: actor) { |page| page.title = "Draft" }
 
     event = workspace.log_event(recording, action: "reviewed", actor: actor, impersonator: impersonator)
 
@@ -99,29 +99,29 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
   def test_recordings_filters_and_helpers
     workspace = Workspace.create!(name: "Workspace")
-    parent = workspace.record(Page) { |page| page.title = "Parent" }
-    workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
+    parent = workspace.record(RecordingStudioPage) { |page| page.title = "Parent" }
+    workspace.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child" }
 
     assert_equal 1, workspace.recordings.count
     assert_equal 2, workspace.recordings(include_children: true).count
-    assert_equal 1, workspace.recordings_of(Page).count
+    assert_equal 1, workspace.recordings_of(RecordingStudioPage).count
     assert_equal 1, workspace.recordings(include_children: true, parent_id: parent.id).count
     assert_equal parent.id,
-                 workspace.recordings(include_children: true, type: Page, recordable_order: "pages.title desc").first.id
+                 workspace.recordings(include_children: true, type: RecordingStudioPage, recordable_order: "recording_studio_pages.title desc").first.id
   end
 
   def test_recordings_sanitizes_recordable_order
     workspace = Workspace.create!(name: "Workspace")
-    first = workspace.record(Page) { |page| page.title = "A" }
-    second = workspace.record(Page) { |page| page.title = "Z" }
+    first = workspace.record(RecordingStudioPage) { |page| page.title = "A" }
+    second = workspace.record(RecordingStudioPage) { |page| page.title = "Z" }
 
     first.update_column(:updated_at, Time.current)
     second.update_column(:updated_at, 1.minute.ago)
 
     recordings = workspace.recordings(
       include_children: true,
-      type: Page,
-      recordable_order: "pages.title desc; select * from users"
+      type: RecordingStudioPage,
+      recordable_order: "recording_studio_pages.title desc; select * from users"
     )
 
     assert_equal [first.id, second.id], recordings.map(&:id)
@@ -129,28 +129,28 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
   def test_recordings_sanitizes_recordable_filters
     workspace = Workspace.create!(name: "Workspace")
-    workspace.record(Page) { |page| page.title = "Alpha" }
-    workspace.record(Page) { |page| page.title = "Beta" }
+    workspace.record(RecordingStudioPage) { |page| page.title = "Alpha" }
+    workspace.record(RecordingStudioPage) { |page| page.title = "Beta" }
 
     filtered = workspace.recordings(
       include_children: true,
-      type: Page,
+      type: RecordingStudioPage,
       recordable_filters: { title: "Alpha" }
     )
     assert_equal 1, filtered.count
 
     unsafe = workspace.recordings(
       include_children: true,
-      type: Page,
-      recordable_filters: "pages.title = 'Alpha' OR 1=1"
+      type: RecordingStudioPage,
+      recordable_filters: "recording_studio_pages.title = 'Alpha' OR 1=1"
     )
     assert_equal 2, unsafe.count
   end
 
   def test_recordings_order_ignores_unknown_columns
     workspace = Workspace.create!(name: "Workspace")
-    first = workspace.record(Page) { |page| page.title = "First" }
-    second = workspace.record(Page) { |page| page.title = "Second" }
+    first = workspace.record(RecordingStudioPage) { |page| page.title = "First" }
+    second = workspace.record(RecordingStudioPage) { |page| page.title = "Second" }
 
     first.update_column(:updated_at, 1.minute.ago)
     second.update_column(:updated_at, Time.current)
@@ -162,8 +162,8 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
   def test_recordings_order_hash_sanitizes_columns
     workspace = Workspace.create!(name: "Workspace")
-    first = workspace.record(Page) { |page| page.title = "First" }
-    second = workspace.record(Page) { |page| page.title = "Second" }
+    first = workspace.record(RecordingStudioPage) { |page| page.title = "First" }
+    second = workspace.record(RecordingStudioPage) { |page| page.title = "Second" }
 
     first.update_column(:updated_at, 1.minute.ago)
     second.update_column(:updated_at, Time.current)
@@ -175,13 +175,13 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
   def test_recordings_with_recordable_scope
     workspace = Workspace.create!(name: "Workspace")
-    workspace.record(Page) { |page| page.title = "Alpha" }
-    workspace.record(Page) { |page| page.title = "Beta" }
+    workspace.record(RecordingStudioPage) { |page| page.title = "Alpha" }
+    workspace.record(RecordingStudioPage) { |page| page.title = "Beta" }
 
     recordings = workspace.recordings(
       include_children: true,
-      type: Page,
-      recordable_scope: ->(scope) { scope.where(pages: { title: "Alpha" }) }
+      type: RecordingStudioPage,
+      recordable_scope: ->(scope) { scope.where(recording_studio_pages: { title: "Alpha" }) }
     )
 
     assert_equal 1, recordings.count
@@ -189,29 +189,29 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
   def test_recordings_with_recordable_filters_relation_and_arel
     workspace = Workspace.create!(name: "Workspace")
-    workspace.record(Page) { |page| page.title = "Alpha" }
-    workspace.record(Page) { |page| page.title = "Beta" }
+    workspace.record(RecordingStudioPage) { |page| page.title = "Alpha" }
+    workspace.record(RecordingStudioPage) { |page| page.title = "Beta" }
 
     relation_filtered = workspace.recordings(
       include_children: true,
-      type: Page,
-      recordable_filters: Page.where(title: "Alpha")
+      type: RecordingStudioPage,
+      recordable_filters: RecordingStudioPage.where(title: "Alpha")
     )
     assert_equal 1, relation_filtered.count
 
     arel_filtered = workspace.recordings(
       include_children: true,
-      type: Page,
-      recordable_filters: Page.arel_table[:title].eq("Beta")
+      type: RecordingStudioPage,
+      recordable_filters: RecordingStudioPage.arel_table[:title].eq("Beta")
     )
     assert_equal 1, arel_filtered.count
   end
 
   def test_recordings_limit_offset_and_date_filters
     workspace = Workspace.create!(name: "Workspace")
-    first = workspace.record(Page) { |page| page.title = "First" }
-    second = workspace.record(Page) { |page| page.title = "Second" }
-    third = workspace.record(Page) { |page| page.title = "Third" }
+    first = workspace.record(RecordingStudioPage) { |page| page.title = "First" }
+    second = workspace.record(RecordingStudioPage) { |page| page.title = "Second" }
+    third = workspace.record(RecordingStudioPage) { |page| page.title = "Third" }
 
     first.update_columns(created_at: 3.days.ago, updated_at: 3.days.ago)
     second.update_columns(created_at: 2.days.ago, updated_at: 2.days.ago)
@@ -233,7 +233,7 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
   def test_recordings_ignores_invalid_type
     workspace = Workspace.create!(name: "Workspace")
-    workspace.record(Page) { |page| page.title = "Alpha" }
+    workspace.record(RecordingStudioPage) { |page| page.title = "Alpha" }
 
     recordings = workspace.recordings(type: "MissingType")
 
@@ -242,13 +242,13 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
   def test_recordable_order_accepts_quoted_table
     workspace = Workspace.create!(name: "Workspace")
-    first = workspace.record(Page) { |page| page.title = "A" }
-    second = workspace.record(Page) { |page| page.title = "Z" }
+    first = workspace.record(RecordingStudioPage) { |page| page.title = "A" }
+    second = workspace.record(RecordingStudioPage) { |page| page.title = "Z" }
 
     recordings = workspace.recordings(
       include_children: true,
-      type: Page,
-      recordable_order: '"pages"."title" desc'
+      type: RecordingStudioPage,
+      recordable_order: '"recording_studio_pages"."title" desc'
     )
 
     assert_equal [second.id, first.id], recordings.map(&:id)
@@ -258,8 +258,8 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     workspace = Workspace.create!(name: "Workspace")
     RecordingStudio.configuration.include_children = true
 
-    parent = workspace.record(Page) { |page| page.title = "Parent" }
-    child = workspace.record(Page, parent_recording: parent) { |page| page.title = "Child" }
+    parent = workspace.record(RecordingStudioPage) { |page| page.title = "Parent" }
+    child = workspace.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child" }
 
     workspace.trash(parent, impersonator: nil)
 
@@ -278,10 +278,10 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
 
   def test_custom_dup_strategy_used
     workspace = Workspace.create!(name: "Workspace")
-    recording = workspace.record(Page) { |page| page.title = "Draft" }
+    recording = workspace.record(RecordingStudioPage) { |page| page.title = "Draft" }
 
     RecordingStudio.configuration.recordable_dup_strategy = lambda do |recordable|
-      Page.new(title: "Copy of #{recordable.title}")
+      RecordingStudioPage.new(title: "Copy of #{recordable.title}")
     end
 
     revised = workspace.revise(recording)
