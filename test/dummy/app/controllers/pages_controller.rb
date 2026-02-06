@@ -3,7 +3,7 @@ class PagesController < ApplicationController
   before_action :load_recording, only: %i[show edit update destroy restore]
 
   def index
-    scope = @workspace.recordings_of(Page)
+    scope = @workspace.recordings_of(RecordingStudioPage)
     @recordings = if params[:trashed].to_s == "true"
       scope.including_trashed.trashed.recent
     else
@@ -16,11 +16,11 @@ class PagesController < ApplicationController
   end
 
   def new
-    @recordable = Page.new
+    @recordable = RecordingStudioPage.new
   end
 
   def create
-    recording = @workspace.record(Page, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }) do |page|
+    recording = @workspace.record(RecordingStudioPage, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }) do |page|
       page.assign_attributes(page_params)
     end
 
@@ -34,7 +34,6 @@ class PagesController < ApplicationController
   def update
     updated_recording = @workspace.revise(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }) do |page|
       page.assign_attributes(page_params)
-      page.original_id = @recording.recordable.original_id || @recording.recordable.id
     end
 
     redirect_to recording_path(updated_recording)

@@ -5,7 +5,7 @@ require "test_helper"
 class RecordableTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
-    RecordingStudio.configuration.recordable_types = ["Page"]
+    RecordingStudio.configuration.recordable_types = ["RecordingStudioPage"]
     RecordingStudio::DelegatedTypeRegistrar.apply!
   end
 
@@ -14,13 +14,13 @@ class RecordableTest < ActiveSupport::TestCase
   end
 
   def test_readonly_returns_true_for_persisted_record
-    page = Page.create!(title: "Hello")
+    page = RecordingStudioPage.create!(title: "Hello")
 
     assert page.readonly?
   end
 
   def test_update_raises_readonly_error
-    page = Page.create!(title: "Hello")
+    page = RecordingStudioPage.create!(title: "Hello")
 
     assert_raises(ActiveRecord::ReadOnlyRecord) do
       page.update!(title: "Updated")
@@ -28,7 +28,7 @@ class RecordableTest < ActiveSupport::TestCase
   end
 
   def test_destroy_raises_readonly_error
-    page = Page.create!(title: "Hello")
+    page = RecordingStudioPage.create!(title: "Hello")
 
     assert_raises(ActiveRecord::ReadOnlyRecord) do
       page.destroy

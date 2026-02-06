@@ -7,6 +7,12 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: gem_template_test
+      DB_HOST: localhost
+      DB_PORT: 5432
     
     permissions:
       contents: read

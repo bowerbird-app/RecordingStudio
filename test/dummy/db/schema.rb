@@ -15,27 +15,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_000006) do
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
 
-  create_table "comments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+  create_table "recording_studio_comments", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.text "body", null: false
-    t.datetime "created_at", null: false
     t.integer "events_count", default: 0, null: false
-    t.uuid "original_id"
     t.integer "recordings_count", default: 0, null: false
-    t.datetime "updated_at", null: false
-    t.integer "version", default: 1, null: false
-    t.index ["original_id"], name: "index_comments_on_original_id"
-  end
-
-  create_table "pages", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.integer "events_count", default: 0, null: false
-    t.uuid "original_id"
-    t.integer "recordings_count", default: 0, null: false
-    t.text "summary"
-    t.string "title", null: false
-    t.datetime "updated_at", null: false
-    t.integer "version", default: 1, null: false
-    t.index ["original_id"], name: "index_pages_on_original_id"
   end
 
   create_table "recording_studio_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -56,6 +39,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_000006) do
     t.datetime "updated_at", null: false
     t.index ["recording_id", "idempotency_key"], name: "index_recording_studio_events_on_recording_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
     t.index ["recording_id"], name: "index_recording_studio_events_on_recording_id"
+  end
+
+  create_table "recording_studio_pages", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.integer "events_count", default: 0, null: false
+    t.integer "recordings_count", default: 0, null: false
+    t.text "summary"
+    t.string "title", null: false
   end
 
   create_table "recording_studio_recordings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|

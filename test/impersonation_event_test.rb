@@ -6,7 +6,7 @@ class ImpersonationEventTest < ActiveSupport::TestCase
   def setup
     RecordingStudio::Event.delete_all
     RecordingStudio::Recording.delete_all
-    Page.delete_all
+    RecordingStudioPage.delete_all
     Workspace.delete_all
     User.delete_all
   end
@@ -16,7 +16,8 @@ class ImpersonationEventTest < ActiveSupport::TestCase
     admin = User.create!(name: "Admin", email: "admin@example.com", password: "password123")
     actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
 
-    recording = workspace.record(Page, actor: actor, impersonator: admin, metadata: { source: "test" }) do |page|
+    recording = workspace.record(RecordingStudioPage, actor: actor, impersonator: admin,
+                                                      metadata: { source: "test" }) do |page|
       page.title = "Hello"
     end
 

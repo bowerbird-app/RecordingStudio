@@ -5,13 +5,13 @@ require "test_helper"
 class RecordingTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
-    RecordingStudio.configuration.recordable_types = %w[Page Comment]
+    RecordingStudio.configuration.recordable_types = %w[RecordingStudioPage RecordingStudioComment]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     RecordingStudio::Event.delete_all
     RecordingStudio::Recording.delete_all
-    Page.delete_all
-    Comment.delete_all
+    RecordingStudioPage.delete_all
+    RecordingStudioComment.delete_all
     Workspace.delete_all
     User.delete_all
   end
@@ -22,9 +22,9 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_scopes_filter_recordings
     workspace = Workspace.create!(name: "Workspace")
-    first = RecordingStudio.record!(action: "created", recordable: Page.new(title: "One"),
+    first = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
                                     container: workspace).recording
-    second = RecordingStudio.record!(action: "created", recordable: Comment.new(body: "Two"),
+    second = RecordingStudio.record!(action: "created", recordable: RecordingStudioComment.new(body: "Two"),
                                      container: workspace).recording
 
     second.update!(trashed_at: Time.current)
@@ -33,7 +33,7 @@ class RecordingTest < ActiveSupport::TestCase
     refute_includes RecordingStudio::Recording.all, second
     assert_includes RecordingStudio::Recording.including_trashed, second
     assert_includes RecordingStudio::Recording.trashed, second
-    assert_includes RecordingStudio::Recording.of_type(Page), first
+    assert_includes RecordingStudio::Recording.of_type(RecordingStudioPage), first
     assert_includes RecordingStudio::Recording.include_trashed, second
   end
 
@@ -46,7 +46,7 @@ class RecordingTest < ActiveSupport::TestCase
 
     event = RecordingStudio.record!(
       action: "created",
-      recordable: Page.new(title: "One"),
+      recordable: RecordingStudioPage.new(title: "One"),
       container: workspace,
       actor: actor,
       occurred_at: created_at
@@ -65,7 +65,8 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_log_event_delegates_to_record
     workspace = Workspace.create!(name: "Workspace")
-    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "One"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
+                                    container: workspace)
     recording = event.recording
 
     logged = recording.log_event!(action: "updated")
@@ -76,7 +77,8 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_log_event_supports_idempotency_and_timestamp
     workspace = Workspace.create!(name: "Workspace")
-    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "One"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
+                                    container: workspace)
     recording = event.recording
 
     occurred_at = 5.minutes.ago
@@ -89,7 +91,8 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_trash_delegates_to_container
     workspace = Workspace.create!(name: "Workspace")
-    event = RecordingStudio.record!(action: "created", recordable: Page.new(title: "One"), container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
+                                    container: workspace)
     recording = event.recording
 
     recording.trash
@@ -99,7 +102,7 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_recordings_count_updates_on_trash_and_restore
     workspace = Workspace.create!(name: "Workspace")
-    page = Page.new(title: "Page")
+    page = RecordingStudioPage.new(title: "Test Page")
     event = RecordingStudio.record!(action: "created", recordable: page, container: workspace)
     recording = event.recording
 
@@ -117,11 +120,11 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_recordings_count_updates_when_recordable_changes
     workspace = Workspace.create!(name: "Workspace")
-    first_recordable = Page.create!(title: "First")
+    first_recordable = RecordingStudioPage.create!(title: "First")
     event = RecordingStudio.record!(action: "created", recordable: first_recordable, container: workspace)
     recording = event.recording
 
-    second_recordable = Page.create!(title: "Second")
+    second_recordable = RecordingStudioPage.create!(title: "Second")
     RecordingStudio.record!(
       action: "updated",
       recordable: second_recordable,
