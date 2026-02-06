@@ -10,6 +10,8 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 
 - [Why RecordingStudio](#why-recordingstudio)
 - [Naming Convention for Extensions](#naming-convention-for-extensions)
+- [Recordable Table Names](#recordable-table-names)
+- [Recordable Table Shape](#recordable-table-shape)
 - [Installation](#installation)
 - [Identity vs State vs History](#identity-vs-state-vs-history)
 - [Data Model](#data-model)
@@ -41,6 +43,21 @@ Examples:
 - `recording-studio-pages`
 - `recording-studio-comments`
 - `recording-studio-attachments`
+
+## Recordable Table Names
+
+Recordable models should use namespaced table names to avoid collisions with your app or other engines.
+Prefix tables with `recording_studio_` so recordables are clearly scoped.
+
+Examples:
+- `RecordingStudio::Comment` -> `recording_studio_comments`
+- `RecordingStudio::Page` -> `recording_studio_pages`
+
+## Recordable Table Shape
+
+Recordable tables should stay lean. Following the Basecamp approach, recordables are immutable snapshots, so there is
+no need for `updated_at`. Keep only the columns required to represent the snapshot state, and put activity or metadata
+on `Event` instead of expanding the recordable schema.
 
 ## Installation
 
