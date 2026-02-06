@@ -107,7 +107,8 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     assert_equal 1, workspace.recordings_of(RecordingStudioPage).count
     assert_equal 1, workspace.recordings(include_children: true, parent_id: parent.id).count
     assert_equal parent.id,
-                 workspace.recordings(include_children: true, type: RecordingStudioPage, recordable_order: "recording_studio_pages.title desc").first.id
+                 workspace.recordings(include_children: true, type: RecordingStudioPage,
+                                      recordable_order: "recording_studio_pages.title desc").first.id
   end
 
   def test_recordings_sanitizes_recordable_order

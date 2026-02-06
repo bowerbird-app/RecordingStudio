@@ -41,7 +41,7 @@ class EventTest < ActiveSupport::TestCase
 
   def test_events_count_updates_on_create_and_destroy
     workspace = Workspace.create!(name: "Workspace")
-    page = RecordingStudioPage.new(title: "RecordingStudioPage")
+    page = RecordingStudioPage.new(title: "Test Page")
     event = RecordingStudio.record!(action: "created", recordable: page, container: workspace)
 
     page.reload

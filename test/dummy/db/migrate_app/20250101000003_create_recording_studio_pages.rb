@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CreatePages < ActiveRecord::Migration[7.1]
+class CreateRecordingStudioPages < ActiveRecord::Migration[7.1]
   def change
     create_table :recording_studio_pages, id: :uuid do |t|
       t.text :summary

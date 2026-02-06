@@ -99,7 +99,7 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_recordings_count_updates_on_trash_and_restore
     workspace = Workspace.create!(name: "Workspace")
-    page = RecordingStudioPage.new(title: "RecordingStudioPage")
+    page = RecordingStudioPage.new(title: "Test Page")
     event = RecordingStudio.record!(action: "created", recordable: page, container: workspace)
     recording = event.recording
 
