@@ -21,13 +21,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_000006) do
     t.integer "recordings_count", default: 0, null: false
   end
 
-  create_table "recording_studio_pages", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.integer "events_count", default: 0, null: false
-    t.integer "recordings_count", default: 0, null: false
-    t.text "summary"
-    t.string "title", null: false
-  end
-
   create_table "recording_studio_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
     t.string "action", null: false
     t.uuid "actor_id"
@@ -46,6 +39,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_03_000006) do
     t.datetime "updated_at", null: false
     t.index ["recording_id", "idempotency_key"], name: "index_recording_studio_events_on_recording_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
     t.index ["recording_id"], name: "index_recording_studio_events_on_recording_id"
+  end
+
+  create_table "recording_studio_pages", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.integer "events_count", default: 0, null: false
+    t.integer "recordings_count", default: 0, null: false
+    t.text "summary"
+    t.string "title", null: false
   end
 
   create_table "recording_studio_recordings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
