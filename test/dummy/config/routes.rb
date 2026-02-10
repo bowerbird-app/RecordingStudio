@@ -1,7 +1,7 @@
 Rails.application.routes.draw do
   devise_for :users
 
-  mount MakeupArtist::Engine => "/makeup_artist", as: "makeup_artist"
+  mount FlatPack::Engine => "/flatpack", as: "flatpack"
   # Mount the RecordingStudio engine
   mount RecordingStudio::Engine, at: "/recording_studio"
 

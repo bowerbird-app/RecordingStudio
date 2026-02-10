@@ -1,56 +1,81 @@
 <% content_for :title, "Events" %>
 
-<div class="space-y-6">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div>
-      <p class="text-sm uppercase tracking-wide text-slate-500">Activity</p>
-      <h2 class="text-2xl font-semibold text-slate-900">Events</h2>
-    </div>
-  </div>
+<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+  <% breadcrumb.item(text: "Home", href: root_path) %>
+  <% breadcrumb.item(text: "Events") %>
+<% end %>
 
-  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-    <table class="min-w-full divide-y divide-slate-200">
-      <thead class="bg-slate-50">
-        <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Action</th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Occurred</th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Actor</th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Impersonator</th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Recordable</th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Recording</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-200">
-        <% if @events.any? %>
-          <% @events.each do |event| %>
-            <tr class="hover:bg-slate-50">
-              <td class="px-6 py-4 text-sm font-medium text-slate-900"><%= event.action %></td>
-              <td class="px-6 py-4 text-sm text-slate-600">
-                <span title="<%= l(event.occurred_at, format: :long) %>"><%= time_ago_in_words(event.occurred_at) %> ago</span>
-              </td>
-              <td class="px-6 py-4 text-sm text-slate-600"><%= actor_with_impersonator_label(event.actor, event.impersonator) %></td>
-              <td class="px-6 py-4 text-sm text-slate-600"><%= actor_label(event.impersonator) %></td>
-              <td class="px-6 py-4 text-sm text-slate-600">
-                <div><%= recordable_label(event.recordable) %></div>
-                <% if event.previous_recordable %>
-                  <div class="text-xs text-slate-500">Previous: <%= recordable_label(event.previous_recordable) %></div>
-                <% end %>
-              </td>
-              <td class="px-6 py-4 text-sm text-slate-600">
-                <% if event.recording %>
-                  <%= link_to "Recording ##{event.recording.id}", recording_path(event.recording), class: "text-indigo-600 hover:text-indigo-700" %>
-                <% else %>
-                  —
-                <% end %>
-              </td>
-            </tr>
-          <% end %>
-        <% else %>
-          <tr>
-            <td colspan="6" class="px-6 py-6 text-center text-sm text-slate-500">No events yet.</td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  </div>
+<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+  <% card.header(divider: false) do %>
+    <div class="space-y-2">
+      <div>
+        <h2 class="text-2xl font-semibold text-slate-900">Events</h2>
+        <p class="text-sm text-slate-500">Recent changes across recordings and recordables.</p>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
+  <% if @events.any? %>
+    <%= render FlatPack::Table::Component.new(data: @events) do |table| %>
+      <% table.column(
+        title: "Action",
+        html: ->(event) {
+          action = event.action.to_s
+          style = case action
+                  when "created", "restored"
+                    :success
+                  when "updated"
+                    :info
+                  when "deleted", "trashed"
+                    :warning
+                  else
+                    :default
+                  end
+
+          render FlatPack::Badge::Component.new(text: action, style: style, size: :sm)
+        }
+      ) %>
+      <% table.column(
+        title: "Occurred",
+        html: ->(event) { tag.span("#{time_ago_in_words(event.occurred_at)} ago", title: l(event.occurred_at, format: :long)) }
+      ) %>
+      <% table.column(
+        title: "Actor",
+        html: ->(event) { actor_with_impersonator_label(event.actor, event.impersonator) }
+      ) %>
+      <% table.column(
+        title: "Impersonator",
+        html: ->(event) { event.impersonator ? actor_label(event.impersonator) : "—" }
+      ) %>
+      <% table.column(
+        title: "Recordable",
+        html: ->(event) {
+          safe_join([
+            recordable_label(event.recordable),
+            ("Previous: #{recordable_label(event.previous_recordable)}" if event.previous_recordable)
+          ].compact.map { |entry| tag.div(entry, class: entry.start_with?("Previous:") ? "text-xs text-slate-500" : nil) })
+        }
+      ) %>
+      <% table.column(
+        title: "Recording",
+        html: ->(event) {
+          if event.recording
+            link_to("Recording ##{event.recording.id}", recording_path(event.recording), class: "hover:underline")
+          else
+            "—"
+          end
+        }
+      ) %>
+      <% table.column(
+        title: "Event ID",
+        html: ->(event) { event.id }
+      ) %>
+    <% end %>
+  <% else %>
+    <div class="px-6 py-10 text-center text-sm text-slate-500">
+      No events yet.
+    </div>
+  <% end %>
 </div>

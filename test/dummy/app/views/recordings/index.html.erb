@@ -1,54 +1,58 @@
 <% content_for :title, "Recordings" %>
 
-<div class="space-y-6">
-  <div class="flex flex-wrap items-center justify-between gap-3">
-    <div>
-      <p class="text-sm uppercase tracking-wide text-slate-500">Library</p>
-      <h2 class="text-2xl font-semibold text-slate-900">Recordings</h2>
-    </div>
-  </div>
+<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+  <% breadcrumb.item(text: "Home", href: root_path) %>
+  <% breadcrumb.item(text: "Recordings") %>
+<% end %>
 
-  <div class="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-    <table class="min-w-full divide-y divide-slate-200">
-      <thead class="bg-slate-50">
-        <tr>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Recordable</th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Type</th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Container</th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Status</th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Last updated by</th>
-          <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wide text-slate-500">Updated</th>
-          <th class="px-6 py-3 text-right text-xs font-medium uppercase tracking-wide text-slate-500">Actions</th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-slate-200">
-        <% if @recordings.any? %>
-          <% @recordings.each do |recording| %>
-            <tr class="hover:bg-slate-50">
-              <td class="px-6 py-4 text-sm font-medium text-slate-900">
-                <%= link_to recordable_label(recording.recordable), recording_path(recording), class: "hover:underline" %>
-              </td>
-              <td class="px-6 py-4 text-sm text-slate-600">
-                <%= recording.recordable_type %>
-              </td>
-              <td class="px-6 py-4 text-sm text-slate-600">
-                <%= recording.container_type %> #<%= recording.container_id %>
-              </td>
-              <td class="px-6 py-4 text-sm text-slate-600"><%= recording.trashed_at ? "Trashed" : "Active" %></td>
-              <% last_event = recording.events.recent.first %>
-              <td class="px-6 py-4 text-sm text-slate-600"><%= actor_label(last_event&.actor) %></td>
-              <td class="px-6 py-4 text-sm text-slate-500"><%= l(recording.updated_at, format: :short) %></td>
-              <td class="px-6 py-4 text-right text-sm">
-                <%= link_to "View", recording_path(recording), class: "text-sm font-medium text-slate-700 hover:text-slate-900" %>
-              </td>
-            </tr>
-          <% end %>
-        <% else %>
-          <tr>
-            <td colspan="7" class="px-6 py-6 text-center text-sm text-slate-500">No recordings yet.</td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
-  </div>
+<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+  <% card.header(divider: false) do %>
+    <div>
+      <h2 class="text-2xl font-semibold">Recordings</h2>
+      <p class="text-sm text-slate-500">A complete history of activity across your workspace.</p>
+    </div>
+  <% end %>
+<% end %>
+
+<div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
+  <% if @recordings.any? %>
+    <%= render FlatPack::Table::Component.new(data: @recordings) do |table| %>
+      <% table.column(
+        title: "Recordable",
+        html: ->(recording) { link_to(recordable_label(recording.recordable), recording_path(recording), class: "hover:underline") }
+      ) %>
+
+      <% table.column(title: "Type", html: ->(recording) { recording.recordable_type }) %>
+
+      <% table.column(
+        title: "Container",
+        html: ->(recording) { "#{recording.container_type} ##{recording.container_id}" }
+      ) %>
+
+      <% table.column(
+        title: "Status",
+        html: ->(recording) {
+          status_text = recording.trashed_at ? "Trashed" : "Active"
+          status_style = recording.trashed_at ? :warning : :success
+          render FlatPack::Badge::Component.new(text: status_text, style: status_style, size: :sm)
+        }
+      ) %>
+
+      <% table.column(
+        title: "Last updated by",
+        html: ->(recording) {
+          last_event = recording.events.recent.first
+          actor_label(last_event&.actor)
+        }
+      ) %>
+
+      <% table.column(title: "Updated", html: ->(recording) { "#{time_ago_in_words(recording.updated_at)} ago" }) %>
+
+      <% table.with_action(text: "View", url: ->(recording) { recording_path(recording) }) %>
+    <% end %>
+  <% else %>
+    <div class="px-6 py-10 text-center text-sm text-slate-500">
+      No recordings yet.
+    </div>
+  <% end %>
 </div>

@@ -1,34 +1,42 @@
 <div class="mx-auto w-full max-w-md px-4 py-12">
-  <h1 class="text-2xl font-semibold text-slate-900">Log in</h1>
-
-  <div class="mt-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-    <%= form_with(model: resource, as: resource_name, url: session_path(resource_name), data: { turbo: false }, class: "space-y-4") do |f| %>
-      <div>
-        <%= f.label :email, class: "block text-sm font-medium text-slate-700" %>
-        <%= f.email_field :email, autofocus: true, autocomplete: "email", class: "mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
-      </div>
-
-      <div>
-        <%= f.label :password, class: "block text-sm font-medium text-slate-700" %>
-        <%= f.password_field :password, autocomplete: "current-password", class: "mt-1 block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" %>
-      </div>
-
-      <div class="flex items-center justify-between">
-        <% if devise_mapping.rememberable? %>
-          <div class="flex items-center">
-            <%= f.check_box :remember_me, class: "h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" %>
-            <%= f.label :remember_me, class: "ml-2 text-sm text-slate-600" %>
-          </div>
-        <% end %>
-
-        <%= f.submit "Log in", class: "inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500" %>
-      </div>
+  <%= render FlatPack::Card::Component.new(style: :elevated) do |card| %>
+    <% card.header do %>
+      <h1 class="text-xl font-semibold text-slate-900">Log in</h1>
     <% end %>
-  </div>
 
-  <div class="mt-6 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-    <p class="font-semibold text-slate-800">Dummy app login</p>
-    <p class="mt-2">Email: <span class="font-mono">admin@example.com</span></p>
-    <p>Password: <span class="font-mono">password123</span></p>
-  </div>
+    <% card.body do %>
+      <%= form_with(model: resource, as: resource_name, url: session_path(resource_name), data: { turbo: false }, class: "space-y-4") do |f| %>
+        <%= render FlatPack::EmailInput::Component.new(
+          name: "#{resource_name}[email]",
+          label: "Email",
+          value: "admin@example.com",
+          required: true,
+          autofocus: true,
+          autocomplete: "email"
+        ) %>
+
+        <%= render FlatPack::PasswordInput::Component.new(
+          name: "#{resource_name}[password]",
+          label: "Password",
+          value: "password123",
+          required: true,
+          autocomplete: "current-password"
+        ) %>
+
+        <div class="flex items-center justify-between">
+          <% if devise_mapping.rememberable? %>
+            <%= render FlatPack::Checkbox::Component.new(
+              name: "#{resource_name}[remember_me]",
+              label: "Remember me",
+              value: "1",
+              checked: resource&.remember_me
+            ) %>
+          <% end %>
+
+          <%= f.submit "Log in", class: "inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500" %>
+        </div>
+      <% end %>
+    <% end %>
+  <% end %>
+
 </div>
