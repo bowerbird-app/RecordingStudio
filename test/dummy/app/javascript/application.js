@@ -3,6 +3,6 @@ import "@hotwired/turbo-rails"
 import "controllers"
 import { application } from "controllers/application"
 
-// MakeupArtist Stimulus Controllers
-import * as MakeupArtist from "makeup_artist"
-MakeupArtist.register(application)
+// Flatpack Stimulus Controllers
+import * as FlatPack from "flat_pack"
+FlatPack.register(application)

@@ -15,16 +15,7 @@
   },
   "customizations": {
     "codespaces": {
-      "repositories": {
-        "bowerbird-app/makeup-artist": {
-          "permissions": "read-all"
-        },
-        "bowerbird-app/captain-hook": {
-          "permissions": "read-all"
-        },
-        "bowerbird-app/mothball": {
-          "permissions": "read-all"
-        },
+      "repositories": {       
         "bowerbird-app/gem_docs": {
           "permissions": "read-all"
         }

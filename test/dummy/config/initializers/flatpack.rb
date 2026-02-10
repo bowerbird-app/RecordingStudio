@@ -1,12 +1,12 @@
 # frozen_string_literal: true
 
-return unless defined?(MakeupArtist) && MakeupArtist.respond_to?(:configure)
+return unless defined?(FlatPack) && FlatPack.respond_to?(:configure)
 
-MakeupArtist.configure do |config|
+FlatPack.configure do |config|
   # === Admin Layout ===
-  # Layout file used by all makeup_artist admin pages
-  # Generate a custom layout with: bin/rails generate makeup_artist:layout
-  config.admin_layout = "makeup_artist"
+  # Layout file used by all flatpack admin pages
+  # Generate a custom layout with: bin/rails generate flatpack:layout
+  # config.admin_layout = "flatpack"
 
   # === Admin Authentication ===
   # Host app defines custom auth logic
@@ -26,7 +26,7 @@ MakeupArtist.configure do |config|
 
   # === Custom Examples Path ===
   # Where host-defined custom examples live
-  # config.custom_examples_path = "app/views/makeup_artist/custom_examples"
+  # config.custom_examples_path = "app/views/flatpack/custom_examples"
 
   # === Include Custom in Core Style Guide ===
   # Whether custom components should appear in the core style guide

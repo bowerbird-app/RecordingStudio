@@ -14,7 +14,7 @@ $LOAD_PATH.unshift File.expand_path("../app/models", __dir__)
 require "minitest/autorun"
 require "rails"
 
-module MakeupArtist
+module FlatPack
   class Engine < ::Rails::Engine; end
 end
 

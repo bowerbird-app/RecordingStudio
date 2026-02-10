@@ -1,156 +1,221 @@
 <% content_for :title, "Recording" %>
 
-<div class="space-y-3">
-    <%= link_to "Back", pages_path, class: "text-sm font-medium text-slate-600 hover:text-slate-900" %>
-  <div class="w-full rounded-lg border border-slate-200 bg-white p-6">
-    <p class="text-sm uppercase tracking-wide text-slate-500">Recording</p>
-    <h2 class="text-2xl font-semibold"><%= @recording.recordable.title %></h2>
-    <p class="mt-2 text-sm text-slate-600"><%= @recording.recordable.summary %></p>
-    <div class="mt-4 flex flex-wrap items-center gap-2">
-      <% if @recording.trashed_at %>
-        <%= button_to "Restore", restore_page_path(@recording), method: :post, class: "inline-flex rounded-md border border-emerald-300 px-3 py-2 text-sm font-medium text-emerald-700", form: { data: { turbo_confirm: "Restore this page and its children?" } } %>
-      <% else %>
-        <%= link_to "Edit", edit_page_path(@recording), class: "inline-flex rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700" %>
-        <%= button_to "Trash", page_path(@recording), method: :delete, class: "inline-flex rounded-md border border-rose-300 px-3 py-2 text-sm font-medium text-rose-700", form: { data: { turbo_confirm: "Trash this page and its children?" } } %>
-      <% end %>
-    </div>
-  </div>
+<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+  <% breadcrumb.item(text: "Home", href: root_path) %>
+  <% breadcrumb.item(text: "Recordings", href: recordings_path) %>
+  <% breadcrumb.item(text: recordable_label(@recording.recordable)) %>
+<% end %>
+
+<div class="space-y-6">
+  <%= render FlatPack::Card::Component.new do |card| %>
+    <% card.header(divider: false) do %>
+      <div class="space-y-3">
+        <div>
+          <h1 class="text-2xl font-semibold"><%= @recording.recordable.title %></h1>
+          <p class="mt-2 text-sm text-slate-600"><%= @recording.recordable.summary %></p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <% if @recording.trashed_at %>
+            <%= render FlatPack::Button::Component.new(
+              text: "Restore",
+              style: :success,
+              url: restore_page_path(@recording),
+              method: :post,
+              data: { turbo_confirm: "Restore this page and its children?" }
+            ) %>
+          <% else %>
+            <%= render FlatPack::Button::Component.new(
+              text: "Edit",
+              style: :secondary,
+              url: edit_page_path(@recording)
+            ) %>
+            <%= button_to "Trash",
+              page_path(@recording),
+              method: :delete,
+              data: { turbo_confirm: "Trash this page and its children?" },
+              form: { class: "inline" },
+              class: "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-medium transition-colors duration-[var(--transition-base)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 px-4 py-2 text-sm bg-[var(--color-warning)] hover:bg-[var(--color-warning-hover)] text-[var(--color-warning-text)]"
+            %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
 
   <% child_recordings = @recording.child_recordings.including_trashed.recent %>
-  <div class="w-full rounded-lg border border-slate-200 bg-white p-6">
-    <p class="text-sm uppercase tracking-wide text-slate-500">Child recordings</p>
-    <% if child_recordings.any? %>
-      <div class="mt-4 space-y-3">
-        <% child_recordings.each do |child| %>
-          <div class="rounded-md border border-slate-200 p-4">
-            <div class="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-900">
-              <span><%= recordable_label(child.recordable) %></span>
-              <% if child.trashed_at.present? %>
-                <span class="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-700">Trashed</span>
-              <% end %>
-            </div>
-            <% if child.recordable.respond_to?(:body) && child.recordable.body.present? %>
-              <div class="mt-2 text-sm text-slate-600"><%= child.recordable.body %></div>
-            <% end %>
-            <div class="mt-2 text-xs text-slate-500">Recording ID: <%= child.id %></div>
-            <div class="mt-1 text-xs text-slate-500">Parent Recording ID: <%= child.parent_recording_id %></div>
-            <div class="mt-1 text-xs text-slate-500">Status: <%= child.trashed_at ? "Trashed" : "Active" %></div>
-          </div>
-        <% end %>
-      </div>
-    <% else %>
-      <p class="mt-2 text-sm text-slate-600">No child recordings yet.</p>
+  <%= render FlatPack::Card::Component.new do |card| %>
+    <% card.header do %>
+      <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Child recordings</h3>
     <% end %>
-  </div>
-</div>
+    <% card.body do %>
+      <% if child_recordings.any? %>
+        <%= render FlatPack::Table::Component.new(data: child_recordings) do |table| %>
+          <% table.column(title: "Recordable") do |child| %>
+            <%= link_to recordable_label(child.recordable), recording_path(child), class: "hover:underline" %>
+          <% end %>
+          <% table.column(title: "Status", html: ->(child) { child.trashed_at ? "Trashed" : "Active" }) %>
+          <% table.column(title: "Recording ID", html: ->(child) { child.id }) %>
+          <% table.column(title: "Parent ID", html: ->(child) { child.parent_recording_id }) %>
+          <% table.column(title: "Details") do |child| %>
+            <% if child.recordable.respond_to?(:body) && child.recordable.body.present? %>
+              <%= child.recordable.body %>
+            <% elsif child.recordable.respond_to?(:summary) && child.recordable.summary.present? %>
+              <%= child.recordable.summary %>
+            <% else %>
+              -
+            <% end %>
+          <% end %>
+        <% end %>
+      <% else %>
+        <p class="text-sm text-slate-600">No child recordings yet.</p>
+      <% end %>
+    <% end %>
+  <% end %>
 
-<div class="mt-8 space-y-6">
-  <section class="space-y-6">
-    <div class="rounded-lg border border-slate-200 bg-white p-6">
+  <% snapshot_rows = [
+    { label: "Recordable ID", value: @recording.recordable.id },
+    { label: "Last updated", value: "#{time_ago_in_words(@recording.updated_at)} ago" },
+    { label: "Container", value: @recording.container_type },
+    { label: "Container ID", value: @recording.container_id },
+    { label: "Status", value: @recording.trashed_at ? "Trashed" : "Active" }
+  ] %>
+  <%= render FlatPack::Card::Component.new do |card| %>
+    <% card.header do %>
       <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Recording Snapshot</h3>
-      <dl class="mt-4 grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
-        <div>
-          <dt class="text-slate-500">Recordable ID</dt>
-          <dd class="font-medium text-slate-900"><%= @recording.recordable.id %></dd>
-        </div>
-        <div>
-          <dt class="text-slate-500">Last updated</dt>
-          <dd class="font-medium text-slate-900"><%= l(@recording.updated_at, format: :long) %></dd>
-        </div>
-        <div>
-          <dt class="text-slate-500">Container</dt>
-          <dd class="font-medium text-slate-900"><%= @recording.container_type %></dd>
-        </div>
-        <div>
-          <dt class="text-slate-500">Container ID</dt>
-          <dd class="font-medium text-slate-900"><%= @recording.container_id %></dd>
-        </div>
-        <div>
-          <dt class="text-slate-500">Status</dt>
-          <dd class="font-medium text-slate-900"><%= @recording.trashed_at ? "Trashed" : "Active" %></dd>
-        </div>
-      </dl>
-    </div>
+    <% end %>
+    <% card.body do %>
+      <%= render FlatPack::Table::Component.new(data: snapshot_rows) do |table| %>
+        <% table.column(title: "Field", html: ->(row) { row[:label] }) %>
+        <% table.column(title: "Value", html: ->(row) { row[:value] }) %>
+      <% end %>
+    <% end %>
+  <% end %>
 
-    <div class="grid gap-6 lg:grid-cols-2">
-      <div class="rounded-lg border border-slate-200 bg-white p-6">
-        <div class="flex items-center justify-between">
-          <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">History</h3>
-        </div>
-        <p class="mt-2 text-sm text-slate-600">
+  <div class="grid gap-6 lg:grid-cols-2">
+    <%= render FlatPack::Card::Component.new do |card| %>
+      <% card.header do %>
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">History</h3>
+      <% end %>
+      <% card.body do %>
+        <p class="text-sm text-slate-600">
           Each entry captures what changed for this page at a point in time, including actor and recordable context.
         </p>
+        <% current_recordable_id = @recording.recordable.id %>
+        <% current_event_id = @events.find { |entry| entry.recordable&.id == current_recordable_id && !%w[trashed deleted restored].include?(entry.action) }&.id %>
         <div class="mt-4 space-y-4">
-          <% current_recordable_id = @recording.recordable.id %>
-          <% current_event_id = @events.find { |entry| entry.recordable&.id == current_recordable_id && !%w[trashed deleted restored].include?(entry.action) }&.id %>
-          <% @events.each do |event| %>
-            <div class="rounded-md border border-slate-200 p-4">
-              <div class="text-sm">
-                <div class="flex flex-wrap items-center gap-2 font-semibold text-slate-900">
-                  <span><%= event.action %></span>
-                  <% if current_event_id && event.id == current_event_id %>
-                    <span class="rounded-full bg-slate-900 px-2 py-0.5 text-xs font-semibold text-white">Current</span>
-                  <% end %>
-                </div>
-                <div class="mt-1 text-slate-500" title="<%= l(event.occurred_at, format: :long) %>">
-                  <%= time_ago_in_words(event.occurred_at) %> ago
-                </div>
-              </div>
-              <div class="mt-2 text-xs text-slate-500">
-                Actor: <span class="font-medium text-slate-700"><%= actor_with_impersonator_label(event.actor, event.impersonator) %></span>
-              </div>
-              <div class="mt-2 text-xs text-slate-500">
-                Recordable: <span class="font-medium text-slate-700"><%= recordable_label(event.recordable) %></span>
-              </div>
-              <div class="mt-2 text-xs text-slate-500">
-                Previous: <span class="font-medium text-slate-700"><%= recordable_label(event.previous_recordable) %></span>
-              </div>
-              <% if event.metadata.present? %>
-                <div class="mt-2 rounded bg-slate-50 px-3 py-2 text-xs text-slate-600">
-                  <%= JSON.pretty_generate(event.metadata) %>
-                </div>
-              <% end %>
+          <% if @events.any? %>
+            <% @events.each do |event| %>
+              <%= render FlatPack::Card::Component.new(style: :outlined, padding: :sm) do |event_card| %>
+                <% event_card.body do %>
+                  <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h4 class="text-sm font-semibold text-slate-900"><%= event.action.to_s.titleize %></h4>
+                      <% if current_event_id && event.id == current_event_id %>
+                        <%= render FlatPack::Badge::Component.new(text: "Current", style: :success, size: :sm) %>
+                      <% end %>
+                    </div>
+                    <div class="mt-1 text-xs text-slate-500" title="<%= l(event.occurred_at, format: :long) %>">
+                      <%= time_ago_in_words(event.occurred_at) %> ago
+                    </div>
+                  </div>
 
-              <% if event.recordable && event.recordable.id != @recording.recordable.id %>
-                <div class="mt-3">
-                  <%= button_to "Revert to this", revert_recording_path(@recording, recordable_id: event.recordable.id), method: :post, class: "inline-flex rounded-md border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700" %>
-                </div>
+                  <dl class="mt-3 space-y-2 text-xs text-slate-600">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <dt class="font-medium text-slate-500">Actor</dt>
+                      <dd><%= actor_with_impersonator_label(event.actor, event.impersonator) %></dd>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <dt class="font-medium text-slate-500">Recordable</dt>
+                      <dd><%= recordable_label(event.recordable) %></dd>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <dt class="font-medium text-slate-500">Previous</dt>
+                      <dd><%= recordable_label(event.previous_recordable) %></dd>
+                    </div>
+                  </dl>
+
+                  <% if event.metadata.present? %>
+                    <div class="mt-3 rounded bg-slate-50 px-3 py-2">
+                      <pre class="whitespace-pre-wrap text-xs text-slate-600"><%= JSON.pretty_generate(event.metadata) %></pre>
+                    </div>
+                  <% end %>
+
+                  <% target_recordable = if event.recordable && event.recordable.id != @recording.recordable.id
+                    event.recordable
+                  elsif event.previous_recordable && event.previous_recordable.id != @recording.recordable.id
+                    event.previous_recordable
+                  end %>
+
+                  <% if target_recordable && (!current_event_id || event.id != current_event_id) %>
+                    <div class="mt-3">
+                      <%= button_to "Revert",
+                        revert_recording_path(@recording, recordable_id: target_recordable.id),
+                        method: :post,
+                        form: { class: "inline" },
+                        class: "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-medium transition-colors duration-[var(--transition-base)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 px-3 py-1.5 text-xs bg-[var(--color-secondary)] hover:bg-[var(--color-secondary-hover)] text-[var(--color-secondary-text)] border border-[var(--color-border)]"
+                      %>
+                    </div>
+                  <% end %>
+                <% end %>
               <% end %>
-            </div>
+            <% end %>
+          <% else %>
+            <p class="text-sm text-slate-600">No history yet.</p>
           <% end %>
         </div>
-      </div>
+      <% end %>
+    <% end %>
 
-      <div class="rounded-lg border border-slate-200 bg-white p-6">
+    <%= render FlatPack::Card::Component.new do |card| %>
+      <% card.header do %>
         <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Recordables</h3>
-        <p class="mt-2 text-sm text-slate-600">
+      <% end %>
+      <% card.body do %>
+        <p class="text-sm text-slate-600">
           All snapshots referenced by this recording, including previous versions.
         </p>
-        <div class="mt-4 space-y-3">
-          <% @recordables.each do |recordable| %>
-            <div class="rounded-md border border-slate-200 p-4">
-              <% if recordable.id == @recording.recordable.id %>
-                <div>
-                  <span class="rounded-full bg-slate-900 px-2 py-0.5 text-xs font-semibold text-white">Current</span>
-                </div>
+        <div class="mt-4 space-y-4">
+          <% if @recordables.any? %>
+            <% @recordables.each do |recordable| %>
+              <%= render FlatPack::Card::Component.new(style: :outlined, padding: :sm) do |recordable_card| %>
+                <% recordable_card.body do %>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h4 class="text-sm font-semibold text-slate-900"><%= recordable_label(recordable) %></h4>
+                    <% if recordable.id == @recording.recordable.id %>
+                      <%= render FlatPack::Badge::Component.new(text: "Current", style: :success, size: :sm) %>
+                    <% end %>
+                  </div>
+
+                  <div class="mt-2 text-xs text-slate-600">
+                    <% if recordable.respond_to?(:summary) && recordable.summary.present? %>
+                      <%= recordable.summary %>
+                    <% else %>
+                      No summary available.
+                    <% end %>
+                  </div>
+
+                  <dl class="mt-3 space-y-2 text-xs text-slate-600">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <dt class="font-medium text-slate-500">Recordings</dt>
+                      <dd><%= recordable.respond_to?(:recordings_count) ? recordable.recordings_count : 0 %></dd>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <dt class="font-medium text-slate-500">Events</dt>
+                      <dd><%= recordable.respond_to?(:events_count) ? recordable.events_count : 0 %></dd>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <dt class="font-medium text-slate-500">ID</dt>
+                      <dd><%= recordable.id %></dd>
+                    </div>
+                  </dl>
+                <% end %>
               <% end %>
-              <div class="mt-2 text-sm font-medium text-slate-900">
-                <%= recordable_label(recordable) %>
-              </div>
-              <% if recordable.respond_to?(:summary) && recordable.summary.present? %>
-                <div class="mt-2 text-xs text-slate-500"><%= recordable.summary %></div>
-              <% end %>
-              <div class="mt-2 text-xs text-slate-500">
-                Recordings pointing here: <%= recordable.respond_to?(:recordings_count) ? recordable.recordings_count : 0 %>
-              </div>
-              <div class="mt-1 text-xs text-slate-500">
-                Events pointing here: <%= recordable.respond_to?(:events_count) ? recordable.events_count : 0 %>
-              </div>
-              <div class="mt-1 text-xs text-slate-500">ID: <%= recordable.id %></div>
-            </div>
+            <% end %>
+          <% else %>
+            <p class="text-sm text-slate-600">No recordables yet.</p>
           <% end %>
         </div>
-      </div>
-    </div>
-  </section>
+      <% end %>
+    <% end %>
+  </div>
 </div>

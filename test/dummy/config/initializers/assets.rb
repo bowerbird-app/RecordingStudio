@@ -9,10 +9,10 @@ Rails.application.config.assets.version = "1.0"
 # Include Tailwind build output for Propshaft.
 Rails.application.config.assets.paths << Rails.root.join("app/assets/builds")
 
-# Add MakeupArtist gem JavaScript path for Propshaft (Rails 8+)
+# Add Flatpack gem JavaScript path for Propshaft (Rails 8+)
 begin
-	makeup_artist_dir = Gem::Specification.find_by_name("makeup_artist").gem_dir
-	Rails.application.config.assets.paths << "#{makeup_artist_dir}/app/javascript"
+	flat_pack_dir = Gem::Specification.find_by_name("flat_pack").gem_dir
+	Rails.application.config.assets.paths << "#{flat_pack_dir}/app/javascript"
 rescue Gem::LoadError
 	# Skip when the gem is not available (test environment)
 end
