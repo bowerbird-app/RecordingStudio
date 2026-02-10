@@ -28,6 +28,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Extension Philosophy](#extension-philosophy)
 - [Glossary](#glossary)
 - [Limitations](#limitations)
+- [Access Control](#access-control)
 
 ## Why RecordingStudio
 
@@ -497,6 +498,77 @@ Recordables are immutable; history is append-only.
 
 - No built-in UI; this gem focuses on the data and service layer.
 - Storage growth is linear with history; plan retention policies accordingly.
+
+## Access Control
+
+RecordingStudio ships with two built-in recordables for access control:
+
+### Access Recordable
+
+`RecordingStudio::Access` stores a polymorphic actor and a role. Default roles
+are **admin**, **edit**, and **view** (hierarchy: admin > edit > view).
+
+- **Recording-level access**: create an Access recording as a child of the
+  target recording (`parent_recording_id = target.id`).
+- **Container-level access**: create an Access recording as a root recording
+  under the container (`parent_recording_id = nil`).
+
+```ruby
+# Grant edit access on a specific recording
+access = RecordingStudio::Access.create!(actor: user, role: :edit)
+RecordingStudio::Recording.create!(
+  container: workspace,
+  recordable: access,
+  parent_recording: page_recording
+)
+
+# Grant view access at the container level
+access = RecordingStudio::Access.create!(actor: user, role: :view)
+RecordingStudio::Recording.create!(
+  container: workspace,
+  recordable: access,
+  parent_recording: nil
+)
+```
+
+### AccessBoundary Recordable
+
+`RecordingStudio::AccessBoundary` stops access inheritance up the recording
+tree. An optional `minimum_role` allows role-based passthrough: access above
+the boundary is allowed through only if the actor's role meets or exceeds the
+minimum.
+
+```ruby
+# Create a boundary that blocks all inheritance
+boundary = RecordingStudio::AccessBoundary.create!
+RecordingStudio::Recording.create!(
+  container: workspace,
+  recordable: boundary,
+  parent_recording: parent_recording
+)
+
+# Create a boundary that allows edit or higher to pass through
+boundary = RecordingStudio::AccessBoundary.create!(minimum_role: :edit)
+RecordingStudio::Recording.create!(
+  container: workspace,
+  recordable: boundary,
+  parent_recording: parent_recording
+)
+```
+
+### Access Resolution
+
+Use `RecordingStudio::Services::AccessResolver` to check access:
+
+```ruby
+# Get the actor's role for a recording
+role = RecordingStudio::Services::AccessResolver.role_for(actor: user, recording: recording)
+# => :admin, :edit, :view, or nil
+
+# Check if an actor has at least a given role
+RecordingStudio::Services::AccessResolver.allowed?(actor: user, recording: recording, role: :edit)
+# => true or false
+```
 
 ---
 
