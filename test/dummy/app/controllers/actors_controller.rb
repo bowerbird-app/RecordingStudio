@@ -1,5 +1,12 @@
 class ActorsController < ApplicationController
-  before_action :require_admin!
+  before_action :require_admin!, only: [:update, :switch]
+
+  def index
+    user_rows = User.order(:name).map { |user| { name: user.name, email: user.email } }
+    system_rows = SystemActor.order(:name).map { |actor| { name: actor.name, email: nil } }
+
+    @actors = (user_rows + system_rows).sort_by { |row| row[:name].to_s.downcase }
+  end
 
   def update
     actor_key = params[:actor_id] || params.dig(:actor, :actor_id)
