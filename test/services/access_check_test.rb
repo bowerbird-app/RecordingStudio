@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class AccessResolverTest < ActiveSupport::TestCase
+class AccessCheckTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
     RecordingStudio.configuration.recordable_types = %w[
@@ -34,27 +34,27 @@ class AccessResolverTest < ActiveSupport::TestCase
     page_recording = create_page_recording("Page")
     grant_access(page_recording, @actor, :admin)
 
-    assert AccessResolver.allowed?(actor: @actor, recording: page_recording, role: :admin)
-    assert AccessResolver.allowed?(actor: @actor, recording: page_recording, role: :edit)
-    assert AccessResolver.allowed?(actor: @actor, recording: page_recording, role: :view)
+    assert AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :admin)
+    assert AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :edit)
+    assert AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :view)
   end
 
   def test_edit_satisfies_view_but_not_admin
     page_recording = create_page_recording("Page")
     grant_access(page_recording, @actor, :edit)
 
-    assert AccessResolver.allowed?(actor: @actor, recording: page_recording, role: :edit)
-    assert AccessResolver.allowed?(actor: @actor, recording: page_recording, role: :view)
-    refute AccessResolver.allowed?(actor: @actor, recording: page_recording, role: :admin)
+    assert AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :edit)
+    assert AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :view)
+    refute AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :admin)
   end
 
   def test_view_satisfies_only_view
     page_recording = create_page_recording("Page")
     grant_access(page_recording, @actor, :view)
 
-    assert AccessResolver.allowed?(actor: @actor, recording: page_recording, role: :view)
-    refute AccessResolver.allowed?(actor: @actor, recording: page_recording, role: :edit)
-    refute AccessResolver.allowed?(actor: @actor, recording: page_recording, role: :admin)
+    assert AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :view)
+    refute AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :edit)
+    refute AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :admin)
   end
 
   # --- Direct access on recording ---
@@ -63,14 +63,14 @@ class AccessResolverTest < ActiveSupport::TestCase
     page_recording = create_page_recording("Page")
     grant_access(page_recording, @actor, :edit)
 
-    assert_equal :edit, AccessResolver.role_for(actor: @actor, recording: page_recording)
+    assert_equal :edit, AccessCheck.role_for(actor: @actor, recording: page_recording)
   end
 
   def test_no_access_returns_nil
     page_recording = create_page_recording("Page")
 
-    assert_nil AccessResolver.role_for(actor: @actor, recording: page_recording)
-    refute AccessResolver.allowed?(actor: @actor, recording: page_recording, role: :view)
+    assert_nil AccessCheck.role_for(actor: @actor, recording: page_recording)
+    refute AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :view)
   end
 
   # --- Access inherited from parent recording ---
@@ -81,7 +81,7 @@ class AccessResolverTest < ActiveSupport::TestCase
 
     grant_access(parent_recording, @actor, :admin)
 
-    assert_equal :admin, AccessResolver.role_for(actor: @actor, recording: child_recording)
+    assert_equal :admin, AccessCheck.role_for(actor: @actor, recording: child_recording)
   end
 
   def test_access_inherited_from_grandparent
@@ -91,7 +91,7 @@ class AccessResolverTest < ActiveSupport::TestCase
 
     grant_access(grandparent, @actor, :edit)
 
-    assert_equal :edit, AccessResolver.role_for(actor: @actor, recording: child)
+    assert_equal :edit, AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   # --- Access via container-level access ---
@@ -100,14 +100,14 @@ class AccessResolverTest < ActiveSupport::TestCase
     page_recording = create_page_recording("Page")
     grant_container_access(@workspace, @actor, :view)
 
-    assert_equal :view, AccessResolver.role_for(actor: @actor, recording: page_recording)
+    assert_equal :view, AccessCheck.role_for(actor: @actor, recording: page_recording)
   end
 
   def test_container_level_access_satisfies_role_check
     page_recording = create_page_recording("Page")
     grant_container_access(@workspace, @actor, :admin)
 
-    assert AccessResolver.allowed?(actor: @actor, recording: page_recording, role: :edit)
+    assert AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :edit)
   end
 
   def test_containers_for_returns_only_containers_with_root_access
@@ -118,9 +118,10 @@ class AccessResolverTest < ActiveSupport::TestCase
     other_page = RecordingStudioPage.create!(title: "Other Page")
     other_page_recording = RecordingStudio::Recording.create!(container: other_workspace, recordable: other_page)
     other_access = RecordingStudio::Access.create!(actor: @actor, role: :admin)
-    RecordingStudio::Recording.create!(container: other_workspace, recordable: other_access, parent_recording: other_page_recording)
+    RecordingStudio::Recording.create!(container: other_workspace, recordable: other_access,
+                                       parent_recording: other_page_recording)
 
-    containers = AccessResolver.containers_for(actor: @actor)
+    containers = AccessCheck.containers_for(actor: @actor)
     assert_includes containers, [@workspace.class.name, @workspace.id]
     refute_includes containers, [other_workspace.class.name, other_workspace.id]
   end
@@ -131,7 +132,7 @@ class AccessResolverTest < ActiveSupport::TestCase
     grant_container_access(@workspace, @actor, :view)
     grant_container_access(other_workspace, @actor, :admin)
 
-    containers = AccessResolver.containers_for(actor: @actor, minimum_role: :edit)
+    containers = AccessCheck.containers_for(actor: @actor, minimum_role: :edit)
     refute_includes containers, [@workspace.class.name, @workspace.id]
     assert_includes containers, [other_workspace.class.name, other_workspace.id]
   end
@@ -147,7 +148,7 @@ class AccessResolverTest < ActiveSupport::TestCase
     grant_access(parent, @actor, :admin)
 
     # No access inside boundary
-    assert_nil AccessResolver.role_for(actor: @actor, recording: child)
+    assert_nil AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   def test_boundary_allows_explicit_access_inside
@@ -157,7 +158,7 @@ class AccessResolverTest < ActiveSupport::TestCase
 
     grant_access(child, @actor, :edit)
 
-    assert_equal :edit, AccessResolver.role_for(actor: @actor, recording: child)
+    assert_equal :edit, AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   def test_boundary_allows_access_on_boundary_itself
@@ -166,7 +167,7 @@ class AccessResolverTest < ActiveSupport::TestCase
 
     grant_access(boundary_recording, @actor, :view)
 
-    assert_equal :view, AccessResolver.role_for(actor: @actor, recording: boundary_recording)
+    assert_equal :view, AccessCheck.role_for(actor: @actor, recording: boundary_recording)
   end
 
   # --- AccessBoundary with minimum_role allows passthrough ---
@@ -179,7 +180,7 @@ class AccessResolverTest < ActiveSupport::TestCase
     # Access above boundary with admin role (>= edit minimum_role)
     grant_access(parent, @actor, :admin)
 
-    assert_equal :admin, AccessResolver.role_for(actor: @actor, recording: child)
+    assert_equal :admin, AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   def test_boundary_with_minimum_role_blocks_insufficient_role
@@ -190,7 +191,7 @@ class AccessResolverTest < ActiveSupport::TestCase
     # Access above boundary with edit role (< admin minimum_role)
     grant_access(parent, @actor, :edit)
 
-    assert_nil AccessResolver.role_for(actor: @actor, recording: child)
+    assert_nil AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   def test_boundary_with_minimum_role_allows_container_passthrough
@@ -201,7 +202,7 @@ class AccessResolverTest < ActiveSupport::TestCase
     # Container-level access with view role (>= view minimum_role)
     grant_container_access(@workspace, @actor, :view)
 
-    assert_equal :view, AccessResolver.role_for(actor: @actor, recording: child)
+    assert_equal :view, AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   # --- Boundary at root blocks container access ---
@@ -212,7 +213,7 @@ class AccessResolverTest < ActiveSupport::TestCase
 
     grant_container_access(@workspace, @actor, :admin)
 
-    assert_nil AccessResolver.role_for(actor: @actor, recording: child)
+    assert_nil AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   def test_boundary_at_root_allows_container_access_with_minimum_role
@@ -221,7 +222,7 @@ class AccessResolverTest < ActiveSupport::TestCase
 
     grant_container_access(@workspace, @actor, :edit)
 
-    assert_equal :edit, AccessResolver.role_for(actor: @actor, recording: child)
+    assert_equal :edit, AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   # --- Query helper ---
@@ -230,7 +231,7 @@ class AccessResolverTest < ActiveSupport::TestCase
     page_recording = create_page_recording("Page")
     grant_access(page_recording, @actor, :edit)
 
-    results = AccessResolver.access_recordings_for(page_recording)
+    results = AccessCheck.access_recordings_for(page_recording)
     assert_equal 1, results.count
     assert_equal "RecordingStudio::Access", results.first.recordable_type
   end
@@ -290,5 +291,5 @@ class AccessResolverTest < ActiveSupport::TestCase
     )
   end
 
-  AccessResolver = RecordingStudio::Services::AccessResolver
+  AccessCheck = RecordingStudio::Services::AccessCheck
 end

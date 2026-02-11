@@ -2,7 +2,7 @@
 
 module RecordingStudio
   module Services
-    class AccessResolver < BaseService
+    class AccessCheck < BaseService
       ROLE_ORDER = { "view" => 0, "edit" => 1, "admin" => 2 }.freeze
 
       def initialize(actor:, recording:, role: nil)
@@ -100,7 +100,8 @@ module RecordingStudio
                                                      .joins(
                                                        "INNER JOIN recording_studio_accesses ON recording_studio_accesses.id = recording_studio_recordings.recordable_id"
                                                      )
-                                                     .where(recording_studio_accesses: { actor_type: @actor.class.name, actor_id: @actor.id })
+                                                     .where(recording_studio_accesses: { actor_type: @actor.class.name,
+                                                                                         actor_id: @actor.id })
                                                      .order("recording_studio_recordings.created_at DESC")
                                                      .first
         return nil unless access_recording
@@ -116,7 +117,8 @@ module RecordingStudio
                                   .joins(
                                     "INNER JOIN recording_studio_accesses ON recording_studio_accesses.id = recording_studio_recordings.recordable_id"
                                   )
-                                  .where(recording_studio_accesses: { actor_type: @actor.class.name, actor_id: @actor.id })
+                                  .where(recording_studio_accesses: { actor_type: @actor.class.name,
+                                                                      actor_id: @actor.id })
                                   .order("recording_studio_recordings.created_at DESC")
       end
 
@@ -147,12 +149,12 @@ module RecordingStudio
           end
 
           RecordingStudio::Recording.unscoped
-                                  .where(recordable_type: "RecordingStudio::Access")
-                                  .where(parent_recording_id: nil)
-                                  .where(trashed_at: nil)
-                                  .where(recordable_id: access_scope.select(:id))
-                                  .distinct
-                                  .pluck(:container_type, :container_id)
+                                    .where(recordable_type: "RecordingStudio::Access")
+                                    .where(parent_recording_id: nil)
+                                    .where(trashed_at: nil)
+                                    .where(recordable_id: access_scope.select(:id))
+                                    .distinct
+                                    .pluck(:container_type, :container_id)
         end
 
         # Convenience helper for a single container class.
@@ -169,13 +171,13 @@ module RecordingStudio
           end
 
           RecordingStudio::Recording.unscoped
-                                  .where(container_type: container_type)
-                                  .where(recordable_type: "RecordingStudio::Access")
-                                  .where(parent_recording_id: nil)
-                                  .where(trashed_at: nil)
-                                  .where(recordable_id: access_scope.select(:id))
-                                  .distinct
-                                  .pluck(:container_id)
+                                    .where(container_type: container_type)
+                                    .where(recordable_type: "RecordingStudio::Access")
+                                    .where(parent_recording_id: nil)
+                                    .where(trashed_at: nil)
+                                    .where(recordable_id: access_scope.select(:id))
+                                    .distinct
+                                    .pluck(:container_id)
         end
 
         def access_recordings_for(recording)

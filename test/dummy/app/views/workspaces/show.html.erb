@@ -36,3 +36,79 @@
     <% end %>
   <% end %>
 <% end %>
+
+<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+  <% card.header(divider: false) do %>
+    <div>
+      <h3 class="text-lg font-semibold">Access</h3>
+      <p class="text-sm text-slate-500">Actors with container-level access to this workspace.</p>
+    </div>
+  <% end %>
+
+  <% card.body do %>
+    <% if @access_grants.any? %>
+      <%= render FlatPack::Table::Component.new(data: @access_grants) do |table| %>
+        <% table.column(
+          title: "Actor",
+          html: ->(access_recording) {
+            access = access_recording.recordable
+
+            if access&.actor
+              access.actor.name
+            else
+              "Unknown actor (#{access&.actor_type} ##{access&.actor_id})"
+            end
+          }
+        ) %>
+
+        <% table.column(
+          title: "Type",
+          html: ->(access_recording) {
+            access = access_recording.recordable
+
+            if access&.actor
+              access.actor.is_a?(SystemActor) ? "System" : "User"
+            else
+              access&.actor_type.to_s.split("::").last.presence || "Unknown"
+            end
+          }
+        ) %>
+
+        <% table.column(
+          title: "Role",
+          html: ->(access_recording) {
+            access = access_recording.recordable
+
+            return "-" unless access
+
+            style = case access.role.to_s
+                    when "admin"
+                      :success
+                    when "edit"
+                      :info
+                    else
+                      :default
+                    end
+
+            render FlatPack::Badge::Component.new(text: access.role.to_s.titleize, style: style, size: :sm)
+          }
+        ) %>
+
+        <% if @can_edit_access %>
+          <% table.column(
+            title: "Actions",
+            html: ->(access_recording) {
+              render FlatPack::Button::Component.new(
+                text: "Edit",
+                style: :secondary,
+                url: edit_access_recording_path(access_recording, return_to: workspace_path(@workspace))
+              )
+            }
+          ) %>
+        <% end %>
+      <% end %>
+    <% else %>
+      <div class="text-sm text-slate-500">No access grants yet.</div>
+    <% end %>
+  <% end %>
+<% end %>

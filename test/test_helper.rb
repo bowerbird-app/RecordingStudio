@@ -1,11 +1,13 @@
 # frozen_string_literal: true
 
+require "securerandom"
 require "simplecov"
 
 SimpleCov.start do
   add_filter "/test/"
 end
 
+ENV["SECRET_KEY_BASE"] ||= SecureRandom.hex(64)
 ENV["RAILS_ENV"] ||= "test"
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)

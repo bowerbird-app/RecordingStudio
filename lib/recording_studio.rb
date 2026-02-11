@@ -8,7 +8,7 @@ require "recording_studio/errors"
 require "recording_studio/recordable"
 require "recording_studio/services/base_service"
 require "recording_studio/services/example_service"
-require "recording_studio/services/access_resolver"
+require "recording_studio/services/access_check"
 
 module RecordingStudio
   class << self
