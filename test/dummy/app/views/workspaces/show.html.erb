@@ -98,6 +98,10 @@
           <% table.column(
             title: "Actions",
             html: ->(access_recording) {
+              access = access_recording.recordable
+
+              return "" if access&.actor && access.actor == current_actor
+
               render FlatPack::Button::Component.new(
                 text: "Edit",
                 style: :secondary,
