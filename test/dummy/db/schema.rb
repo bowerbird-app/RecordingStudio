@@ -10,21 +10,22 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_10_000008) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_11_000009) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
 
   create_table "recording_studio_access_boundaries", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.integer "minimum_role"
     t.datetime "created_at", null: false
+    t.integer "minimum_role"
   end
 
   create_table "recording_studio_accesses", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.string "actor_type", null: false
     t.uuid "actor_id", null: false
-    t.integer "role", default: 0, null: false
+    t.string "actor_type", null: false
     t.datetime "created_at", null: false
+    t.integer "role", default: 0, null: false
+    t.index ["actor_type", "actor_id", "role"], name: "index_recording_studio_accesses_on_actor_and_role"
     t.index ["actor_type", "actor_id"], name: "index_recording_studio_accesses_on_actor"
   end
 
@@ -72,6 +73,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_10_000008) do
     t.datetime "updated_at", null: false
     t.index ["container_type", "container_id"], name: "index_recording_studio_recordings_on_container"
     t.index ["parent_recording_id"], name: "index_recording_studio_recordings_on_parent_recording_id"
+    t.index ["recordable_id", "container_type", "container_id"], name: "idx_rs_recordings_root_access_container", where: "(((recordable_type)::text = 'RecordingStudio::Access'::text) AND (parent_recording_id IS NULL) AND (trashed_at IS NULL))"
+    t.index ["recordable_type", "recordable_id", "parent_recording_id", "trashed_at"], name: "index_recording_studio_recordings_on_recordable_parent_trashed"
     t.index ["recordable_type", "recordable_id"], name: "index_recording_studio_recordings_on_recordable"
   end
 

@@ -13,6 +13,7 @@ Rails.application.routes.draw do
   resources :pages, param: :recording_id do
     post :restore, on: :member
   end
+  resources :workspaces, only: [:index, :show, :new, :create, :destroy]
   resources :events, only: [:index]
   resources :recordings, only: [:index, :show] do
     post :log_event, on: :member

@@ -33,6 +33,24 @@ module ApplicationHelper
   def recordable_label(recordable)
     return "—" unless recordable
 
+    if recordable.is_a?(RecordingStudio::Access)
+      actor = recordable.actor
+      role = recordable.role
+      actor_text = actor ? actor_label(actor) : "Unknown actor"
+      return "Access: #{role} — #{actor_text}"
+    end
+
+    if recordable.is_a?(RecordingStudio::AccessBoundary)
+      minimum = recordable.minimum_role
+      return minimum.present? ? "Access boundary (min: #{minimum})" : "Access boundary"
+    end
+
+    if (defined?(RecordingStudioComment) && recordable.is_a?(RecordingStudioComment)) || recordable.class.name == "RecordingStudio::Comment"
+      body = recordable.body.to_s.squish
+      snippet = body.present? ? truncate(body, length: 60) : ""
+      return snippet.present? ? "Comment: #{snippet}" : "Comment"
+    end
+
     recordable.respond_to?(:title) ? recordable.title : "#{recordable.class.name} ##{recordable.id}"
   end
 end

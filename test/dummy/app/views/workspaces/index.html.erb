@@ -1,0 +1,40 @@
+<% content_for :title, "Workspaces" %>
+
+<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+  <% breadcrumb.item(text: "Home", href: root_path) %>
+  <% breadcrumb.item(text: "Workspaces") %>
+<% end %>
+
+<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+  <% card.header(divider: false) do %>
+    <div class="space-y-3">
+      <div>
+        <h2 class="text-2xl font-semibold">Workspaces</h2>
+        <p class="text-sm text-slate-500">Containers that own recordings.</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <%= render FlatPack::Button::Component.new(text: "New Workspace", style: :primary, url: new_workspace_path) %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
+  <% if @workspaces.any? %>
+    <%= render FlatPack::Table::Component.new(data: @workspaces) do |table| %>
+      <% table.column(title: "Name", html: ->(workspace) { link_to(workspace.name, workspace_path(workspace), class: "hover:underline") }) %>
+      <% table.column(title: "Created", html: ->(workspace) { "#{time_ago_in_words(workspace.created_at)} ago" }) %>
+
+      <% table.with_action(
+        text: "Delete",
+        url: ->(workspace) { workspace_path(workspace) },
+        method: :delete,
+        data: { turbo_confirm: "Delete this workspace? This will also delete its recordings." }
+      ) %>
+    <% end %>
+  <% else %>
+    <div class="px-6 py-10 text-center text-sm text-slate-500">
+      No workspaces yet. Create one to start recording.
+    </div>
+  <% end %>
+</div>

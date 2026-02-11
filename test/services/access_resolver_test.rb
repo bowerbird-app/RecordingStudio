@@ -110,6 +110,32 @@ class AccessResolverTest < ActiveSupport::TestCase
     assert AccessResolver.allowed?(actor: @actor, recording: page_recording, role: :edit)
   end
 
+  def test_containers_for_returns_only_containers_with_root_access
+    other_workspace = Workspace.create!(name: "Other Workspace")
+
+    grant_container_access(@workspace, @actor, :view)
+
+    other_page = RecordingStudioPage.create!(title: "Other Page")
+    other_page_recording = RecordingStudio::Recording.create!(container: other_workspace, recordable: other_page)
+    other_access = RecordingStudio::Access.create!(actor: @actor, role: :admin)
+    RecordingStudio::Recording.create!(container: other_workspace, recordable: other_access, parent_recording: other_page_recording)
+
+    containers = AccessResolver.containers_for(actor: @actor)
+    assert_includes containers, [@workspace.class.name, @workspace.id]
+    refute_includes containers, [other_workspace.class.name, other_workspace.id]
+  end
+
+  def test_containers_for_supports_minimum_role
+    other_workspace = Workspace.create!(name: "Other Workspace")
+
+    grant_container_access(@workspace, @actor, :view)
+    grant_container_access(other_workspace, @actor, :admin)
+
+    containers = AccessResolver.containers_for(actor: @actor, minimum_role: :edit)
+    refute_includes containers, [@workspace.class.name, @workspace.id]
+    assert_includes containers, [other_workspace.class.name, other_workspace.id]
+  end
+
   # --- AccessBoundary stops inheritance ---
 
   def test_boundary_stops_inheritance

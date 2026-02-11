@@ -570,6 +570,18 @@ RecordingStudio::Services::AccessResolver.allowed?(actor: user, recording: recor
 # => true or false
 ```
 
+#### Access API reference
+
+| Method | Returns | Use |
+| --- | --- | --- |
+| `RecordingStudio::Services::AccessResolver.role_for(actor:, recording:)` | `:admin`, `:edit`, `:view`, or `nil` | Resolve an actor's effective role for a recording (considers recording-level access, boundaries, and container-level access). |
+| `RecordingStudio::Services::AccessResolver.allowed?(actor:, recording:, role:)` | `true` / `false` | Authorization helper: checks if the resolved role meets or exceeds the required role. |
+| `RecordingStudio::Services::AccessResolver.containers_for(actor:, minimum_role: nil)` | `[[container_type, container_id], ...]` | Reverse-lookup: list containers the actor has **container-level** access to (root access recordings only). |
+| `RecordingStudio::Services::AccessResolver.container_ids_for(actor:, container_class:, minimum_role: nil)` | `[container_id, ...]` | Reverse-lookup: container IDs for one container type (e.g. `Workspace`). |
+| `RecordingStudio::Services::AccessResolver.access_recordings_for(recording)` | `ActiveRecord::Relation<RecordingStudio::Recording>` | Helper scope: access recordings under a recording (does not filter by actor; useful for inspection/debugging). |
+| `RecordingStudio::Access.roles` | `{ "view"=>0, "edit"=>1, "admin"=>2 }` | Role ordering (used to compare minimum roles). |
+| `RecordingStudio::AccessBoundary.minimum_roles` | `{ "view"=>0, "edit"=>1, "admin"=>2 }` | Boundary threshold ordering (used for `minimum_role` comparisons). |
+
 ---
 
 The original template documentation lives in `docs/gem_template/` and remains as reference material.

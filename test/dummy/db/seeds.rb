@@ -1,4 +1,5 @@
 Workspace.find_or_create_by!(name: "Studio Workspace")
+Workspace.find_or_create_by!(name: "Quinn Workspace")
 
 default_password = "password123"
 
@@ -25,11 +26,36 @@ quinn.save!
   SystemActor.find_or_create_by!(name: name)
 end
 
-workspace = Workspace.first
+workspace = Workspace.find_by!(name: "Studio Workspace")
+quinn_workspace = Workspace.find_by!(name: "Quinn Workspace")
 actors = [
   User.find_by!(email: "avery@example.com"),
   User.find_by!(email: "quinn@example.com")
 ]
+
+def seed_root_access!(workspace, actor:, role:)
+  role_value = RecordingStudio::Access.roles.fetch(role.to_s)
+
+  existing = RecordingStudio::Recording
+    .for_container(workspace)
+    .where(parent_recording_id: nil, recordable_type: "RecordingStudio::Access")
+    .joins("INNER JOIN recording_studio_accesses ON recording_studio_accesses.id = recording_studio_recordings.recordable_id")
+    .where(recording_studio_accesses: { actor_type: actor.class.name, actor_id: actor.id, role: role_value })
+    .exists?
+
+  return if existing
+
+  access = RecordingStudio::Access.create!(actor: actor, role: role)
+  RecordingStudio::Recording.create!(
+    container: workspace,
+    recordable: access,
+    parent_recording: nil
+  )
+end
+
+seed_root_access!(workspace, actor: admin_user, role: :admin)
+seed_root_access!(workspace, actor: avery, role: :view)
+seed_root_access!(quinn_workspace, actor: quinn, role: :admin)
 
 template_title = "Template: Shared Page"
 template_page = RecordingStudioPage.find_by(title: template_title)

@@ -129,6 +129,55 @@ module RecordingStudio
           call(actor: actor, recording: recording, role: role).value
         end
 
+        # Returns distinct containers the actor has been granted access to via
+        # container-level access recordings (i.e., root recordings where
+        # parent_recording_id IS NULL). Recording-level access does not imply
+        # container access and is intentionally excluded.
+        #
+        # @param actor [ActiveRecord::Base] polymorphic actor (e.g., User)
+        # @param minimum_role [Symbol,String,nil] optional minimum role threshold
+        # @return [Array<Array(String, String)>] array of [container_type, container_id]
+        def containers_for(actor:, minimum_role: nil)
+          return [] unless actor
+
+          access_scope = RecordingStudio::Access.where(actor_type: actor.class.name, actor_id: actor.id)
+          if minimum_role.present?
+            minimum_value = RecordingStudio::Access.roles.fetch(minimum_role.to_s)
+            access_scope = access_scope.where("role >= ?", minimum_value)
+          end
+
+          RecordingStudio::Recording.unscoped
+                                  .where(recordable_type: "RecordingStudio::Access")
+                                  .where(parent_recording_id: nil)
+                                  .where(trashed_at: nil)
+                                  .where(recordable_id: access_scope.select(:id))
+                                  .distinct
+                                  .pluck(:container_type, :container_id)
+        end
+
+        # Convenience helper for a single container class.
+        # @return [Array<String>] container IDs (UUIDs)
+        def container_ids_for(actor:, container_class:, minimum_role: nil)
+          return [] unless actor
+
+          container_type = container_class.is_a?(Class) ? container_class.name : container_class.to_s
+
+          access_scope = RecordingStudio::Access.where(actor_type: actor.class.name, actor_id: actor.id)
+          if minimum_role.present?
+            minimum_value = RecordingStudio::Access.roles.fetch(minimum_role.to_s)
+            access_scope = access_scope.where("role >= ?", minimum_value)
+          end
+
+          RecordingStudio::Recording.unscoped
+                                  .where(container_type: container_type)
+                                  .where(recordable_type: "RecordingStudio::Access")
+                                  .where(parent_recording_id: nil)
+                                  .where(trashed_at: nil)
+                                  .where(recordable_id: access_scope.select(:id))
+                                  .distinct
+                                  .pluck(:container_id)
+        end
+
         def access_recordings_for(recording)
           RecordingStudio::Recording.unscoped
                                     .where(parent_recording_id: recording.id)

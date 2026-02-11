@@ -1,0 +1,38 @@
+<% content_for :title, @workspace.name %>
+
+<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+  <% breadcrumb.item(text: "Home", href: root_path) %>
+  <% breadcrumb.item(text: "Workspaces", href: workspaces_path) %>
+  <% breadcrumb.item(text: @workspace.name) %>
+<% end %>
+
+<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+  <% card.header(divider: false) do %>
+    <div class="space-y-3">
+      <div>
+        <h2 class="text-2xl font-semibold"><%= @workspace.name %></h2>
+        <p class="text-sm text-slate-500">A recordings container.</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <%= render FlatPack::Button::Component.new(text: "Back to Workspaces", style: :secondary, url: workspaces_path) %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+  <% card.header(divider: false) do %>
+    <div>
+      <h3 class="text-lg font-semibold">Recording hierarchy</h3>
+      <p class="text-sm text-slate-500">Child recordings nested under their parents.</p>
+    </div>
+  <% end %>
+
+  <% card.body do %>
+    <% if @recordings.any? %>
+      <%= recordings_hierarchy_list(@recordings_by_parent) %>
+    <% else %>
+      <div class="text-sm text-slate-500">No recordings yet.</div>
+    <% end %>
+  <% end %>
+<% end %>
