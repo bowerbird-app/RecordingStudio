@@ -11,6 +11,8 @@ class WorkspacesController < ApplicationController
   def show
     @workspace = Workspace.find(params[:id])
 
+    require_container_access!(@workspace, minimum_role: :view)
+
     @can_edit_access = RecordingStudio::Services::AccessCheck.container_ids_for(
       actor: current_actor,
       container_class: Workspace,

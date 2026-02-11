@@ -4,6 +4,8 @@ require "test_helper"
 require "securerandom"
 
 class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
+  MODERN_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+
   setup do
     unique = SecureRandom.hex(8)
 
@@ -35,7 +37,9 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def sign_in_as(user)
-    post user_session_path, params: { user: { email: user.email, password: "password" } }
+    post user_session_path,
+      params: { user: { email: user.email, password: "password" } },
+      headers: { "User-Agent" => MODERN_UA }
     assert_response :redirect
   end
 
@@ -45,7 +49,9 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     previous_recordable_id = @target_access_recording.recordable_id
 
     assert_difference("RecordingStudio::Access.count", +1) do
-      patch access_recording_path(@target_access_recording), params: { access: { role: "edit" } }
+      patch access_recording_path(@target_access_recording),
+        params: { access: { role: "edit" } },
+        headers: { "User-Agent" => MODERN_UA }
     end
 
     assert_redirected_to workspace_path(@workspace)
@@ -53,6 +59,76 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     @target_access_recording.reload
     assert_not_equal previous_recordable_id, @target_access_recording.recordable_id
     assert_equal "edit", @target_access_recording.recordable.role
+  end
+
+  test "admin can add container-level access" do
+    sign_in_as @admin
+
+    unique = SecureRandom.hex(8)
+    new_user = User.create!(
+      name: "New User",
+      email: "new-user-#{unique}@example.com",
+      password: "password",
+      password_confirmation: "password"
+    )
+
+    assert_difference(["RecordingStudio::Access.count", "RecordingStudio::Recording.count"], +1) do
+      post access_recordings_path,
+        params: {
+          container_type: "Workspace",
+          container_id: @workspace.id,
+          return_to: workspace_path(@workspace),
+          access: {
+            actor_key: "User:#{new_user.id}",
+            role: "view"
+          }
+        },
+        headers: { "User-Agent" => MODERN_UA }
+    end
+
+    assert_redirected_to workspace_path(@workspace)
+
+    created = RecordingStudio::Recording
+      .for_container(@workspace)
+      .where(parent_recording_id: nil, recordable_type: "RecordingStudio::Access")
+      .order(created_at: :desc)
+      .first
+
+    assert_equal "RecordingStudio::Access", created.recordable_type
+    assert_equal "view", created.recordable.role
+    assert_equal new_user, created.recordable.actor
+  end
+
+  test "non-admin cannot add container-level access" do
+    unique = SecureRandom.hex(8)
+
+    viewer = User.create!(
+      name: "Viewer",
+      email: "viewer-#{unique}@example.com",
+      password: "password",
+      password_confirmation: "password"
+    )
+
+    viewer_access = RecordingStudio::Access.create!(actor: viewer, role: :view)
+    RecordingStudio::Recording.create!(container: @workspace, recordable: viewer_access, parent_recording: nil)
+
+    sign_in_as viewer
+
+    assert_no_difference(["RecordingStudio::Access.count", "RecordingStudio::Recording.count"]) do
+      post access_recordings_path,
+        params: {
+          container_type: "Workspace",
+          container_id: @workspace.id,
+          return_to: workspace_path(@workspace),
+          access: {
+            actor_key: "User:#{@target.id}",
+            role: "admin"
+          }
+        },
+        headers: { "User-Agent" => MODERN_UA }
+    end
+
+    assert_redirected_to workspace_path(@workspace)
   end
 
   test "non-admin cannot edit container-level access" do
@@ -73,7 +149,9 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     previous_recordable_id = @target_access_recording.recordable_id
 
     assert_no_difference("RecordingStudio::Access.count") do
-      patch access_recording_path(@target_access_recording), params: { access: { role: "admin" } }
+      patch access_recording_path(@target_access_recording),
+        params: { access: { role: "admin" } },
+        headers: { "User-Agent" => MODERN_UA }
     end
 
     assert_redirected_to workspace_path(@workspace)

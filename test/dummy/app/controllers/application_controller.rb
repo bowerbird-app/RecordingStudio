@@ -10,9 +10,28 @@ class ApplicationController < ActionController::Base
   before_action :authenticate_user!, unless: :devise_controller?
   before_action :current_actor
 
+  rescue_from RecordingStudio::AccessDenied, with: :handle_access_denied
+
   helper_method :current_actor, :impersonating?, :admin_user?, :system_actor_options
 
   private
+
+  def require_container_access!(container, minimum_role: :view)
+    allowed_ids = RecordingStudio::Services::AccessCheck.container_ids_for(
+      actor: current_actor,
+      container_class: container.class,
+      minimum_role: minimum_role
+    )
+
+    raise RecordingStudio::AccessDenied unless allowed_ids.include?(container.id)
+  end
+
+  def handle_access_denied
+    respond_to do |format|
+      format.html { render "shared/no_access", status: :forbidden }
+      format.any { head :forbidden }
+    end
+  end
 
   def current_actor
     actor, impersonator = resolve_actor_context

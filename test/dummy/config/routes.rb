@@ -14,7 +14,7 @@ Rails.application.routes.draw do
     post :restore, on: :member
   end
   resources :workspaces, only: [:index, :show, :new, :create, :destroy]
-  resources :access_recordings, only: [:edit, :update]
+  resources :access_recordings, only: [:new, :create, :edit, :update]
   resources :events, only: [:index]
   resources :recordings, only: [:index, :show] do
     post :log_event, on: :member
