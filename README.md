@@ -28,6 +28,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Extension Philosophy](#extension-philosophy)
 - [Glossary](#glossary)
 - [Limitations](#limitations)
+- [Access Control](#access-control)
 
 ## Why RecordingStudio
 
@@ -497,6 +498,89 @@ Recordables are immutable; history is append-only.
 
 - No built-in UI; this gem focuses on the data and service layer.
 - Storage growth is linear with history; plan retention policies accordingly.
+
+## Access Control
+
+RecordingStudio ships with two built-in recordables for access control:
+
+### Access Recordable
+
+`RecordingStudio::Access` stores a polymorphic actor and a role. Default roles
+are **admin**, **edit**, and **view** (hierarchy: admin > edit > view).
+
+- **Recording-level access**: create an Access recording as a child of the
+  target recording (`parent_recording_id = target.id`).
+- **Container-level access**: create an Access recording as a root recording
+  under the container (`parent_recording_id = nil`).
+
+```ruby
+# Grant edit access on a specific recording
+access = RecordingStudio::Access.create!(actor: user, role: :edit)
+RecordingStudio::Recording.create!(
+  container: workspace,
+  recordable: access,
+  parent_recording: page_recording
+)
+
+# Grant view access at the container level
+access = RecordingStudio::Access.create!(actor: user, role: :view)
+RecordingStudio::Recording.create!(
+  container: workspace,
+  recordable: access,
+  parent_recording: nil
+)
+```
+
+### AccessBoundary Recordable
+
+`RecordingStudio::AccessBoundary` stops access inheritance up the recording
+tree. An optional `minimum_role` allows role-based passthrough: access above
+the boundary is allowed through only if the actor's role meets or exceeds the
+minimum.
+
+```ruby
+# Create a boundary that blocks all inheritance
+boundary = RecordingStudio::AccessBoundary.create!
+RecordingStudio::Recording.create!(
+  container: workspace,
+  recordable: boundary,
+  parent_recording: parent_recording
+)
+
+# Create a boundary that allows edit or higher to pass through
+boundary = RecordingStudio::AccessBoundary.create!(minimum_role: :edit)
+RecordingStudio::Recording.create!(
+  container: workspace,
+  recordable: boundary,
+  parent_recording: parent_recording
+)
+```
+
+### Access Resolution
+
+Use `RecordingStudio::Services::AccessCheck` to check access:
+
+```ruby
+# Get the actor's role for a recording
+role = RecordingStudio::Services::AccessCheck.role_for(actor: user, recording: recording)
+# => :admin, :edit, :view, or nil
+
+# Check if an actor has at least a given role
+RecordingStudio::Services::AccessCheck.allowed?(actor: user, recording: recording, role: :edit)
+# => true or false
+```
+
+#### Access API reference
+
+| Method | Returns | What it does | How to use |
+| --- | --- | --- | --- |
+| `RecordingStudio::Services::AccessCheck.role_for(actor:, recording:)` | `:admin`, `:edit`, `:view`, or `nil` | Resolves an actor’s effective role for a specific recording, considering recording-level access, `AccessBoundary` rules, and container-level access. | `role = RecordingStudio::Services::AccessCheck.role_for(actor: user, recording: page_recording)` |
+| `RecordingStudio::Services::AccessCheck.allowed?(actor:, recording:, role:)` | `true` / `false` | Authorization helper: checks whether the actor’s resolved role is at least the required role (admin > edit > view). | `RecordingStudio::Services::AccessCheck.allowed?(actor: user, recording: page_recording, role: :edit)` |
+| `RecordingStudio::Services::AccessCheck.containers_for(actor:, minimum_role: nil)` | `[[container_type, container_id], ...]` | Reverse-lookup: lists containers the actor has *container-level* access to via root access recordings (`parent_recording_id = nil`). Recording-level access is intentionally excluded. | `RecordingStudio::Services::AccessCheck.containers_for(actor: user, minimum_role: :view)` |
+| `RecordingStudio::Services::AccessCheck.container_ids_for(actor:, container_class:, minimum_role: nil)` | `[container_id, ...]` | Same as `containers_for`, but scoped to a single container class/type and returns only IDs (useful for `WHERE id IN (...)`). | `ids = RecordingStudio::Services::AccessCheck.container_ids_for(actor: user, container_class: Workspace)` |
+| `RecordingStudio::Services::AccessCheck.access_recordings_for(recording)` | `ActiveRecord::Relation<RecordingStudio::Recording>` | Helper scope: returns non-trashed access recordings directly under a recording (children where `recordable_type = "RecordingStudio::Access"`). This does not filter by actor; it’s mainly for inspection/debugging and tests. | `RecordingStudio::Services::AccessCheck.access_recordings_for(page_recording).includes(:recordable)` |
+| `RecordingStudio::Access.roles` | `{ "view"=>0, "edit"=>1, "admin"=>2 }` | Enum mapping used for role ordering/comparisons (and for converting role symbols/strings to integer values). | `RecordingStudio::Access.roles.fetch("admin") # => 2` |
+| `RecordingStudio::AccessBoundary.minimum_roles` | `{ "view"=>0, "edit"=>1, "admin"=>2 }` | Enum mapping for `AccessBoundary.minimum_role` thresholds (used when comparing whether a role can pass through a boundary). | `RecordingStudio::AccessBoundary.minimum_roles.fetch("edit") # => 1` |
 
 ---
 

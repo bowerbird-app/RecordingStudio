@@ -1,0 +1,20 @@
+<% content_for :title, "New Workspace" %>
+
+<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+  <% breadcrumb.item(text: "Home", href: root_path) %>
+  <% breadcrumb.item(text: "Workspaces", href: workspaces_path) %>
+  <% breadcrumb.item(text: "New") %>
+<% end %>
+
+<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+  <% card.header(divider: false) do %>
+    <div>
+      <h2 class="text-2xl font-semibold">New Workspace</h2>
+      <p class="text-sm text-slate-500">Create a container for recordings.</p>
+    </div>
+  <% end %>
+
+  <% card.body do %>
+    <%= render "form", workspace: @workspace %>
+  <% end %>
+<% end %>

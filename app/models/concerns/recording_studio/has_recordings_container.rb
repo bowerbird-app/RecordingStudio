@@ -26,6 +26,8 @@ module RecordingStudio
     end
 
     def revise(recording, actor: nil, impersonator: nil, metadata: {})
+      assert_recording_belongs_to_container!(recording)
+
       recordable = duplicate_recordable(recording.recordable)
       yield(recordable) if block_given?
       recordable.save!
@@ -42,18 +44,24 @@ module RecordingStudio
     end
 
     def trash(recording, actor: nil, impersonator: nil, metadata: {}, include_children: false)
+      assert_recording_belongs_to_container!(recording)
+
       include_children ||= RecordingStudio.configuration.include_children
       delete_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata,
                                      cascade: include_children, seen: Set.new, mode: :soft)
     end
 
     def hard_delete(recording, actor: nil, impersonator: nil, metadata: {}, include_children: false)
+      assert_recording_belongs_to_container!(recording)
+
       include_children ||= RecordingStudio.configuration.include_children
       delete_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata,
                                      cascade: include_children, seen: Set.new, mode: :hard)
     end
 
     def restore(recording, actor: nil, impersonator: nil, metadata: {}, include_children: false)
+      assert_recording_belongs_to_container!(recording)
+
       include_children ||= RecordingStudio.configuration.include_children
       restore_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata,
                                       cascade: include_children, seen: Set.new)
@@ -61,6 +69,8 @@ module RecordingStudio
 
     def log_event(recording, action:, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current,
                   idempotency_key: nil)
+      assert_recording_belongs_to_container!(recording)
+
       recording.log_event!(
         action: action,
         actor: actor,
@@ -72,6 +82,8 @@ module RecordingStudio
     end
 
     def revert(recording, to_recordable:, actor: nil, impersonator: nil, metadata: {})
+      assert_recording_belongs_to_container!(recording)
+
       RecordingStudio.record!(
         action: "reverted",
         recordable: to_recordable,
@@ -102,11 +114,15 @@ module RecordingStudio
           scope = scope.where(recordable_type: recordable_class.name)
           scope = scope.joins("INNER JOIN #{recordable_table} ON #{recordable_table}.id = recording_studio_recordings.recordable_id")
           scope = apply_recordable_filters(scope, recordable_filters, recordable_class)
-          scope = recordable_scope.call(scope) if recordable_scope.respond_to?(:call)
+          if recordable_scope.respond_to?(:call)
+            custom_scope = recordable_scope.call(scope)
+            scope = custom_scope if custom_scope.is_a?(ActiveRecord::Relation)
+          end
           safe_recordable_order = sanitize_order_for_model(recordable_order, recordable_class)
           scope = scope.reorder(safe_recordable_order) if safe_recordable_order.present?
         end
       end
+      scope = enforce_recordings_scope(scope, include_children: include_children)
       safe_recording_order = sanitize_order_for_model(order, RecordingStudio::Recording)
       scope = scope.reorder(safe_recording_order) if safe_recording_order.present?
       scope = scope.limit(limit) if limit.present?
@@ -287,6 +303,23 @@ module RecordingStudio
       else
         scope
       end
+    end
+
+    def assert_recording_belongs_to_container!(recording)
+      return if recording.nil?
+
+      expected_container_type = self.class.name
+      expected_container_id = id
+
+      return if recording.container_type == expected_container_type && recording.container_id == expected_container_id
+
+      raise ArgumentError, "recording must belong to this container"
+    end
+
+    def enforce_recordings_scope(scope, include_children:)
+      constrained_scope = scope.where(container_type: self.class.name, container_id: id, trashed_at: nil)
+      constrained_scope = constrained_scope.where(parent_recording_id: nil) unless include_children
+      constrained_scope
     end
   end
 end

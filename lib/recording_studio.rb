@@ -8,7 +8,10 @@ require "recording_studio/errors"
 require "recording_studio/recordable"
 require "recording_studio/services/base_service"
 require "recording_studio/services/example_service"
+require "recording_studio/services/access_check_class_methods"
+require "recording_studio/services/access_check"
 
+# rubocop:disable Metrics/ModuleLength
 module RecordingStudio
   class << self
     def configuration
@@ -30,6 +33,11 @@ module RecordingStudio
       RecordingStudio::DelegatedTypeRegistrar.apply!
       container ||= recording&.container
       raise ArgumentError, "container is required" if container.nil?
+      if recording && recording.container != container
+        raise ArgumentError, "recording must belong to the provided container"
+      end
+
+      assert_parent_recording_container!(parent_recording, container)
 
       resolved_actor = actor || configuration.actor&.call
       resolved_impersonator = impersonator || configuration.impersonator&.call
@@ -116,5 +124,16 @@ module RecordingStudio
         occurred_at: event.occurred_at
       )
     end
+
+    def assert_parent_recording_container!(parent_recording, container)
+      return unless parent_recording
+
+      parent_container_type = parent_recording.container_type
+      parent_container_id = parent_recording.container_id
+      return if parent_container_type == container.class.name && parent_container_id == container.id
+
+      raise ArgumentError, "parent_recording must belong to the provided container"
+    end
   end
 end
+# rubocop:enable Metrics/ModuleLength

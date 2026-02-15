@@ -1,0 +1,45 @@
+<% content_for :title, "Access" %>
+
+<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+  <% breadcrumb.item(text: "Home", href: root_path) %>
+  <% breadcrumb.item(text: "Workspaces", href: workspaces_path) %>
+  <% breadcrumb.item(text: @access_recording.container.name, href: workspace_path(@access_recording.container)) %>
+  <% if @access_recording.parent_recording %>
+    <% breadcrumb.item(
+      text: recordable_label(@access_recording.parent_recording.recordable),
+      href: recording_path(@access_recording.parent_recording)
+    ) %>
+  <% end %>
+  <% breadcrumb.item(text: "Access") %>
+<% end %>
+
+<%= render FlatPack::Card::Component.new do |card| %>
+  <% card.header(divider: false) do %>
+    <div class="space-y-1">
+      <h2 class="text-lg font-semibold">Access</h2>
+      <p class="text-sm text-slate-500">
+        Change the access of <%= @access.actor&.name || "Unknown" %> to
+        <%= @access_recording.parent_recording ? recordable_label(@access_recording.parent_recording.recordable) : @access_recording.container.name %>.
+      </p>
+    </div>
+  <% end %>
+
+  <% card.body do %>
+    <div class="space-y-4">
+      <%= form_with url: access_recording_path(@access_recording), method: :patch, scope: :access, class: "space-y-6" do |form| %>
+        <%= render FlatPack::RadioGroup::Component.new(
+          name: "access[role]",
+          label: "Role",
+          options: RecordingStudio::Access.roles.keys.map { |k| [k.titleize, k] },
+          value: @access.role.to_s,
+          required: true
+        ) %>
+
+        <div class="flex items-center gap-3">
+          <%= form.submit "Update", class: "rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white" %>
+          <%= link_to "Cancel", (@return_to || workspace_path(@access_recording.container)), class: "text-sm font-medium text-slate-500" %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

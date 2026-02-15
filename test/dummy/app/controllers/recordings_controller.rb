@@ -27,7 +27,14 @@ class RecordingsController < ApplicationController
   end
 
   def revert
-    recordable_class = @recording.recordable_type.constantize
+    recordable_type = @recording.recordable_type.to_s
+    unless RecordingStudio.configuration.recordable_types.include?(recordable_type)
+      raise ActiveRecord::RecordNotFound
+    end
+
+    recordable_class = recordable_type.safe_constantize
+    raise ActiveRecord::RecordNotFound unless recordable_class
+
     recordable = recordable_class.find(params[:recordable_id])
 
     @recording = @recording.container.revert(

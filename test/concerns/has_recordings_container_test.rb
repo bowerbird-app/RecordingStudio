@@ -188,6 +188,49 @@ class HasRecordingsContainerTest < ActiveSupport::TestCase
     assert_equal 1, recordings.count
   end
 
+  def test_recordings_enforces_container_scope_after_custom_scope
+    workspace = Workspace.create!(name: "Workspace")
+    other_workspace = Workspace.create!(name: "Other Workspace")
+
+    root = workspace.record(RecordingStudioPage) { |page| page.title = "Root" }
+    workspace.record(RecordingStudioPage, parent_recording: root) { |page| page.title = "Child" }
+    trashed = workspace.record(RecordingStudioPage) { |page| page.title = "Trashed" }
+    trashed.update!(trashed_at: Time.current)
+
+    other_workspace.record(RecordingStudioPage) { |page| page.title = "Foreign" }
+
+    recordings = workspace.recordings(
+      include_children: false,
+      type: RecordingStudioPage,
+      recordable_scope: lambda do |scope|
+        scope.unscope(where: %i[container_type container_id parent_recording_id trashed_at])
+      end
+    )
+
+    assert_equal [root.id], recordings.map(&:id)
+  end
+
+  def test_container_mutators_reject_foreign_recording
+    workspace = Workspace.create!(name: "Workspace")
+    other_workspace = Workspace.create!(name: "Other Workspace")
+
+    local_recording = workspace.record(RecordingStudioPage) { |page| page.title = "Local" }
+    foreign_recording = other_workspace.record(RecordingStudioPage) { |page| page.title = "Foreign" }
+
+    assert_raises(ArgumentError) { workspace.revise(foreign_recording) { |page| page.title = "Updated" } }
+    assert_raises(ArgumentError) { workspace.trash(foreign_recording) }
+    assert_raises(ArgumentError) { workspace.hard_delete(foreign_recording) }
+    assert_raises(ArgumentError) { workspace.restore(foreign_recording) }
+    assert_raises(ArgumentError) { workspace.log_event(foreign_recording, action: "reviewed") }
+    assert_raises(ArgumentError) do
+      workspace.revert(foreign_recording, to_recordable: foreign_recording.recordable)
+    end
+
+    assert_nothing_raised do
+      workspace.log_event(local_recording, action: "reviewed")
+    end
+  end
+
   def test_recordings_with_recordable_filters_relation_and_arel
     workspace = Workspace.create!(name: "Workspace")
     workspace.record(RecordingStudioPage) { |page| page.title = "Alpha" }

@@ -118,6 +118,46 @@ class RecordingApiTest < ActiveSupport::TestCase
     end
   end
 
+  def test_record_rejects_parent_recording_from_other_container
+    workspace = Workspace.create!(name: "Workspace")
+    other_workspace = Workspace.create!(name: "Other Workspace")
+
+    foreign_parent = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Foreign"),
+      container: other_workspace
+    ).recording
+
+    assert_raises(ArgumentError) do
+      RecordingStudio.record!(
+        action: "created",
+        recordable: RecordingStudioPage.new(title: "Child"),
+        container: workspace,
+        parent_recording: foreign_parent
+      )
+    end
+  end
+
+  def test_record_rejects_recording_when_container_mismatch
+    workspace = Workspace.create!(name: "Workspace")
+    other_workspace = Workspace.create!(name: "Other Workspace")
+
+    recording = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "One"),
+      container: workspace
+    ).recording
+
+    assert_raises(ArgumentError) do
+      RecordingStudio.record!(
+        action: "updated",
+        recordable: recording.recordable,
+        recording: recording,
+        container: other_workspace
+      )
+    end
+  end
+
   def test_record_normalizes_metadata
     workspace = Workspace.create!(name: "Workspace")
 
