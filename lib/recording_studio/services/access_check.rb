@@ -3,7 +3,13 @@
 module RecordingStudio
   module Services
     class AccessCheck < BaseService
+      extend AccessCheckClassMethods
+
       ROLE_ORDER = { "view" => 0, "edit" => 1, "admin" => 2 }.freeze
+      ACCESS_JOIN_SQL = <<~SQL.squish.freeze
+        INNER JOIN recording_studio_accesses
+          ON recording_studio_accesses.id = recording_studio_recordings.recordable_id
+      SQL
 
       def initialize(actor:, recording:, role: nil)
         super()
@@ -27,39 +33,13 @@ module RecordingStudio
       end
 
       def resolve_role
-        path = []
-        boundary = nil
-        current = @recording
-
-        # Walk up the recording hierarchy collecting nodes
-        while current
-          path << current
-          if boundary_recording?(current)
-            boundary = current
-            break
-          end
-          current = current.parent_recording
-        end
-
-        # Check explicit access on the collected path (target → boundary)
+        path, boundary = recording_path_and_boundary
         role = find_access_on_path(path)
         return role if role
 
-        if boundary
-          boundary_recordable = boundary.recordable
-          if boundary_recordable.respond_to?(:minimum_role) && boundary_recordable.minimum_role.present?
-            # Continue searching above boundary for actor access
-            above_role = find_access_above(boundary) || find_container_access
-            if above_role && ROLE_ORDER.fetch(above_role, -1) >= ROLE_ORDER.fetch(boundary_recordable.minimum_role, -1)
-              return above_role
-            end
-          end
-          # Boundary with no minimum_role blocks access unless explicit inside (already checked)
-          nil
-        else
-          # No boundary found - check container-level access recordings
-          find_container_access
-        end
+        return find_container_access unless boundary
+
+        resolve_role_with_boundary(boundary)
       end
 
       def boundary_recording?(recording)
@@ -95,104 +75,56 @@ module RecordingStudio
 
       def find_container_access
         container = @recording.container
-        access_recording = RecordingStudio::Recording.unscoped
-                                                     .where(container_type: container.class.name, container_id: container.id)
-                                                     .where(recordable_type: "RecordingStudio::Access")
-                                                     .where(parent_recording_id: nil)
-                                                     .where(trashed_at: nil)
-                                                     .joins(
-                                                       "INNER JOIN recording_studio_accesses ON recording_studio_accesses.id = recording_studio_recordings.recordable_id"
-                                                     )
-                                                     .where(recording_studio_accesses: { actor_type: @actor.class.name,
-                                                                                         actor_id: @actor.id })
-                                                     .order("recording_studio_recordings.created_at DESC")
-                                                     .first
+        access_recording = base_access_recording_scope.where(
+          container_type: container.class.name,
+          container_id: container.id
+        ).first
         return nil unless access_recording
 
         access_recording.recordable&.role
       end
 
       def access_recordings_for(recording)
+        base_access_recording_scope.where(parent_recording_id: recording.id)
+      end
+
+      def recording_path_and_boundary
+        path = []
+        current = @recording
+
+        current = collect_non_boundary_path(path, current)
+        [path, current]
+      end
+
+      def collect_non_boundary_path(path, current)
+        while current && !boundary_recording?(current)
+          path << current
+          current = current.parent_recording
+        end
+        path << current if current
+        current
+      end
+
+      def resolve_role_with_boundary(boundary)
+        minimum_role = boundary.recordable&.minimum_role
+        return nil if minimum_role.blank?
+
+        inherited_role = find_access_above(boundary) || find_container_access
+        return nil unless inherited_role
+
+        required_value = ROLE_ORDER.fetch(minimum_role, -1)
+        role_value = ROLE_ORDER.fetch(inherited_role, -1)
+        role_value >= required_value ? inherited_role : nil
+      end
+
+      def base_access_recording_scope
         RecordingStudio::Recording.unscoped
-                                  .where(parent_recording_id: recording.id)
                                   .where(recordable_type: "RecordingStudio::Access")
                                   .where(trashed_at: nil)
-                                  .joins(
-                                    "INNER JOIN recording_studio_accesses ON recording_studio_accesses.id = recording_studio_recordings.recordable_id"
-                                  )
+                                  .joins(ACCESS_JOIN_SQL)
                                   .where(recording_studio_accesses: { actor_type: @actor.class.name,
                                                                       actor_id: @actor.id })
                                   .order("recording_studio_recordings.created_at DESC")
-      end
-
-      class << self
-        def role_for(actor:, recording:)
-          call(actor: actor, recording: recording).value
-        end
-
-        def allowed?(actor:, recording:, role:)
-          call(actor: actor, recording: recording, role: role).value
-        end
-
-        # Returns distinct containers the actor has been granted access to via
-        # container-level access recordings (i.e., root recordings where
-        # parent_recording_id IS NULL). Recording-level access does not imply
-        # container access and is intentionally excluded.
-        #
-        # @param actor [ActiveRecord::Base] polymorphic actor (e.g., User)
-        # @param minimum_role [Symbol,String,nil] optional minimum role threshold
-        # @return [Array<Array(String, String)>] array of [container_type, container_id]
-        def containers_for(actor:, minimum_role: nil)
-          return [] unless actor
-
-          access_scope = RecordingStudio::Access.where(actor_type: actor.class.name, actor_id: actor.id)
-          if minimum_role.present?
-            minimum_value = RecordingStudio::Access.roles[minimum_role.to_s]
-            return [] unless minimum_value
-
-            access_scope = access_scope.where("role >= ?", minimum_value)
-          end
-
-          RecordingStudio::Recording.unscoped
-                                    .where(recordable_type: "RecordingStudio::Access")
-                                    .where(parent_recording_id: nil)
-                                    .where(trashed_at: nil)
-                                    .where(recordable_id: access_scope.select(:id))
-                                    .distinct
-                                    .pluck(:container_type, :container_id)
-        end
-
-        # Convenience helper for a single container class.
-        # @return [Array<String>] container IDs (UUIDs)
-        def container_ids_for(actor:, container_class:, minimum_role: nil)
-          return [] unless actor
-
-          container_type = container_class.is_a?(Class) ? container_class.name : container_class.to_s
-
-          access_scope = RecordingStudio::Access.where(actor_type: actor.class.name, actor_id: actor.id)
-          if minimum_role.present?
-            minimum_value = RecordingStudio::Access.roles[minimum_role.to_s]
-            return [] unless minimum_value
-
-            access_scope = access_scope.where("role >= ?", minimum_value)
-          end
-
-          RecordingStudio::Recording.unscoped
-                                    .where(container_type: container_type)
-                                    .where(recordable_type: "RecordingStudio::Access")
-                                    .where(parent_recording_id: nil)
-                                    .where(trashed_at: nil)
-                                    .where(recordable_id: access_scope.select(:id))
-                                    .distinct
-                                    .pluck(:container_id)
-        end
-
-        def access_recordings_for(recording)
-          RecordingStudio::Recording.unscoped
-                                    .where(parent_recording_id: recording.id)
-                                    .where(recordable_type: "RecordingStudio::Access")
-                                    .where(trashed_at: nil)
-        end
       end
     end
   end

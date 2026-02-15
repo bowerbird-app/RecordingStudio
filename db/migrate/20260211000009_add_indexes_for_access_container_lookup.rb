@@ -1,6 +1,12 @@
 # frozen_string_literal: true
 
 class AddIndexesForAccessContainerLookup < ActiveRecord::Migration[7.1]
+  ROOT_ACCESS_WHERE = <<~SQL.squish.freeze
+    recordable_type = 'RecordingStudio::Access'
+    AND parent_recording_id IS NULL
+    AND trashed_at IS NULL
+  SQL
+
   def up
     # Helps reverse lookup from accesses -> recordings -> containers,
     # especially when filtering by a minimum role.
@@ -18,7 +24,7 @@ class AddIndexesForAccessContainerLookup < ActiveRecord::Migration[7.1]
 
     add_index :recording_studio_recordings, %i[recordable_id container_type container_id],
               name: "idx_rs_recordings_root_access_container",
-              where: "recordable_type = 'RecordingStudio::Access' AND parent_recording_id IS NULL AND trashed_at IS NULL",
+              where: ROOT_ACCESS_WHERE,
               if_not_exists: true
   end
 

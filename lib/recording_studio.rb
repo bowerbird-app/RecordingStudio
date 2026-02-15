@@ -8,8 +8,10 @@ require "recording_studio/errors"
 require "recording_studio/recordable"
 require "recording_studio/services/base_service"
 require "recording_studio/services/example_service"
+require "recording_studio/services/access_check_class_methods"
 require "recording_studio/services/access_check"
 
+# rubocop:disable Metrics/ModuleLength
 module RecordingStudio
   class << self
     def configuration
@@ -134,3 +136,4 @@ module RecordingStudio
     end
   end
 end
+# rubocop:enable Metrics/ModuleLength

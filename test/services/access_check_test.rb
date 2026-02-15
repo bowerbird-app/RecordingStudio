@@ -3,6 +3,8 @@
 require "test_helper"
 
 class AccessCheckTest < ActiveSupport::TestCase
+  AccessCheck = RecordingStudio::Services::AccessCheck
+
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
     RecordingStudio.configuration.recordable_types = %w[
@@ -304,6 +306,4 @@ class AccessCheckTest < ActiveSupport::TestCase
       parent_recording: nil
     )
   end
-
-  AccessCheck = RecordingStudio::Services::AccessCheck
 end

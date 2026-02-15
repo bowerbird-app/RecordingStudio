@@ -38,8 +38,8 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
 
   def sign_in_as(user)
     post user_session_path,
-      params: { user: { email: user.email, password: "password" } },
-      headers: { "User-Agent" => MODERN_UA }
+         params: { user: { email: user.email, password: "password" } },
+         headers: { "User-Agent" => MODERN_UA }
     assert_response :redirect
   end
 
@@ -50,8 +50,8 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference("RecordingStudio::Access.count", +1) do
       patch access_recording_path(@target_access_recording),
-        params: { access: { role: "edit" } },
-        headers: { "User-Agent" => MODERN_UA }
+            params: { access: { role: "edit" } },
+            headers: { "User-Agent" => MODERN_UA }
     end
 
     assert_redirected_to workspace_path(@workspace)
@@ -64,39 +64,12 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
   test "admin can add container-level access" do
     sign_in_as @admin
 
-    unique = SecureRandom.hex(8)
-    new_user = User.create!(
-      name: "New User",
-      email: "new-user-#{unique}@example.com",
-      password: "password",
-      password_confirmation: "password"
-    )
+    new_user = create_user(name: "New User", email_prefix: "new-user")
 
-    assert_difference(["RecordingStudio::Access.count", "RecordingStudio::Recording.count"], +1) do
-      post access_recordings_path,
-        params: {
-          container_type: "Workspace",
-          container_id: @workspace.id,
-          return_to: workspace_path(@workspace),
-          access: {
-            actor_key: "User:#{new_user.id}",
-            role: "view"
-          }
-        },
-        headers: { "User-Agent" => MODERN_UA }
-    end
+    create_container_access_for(user: new_user, role: "view")
 
-    assert_redirected_to workspace_path(@workspace)
-
-    created = RecordingStudio::Recording
-      .for_container(@workspace)
-      .where(parent_recording_id: nil, recordable_type: "RecordingStudio::Access")
-      .order(created_at: :desc)
-      .first
-
-    assert_equal "RecordingStudio::Access", created.recordable_type
-    assert_equal "view", created.recordable.role
-    assert_equal new_user, created.recordable.actor
+    created = latest_container_access_recording
+    assert_access_recording(created: created, role: "view", actor: new_user)
   end
 
   test "non-admin cannot add container-level access" do
@@ -116,16 +89,16 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference(["RecordingStudio::Access.count", "RecordingStudio::Recording.count"]) do
       post access_recordings_path,
-        params: {
-          container_type: "Workspace",
-          container_id: @workspace.id,
-          return_to: workspace_path(@workspace),
-          access: {
-            actor_key: "User:#{@target.id}",
-            role: "admin"
-          }
-        },
-        headers: { "User-Agent" => MODERN_UA }
+           params: {
+             container_type: "Workspace",
+             container_id: @workspace.id,
+             return_to: workspace_path(@workspace),
+             access: {
+               actor_key: "User:#{@target.id}",
+               role: "admin"
+             }
+           },
+           headers: { "User-Agent" => MODERN_UA }
     end
 
     assert_redirected_to workspace_path(@workspace)
@@ -150,8 +123,8 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference("RecordingStudio::Access.count") do
       patch access_recording_path(@target_access_recording),
-        params: { access: { role: "admin" } },
-        headers: { "User-Agent" => MODERN_UA }
+            params: { access: { role: "admin" } },
+            headers: { "User-Agent" => MODERN_UA }
     end
 
     assert_redirected_to workspace_path(@workspace)
@@ -166,17 +139,61 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference(["RecordingStudio::Access.count", "RecordingStudio::Recording.count"]) do
       post access_recordings_path,
-        params: {
-          container_type: "Kernel",
-          container_id: @workspace.id,
-          access: {
-            actor_key: "User:#{@target.id}",
-            role: "view"
-          }
-        },
-        headers: { "User-Agent" => MODERN_UA }
+           params: {
+             container_type: "Kernel",
+             container_id: @workspace.id,
+             access: {
+               actor_key: "User:#{@target.id}",
+               role: "view"
+             }
+           },
+           headers: { "User-Agent" => MODERN_UA }
     end
 
     assert_response :not_found
+  end
+
+  private
+
+  def create_user(name:, email_prefix:)
+    unique = SecureRandom.hex(8)
+    User.create!(
+      name: name,
+      email: "#{email_prefix}-#{unique}@example.com",
+      password: "password",
+      password_confirmation: "password"
+    )
+  end
+
+  def create_container_access_for(user:, role:)
+    assert_difference(["RecordingStudio::Access.count", "RecordingStudio::Recording.count"], +1) do
+      post access_recordings_path,
+           params: {
+             container_type: "Workspace",
+             container_id: @workspace.id,
+             return_to: workspace_path(@workspace),
+             access: {
+               actor_key: "User:#{user.id}",
+               role: role
+             }
+           },
+           headers: { "User-Agent" => MODERN_UA }
+    end
+
+    assert_redirected_to workspace_path(@workspace)
+  end
+
+  def latest_container_access_recording
+    RecordingStudio::Recording
+      .for_container(@workspace)
+      .where(parent_recording_id: nil, recordable_type: "RecordingStudio::Access")
+      .order(created_at: :desc)
+      .first
+  end
+
+  def assert_access_recording(created:, role:, actor:)
+    assert_equal "RecordingStudio::Access", created.recordable_type
+    assert_equal role, created.recordable.role
+    assert_equal actor, created.recordable.actor
   end
 end
