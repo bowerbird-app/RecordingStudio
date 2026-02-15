@@ -35,3 +35,14 @@ Refer to the Flatpack gem documentation for the latest instructions and the comp
 - Did I check the Flatpack component list first?
 - Can this be expressed with Flatpack slots or props?
 - If custom HTML is used, is there a TODO to upstream to Flatpack?
+
+## Validation workflow (required)
+- Open the app and verify the UI in a running environment before final handoff.
+- Exercise the changed user flows to confirm functionality works end-to-end (not just visual appearance).
+- Use Playwright ("playright" if referenced in user prompts) to run UI checks for the updated paths.
+- Capture screenshots of key states (default, interaction, success/error where relevant) and use them to validate visual correctness.
+- Confirm no obvious regressions in adjacent UI areas touched by the change.
+
+## Handoff expectations
+- Include a short validation summary: what was tested, which screens were checked, and whether screenshots were reviewed.
+- Explicitly list any flows that could not be validated and why.
