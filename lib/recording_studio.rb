@@ -31,6 +31,11 @@ module RecordingStudio
       RecordingStudio::DelegatedTypeRegistrar.apply!
       container ||= recording&.container
       raise ArgumentError, "container is required" if container.nil?
+      if recording && recording.container != container
+        raise ArgumentError, "recording must belong to the provided container"
+      end
+
+      assert_parent_recording_container!(parent_recording, container)
 
       resolved_actor = actor || configuration.actor&.call
       resolved_impersonator = impersonator || configuration.impersonator&.call
@@ -116,6 +121,16 @@ module RecordingStudio
         impersonator_id: event.impersonator_id,
         occurred_at: event.occurred_at
       )
+    end
+
+    def assert_parent_recording_container!(parent_recording, container)
+      return unless parent_recording
+
+      parent_container_type = parent_recording.container_type
+      parent_container_id = parent_recording.container_id
+      return if parent_container_type == container.class.name && parent_container_id == container.id
+
+      raise ArgumentError, "parent_recording must belong to the provided container"
     end
   end
 end

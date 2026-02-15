@@ -4,7 +4,7 @@ require "test_helper"
 require "securerandom"
 
 class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
-  MODERN_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+  MODERN_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
 
   setup do
     unique = SecureRandom.hex(8)
@@ -159,5 +159,24 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     @target_access_recording.reload
     assert_equal previous_recordable_id, @target_access_recording.recordable_id
     assert_equal "view", @target_access_recording.recordable.role
+  end
+
+  test "create rejects unallowed container type" do
+    sign_in_as @admin
+
+    assert_no_difference(["RecordingStudio::Access.count", "RecordingStudio::Recording.count"]) do
+      post access_recordings_path,
+        params: {
+          container_type: "Kernel",
+          container_id: @workspace.id,
+          access: {
+            actor_key: "User:#{@target.id}",
+            role: "view"
+          }
+        },
+        headers: { "User-Agent" => MODERN_UA }
+    end
+
+    assert_response :not_found
   end
 end

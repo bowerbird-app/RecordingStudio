@@ -1,4 +1,8 @@
 class AccessRecordingsController < ApplicationController
+  ALLOWED_CONTAINER_TYPES = {
+    "Workspace" => Workspace
+  }.freeze
+
   before_action :set_return_to
   before_action :set_access_recording, only: [:edit, :update]
   before_action :authorize_edit_access!, only: [:edit, :update]
@@ -68,7 +72,10 @@ class AccessRecordingsController < ApplicationController
       container_id = params[:container_id]
       raise ActiveRecord::RecordNotFound if container_type.blank? || container_id.blank?
 
-      @container = container_type.constantize.find(container_id)
+      container_class = ALLOWED_CONTAINER_TYPES[container_type]
+      raise ActiveRecord::RecordNotFound unless container_class
+
+      @container = container_class.find(container_id)
       @parent_recording = nil
     end
   rescue NameError

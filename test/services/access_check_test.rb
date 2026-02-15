@@ -236,6 +236,20 @@ class AccessCheckTest < ActiveSupport::TestCase
     assert_equal "RecordingStudio::Access", results.first.recordable_type
   end
 
+  def test_allowed_returns_false_for_unknown_required_role
+    page_recording = create_page_recording("Page")
+    grant_access(page_recording, @actor, :admin)
+
+    refute AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :owner)
+  end
+
+  def test_container_lookup_returns_empty_for_unknown_minimum_role
+    grant_container_access(@workspace, @actor, :admin)
+
+    assert_equal [], AccessCheck.containers_for(actor: @actor, minimum_role: :owner)
+    assert_equal [], AccessCheck.container_ids_for(actor: @actor, container_class: Workspace, minimum_role: :owner)
+  end
+
   private
 
   def create_page_recording(title)

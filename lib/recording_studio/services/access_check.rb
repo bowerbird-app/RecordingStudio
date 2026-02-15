@@ -17,7 +17,10 @@ module RecordingStudio
       def perform
         resolved = resolve_role
         if @role
-          success(resolved.present? && ROLE_ORDER.fetch(resolved, -1) >= ROLE_ORDER.fetch(@role, -1))
+          required_role_value = ROLE_ORDER[@role]
+          return success(false) unless required_role_value
+
+          success(resolved.present? && ROLE_ORDER.fetch(resolved, -1) >= required_role_value)
         else
           success(resolved&.to_sym)
         end
@@ -144,7 +147,9 @@ module RecordingStudio
 
           access_scope = RecordingStudio::Access.where(actor_type: actor.class.name, actor_id: actor.id)
           if minimum_role.present?
-            minimum_value = RecordingStudio::Access.roles.fetch(minimum_role.to_s)
+            minimum_value = RecordingStudio::Access.roles[minimum_role.to_s]
+            return [] unless minimum_value
+
             access_scope = access_scope.where("role >= ?", minimum_value)
           end
 
@@ -166,7 +171,9 @@ module RecordingStudio
 
           access_scope = RecordingStudio::Access.where(actor_type: actor.class.name, actor_id: actor.id)
           if minimum_role.present?
-            minimum_value = RecordingStudio::Access.roles.fetch(minimum_role.to_s)
+            minimum_value = RecordingStudio::Access.roles[minimum_role.to_s]
+            return [] unless minimum_value
+
             access_scope = access_scope.where("role >= ?", minimum_value)
           end
 

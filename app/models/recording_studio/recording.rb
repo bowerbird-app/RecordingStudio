@@ -11,6 +11,8 @@ module RecordingStudio
                                 inverse_of: :parent_recording
     has_many :events, -> { recent }, class_name: "RecordingStudio::Event", inverse_of: :recording, dependent: :destroy
 
+    validate :parent_recording_container_consistency
+
     after_commit :increment_recordable_recordings_count, on: :create
     after_commit :decrement_recordable_recordings_count, on: :destroy
     after_commit :adjust_recordable_recordings_count, on: :update
@@ -98,6 +100,14 @@ module RecordingStudio
       quoted_column = recordable_class.connection.quote_column_name(column)
       recordable_class.where(id: recordable_id)
                       .update_all("#{quoted_column} = COALESCE(#{quoted_column}, 0) + #{delta}")
+    end
+
+    def parent_recording_container_consistency
+      return unless parent_recording
+
+      return if parent_recording.container_type == container_type && parent_recording.container_id == container_id
+
+      errors.add(:parent_recording_id, "must belong to the same container")
     end
   end
 end

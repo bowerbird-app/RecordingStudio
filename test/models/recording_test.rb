@@ -151,4 +151,24 @@ class RecordingTest < ActiveSupport::TestCase
     recording.update!(trashed_at: Time.current)
     assert recording.reload.trashed_at
   end
+
+  def test_parent_recording_must_belong_to_same_container
+    workspace = Workspace.create!(name: "Workspace")
+    other_workspace = Workspace.create!(name: "Other Workspace")
+
+    parent = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Parent"),
+      container: workspace
+    ).recording
+
+    child = RecordingStudio::Recording.new(
+      container: other_workspace,
+      recordable: RecordingStudioPage.create!(title: "Child"),
+      parent_recording: parent
+    )
+
+    refute child.valid?
+    assert_includes child.errors[:parent_recording_id], "must belong to the same container"
+  end
 end

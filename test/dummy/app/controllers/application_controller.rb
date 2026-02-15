@@ -1,4 +1,8 @@
 class ApplicationController < ActionController::Base
+  ALLOWED_ACTOR_TYPES = {
+    "User" => User,
+    "SystemActor" => SystemActor
+  }.freeze
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
@@ -85,9 +89,10 @@ class ApplicationController < ActionController::Base
     type, id = value.to_s.split(":", 2)
     return if type.blank? || id.blank?
 
-    type.constantize.find_by(id: id)
-  rescue NameError
-    nil
+    actor_class = ALLOWED_ACTOR_TYPES[type]
+    return unless actor_class
+
+    actor_class.find_by(id: id)
   end
 
   def system_actor_from_session
