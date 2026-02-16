@@ -86,7 +86,7 @@ class DummyInitializersTest < ActiveSupport::TestCase
         locals[:body] == "RecordingStudioPage created by User#42 (impersonated by Admin#7)"
     end
 
-    refute_nil matching_call
+    assert_not_nil matching_call
   end
 
   def test_notifications_initializer_uses_default_message_values
@@ -104,7 +104,7 @@ class DummyInitializersTest < ActiveSupport::TestCase
       locals[:body] == "Recordable updated by System"
     end
 
-    refute_nil matching_call
+    assert_not_nil matching_call
   end
 
   private

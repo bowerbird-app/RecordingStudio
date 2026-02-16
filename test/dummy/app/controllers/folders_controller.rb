@@ -1,45 +1,19 @@
 class FoldersController < ApplicationController
-  before_action :set_recording, only: %i[show add_boundary remove_boundary]
+  before_action :set_recording, only: %i[show]
+  before_action :authorize_view_folder!, only: %i[show]
 
   def index
+    root_ids = RecordingStudio::Services::AccessCheck.root_recording_ids_for(actor: current_actor)
+
     @folders = RecordingStudio::Recording
       .where(recordable_type: "RecordingStudioFolder")
+      .where(root_recording_id: root_ids)
       .includes(:recordable, :parent_recording, :root_recording)
   end
 
   def show
     @children = @recording.child_recordings.includes(:recordable)
     @boundary_recording = boundary_recording_for(@recording)
-  end
-
-  def add_boundary
-    if boundary_recording_for(@recording)
-      redirect_to folder_path(@recording), alert: "Boundary already exists."
-      return
-    end
-
-    boundary = RecordingStudio::AccessBoundary.create!(minimum_role: params[:minimum_role].presence)
-    RecordingStudio::Recording.create!(
-      root_recording: @recording.root_recording || @recording,
-      recordable: boundary,
-      parent_recording: @recording
-    )
-
-    redirect_to folder_path(@recording), notice: "Boundary added."
-  end
-
-  def remove_boundary
-    boundary_recording = boundary_recording_for(@recording)
-
-    unless boundary_recording
-      redirect_to folder_path(@recording), alert: "Boundary not found."
-      return
-    end
-
-    boundary_recording.recordable.destroy!
-    boundary_recording.destroy!
-
-    redirect_to folder_path(@recording), notice: "Boundary removed."
   end
 
   private
@@ -55,6 +29,11 @@ class FoldersController < ApplicationController
   def boundary_recording_for(recording)
     RecordingStudio::Recording.unscoped
       .where(parent_recording_id: recording.id, recordable_type: "RecordingStudio::AccessBoundary", trashed_at: nil)
+      .order(created_at: :desc, id: :desc)
       .first
+  end
+
+  def authorize_view_folder!
+    require_recording_access!(@recording, minimum_role: :view)
   end
 end

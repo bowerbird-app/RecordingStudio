@@ -54,4 +54,16 @@ class ApplicationHelperTest < ActionView::TestCase
 
     assert_equal "Studio Workspace", recordable_label(workspace)
   end
+
+  def test_recordable_title_uses_name_for_folder
+    folder = RecordingStudioFolder.create!(name: "Projects")
+
+    assert_equal "Projects", recordable_title(folder)
+  end
+
+  def test_recordable_summary_falls_back_to_body
+    comment = RecordingStudioComment.create!(body: "This is a test comment body")
+
+    assert_equal "This is a test comment body", recordable_summary(comment)
+  end
 end

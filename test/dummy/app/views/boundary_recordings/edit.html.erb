@@ -1,0 +1,67 @@
+<% content_for :title, "Edit Boundary" %>
+
+<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+  <% breadcrumb.item(text: "Home", href: root_path) %>
+  <% breadcrumb.item(text: recordable_label(@boundary_recording.parent_recording.recordable), href: (@return_to || recording_path(@boundary_recording.parent_recording))) %>
+  <% breadcrumb.item(text: "Boundary") %>
+<% end %>
+
+<div class="mx-auto max-w-2xl">
+  <%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+    <% card.header(divider: false) do %>
+      <div class="space-y-2">
+        <h2 class="text-xl font-semibold">Boundary access</h2>
+        <p class="text-sm text-slate-500">Set the default minimum role for content below <%= recordable_label(@boundary_recording.parent_recording.recordable) %>.</p>
+      </div>
+    <% end %>
+
+    <% card.body do %>
+      <div class="space-y-6">
+        <span class="inline-flex rounded bg-slate-100 px-2 py-1 text-sm text-slate-700">
+          Current rule: <%= @boundary.minimum_role.presence || "none" %>
+        </span>
+
+        <%= form_with url: boundary_recording_path(@boundary_recording), method: :patch, local: true, class: "space-y-6" do |form| %>
+          <%= hidden_field_tag :return_to, @return_to if @return_to.present? %>
+
+          <%= render FlatPack::RadioGroup::Component.new(
+            name: "minimum_role",
+            label: "Default minimum role",
+            options: [
+              ["None", ""],
+              ["View", "view"],
+              ["Edit", "edit"],
+              ["Admin", "admin"]
+            ],
+            value: @boundary.minimum_role.to_s
+          ) %>
+
+          <div class="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+            This boundary sets the default minimum role. You can still add specific users or system actors below this boundary to grant them access when needed.
+            <div class="mt-2">
+              <%= link_to "Add users/actors below this boundary", new_access_recording_path(parent_recording_id: @boundary_recording.id, return_to: request.fullpath), class: "text-sm font-medium text-slate-700 underline" %>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <%= form.submit "Save changes", class: "rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white" %>
+            <%= link_to "Cancel", (@return_to || recording_path(@boundary_recording.parent_recording)), class: "text-sm font-medium text-slate-500" %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+
+  <%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+    <% card.header(divider: false) do %>
+      <h3 class="text-base font-semibold text-rose-700">Danger zone</h3>
+    <% end %>
+
+    <% card.body do %>
+      <div class="flex items-center justify-between gap-3">
+        <p class="text-sm text-slate-500">Remove this boundary and its default rule.</p>
+        <%= button_to "Remove boundary", boundary_recording_path(@boundary_recording, return_to: @return_to), method: :delete, data: { turbo_confirm: "Remove this boundary?" }, class: "rounded-lg border border-rose-200 px-3 py-2 text-sm text-rose-700 hover:bg-rose-50" %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

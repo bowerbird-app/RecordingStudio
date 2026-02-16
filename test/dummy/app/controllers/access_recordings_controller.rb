@@ -17,7 +17,7 @@ class AccessRecordingsController < ApplicationController
     role = access_attributes[:role].to_s
 
     unless RecordingStudio::Access.roles.key?(role)
-      @access = RecordingStudio::Access.new(role: role)
+      @access = RecordingStudio::Access.new
       flash.now[:alert] = "Role is invalid."
       return render :new, status: :unprocessable_entity
     end

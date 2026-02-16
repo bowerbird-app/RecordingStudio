@@ -32,15 +32,15 @@ module RecordingStudio
       update_recordable_counter(recordable_type, recordable_id, :events_count, -1)
     end
 
+    # rubocop:disable Rails/SkipsModelValidations
     def update_recordable_counter(recordable_type, recordable_id, column, delta)
       return unless recordable_type && recordable_id
 
       recordable_class = recordable_type.safe_constantize
       return unless recordable_class&.column_names&.include?(column.to_s)
 
-      quoted_column = recordable_class.connection.quote_column_name(column)
-      recordable_class.where(id: recordable_id)
-                      .update_all("#{quoted_column} = COALESCE(#{quoted_column}, 0) + #{delta}")
+      recordable_class.update_counters(recordable_id, column => delta)
     end
+    # rubocop:enable Rails/SkipsModelValidations
   end
 end

@@ -30,20 +30,17 @@
 
   <% card.body do %>
     <% if @boundary_recording %>
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3">
         <span class="rounded bg-slate-100 px-2 py-1 text-sm text-slate-700">
           🔒 Boundary (min: <%= @boundary_recording.recordable.minimum_role.presence || "none" %>)
         </span>
-        <%= button_to "Remove boundary", remove_boundary_folder_path(@recording), method: :delete, data: { turbo_confirm: "Remove this boundary?" }, class: "rounded-lg border border-rose-200 px-3 py-2 text-sm text-rose-700 hover:bg-rose-50" %>
+        <%= render FlatPack::Button::Component.new(text: "Edit boundary", style: :secondary, url: edit_boundary_recording_path(@boundary_recording, return_to: folder_path(@recording))) %>
       </div>
     <% else %>
-      <%= form_with url: add_boundary_folder_path(@recording), method: :post, local: true, class: "flex flex-wrap items-end gap-3" do |form| %>
-        <div>
-          <%= form.label :minimum_role, "Minimum role", class: "mb-1 block text-sm font-medium text-slate-700" %>
-          <%= form.select :minimum_role, options_for_select([["None", ""], ["View", "view"], ["Edit", "edit"], ["Admin", "admin"]]), {}, class: "rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
-        </div>
-        <%= form.submit "Add boundary", class: "rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800" %>
-      <% end %>
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="text-sm text-slate-500">No boundary attached.</span>
+        <%= render FlatPack::Button::Component.new(text: "Add boundary", style: :secondary, url: new_boundary_recording_path(parent_recording_id: @recording.id, return_to: folder_path(@recording))) %>
+      </div>
     <% end %>
   <% end %>
 <% end %>

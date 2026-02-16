@@ -30,7 +30,7 @@ class RecordingTest < ActiveSupport::TestCase
     second.update!(trashed_at: Time.current)
 
     assert_includes RecordingStudio::Recording.for_root(root.id), first
-    refute_includes RecordingStudio::Recording.all, second
+    assert_not_includes RecordingStudio::Recording.all, second
     assert_includes RecordingStudio::Recording.including_trashed, second
     assert_includes RecordingStudio::Recording.trashed, second
     assert_includes RecordingStudio::Recording.of_type(RecordingStudioPage), first
@@ -149,7 +149,7 @@ class RecordingTest < ActiveSupport::TestCase
                                                    recordable: system_actor)
 
     assert recording.persisted?
-    refute_includes SystemActor.column_names, "recordings_count"
+    assert_not_includes SystemActor.column_names, "recordings_count"
 
     recording.update!(trashed_at: Time.current)
     assert recording.reload.trashed_at
@@ -172,7 +172,7 @@ class RecordingTest < ActiveSupport::TestCase
       parent_recording: parent
     )
 
-    refute child.valid?
+    assert_not child.valid?
     assert_includes child.errors[:parent_recording_id], "must belong to the same root recording"
   end
 

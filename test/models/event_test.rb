@@ -70,6 +70,6 @@ class EventTest < ActiveSupport::TestCase
     )
 
     assert event.persisted?
-    refute_includes SystemActor.column_names, "events_count"
+    assert_not_includes SystemActor.column_names, "events_count"
   end
 end

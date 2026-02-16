@@ -44,12 +44,10 @@ def seed_root_access!(root_recording, actor:, role:)
 
   return if existing
 
-  access = RecordingStudio::Access.create!(actor: actor, role: role)
-  RecordingStudio::Recording.create!(
-    root_recording: root_recording,
-    parent_recording: root_recording,
-    recordable: access
-  )
+  root_recording.record(RecordingStudio::Access, actor: actor, metadata: { seeded: true }, parent_recording: root_recording) do |access|
+    access.actor = actor
+    access.role = role
+  end
 end
 
 seed_root_access!(studio_root, actor: admin_user, role: :admin)
@@ -128,8 +126,9 @@ unless RecordingStudioFolder.exists?(name: "Projects")
     folder.name = "Confidential"
   end
 
-  boundary = RecordingStudio::AccessBoundary.create!(minimum_role: :edit)
-  RecordingStudio::Recording.create!(root_recording: studio_root, recordable: boundary, parent_recording: confidential_recording)
+  studio_root.record(RecordingStudio::AccessBoundary, actor: admin_user, parent_recording: confidential_recording, metadata: { seeded: true }) do |boundary|
+    boundary.minimum_role = :edit
+  end
 
   internal_recording = studio_root.record(RecordingStudioFolder, actor: admin_user, parent_recording: confidential_recording, metadata: { seeded: true }) do |folder|
     folder.name = "Internal"
@@ -143,8 +142,10 @@ unless RecordingStudioFolder.exists?(name: "Projects")
     page.title = "Budget"
   end
 
-  access = RecordingStudio::Access.create!(actor: quinn, role: :edit)
-  RecordingStudio::Recording.create!(root_recording: studio_root, recordable: access, parent_recording: budget_recording)
+  studio_root.record(RecordingStudio::Access, actor: admin_user, parent_recording: budget_recording, metadata: { seeded: true }) do |access|
+    access.actor = quinn
+    access.role = :edit
+  end
 end
 
 # Backfill counter caches for recordables in the dummy app.

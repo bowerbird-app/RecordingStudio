@@ -11,8 +11,11 @@
     <% card.header(divider: false) do %>
       <div class="space-y-3">
         <div>
-          <h1 class="text-2xl font-semibold"><%= @recording.recordable.title %></h1>
-          <p class="mt-2 text-sm text-slate-600"><%= @recording.recordable.summary %></p>
+          <h1 class="text-2xl font-semibold"><%= recordable_title(@recording.recordable) %></h1>
+          <% summary = recordable_summary(@recording.recordable) %>
+          <% if summary.present? %>
+            <p class="mt-2 text-sm text-slate-600"><%= summary %></p>
+          <% end %>
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <% if @recording.trashed_at %>
@@ -50,21 +53,19 @@
     <% card.body do %>
       <% if child_recordings.any? %>
         <%= render FlatPack::Table::Component.new(data: child_recordings) do |table| %>
-          <% table.column(title: "Recordable") do |child| %>
-            <%= link_to recordable_label(child.recordable), recording_path(child), class: "hover:underline" %>
-          <% end %>
+          <% table.column(title: "Recordable", html: ->(child) { link_to(recordable_label(child.recordable), recording_path(child), class: "hover:underline") }) %>
           <% table.column(title: "Status", html: ->(child) { child.trashed_at ? "Trashed" : "Active" }) %>
           <% table.column(title: "Recording ID", html: ->(child) { child.id }) %>
           <% table.column(title: "Parent ID", html: ->(child) { child.parent_recording_id }) %>
-          <% table.column(title: "Details") do |child| %>
-            <% if child.recordable.respond_to?(:body) && child.recordable.body.present? %>
-              <%= child.recordable.body %>
-            <% elsif child.recordable.respond_to?(:summary) && child.recordable.summary.present? %>
-              <%= child.recordable.summary %>
-            <% else %>
-              -
-            <% end %>
-          <% end %>
+          <% table.column(title: "Details", html: ->(child) {
+            if child.recordable.respond_to?(:body) && child.recordable.body.present?
+              child.recordable.body
+            elsif child.recordable.respond_to?(:summary) && child.recordable.summary.present?
+              child.recordable.summary
+            else
+              "-"
+            end
+          }) %>
         <% end %>
       <% else %>
         <p class="text-sm text-slate-600">No child recordings yet.</p>
@@ -73,6 +74,7 @@
   <% end %>
 
   <% snapshot_rows = [
+    { label: "Recordable Type", value: recordable_type_label(@recording.recordable_type) },
     { label: "Recordable ID", value: @recording.recordable.id },
     { label: "Last updated", value: "#{time_ago_in_words(@recording.updated_at)} ago" },
     { label: "Root Recording ID", value: @recording.root_recording_id },

@@ -211,7 +211,7 @@ module RecordingStudio
         @registry[event_name] << {
           handler: callable,
           priority: priority,
-          registered_at: Time.now
+          registered_at: Time.zone.now
         }
       end
     end

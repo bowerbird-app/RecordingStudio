@@ -9,7 +9,7 @@ module RecordingStudio
     belongs_to :parent_recording, class_name: "RecordingStudio::Recording", optional: true,
                                   inverse_of: :child_recordings
     has_many :child_recordings, class_name: "RecordingStudio::Recording", foreign_key: :parent_recording_id,
-                                inverse_of: :parent_recording
+                                inverse_of: :parent_recording, dependent: :nullify
     has_many :events, -> { recent }, class_name: "RecordingStudio::Event", inverse_of: :recording, dependent: :destroy
 
     validate :parent_recording_root_consistency
@@ -26,7 +26,9 @@ module RecordingStudio
     scope :for_root, ->(root_id) { where(root_recording_id: root_id) }
     scope :trashed, -> { unscope(where: :trashed_at).where.not(trashed_at: nil) }
     scope :including_trashed, -> { unscope(where: :trashed_at) }
-    scope :include_trashed, -> { unscope(where: :trashed_at) }
+    def self.include_trashed
+      including_trashed
+    end
     scope :of_type, ->(klass) { where(recordable_type: klass.to_s) }
 
     def events(actions: nil, actor: nil, actor_type: nil, actor_id: nil, from: nil, to: nil, limit: nil, offset: nil)
@@ -35,8 +37,8 @@ module RecordingStudio
       scope = scope.by_actor(actor) if actor.present?
       scope = scope.where(actor_type: actor_type) if actor_type.present?
       scope = scope.where(actor_id: actor_id) if actor_id.present?
-      scope = scope.where("occurred_at >= ?", from) if from.present?
-      scope = scope.where("occurred_at <= ?", to) if to.present?
+      scope = scope.where(occurred_at: from..) if from.present?
+      scope = scope.where(occurred_at: ..to) if to.present?
       scope = scope.limit(limit) if limit.present?
       scope = scope.offset(offset) if offset.present?
       scope
@@ -141,10 +143,10 @@ module RecordingStudio
       scope = scope.of_type(type) if type.present?
       scope = scope.where(recordable_id: id) if id.present?
       scope = scope.where(parent_recording_id: parent_id) if parent_id.present?
-      scope = scope.where("created_at >= ?", created_after) if created_after.present?
-      scope = scope.where("created_at <= ?", created_before) if created_before.present?
-      scope = scope.where("updated_at >= ?", updated_after) if updated_after.present?
-      scope = scope.where("updated_at <= ?", updated_before) if updated_before.present?
+      scope = scope.where(created_at: created_after..) if created_after.present?
+      scope = scope.where(created_at: ..created_before) if created_before.present?
+      scope = scope.where(updated_at: updated_after..) if updated_after.present?
+      scope = scope.where(updated_at: ..updated_before) if updated_before.present?
       if type.present? &&
          (recordable_order.present? || recordable_filters.present? || recordable_scope.respond_to?(:call))
         recordable_class = type.is_a?(Class) ? type : type.to_s.safe_constantize
@@ -201,7 +203,7 @@ module RecordingStudio
     end
 
     def set_self_root_recording_id
-      update_column(:root_recording_id, id)
+      update!(root_recording_id: id)
     end
 
     def delete_with_cascade(recording, actor:, impersonator:, metadata:, cascade:, seen:, mode:)
@@ -420,16 +422,16 @@ module RecordingStudio
       update_recordable_counter(recordable_type, recordable_id, :recordings_count, 1)
     end
 
+    # rubocop:disable Rails/SkipsModelValidations
     def update_recordable_counter(recordable_type, recordable_id, column, delta)
       return unless recordable_type && recordable_id
 
       recordable_class = recordable_type.safe_constantize
       return unless recordable_class&.column_names&.include?(column.to_s)
 
-      quoted_column = recordable_class.connection.quote_column_name(column)
-      recordable_class.where(id: recordable_id)
-                      .update_all("#{quoted_column} = COALESCE(#{quoted_column}, 0) + #{delta}")
+      recordable_class.update_counters(recordable_id, column => delta)
     end
+    # rubocop:enable Rails/SkipsModelValidations
 
     def parent_recording_root_consistency
       return unless parent_recording

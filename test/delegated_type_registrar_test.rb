@@ -44,6 +44,6 @@ class DelegatedTypeRegistrarTest < ActiveSupport::TestCase
 
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
-    refute String.included_modules.include?(RecordingStudio::Recordable)
+    assert_not String.included_modules.include?(RecordingStudio::Recordable)
   end
 end

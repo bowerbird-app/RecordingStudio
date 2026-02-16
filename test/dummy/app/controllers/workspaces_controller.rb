@@ -46,8 +46,15 @@ class WorkspacesController < ApplicationController
   def destroy
     workspace = Workspace.find(params[:id])
     root_recording = root_recording_for(workspace)
-    root_recording&.destroy!
-    workspace.destroy!
+    require_root_access!(root_recording, minimum_role: :admin)
+
+    root_recording&.trash(
+      root_recording,
+      actor: current_actor,
+      impersonator: Current.impersonator,
+      metadata: { source: "ui" },
+      include_children: true
+    )
 
     redirect_to workspaces_path, notice: "Workspace deleted."
   end
@@ -76,12 +83,16 @@ class WorkspacesController < ApplicationController
 
     return if existing
 
-    access = RecordingStudio::Access.create!(actor: current_actor, role: :admin)
-    RecordingStudio::Recording.create!(
-      recordable: access,
-      parent_recording: root_recording,
-      root_recording: root_recording
-    )
+    root_recording.record(
+      RecordingStudio::Access,
+      actor: current_actor,
+      impersonator: Current.impersonator,
+      metadata: { source: "ui" },
+      parent_recording: root_recording
+    ) do |access|
+      access.actor = current_actor
+      access.role = :admin
+    end
   end
 
   def root_access_grants(root)

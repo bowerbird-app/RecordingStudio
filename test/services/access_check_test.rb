@@ -48,7 +48,7 @@ class AccessCheckTest < ActiveSupport::TestCase
 
     assert AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :edit)
     assert AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :view)
-    refute AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :admin)
+    assert_not AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :admin)
   end
 
   def test_view_satisfies_only_view
@@ -56,8 +56,8 @@ class AccessCheckTest < ActiveSupport::TestCase
     grant_access(page_recording, @actor, :view)
 
     assert AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :view)
-    refute AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :edit)
-    refute AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :admin)
+    assert_not AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :edit)
+    assert_not AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :admin)
   end
 
   # --- Direct access on recording ---
@@ -73,7 +73,7 @@ class AccessCheckTest < ActiveSupport::TestCase
     page_recording = create_page_recording("Page")
 
     assert_nil AccessCheck.role_for(actor: @actor, recording: page_recording)
-    refute AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :view)
+    assert_not AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :view)
   end
 
   # --- Access inherited from parent recording ---
@@ -131,7 +131,7 @@ class AccessCheckTest < ActiveSupport::TestCase
 
     root_ids = AccessCheck.root_recordings_for(actor: @actor)
     assert_includes root_ids, @root_recording.id
-    refute_includes root_ids, other_root_recording.id
+    assert_not_includes root_ids, other_root_recording.id
   end
 
   def test_root_recordings_for_supports_minimum_role
@@ -142,7 +142,7 @@ class AccessCheckTest < ActiveSupport::TestCase
     grant_root_access(other_root, @actor, :admin)
 
     root_ids = AccessCheck.root_recordings_for(actor: @actor, minimum_role: :edit)
-    refute_includes root_ids, @root_recording.id
+    assert_not_includes root_ids, @root_recording.id
     assert_includes root_ids, other_root.id
   end
 
@@ -285,7 +285,7 @@ class AccessCheckTest < ActiveSupport::TestCase
     page_recording = create_page_recording("Page")
     grant_access(page_recording, @actor, :admin)
 
-    refute AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :owner)
+    assert_not AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :owner)
   end
 
   def test_root_lookup_returns_empty_for_unknown_minimum_role

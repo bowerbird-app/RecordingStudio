@@ -6,7 +6,7 @@ class RecordingStudioFolderTest < ActiveSupport::TestCase
   def test_folder_requires_name
     folder = RecordingStudioFolder.new(name: nil)
 
-    refute folder.valid?
+    assert_not folder.valid?
     assert_includes folder.errors[:name], "can't be blank"
   end
 

@@ -2,6 +2,7 @@
 
 module RecordingStudio
   module Services
+    # rubocop:disable Metrics/ClassLength
     class AccessCheck < BaseService
       extend AccessCheckClassMethods
 
@@ -53,7 +54,7 @@ module RecordingStudio
         end
       end
 
-      def has_boundary_child?(recording)
+      def boundary_child?(recording)
         boundary_parent_ids.include?(recording.id)
       end
 
@@ -61,6 +62,7 @@ module RecordingStudio
         RecordingStudio::Recording.unscoped
                                   .where(parent_recording_id: recording.id,
                                          recordable_type: "RecordingStudio::AccessBoundary", trashed_at: nil)
+                                  .order(created_at: :desc, id: :desc)
                                   .first&.recordable
       end
 
@@ -78,7 +80,7 @@ module RecordingStudio
           role = find_access_for_recording(current)
           return role if role
 
-          break if has_boundary_child?(current)
+          break if boundary_child?(current)
 
           current = current.parent_recording
         end
@@ -113,9 +115,10 @@ module RecordingStudio
 
       def collect_non_boundary_path(path, current)
         while current
-          boundary_here = has_boundary_child?(current)
+          boundary_here = boundary_child?(current)
           path << current unless boundary_here && current.parent_recording_id.nil?
           break if boundary_here
+
           current = current.parent_recording
         end
         current
@@ -144,5 +147,6 @@ module RecordingStudio
                                   .order("recording_studio_recordings.created_at DESC")
       end
     end
+    # rubocop:enable Metrics/ClassLength
   end
 end

@@ -55,7 +55,7 @@ module RecordingStudio
         minimum_value = RecordingStudio::Access.roles[minimum_role.to_s]
         return nil unless minimum_value
 
-        scope.where("role >= ?", minimum_value)
+        scope.where(role: minimum_value..)
       end
     end
   end
