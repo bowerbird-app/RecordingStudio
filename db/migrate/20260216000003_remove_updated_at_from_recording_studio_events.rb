@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# rubocop:disable Rails/BulkChangeTable
 class RemoveUpdatedAtFromRecordingStudioEvents < ActiveRecord::Migration[7.1]
   def up
     return unless table_exists?(:recording_studio_events)
@@ -21,4 +20,3 @@ class RemoveUpdatedAtFromRecordingStudioEvents < ActiveRecord::Migration[7.1]
     change_column_default :recording_studio_events, :updated_at, nil
   end
 end
-# rubocop:enable Rails/BulkChangeTable

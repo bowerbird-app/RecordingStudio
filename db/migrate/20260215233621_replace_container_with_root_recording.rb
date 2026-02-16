@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-# rubocop:disable Rails/BulkChangeTable
 class ReplaceContainerWithRootRecording < ActiveRecord::Migration[8.1]
   def up
     add_column :recording_studio_recordings, :root_recording_id, :uuid
@@ -44,4 +43,3 @@ class ReplaceContainerWithRootRecording < ActiveRecord::Migration[8.1]
     remove_column :recording_studio_recordings, :root_recording_id, :uuid
   end
 end
-# rubocop:enable Rails/BulkChangeTable

@@ -32,7 +32,6 @@ module RecordingStudio
       update_recordable_counter(recordable_type, recordable_id, :events_count, -1)
     end
 
-    # rubocop:disable Rails/SkipsModelValidations
     def update_recordable_counter(recordable_type, recordable_id, column, delta)
       return unless recordable_type && recordable_id
 
@@ -41,6 +40,5 @@ module RecordingStudio
 
       recordable_class.update_counters(recordable_id, column => delta)
     end
-    # rubocop:enable Rails/SkipsModelValidations
   end
 end
