@@ -2,15 +2,15 @@ class RecordingsController < ApplicationController
   def index
     @recordings = RecordingStudio::Recording
       .including_trashed
-      .includes(:recordable, :container, :events)
+      .includes(:recordable, :root_recording, :events)
       .recent
   end
 
-  before_action :load_recording, except: [:index]
+  before_action :load_recording, except: [ :index ]
 
   def show
     @events = @recording.events
-    @recordables = ([@recording.recordable] + @events.flat_map { |event| [event.recordable, event.previous_recordable] })
+    @recordables = ([ @recording.recordable ] + @events.flat_map { |event| [ event.recordable, event.previous_recordable ] })
       .compact
       .uniq { |recordable| recordable.id }
   end
@@ -32,12 +32,11 @@ class RecordingsController < ApplicationController
       raise ActiveRecord::RecordNotFound
     end
 
-    recordable_class = recordable_type.safe_constantize
-    raise ActiveRecord::RecordNotFound unless recordable_class
+    recordable_class = @recording.recordable.class
 
     recordable = recordable_class.find(params[:recordable_id])
 
-    @recording = @recording.container.revert(
+    @recording = @recording.root_recording.revert(
       @recording,
       to_recordable: recordable,
       actor: current_actor,

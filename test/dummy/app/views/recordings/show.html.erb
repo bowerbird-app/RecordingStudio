@@ -75,8 +75,8 @@
   <% snapshot_rows = [
     { label: "Recordable ID", value: @recording.recordable.id },
     { label: "Last updated", value: "#{time_ago_in_words(@recording.updated_at)} ago" },
-    { label: "Container", value: @recording.container_type },
-    { label: "Container ID", value: @recording.container_id },
+    { label: "Root Recording ID", value: @recording.root_recording_id },
+    { label: "Root Recordable", value: recordable_label(@recording.root_recording&.recordable) },
     { label: "Status", value: @recording.trashed_at ? "Trashed" : "Active" }
   ] %>
   <%= render FlatPack::Card::Component.new do |card| %>

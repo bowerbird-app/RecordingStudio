@@ -5,7 +5,7 @@ require "test_helper"
 class RecordingTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
-    RecordingStudio.configuration.recordable_types = %w[RecordingStudioPage RecordingStudioComment]
+    RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioPage RecordingStudioComment]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     RecordingStudio::Event.delete_all
@@ -21,15 +21,15 @@ class RecordingTest < ActiveSupport::TestCase
   end
 
   def test_scopes_filter_recordings
-    workspace = Workspace.create!(name: "Workspace")
+    _, root = create_workspace_root
     first = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
-                                    container: workspace).recording
+                                    root_recording: root, parent_recording: root).recording
     second = RecordingStudio.record!(action: "created", recordable: RecordingStudioComment.new(body: "Two"),
-                                     container: workspace).recording
+                                     root_recording: root, parent_recording: root).recording
 
     second.update!(trashed_at: Time.current)
 
-    assert_includes RecordingStudio::Recording.for_container(workspace), first
+    assert_includes RecordingStudio::Recording.for_root(root.id), first
     refute_includes RecordingStudio::Recording.all, second
     assert_includes RecordingStudio::Recording.including_trashed, second
     assert_includes RecordingStudio::Recording.trashed, second
@@ -38,7 +38,7 @@ class RecordingTest < ActiveSupport::TestCase
   end
 
   def test_events_filtering
-    workspace = Workspace.create!(name: "Workspace")
+    _, root = create_workspace_root
     actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
     created_at = 3.days.ago
     updated_at = 2.days.ago
@@ -47,7 +47,8 @@ class RecordingTest < ActiveSupport::TestCase
     event = RecordingStudio.record!(
       action: "created",
       recordable: RecordingStudioPage.new(title: "One"),
-      container: workspace,
+      root_recording: root,
+      parent_recording: root,
       actor: actor,
       occurred_at: created_at
     )
@@ -64,9 +65,9 @@ class RecordingTest < ActiveSupport::TestCase
   end
 
   def test_log_event_delegates_to_record
-    workspace = Workspace.create!(name: "Workspace")
+    _, root = create_workspace_root
     event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
-                                    container: workspace)
+                                    root_recording: root, parent_recording: root)
     recording = event.recording
 
     logged = recording.log_event!(action: "updated")
@@ -76,9 +77,9 @@ class RecordingTest < ActiveSupport::TestCase
   end
 
   def test_log_event_supports_idempotency_and_timestamp
-    workspace = Workspace.create!(name: "Workspace")
+    _, root = create_workspace_root
     event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
-                                    container: workspace)
+                                    root_recording: root, parent_recording: root)
     recording = event.recording
 
     occurred_at = 5.minutes.ago
@@ -89,10 +90,10 @@ class RecordingTest < ActiveSupport::TestCase
     assert_in_delta occurred_at.to_f, logged.occurred_at.to_f, 1
   end
 
-  def test_trash_delegates_to_container
-    workspace = Workspace.create!(name: "Workspace")
+  def test_trash_delegates_to_root
+    _, root = create_workspace_root
     event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
-                                    container: workspace)
+                                    root_recording: root, parent_recording: root)
     recording = event.recording
 
     recording.trash
@@ -101,9 +102,9 @@ class RecordingTest < ActiveSupport::TestCase
   end
 
   def test_recordings_count_updates_on_trash_and_restore
-    workspace = Workspace.create!(name: "Workspace")
+    _, root = create_workspace_root
     page = RecordingStudioPage.new(title: "Test Page")
-    event = RecordingStudio.record!(action: "created", recordable: page, container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: page, root_recording: root, parent_recording: root)
     recording = event.recording
 
     page.reload
@@ -119,9 +120,10 @@ class RecordingTest < ActiveSupport::TestCase
   end
 
   def test_recordings_count_updates_when_recordable_changes
-    workspace = Workspace.create!(name: "Workspace")
+    _, root = create_workspace_root
     first_recordable = RecordingStudioPage.create!(title: "First")
-    event = RecordingStudio.record!(action: "created", recordable: first_recordable, container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: first_recordable, root_recording: root,
+                                    parent_recording: root)
     recording = event.recording
 
     second_recordable = RecordingStudioPage.create!(title: "Second")
@@ -129,7 +131,7 @@ class RecordingTest < ActiveSupport::TestCase
       action: "updated",
       recordable: second_recordable,
       recording: recording,
-      container: workspace
+      root_recording: root
     )
 
     first_recordable.reload
@@ -140,10 +142,11 @@ class RecordingTest < ActiveSupport::TestCase
   end
 
   def test_recordings_counter_skips_when_recordable_missing_column
-    workspace = Workspace.create!(name: "Workspace")
+    _, root = create_workspace_root
     system_actor = SystemActor.create!(name: "Background task")
 
-    recording = RecordingStudio::Recording.create!(container: workspace, recordable: system_actor)
+    recording = RecordingStudio::Recording.create!(root_recording: root, parent_recording: root,
+                                                   recordable: system_actor)
 
     assert recording.persisted?
     refute_includes SystemActor.column_names, "recordings_count"
@@ -152,23 +155,32 @@ class RecordingTest < ActiveSupport::TestCase
     assert recording.reload.trashed_at
   end
 
-  def test_parent_recording_must_belong_to_same_container
-    workspace = Workspace.create!(name: "Workspace")
-    other_workspace = Workspace.create!(name: "Other Workspace")
+  def test_parent_recording_must_belong_to_same_root
+    _, root = create_workspace_root
+    _, other_root = create_workspace_root(name: "Other Workspace")
 
     parent = RecordingStudio.record!(
       action: "created",
       recordable: RecordingStudioPage.new(title: "Parent"),
-      container: workspace
+      root_recording: root,
+      parent_recording: root
     ).recording
 
     child = RecordingStudio::Recording.new(
-      container: other_workspace,
+      root_recording: other_root,
       recordable: RecordingStudioPage.create!(title: "Child"),
       parent_recording: parent
     )
 
     refute child.valid?
-    assert_includes child.errors[:parent_recording_id], "must belong to the same container"
+    assert_includes child.errors[:parent_recording_id], "must belong to the same root recording"
+  end
+
+  private
+
+  def create_workspace_root(name: "Workspace")
+    workspace = Workspace.create!(name: name)
+    root = RecordingStudio::Recording.create!(recordable: workspace)
+    [workspace, root]
   end
 end

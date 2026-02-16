@@ -25,8 +25,8 @@
       <% table.column(title: "Type", html: ->(recording) { recording.recordable_type }) %>
 
       <% table.column(
-        title: "Container",
-        html: ->(recording) { "#{recording.container_type} ##{recording.container_id}" }
+        title: "Root",
+        html: ->(recording) { "#{recording.root_recording&.recordable&.class&.name || recording.recordable_type} ##{recording.root_recording_id}" }
       ) %>
 
       <% table.column(

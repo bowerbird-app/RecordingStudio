@@ -1,5 +1,5 @@
 class Workspace < ApplicationRecord
-  include RecordingStudio::HasRecordingsContainer
+  self.table_name = "recording_studio_workspaces"
 
   validates :name, presence: true
 end

@@ -20,14 +20,13 @@ class ApplicationController < ActionController::Base
 
   private
 
-  def require_container_access!(container, minimum_role: :view)
-    allowed_ids = RecordingStudio::Services::AccessCheck.container_ids_for(
+  def require_root_access!(root_recording, minimum_role: :view)
+    allowed_ids = RecordingStudio::Services::AccessCheck.root_recording_ids_for(
       actor: current_actor,
-      container_class: container.class,
       minimum_role: minimum_role
     )
 
-    raise RecordingStudio::AccessDenied unless allowed_ids.include?(container.id)
+    raise RecordingStudio::AccessDenied unless allowed_ids.include?(root_recording.id)
   end
 
   def handle_access_denied
@@ -51,11 +50,11 @@ class ApplicationController < ActionController::Base
     impersonated_user = impersonated_user_from_session
 
     if system_actor
-      [system_actor, nil]
+      [ system_actor, nil ]
     else
       actor = impersonated_user || current_user
       impersonator = impersonated_user ? true_user : nil
-      [actor, impersonator]
+      [ actor, impersonator ]
     end
   end
 

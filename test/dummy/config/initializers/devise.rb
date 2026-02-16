@@ -7,10 +7,10 @@ Devise.setup do |config|
 
   config.secret_key = ENV["SECRET_KEY_BASE"].presence || Rails.application.secret_key_base
 
-  config.case_insensitive_keys = [:email]
-  config.strip_whitespace_keys = [:email]
+  config.case_insensitive_keys = [ :email ]
+  config.strip_whitespace_keys = [ :email ]
 
-  config.skip_session_storage = [:http_auth]
+  config.skip_session_storage = [ :http_auth ]
 
   config.stretches = Rails.env.test? ? 1 : 12
 

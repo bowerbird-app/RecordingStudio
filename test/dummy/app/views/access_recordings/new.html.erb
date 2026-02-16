@@ -3,8 +3,8 @@
 <%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
   <% breadcrumb.item(text: "Home", href: root_path) %>
   <% breadcrumb.item(text: "Workspaces", href: workspaces_path) %>
-  <% breadcrumb.item(text: @container.name, href: workspace_path(@container)) %>
-  <% if @parent_recording %>
+  <% breadcrumb.item(text: @root_recording.recordable.name, href: workspace_path(@root_recording.recordable)) %>
+  <% if @parent_recording && @parent_recording.id != @root_recording.id %>
     <% breadcrumb.item(
       text: recordable_label(@parent_recording.recordable),
       href: recording_path(@parent_recording)
@@ -19,7 +19,7 @@
       <h2 class="text-lg font-semibold">Add access</h2>
       <p class="text-sm text-slate-500">
         Grant access to
-        <%= @parent_recording ? recordable_label(@parent_recording.recordable) : @container.name %>.
+        <%= @parent_recording ? recordable_label(@parent_recording.recordable) : @root_recording.recordable.name %>.
       </p>
     </div>
   <% end %>
@@ -30,8 +30,7 @@
         <% if @parent_recording %>
           <%= hidden_field_tag :parent_recording_id, @parent_recording.id %>
         <% else %>
-          <%= hidden_field_tag :container_type, @container.class.name %>
-          <%= hidden_field_tag :container_id, @container.id %>
+          <%= hidden_field_tag :root_recording_id, @root_recording.id %>
         <% end %>
 
         <% if @return_to.present? %>
