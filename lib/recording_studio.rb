@@ -11,7 +11,6 @@ require "recording_studio/services/example_service"
 require "recording_studio/services/access_check_class_methods"
 require "recording_studio/services/access_check"
 
-# rubocop:disable Metrics/ModuleLength
 module RecordingStudio
   class << self
     def configuration
@@ -28,16 +27,16 @@ module RecordingStudio
       RecordingStudio::DelegatedTypeRegistrar.apply!
     end
 
-    def record!(action:, recordable:, recording: nil, container: nil, actor: nil, impersonator: nil,
+    def record!(action:, recordable:, recording: nil, root_recording: nil, actor: nil, impersonator: nil,
                 metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)
       RecordingStudio::DelegatedTypeRegistrar.apply!
-      container ||= recording&.container
-      raise ArgumentError, "container is required" if container.nil?
-      if recording && recording.container != container
-        raise ArgumentError, "recording must belong to the provided container"
+      root_recording ||= recording&.root_recording
+      raise ArgumentError, "root_recording is required" if root_recording.nil?
+      if recording && recording.root_recording_id != root_recording.id
+        raise ArgumentError, "recording must belong to the provided root_recording"
       end
 
-      assert_parent_recording_container!(parent_recording, container)
+      assert_parent_recording_root!(parent_recording, root_recording)
 
       resolved_actor = actor || configuration.actor&.call
       resolved_impersonator = impersonator || configuration.impersonator&.call
@@ -58,7 +57,7 @@ module RecordingStudio
           recording.update!(recordable: recordable) if recordable != previous_recordable
         else
           recording = RecordingStudio::Recording.create!(
-            container: container,
+            root_recording: root_recording,
             recordable: recordable,
             parent_recording: parent_recording
           )
@@ -110,8 +109,7 @@ module RecordingStudio
         schema_version: 1,
         event_id: event.id,
         recording_id: event.recording_id,
-        container_type: event.recording.container_type,
-        container_id: event.recording.container_id,
+        root_recording_id: event.recording.root_recording_id,
         action: event.action,
         recordable_type: event.recordable_type,
         recordable_id: event.recordable_id,
@@ -125,15 +123,11 @@ module RecordingStudio
       )
     end
 
-    def assert_parent_recording_container!(parent_recording, container)
+    def assert_parent_recording_root!(parent_recording, root_recording)
       return unless parent_recording
+      return if parent_recording.root_recording_id == root_recording.id
 
-      parent_container_type = parent_recording.container_type
-      parent_container_id = parent_recording.container_id
-      return if parent_container_type == container.class.name && parent_container_id == container.id
-
-      raise ArgumentError, "parent_recording must belong to the provided container"
+      raise ArgumentError, "parent_recording must belong to the provided root_recording"
     end
   end
 end
-# rubocop:enable Metrics/ModuleLength

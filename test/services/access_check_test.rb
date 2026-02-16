@@ -8,7 +8,7 @@ class AccessCheckTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
     RecordingStudio.configuration.recordable_types = %w[
-      RecordingStudioPage RecordingStudioComment
+      Workspace RecordingStudioPage RecordingStudioComment
       RecordingStudio::Access RecordingStudio::AccessBoundary
     ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
@@ -23,6 +23,7 @@ class AccessCheckTest < ActiveSupport::TestCase
     User.delete_all
 
     @workspace = Workspace.create!(name: "Test Workspace")
+    @root_recording = RecordingStudio::Recording.create!(recordable: @workspace)
     @actor = User.create!(name: "Alice", email: "alice@example.com", password: "password123")
   end
 
@@ -96,47 +97,53 @@ class AccessCheckTest < ActiveSupport::TestCase
     assert_equal :edit, AccessCheck.role_for(actor: @actor, recording: child)
   end
 
-  # --- Access via container-level access ---
+  # --- Access via root-level access ---
 
-  def test_container_level_access
+  def test_root_level_access
     page_recording = create_page_recording("Page")
-    grant_container_access(@workspace, @actor, :view)
+    grant_root_access(@root_recording, @actor, :view)
 
     assert_equal :view, AccessCheck.role_for(actor: @actor, recording: page_recording)
   end
 
-  def test_container_level_access_satisfies_role_check
+  def test_root_level_access_satisfies_role_check
     page_recording = create_page_recording("Page")
-    grant_container_access(@workspace, @actor, :admin)
+    grant_root_access(@root_recording, @actor, :admin)
 
     assert AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :edit)
   end
 
-  def test_containers_for_returns_only_containers_with_root_access
+  def test_root_recordings_for_returns_only_roots_with_root_access
     other_workspace = Workspace.create!(name: "Other Workspace")
 
-    grant_container_access(@workspace, @actor, :view)
+    grant_root_access(@root_recording, @actor, :view)
 
     other_page = RecordingStudioPage.create!(title: "Other Page")
-    other_page_recording = RecordingStudio::Recording.create!(container: other_workspace, recordable: other_page)
+    other_root_recording = RecordingStudio::Recording.create!(recordable: other_workspace)
+    other_page_recording = RecordingStudio::Recording.create!(
+      root_recording: other_root_recording,
+      parent_recording: other_root_recording,
+      recordable: other_page
+    )
     other_access = RecordingStudio::Access.create!(actor: @actor, role: :admin)
-    RecordingStudio::Recording.create!(container: other_workspace, recordable: other_access,
+    RecordingStudio::Recording.create!(root_recording: other_root_recording, recordable: other_access,
                                        parent_recording: other_page_recording)
 
-    containers = AccessCheck.containers_for(actor: @actor)
-    assert_includes containers, [@workspace.class.name, @workspace.id]
-    refute_includes containers, [other_workspace.class.name, other_workspace.id]
+    root_ids = AccessCheck.root_recordings_for(actor: @actor)
+    assert_includes root_ids, @root_recording.id
+    refute_includes root_ids, other_root_recording.id
   end
 
-  def test_containers_for_supports_minimum_role
+  def test_root_recordings_for_supports_minimum_role
     other_workspace = Workspace.create!(name: "Other Workspace")
+    other_root = RecordingStudio::Recording.create!(recordable: other_workspace)
 
-    grant_container_access(@workspace, @actor, :view)
-    grant_container_access(other_workspace, @actor, :admin)
+    grant_root_access(@root_recording, @actor, :view)
+    grant_root_access(other_root, @actor, :admin)
 
-    containers = AccessCheck.containers_for(actor: @actor, minimum_role: :edit)
-    refute_includes containers, [@workspace.class.name, @workspace.id]
-    assert_includes containers, [other_workspace.class.name, other_workspace.id]
+    root_ids = AccessCheck.root_recordings_for(actor: @actor, minimum_role: :edit)
+    refute_includes root_ids, @root_recording.id
+    assert_includes root_ids, other_root.id
   end
 
   # --- AccessBoundary stops inheritance ---
@@ -196,33 +203,33 @@ class AccessCheckTest < ActiveSupport::TestCase
     assert_nil AccessCheck.role_for(actor: @actor, recording: child)
   end
 
-  def test_boundary_with_minimum_role_allows_container_passthrough
+  def test_boundary_with_minimum_role_allows_root_passthrough
     parent = create_page_recording("Parent")
     boundary_recording = create_boundary_child(parent, minimum_role: :view)
     child = create_child_recording(boundary_recording, "Child")
 
-    # Container-level access with view role (>= view minimum_role)
-    grant_container_access(@workspace, @actor, :view)
+    # Root-level access with view role (>= view minimum_role)
+    grant_root_access(@root_recording, @actor, :view)
 
     assert_equal :view, AccessCheck.role_for(actor: @actor, recording: child)
   end
 
-  # --- Boundary at root blocks container access ---
+  # --- Boundary at root blocks root access ---
 
-  def test_boundary_at_root_blocks_container_access_without_minimum_role
+  def test_boundary_at_root_blocks_root_access_without_minimum_role
     boundary_recording = create_boundary_root
     child = create_child_recording(boundary_recording, "Child")
 
-    grant_container_access(@workspace, @actor, :admin)
+    grant_root_access(@root_recording, @actor, :admin)
 
     assert_nil AccessCheck.role_for(actor: @actor, recording: child)
   end
 
-  def test_boundary_at_root_allows_container_access_with_minimum_role
+  def test_boundary_at_root_allows_root_access_with_minimum_role
     boundary_recording = create_boundary_root(minimum_role: :view)
     child = create_child_recording(boundary_recording, "Child")
 
-    grant_container_access(@workspace, @actor, :edit)
+    grant_root_access(@root_recording, @actor, :edit)
 
     assert_equal :edit, AccessCheck.role_for(actor: @actor, recording: child)
   end
@@ -245,11 +252,11 @@ class AccessCheckTest < ActiveSupport::TestCase
     refute AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :owner)
   end
 
-  def test_container_lookup_returns_empty_for_unknown_minimum_role
-    grant_container_access(@workspace, @actor, :admin)
+  def test_root_lookup_returns_empty_for_unknown_minimum_role
+    grant_root_access(@root_recording, @actor, :admin)
 
-    assert_equal [], AccessCheck.containers_for(actor: @actor, minimum_role: :owner)
-    assert_equal [], AccessCheck.container_ids_for(actor: @actor, container_class: Workspace, minimum_role: :owner)
+    assert_equal [], AccessCheck.root_recordings_for(actor: @actor, minimum_role: :owner)
+    assert_equal [], AccessCheck.root_recording_ids_for(actor: @actor, minimum_role: :owner)
   end
 
   private
@@ -257,7 +264,8 @@ class AccessCheckTest < ActiveSupport::TestCase
   def create_page_recording(title)
     page = RecordingStudioPage.create!(title: title)
     RecordingStudio::Recording.create!(
-      container: @workspace,
+      root_recording: @root_recording,
+      parent_recording: @root_recording,
       recordable: page
     )
   end
@@ -265,7 +273,7 @@ class AccessCheckTest < ActiveSupport::TestCase
   def create_child_recording(parent, title)
     comment = RecordingStudioComment.create!(body: title)
     RecordingStudio::Recording.create!(
-      container: @workspace,
+      root_recording: @root_recording,
       recordable: comment,
       parent_recording: parent
     )
@@ -274,25 +282,25 @@ class AccessCheckTest < ActiveSupport::TestCase
   def grant_access(recording, actor, role)
     access = RecordingStudio::Access.create!(actor: actor, role: role)
     RecordingStudio::Recording.create!(
-      container: @workspace,
+      root_recording: @root_recording,
       recordable: access,
       parent_recording: recording
     )
   end
 
-  def grant_container_access(container, actor, role)
+  def grant_root_access(root_recording, actor, role)
     access = RecordingStudio::Access.create!(actor: actor, role: role)
     RecordingStudio::Recording.create!(
-      container: container,
+      root_recording: root_recording,
       recordable: access,
-      parent_recording: nil
+      parent_recording: root_recording
     )
   end
 
   def create_boundary_child(parent, minimum_role: nil)
     boundary = RecordingStudio::AccessBoundary.create!(minimum_role: minimum_role)
     RecordingStudio::Recording.create!(
-      container: @workspace,
+      root_recording: @root_recording,
       recordable: boundary,
       parent_recording: parent
     )
@@ -301,9 +309,9 @@ class AccessCheckTest < ActiveSupport::TestCase
   def create_boundary_root(minimum_role: nil)
     boundary = RecordingStudio::AccessBoundary.create!(minimum_role: minimum_role)
     RecordingStudio::Recording.create!(
-      container: @workspace,
+      root_recording: @root_recording,
       recordable: boundary,
-      parent_recording: nil
+      parent_recording: @root_recording
     )
   end
 end

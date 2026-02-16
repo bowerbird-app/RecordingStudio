@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_11_000009) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_15_233621) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -63,19 +63,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_000009) do
   end
 
   create_table "recording_studio_recordings", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
-    t.uuid "container_id", null: false
-    t.string "container_type", null: false
     t.datetime "created_at", null: false
     t.uuid "parent_recording_id"
     t.uuid "recordable_id", null: false
     t.string "recordable_type", null: false
+    t.uuid "root_recording_id"
     t.datetime "trashed_at"
     t.datetime "updated_at", null: false
-    t.index ["container_type", "container_id"], name: "index_recording_studio_recordings_on_container"
     t.index ["parent_recording_id"], name: "index_recording_studio_recordings_on_parent_recording_id"
-    t.index ["recordable_id", "container_type", "container_id"], name: "idx_rs_recordings_root_access_container", where: "(((recordable_type)::text = 'RecordingStudio::Access'::text) AND (parent_recording_id IS NULL) AND (trashed_at IS NULL))"
+    t.index ["recordable_id", "root_recording_id"], name: "idx_rs_recordings_root_access", where: "(((recordable_type)::text = 'RecordingStudio::Access'::text) AND (parent_recording_id IS NOT NULL) AND (trashed_at IS NULL))"
     t.index ["recordable_type", "recordable_id", "parent_recording_id", "trashed_at"], name: "index_recording_studio_recordings_on_recordable_parent_trashed"
     t.index ["recordable_type", "recordable_id"], name: "index_recording_studio_recordings_on_recordable"
+    t.index ["root_recording_id"], name: "index_rs_recordings_on_root_recording"
   end
 
   create_table "system_actors", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -106,4 +105,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_11_000009) do
 
   add_foreign_key "recording_studio_events", "recording_studio_recordings", column: "recording_id"
   add_foreign_key "recording_studio_recordings", "recording_studio_recordings", column: "parent_recording_id"
+  add_foreign_key "recording_studio_recordings", "recording_studio_recordings", column: "root_recording_id"
 end

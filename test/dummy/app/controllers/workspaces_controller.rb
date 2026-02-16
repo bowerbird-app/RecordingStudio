@@ -1,27 +1,25 @@
 class WorkspacesController < ApplicationController
   def index
-    workspace_ids = RecordingStudio::Services::AccessCheck.container_ids_for(
-      actor: current_actor,
-      container_class: Workspace
-    )
+    root_ids = RecordingStudio::Services::AccessCheck.root_recording_ids_for(actor: current_actor)
+    workspace_ids = RecordingStudio::Recording.unscoped.where(id: root_ids, recordable_type: "Workspace").pluck(:recordable_id)
 
     @workspaces = Workspace.where(id: workspace_ids).order(created_at: :desc)
   end
 
   def show
     @workspace = Workspace.find(params[:id])
+    @root_recording = root_recording_for(@workspace)
 
-    require_container_access!(@workspace, minimum_role: :view)
+    require_root_access!(@root_recording, minimum_role: :view)
 
-    @can_edit_access = RecordingStudio::Services::AccessCheck.container_ids_for(
+    @can_edit_access = RecordingStudio::Services::AccessCheck.root_recording_ids_for(
       actor: current_actor,
-      container_class: Workspace,
       minimum_role: :admin
-    ).include?(@workspace.id)
+    ).include?(@root_recording.id)
 
-    @access_grants = container_access_grants(@workspace)
+    @access_grants = root_access_grants(@root_recording)
 
-    @recordings = @workspace.recordings(include_children: true)
+    @recordings = @root_recording.recordings_query(include_children: true)
       .including_trashed
       .includes(:recordable)
       .order(created_at: :asc)
@@ -37,7 +35,7 @@ class WorkspacesController < ApplicationController
     @workspace = Workspace.new(workspace_params)
 
     if @workspace.save
-      ensure_container_access!(@workspace)
+      ensure_root_access!(@workspace)
       redirect_to workspaces_path, notice: "Workspace created."
     else
       flash.now[:alert] = @workspace.errors.full_messages.to_sentence
@@ -47,6 +45,8 @@ class WorkspacesController < ApplicationController
 
   def destroy
     workspace = Workspace.find(params[:id])
+    root_recording = root_recording_for(workspace)
+    root_recording&.destroy!
     workspace.destroy!
 
     redirect_to workspaces_path, notice: "Workspace deleted."
@@ -58,14 +58,18 @@ class WorkspacesController < ApplicationController
     params.require(:workspace).permit(:name)
   end
 
-  def ensure_container_access!(workspace)
+  def root_recording_for(workspace)
+    RecordingStudio::Recording.unscoped.find_by!(recordable: workspace, parent_recording_id: nil)
+  end
+
+  def ensure_root_access!(workspace)
     return if current_actor.nil?
 
+    root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: workspace, parent_recording_id: nil)
     role_value = RecordingStudio::Access.roles.fetch("admin")
 
-    existing = RecordingStudio::Recording
-      .for_container(workspace)
-      .where(parent_recording_id: nil, recordable_type: "RecordingStudio::Access")
+    existing = RecordingStudio::Recording.unscoped
+      .where(root_recording_id: root_recording.id, parent_recording_id: root_recording.id, recordable_type: "RecordingStudio::Access")
       .joins("INNER JOIN recording_studio_accesses ON recording_studio_accesses.id = recording_studio_recordings.recordable_id")
       .where(recording_studio_accesses: { actor_type: current_actor.class.name, actor_id: current_actor.id, role: role_value })
       .exists?
@@ -74,16 +78,15 @@ class WorkspacesController < ApplicationController
 
     access = RecordingStudio::Access.create!(actor: current_actor, role: :admin)
     RecordingStudio::Recording.create!(
-      container: workspace,
       recordable: access,
-      parent_recording: nil
+      parent_recording: root_recording,
+      root_recording: root_recording
     )
   end
 
-  def container_access_grants(container)
-    access_recordings = RecordingStudio::Recording
-      .for_container(container)
-      .where(parent_recording_id: nil, recordable_type: "RecordingStudio::Access")
+  def root_access_grants(root)
+    access_recordings = RecordingStudio::Recording.unscoped
+      .where(root_recording_id: root.id, parent_recording_id: root.id, recordable_type: "RecordingStudio::Access")
       .includes(recordable: :actor)
       .order(created_at: :desc)
 

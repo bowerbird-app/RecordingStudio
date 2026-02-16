@@ -24,15 +24,17 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     )
 
     @workspace = Workspace.create!(name: "Workspace")
+    @root_recording = RecordingStudio::Recording.create!(recordable: @workspace)
 
     admin_access = RecordingStudio::Access.create!(actor: @admin, role: :admin)
-    RecordingStudio::Recording.create!(container: @workspace, recordable: admin_access, parent_recording: nil)
+    RecordingStudio::Recording.create!(root_recording: @root_recording, recordable: admin_access,
+                                       parent_recording: @root_recording)
 
     target_access = RecordingStudio::Access.create!(actor: @target, role: :view)
     @target_access_recording = RecordingStudio::Recording.create!(
-      container: @workspace,
+      root_recording: @root_recording,
       recordable: target_access,
-      parent_recording: nil
+      parent_recording: @root_recording
     )
   end
 
@@ -43,7 +45,7 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :redirect
   end
 
-  test "admin can edit container-level access role by revising recording" do
+  test "admin can edit root-level access role by revising recording" do
     sign_in_as @admin
 
     previous_recordable_id = @target_access_recording.recordable_id
@@ -61,18 +63,18 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "edit", @target_access_recording.recordable.role
   end
 
-  test "admin can add container-level access" do
+  test "admin can add root-level access" do
     sign_in_as @admin
 
     new_user = create_user(name: "New User", email_prefix: "new-user")
 
-    create_container_access_for(user: new_user, role: "view")
+    create_root_access_for(user: new_user, role: "view")
 
-    created = latest_container_access_recording
+    created = latest_root_access_recording
     assert_access_recording(created: created, role: "view", actor: new_user)
   end
 
-  test "non-admin cannot add container-level access" do
+  test "non-admin cannot add root-level access" do
     unique = SecureRandom.hex(8)
 
     viewer = User.create!(
@@ -83,15 +85,15 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     )
 
     viewer_access = RecordingStudio::Access.create!(actor: viewer, role: :view)
-    RecordingStudio::Recording.create!(container: @workspace, recordable: viewer_access, parent_recording: nil)
+    RecordingStudio::Recording.create!(root_recording: @root_recording, recordable: viewer_access,
+                                       parent_recording: @root_recording)
 
     sign_in_as viewer
 
     assert_no_difference(["RecordingStudio::Access.count", "RecordingStudio::Recording.count"]) do
       post access_recordings_path,
            params: {
-             container_type: "Workspace",
-             container_id: @workspace.id,
+             root_recording_id: @root_recording.id,
              return_to: workspace_path(@workspace),
              access: {
                actor_key: "User:#{@target.id}",
@@ -104,7 +106,7 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to workspace_path(@workspace)
   end
 
-  test "non-admin cannot edit container-level access" do
+  test "non-admin cannot edit root-level access" do
     unique = SecureRandom.hex(8)
 
     viewer = User.create!(
@@ -115,7 +117,8 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     )
 
     viewer_access = RecordingStudio::Access.create!(actor: viewer, role: :view)
-    RecordingStudio::Recording.create!(container: @workspace, recordable: viewer_access, parent_recording: nil)
+    RecordingStudio::Recording.create!(root_recording: @root_recording, recordable: viewer_access,
+                                       parent_recording: @root_recording)
 
     sign_in_as viewer
 
@@ -134,25 +137,6 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "view", @target_access_recording.recordable.role
   end
 
-  test "create rejects unallowed container type" do
-    sign_in_as @admin
-
-    assert_no_difference(["RecordingStudio::Access.count", "RecordingStudio::Recording.count"]) do
-      post access_recordings_path,
-           params: {
-             container_type: "Kernel",
-             container_id: @workspace.id,
-             access: {
-               actor_key: "User:#{@target.id}",
-               role: "view"
-             }
-           },
-           headers: { "User-Agent" => MODERN_UA }
-    end
-
-    assert_response :not_found
-  end
-
   private
 
   def create_user(name:, email_prefix:)
@@ -165,12 +149,11 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     )
   end
 
-  def create_container_access_for(user:, role:)
+  def create_root_access_for(user:, role:)
     assert_difference(["RecordingStudio::Access.count", "RecordingStudio::Recording.count"], +1) do
       post access_recordings_path,
            params: {
-             container_type: "Workspace",
-             container_id: @workspace.id,
+             root_recording_id: @root_recording.id,
              return_to: workspace_path(@workspace),
              access: {
                actor_key: "User:#{user.id}",
@@ -183,10 +166,10 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to workspace_path(@workspace)
   end
 
-  def latest_container_access_recording
+  def latest_root_access_recording
     RecordingStudio::Recording
-      .for_container(@workspace)
-      .where(parent_recording_id: nil, recordable_type: "RecordingStudio::Access")
+      .for_root(@root_recording.id)
+      .where(parent_recording_id: @root_recording.id, recordable_type: "RecordingStudio::Access")
       .order(created_at: :desc)
       .first
   end

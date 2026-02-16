@@ -11,7 +11,7 @@
     <div class="space-y-3">
       <div>
         <h2 class="text-2xl font-semibold"><%= @workspace.name %></h2>
-        <p class="text-sm text-slate-500">A recordings container.</p>
+        <p class="text-sm text-slate-500">A workspace root recording.</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <%= render FlatPack::Button::Component.new(text: "Back to Workspaces", style: :secondary, url: workspaces_path) %>
@@ -30,7 +30,7 @@
 
   <% card.body do %>
     <% if @recordings.any? %>
-      <%= recordings_hierarchy_list(@recordings_by_parent) %>
+      <%= recordings_hierarchy_list(@recordings_by_parent, parent_id: @root_recording.id) %>
     <% else %>
       <div class="text-sm text-slate-500">No recordings yet.</div>
     <% end %>
@@ -42,7 +42,7 @@
     <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <h3 class="text-lg font-semibold">Access</h3>
-        <p class="text-sm text-slate-500">Actors with container-level access to this workspace.</p>
+        <p class="text-sm text-slate-500">Actors with root-level access to this workspace.</p>
       </div>
 
       <% if @can_edit_access %>
@@ -50,8 +50,7 @@
           text: "Add access",
           style: :primary,
           url: new_access_recording_path(
-            container_type: @workspace.class.name,
-            container_id: @workspace.id,
+            root_recording_id: @root_recording.id,
             return_to: workspace_path(@workspace)
           )
         ) %>

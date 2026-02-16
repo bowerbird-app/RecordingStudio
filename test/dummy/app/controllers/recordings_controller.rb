@@ -2,7 +2,7 @@ class RecordingsController < ApplicationController
   def index
     @recordings = RecordingStudio::Recording
       .including_trashed
-      .includes(:recordable, :container, :events)
+      .includes(:recordable, :root_recording, :events)
       .recent
   end
 
@@ -37,7 +37,7 @@ class RecordingsController < ApplicationController
 
     recordable = recordable_class.find(params[:recordable_id])
 
-    @recording = @recording.container.revert(
+    @recording = @recording.root_recording.revert(
       @recording,
       to_recordable: recordable,
       actor: current_actor,

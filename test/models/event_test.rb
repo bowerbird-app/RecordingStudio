@@ -5,7 +5,7 @@ require "test_helper"
 class EventTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
-    RecordingStudio.configuration.recordable_types = ["RecordingStudioPage"]
+    RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioPage]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     RecordingStudio::Event.delete_all
@@ -21,11 +21,13 @@ class EventTest < ActiveSupport::TestCase
 
   def test_scopes_filter_events
     workspace = Workspace.create!(name: "Workspace")
+    root_recording = RecordingStudio::Recording.create!(recordable: workspace)
     actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
     recording = RecordingStudio.record!(
       action: "created",
       recordable: RecordingStudioPage.new(title: "One"),
-      container: workspace,
+      root_recording: root_recording,
+      parent_recording: root_recording,
       occurred_at: 3.days.ago
     ).recording
 
@@ -41,8 +43,10 @@ class EventTest < ActiveSupport::TestCase
 
   def test_events_count_updates_on_create_and_destroy
     workspace = Workspace.create!(name: "Workspace")
+    root_recording = RecordingStudio::Recording.create!(recordable: workspace)
     page = RecordingStudioPage.new(title: "Test Page")
-    event = RecordingStudio.record!(action: "created", recordable: page, container: workspace)
+    event = RecordingStudio.record!(action: "created", recordable: page, root_recording: root_recording,
+                                    parent_recording: root_recording)
 
     page.reload
     assert_equal 1, page.events_count
@@ -54,8 +58,10 @@ class EventTest < ActiveSupport::TestCase
 
   def test_events_count_skips_when_recordable_missing_column
     workspace = Workspace.create!(name: "Workspace")
+    root_recording = RecordingStudio::Recording.create!(recordable: workspace)
     system_actor = SystemActor.create!(name: "Background task")
-    recording = RecordingStudio::Recording.create!(container: workspace, recordable: system_actor)
+    recording = RecordingStudio::Recording.create!(root_recording: root_recording, parent_recording: root_recording,
+                                                   recordable: system_actor)
 
     event = RecordingStudio::Event.create!(
       action: "created",

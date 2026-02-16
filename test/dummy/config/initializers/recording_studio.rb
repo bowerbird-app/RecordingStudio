@@ -7,5 +7,6 @@ RecordingStudio.configure do |config|
   config.recordable_dup_strategy = :dup
 end
 
+RecordingStudio.register_recordable_type("Workspace")
 RecordingStudio.register_recordable_type("RecordingStudioPage")
 RecordingStudio.register_recordable_type("RecordingStudioComment")

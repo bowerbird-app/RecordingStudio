@@ -1,5 +1,5 @@
-Workspace.find_or_create_by!(name: "Studio Workspace")
-Workspace.find_or_create_by!(name: "Quinn Workspace")
+workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
+quinn_workspace = Workspace.find_or_create_by!(name: "Quinn Workspace")
 
 default_password = "password123"
 
@@ -26,19 +26,18 @@ quinn.save!
   SystemActor.find_or_create_by!(name: name)
 end
 
-workspace = Workspace.find_by!(name: "Studio Workspace")
-quinn_workspace = Workspace.find_by!(name: "Quinn Workspace")
+studio_root = RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: workspace, parent_recording_id: nil)
+quinn_root = RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: quinn_workspace, parent_recording_id: nil)
 actors = [
   User.find_by!(email: "avery@example.com"),
   User.find_by!(email: "quinn@example.com")
 ]
 
-def seed_root_access!(workspace, actor:, role:)
+def seed_root_access!(root_recording, actor:, role:)
   role_value = RecordingStudio::Access.roles.fetch(role.to_s)
 
-  existing = RecordingStudio::Recording
-    .for_container(workspace)
-    .where(parent_recording_id: nil, recordable_type: "RecordingStudio::Access")
+  existing = RecordingStudio::Recording.unscoped
+    .where(root_recording_id: root_recording.id, parent_recording_id: root_recording.id, recordable_type: "RecordingStudio::Access")
     .joins("INNER JOIN recording_studio_accesses ON recording_studio_accesses.id = recording_studio_recordings.recordable_id")
     .where(recording_studio_accesses: { actor_type: actor.class.name, actor_id: actor.id, role: role_value })
     .exists?
@@ -47,21 +46,21 @@ def seed_root_access!(workspace, actor:, role:)
 
   access = RecordingStudio::Access.create!(actor: actor, role: role)
   RecordingStudio::Recording.create!(
-    container: workspace,
-    recordable: access,
-    parent_recording: nil
+    root_recording: root_recording,
+    parent_recording: root_recording,
+    recordable: access
   )
 end
 
-seed_root_access!(workspace, actor: admin_user, role: :admin)
-seed_root_access!(workspace, actor: avery, role: :view)
-seed_root_access!(quinn_workspace, actor: quinn, role: :admin)
+seed_root_access!(studio_root, actor: admin_user, role: :admin)
+seed_root_access!(studio_root, actor: avery, role: :view)
+seed_root_access!(quinn_root, actor: quinn, role: :admin)
 
 template_title = "Template: Shared Page"
 template_page = RecordingStudioPage.find_by(title: template_title)
 
 if template_page.nil?
-  page_recording = workspace.record(RecordingStudioPage, actor: actors.first, metadata: { seeded: true, template: true }) do |page|
+  page_recording = studio_root.record(RecordingStudioPage, actor: actors.first, metadata: { seeded: true, template: true }) do |page|
     page.title = template_title
     page.summary = "Template page used to test multiple actors sharing a recording target."
   end
@@ -72,7 +71,7 @@ end
 
 actors.each do |actor|
   existing_recording = RecordingStudio::Recording
-    .for_container(workspace)
+    .for_root(studio_root.id)
     .of_type(RecordingStudioPage)
     .where(recordable_id: template_page.id)
     .joins(:events)
@@ -84,7 +83,8 @@ actors.each do |actor|
   new_recording = RecordingStudio.record!(
     action: "created",
     recordable: template_page,
-    container: workspace,
+    root_recording: studio_root,
+    parent_recording: studio_root,
     actor: actor,
     metadata: { seeded: true, template: true }
   ).recording
@@ -92,20 +92,20 @@ actors.each do |actor|
 end
 
 page_recording ||= RecordingStudio::Recording
-  .for_container(workspace)
+  .for_root(studio_root.id)
   .of_type(RecordingStudioPage)
   .where(recordable_id: template_page.id)
   .joins(:events)
   .merge(RecordingStudio::Event.with_action("created").by_actor(actors.first))
   .first
 
-if workspace.recordings_of(RecordingStudioComment).where(parent_recording_id: page_recording.id).none?
+if studio_root.recordings_of(RecordingStudioComment).where(parent_recording_id: page_recording.id).none?
   [
     "Looks great!",
     "Can we add more detail to the summary?",
     "Approved from my side."
   ].each do |body|
-    workspace.record(RecordingStudioComment, actor: actors.first, parent_recording: page_recording, metadata: { seeded: true }) do |comment|
+    studio_root.record(RecordingStudioComment, actor: actors.first, parent_recording: page_recording, metadata: { seeded: true }) do |comment|
       comment.body = body
     end
   end

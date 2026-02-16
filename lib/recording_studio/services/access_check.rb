@@ -37,7 +37,7 @@ module RecordingStudio
         role = find_access_on_path(path)
         return role if role
 
-        return find_container_access unless boundary
+        return find_root_access unless boundary
 
         resolve_role_with_boundary(boundary)
       end
@@ -73,15 +73,13 @@ module RecordingStudio
         access&.recordable&.role
       end
 
-      def find_container_access
-        container = @recording.container
-        access_recording = base_access_recording_scope.where(
-          container_type: container.class.name,
-          container_id: container.id
-        ).first
-        return nil unless access_recording
+      def find_root_access
+        root = @recording.root_recording || @recording
+        return nil unless root
 
-        access_recording.recordable&.role
+        base_access_recording_scope
+          .where(root_recording_id: root.id, parent_recording_id: root.id)
+          .first&.recordable&.role
       end
 
       def access_recordings_for(recording)
@@ -109,7 +107,7 @@ module RecordingStudio
         minimum_role = boundary.recordable&.minimum_role
         return nil if minimum_role.blank?
 
-        inherited_role = find_access_above(boundary) || find_container_access
+        inherited_role = find_access_above(boundary) || find_root_access
         return nil unless inherited_role
 
         required_value = ROLE_ORDER.fetch(minimum_role, -1)

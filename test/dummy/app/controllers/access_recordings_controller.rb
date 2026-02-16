@@ -1,8 +1,4 @@
 class AccessRecordingsController < ApplicationController
-  ALLOWED_CONTAINER_TYPES = {
-    "Workspace" => Workspace
-  }.freeze
-
   before_action :set_return_to
   before_action :set_access_recording, only: [:edit, :update]
   before_action :authorize_edit_access!, only: [:edit, :update]
@@ -33,7 +29,7 @@ class AccessRecordingsController < ApplicationController
       return render :new, status: :unprocessable_entity
     end
 
-    @container.record(RecordingStudio::Access, actor: current_actor, parent_recording: @parent_recording) do |access|
+    @root_recording.record(RecordingStudio::Access, actor: current_actor, parent_recording: @parent_recording) do |access|
       access.actor = actor
       access.role = role
     end
@@ -54,39 +50,30 @@ class AccessRecordingsController < ApplicationController
       return render :edit, status: :unprocessable_entity
     end
 
-    @access_recording.container.revise(@access_recording, actor: current_actor) do |access|
+    @access_recording.root_recording.revise(@access_recording, actor: current_actor) do |access|
       access.role = role
     end
 
-    redirect_to(@return_to || workspace_path(@access_recording.container), notice: "Access updated.")
+    redirect_to(@return_to || workspace_path(@access_recording.root_recording.recordable), notice: "Access updated.")
   end
 
   private
 
   def set_access_context
     if params[:parent_recording_id].present?
-      @parent_recording = RecordingStudio::Recording.includes(:container, recordable: :actor).find(params[:parent_recording_id])
-      @container = @parent_recording.container
+      @parent_recording = RecordingStudio::Recording.includes(:root_recording, recordable: :actor).find(params[:parent_recording_id])
+      @root_recording = @parent_recording.root_recording
     else
-      container_type = params[:container_type].to_s
-      container_id = params[:container_id]
-      raise ActiveRecord::RecordNotFound if container_type.blank? || container_id.blank?
-
-      container_class = ALLOWED_CONTAINER_TYPES[container_type]
-      raise ActiveRecord::RecordNotFound unless container_class
-
-      @container = container_class.find(container_id)
+      @root_recording = RecordingStudio::Recording.includes(:recordable).find(params[:root_recording_id])
       @parent_recording = nil
     end
-  rescue NameError
-    raise ActiveRecord::RecordNotFound
   end
 
   def default_return_path
     if @parent_recording
       recording_path(@parent_recording)
     else
-      workspace_path(@container)
+      workspace_path(@root_recording.recordable)
     end
   end
 
@@ -100,7 +87,7 @@ class AccessRecordingsController < ApplicationController
 
   def set_access_recording
     @access_recording = RecordingStudio::Recording
-      .includes(recordable: :actor, parent_recording: :recordable)
+      .includes(:root_recording, recordable: :actor, parent_recording: :recordable)
       .find(params[:id])
 
     return if @access_recording.recordable_type == "RecordingStudio::Access"
@@ -134,13 +121,12 @@ class AccessRecordingsController < ApplicationController
 
   def authorize_create_access!
     if @parent_recording.nil?
-      allowed_container_ids = RecordingStudio::Services::AccessCheck.container_ids_for(
+      allowed_root_ids = RecordingStudio::Services::AccessCheck.root_recording_ids_for(
         actor: current_actor,
-        container_class: @container.class,
         minimum_role: :admin
       )
 
-      return if allowed_container_ids.include?(@container.id)
+      return if allowed_root_ids.include?(@root_recording.id)
     else
       return if RecordingStudio::Services::AccessCheck.allowed?(
         actor: current_actor,
@@ -153,14 +139,13 @@ class AccessRecordingsController < ApplicationController
   end
 
   def authorize_edit_access!
-    if @access_recording.parent_recording_id.nil?
-      allowed_container_ids = RecordingStudio::Services::AccessCheck.container_ids_for(
+    if @access_recording.parent_recording_id == @access_recording.root_recording_id
+      allowed_root_ids = RecordingStudio::Services::AccessCheck.root_recording_ids_for(
         actor: current_actor,
-        container_class: @access_recording.container.class,
         minimum_role: :admin
       )
 
-      return if allowed_container_ids.include?(@access_recording.container_id)
+      return if allowed_root_ids.include?(@access_recording.root_recording_id)
     else
       return if RecordingStudio::Services::AccessCheck.allowed?(
         actor: current_actor,
@@ -169,6 +154,7 @@ class AccessRecordingsController < ApplicationController
       )
     end
 
-    redirect_to(safe_return_to || workspace_path(@access_recording.container), alert: "You are not authorized to edit access.")
+    redirect_to(safe_return_to || workspace_path(@access_recording.root_recording.recordable),
+                alert: "You are not authorized to edit access.")
   end
 end

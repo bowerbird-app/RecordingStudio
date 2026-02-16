@@ -1,7 +1,7 @@
 # RecordingStudio
 
 RecordingStudio is a Rails engine foundation that implements Basecamp-style **Recordings**, **Recordables**, and **Events**
-using `delegated_type`. It provides an append-only event timeline with polymorphic actors, a container-first API, and a
+using `delegated_type`. It provides an append-only event timeline with polymorphic actors, a root recording API, and a
 stable mixin surface for capabilities like comments, attachments, and reactions.
 
 **Requirements:** Ruby 3.3+ and Rails 8.1+.
@@ -18,7 +18,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Recording Hierarchy](#recording-hierarchy)
 - [Delegated Type Registration](#delegated-type-registration)
 - [Configuration](#configuration)
-- [Container-First API](#container-first-api)
+- [Root Recording API](#root-recording-api)
 - [Actors](#actors)
 - [Query API](#query-api)
 - [Generators](#generators)
@@ -95,7 +95,7 @@ Recordables are immutable snapshots. Recordings repoint to newer recordables. Ev
 - Recordings can form hierarchies via `parent_recording_id` (nullable).
 - Recordables are immutable snapshots (versioned state).
 - `Event` is the append-only timeline tied to a `Recording`.
-- Containers (e.g., `Workspace`) own recordings and provide the primary API.
+- Root recordings (often wrapping a top-level recordable like `Workspace`) own descendant recordings and provide the primary API.
 
 ## Recording Hierarchy
 
@@ -148,30 +148,29 @@ end
 - `include_children`: When `true`, `trash` and `restore` will include child recordings by default.
 - `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
 
-## Container-First API
+## Root Recording API
 
-Include `RecordingStudio::HasRecordingsContainer` in your container model:
+Create a root `RecordingStudio::Recording` for your top-level recordable and call APIs on that root recording:
 
 ```ruby
 class Workspace < ApplicationRecord
-  include RecordingStudio::HasRecordingsContainer
 end
 ```
 
 ### Querying Recordings (Filters & Ordering)
 
-`recordings` supports optional filters and ordering. For safety, **filters must be provided as a Hash, Relation, or Arel node**.
+`recordings_query` supports optional filters and ordering. For safety, **filters must be provided as a Hash, Relation, or Arel node**.
 Raw SQL strings are ignored. Ordering is allowlisted to actual columns on the target model.
 
 ```ruby
 # Filter by recordable attributes
-workspace.recordings(type: "Page", recordable_filters: { title: "Quarterly Plan" })
+root_recording.recordings_query(type: "Page", recordable_filters: { title: "Quarterly Plan" })
 
 # Order by recordable attributes (sanitized to allowed columns)
-workspace.recordings(type: "Page", recordable_order: "title desc, created_at asc")
+root_recording.recordings_query(type: "Page", recordable_order: "title desc, created_at asc")
 
 # Order recordings table columns (sanitized)
-workspace.recordings(order: "updated_at desc")
+root_recording.recordings_query(order: "updated_at desc")
 ```
 
 For advanced cases, pass a Relation/Arel node as `recordable_filters`.
@@ -183,7 +182,7 @@ since it can inject arbitrary query logic.
 Create a new recording (like `new`/`create`, but for recordings). This creates a new recordable snapshot and appends a `created` event.
 
 ```ruby
-recording = workspace.record(Page, actor: current_user) do |page|
+recording = root_recording.record(Page, actor: current_user) do |page|
   page.title = "Quarterly Plan"
   page.summary = "Initial snapshot"
 end
@@ -192,7 +191,7 @@ end
 To create a child recording under a parent:
 
 ```ruby
-child = workspace.record(Page, actor: current_user, parent_recording: recording)
+child = root_recording.record(Page, actor: current_user, parent_recording: recording)
 ```
 
 ### Revise
@@ -200,7 +199,7 @@ child = workspace.record(Page, actor: current_user, parent_recording: recording)
 Create a new recording version (like `edit`/`update`, but for recordings). This creates a new recordable snapshot and appends an `updated` event.
 
 ```ruby
-recording = workspace.revise(recording, actor: current_user) do |page|
+recording = root_recording.revise(recording, actor: current_user) do |page|
   page.title = "Updated title"
 end
 ```
@@ -210,7 +209,7 @@ end
 Soft-delete a recording (similar to destroying, but for recordings).
 
 ```ruby
-workspace.trash(recording, actor: current_user)
+root_recording.trash(recording, actor: current_user)
 ```
 
 You can also call `trash` on a recording instance:
@@ -224,7 +223,7 @@ Trashing appends a terminal `trashed` event and soft-deletes the recording by se
 To hard delete (writes a `deleted` event), use `hard_delete`:
 
 ```ruby
-workspace.hard_delete(recording, actor: current_user)
+root_recording.hard_delete(recording, actor: current_user)
 ```
 
 To include child recordings, pass `include_children: true` or set `include_children = true`:
@@ -234,7 +233,7 @@ RecordingStudio.configure do |config|
   config.include_children = true
 end
 
-workspace.trash(recording, actor: current_user)
+root_recording.trash(recording, actor: current_user)
 ```
 
 ### Trash & Restore
@@ -242,7 +241,7 @@ workspace.trash(recording, actor: current_user)
 Trash (soft delete) a recording and its children:
 
 ```ruby
-workspace.trash(recording, actor: current_user, include_children: true)
+root_recording.trash(recording, actor: current_user, include_children: true)
 ```
 
 Or using the recording instance:
@@ -254,7 +253,7 @@ recording.trash(actor: current_user, include_children: true)
 Restore (un-trash) a recording and its children:
 
 ```ruby
-workspace.restore(recording, actor: current_user, include_children: true)
+root_recording.restore(recording, actor: current_user, include_children: true)
 ```
 
 Trash writes a `trashed` event and sets `trashed_at`. Restore writes a `restored` event and clears `trashed_at`.
@@ -302,7 +301,7 @@ RecordingStudio.record!(
   action: "created",
   recordable: page,
   recording: recording,
-  container: workspace,
+  root_recording: root_recording,
   actor: current_user
 )
 ```
@@ -399,25 +398,25 @@ both identities.
 
 | Query | Description |
 | --- | --- |
-| `workspace.recordings` | Direct recordings for a container (excludes trashed items, newest first). |
-| `workspace.recordings(type: "Page")` | Recordings filtered by recordable type. |
-| `workspace.recordings(id: page.id)` | Recordings filtered by recordable ID. |
-| `workspace.recordings(parent_id: recording.id)` | Recordings filtered by parent recording. |
-| `workspace.recordings(created_after: 1.week.ago, created_before: Time.current)` | Recordings created in a time range. |
-| `workspace.recordings(updated_after: 1.week.ago, updated_before: Time.current)` | Recordings updated in a time range. |
-| `workspace.recordings(order: { updated_at: :asc })` | Recordings ordered by a recording column. |
-| `workspace.recordings(type: "Page", recordable_order: { score: :asc })` | Recordings ordered by recordable attributes. |
-| `workspace.recordings(type: "Page", recordable_filters: { topic: "Plans" })` | Recordings filtered by recordable attributes. |
-| `workspace.recordings(type: "Page", recordable_scope: ->(scope) { scope.where("topic ILIKE ?", "%Plans%") })` | Recordings filtered by a custom recordable scope. |
-| `workspace.recordings(limit: 50, offset: 100)` | Paginated recordings. |
-| `workspace.recordings(include_children: true)` | Recordings for a container (includes nested children). |
-| `workspace.recordings.trashed` | Trashed recordings for a container. |
-| `workspace.recordings.include_trashed` | Direct recordings for a container including trashed items. |
-| `RecordingStudio::Recording.for_container(workspace).trashed` | Trashed recordings for a container (scope-based). |
+| `root_recording.recordings_query` | Direct recordings for a root recording (excludes trashed items, newest first). |
+| `root_recording.recordings_query(type: "Page")` | Recordings filtered by recordable type. |
+| `root_recording.recordings_query(id: page.id)` | Recordings filtered by recordable ID. |
+| `root_recording.recordings_query(parent_id: recording.id)` | Recordings filtered by parent recording. |
+| `root_recording.recordings_query(created_after: 1.week.ago, created_before: Time.current)` | Recordings created in a time range. |
+| `root_recording.recordings_query(updated_after: 1.week.ago, updated_before: Time.current)` | Recordings updated in a time range. |
+| `root_recording.recordings_query(order: { updated_at: :asc })` | Recordings ordered by a recording column. |
+| `root_recording.recordings_query(type: "Page", recordable_order: { score: :asc })` | Recordings ordered by recordable attributes. |
+| `root_recording.recordings_query(type: "Page", recordable_filters: { topic: "Plans" })` | Recordings filtered by recordable attributes. |
+| `root_recording.recordings_query(type: "Page", recordable_scope: ->(scope) { scope.where("topic ILIKE ?", "%Plans%") })` | Recordings filtered by a custom recordable scope. |
+| `root_recording.recordings_query(limit: 50, offset: 100)` | Paginated recordings. |
+| `root_recording.recordings_query(include_children: true)` | Recordings for a root recording (includes nested children). |
+| `root_recording.recordings_query.trashed` | Trashed recordings for a root recording. |
+| `root_recording.recordings_query.include_trashed` | Direct recordings for a root recording including trashed items. |
+| `RecordingStudio::Recording.for_root(root_recording.id).trashed` | Trashed recordings for a root recording (scope-based). |
 | `RecordingStudio::Recording.all` | Latest recordings first; excludes trashed recordings by default. |
 | `RecordingStudio::Recording.including_trashed` | Includes both active and trashed recordings. |
 | `RecordingStudio::Recording.trashed` | Trashed recordings only. |
-| `RecordingStudio::Recording.for_container(workspace)` | All recordings belonging to a container. |
+| `RecordingStudio::Recording.for_root(root_recording.id)` | All recordings belonging to a root recording. |
 | `RecordingStudio::Recording.of_type(Page)` | Recordings whose current recordable is a given type. |
 
 ### Events
@@ -432,10 +431,10 @@ both identities.
 | `RecordingStudio::Event.by_actor(current_user)` | Events performed by a specific (polymorphic) actor. |
 | `RecordingStudio::Event.with_action("commented")` | Events with a specific action string. |
 
-Containers can filter by recordable class:
+Root Recordings can filter by recordable class:
 
 ```ruby
-workspace.recordings_of(Page)
+root_recording.recordings_of(Page)
 ```
 
 ## Generators
@@ -461,10 +460,10 @@ end
 
 ## Dummy Sandbox
 
-The dummy app in `test/dummy` showcases the architecture with a `Workspace` container, `Page` recordables, and polymorphic
+The dummy app in `test/dummy` showcases the architecture with a `Workspace` root recording, `Page` recordables, and polymorphic
 actors (`User`, `SystemActor`). It demonstrates:
 
-- Recording creation, revisions, and unrecording via the container API
+- Recording creation, revisions, and unrecording via the root recording API
 - Event timeline with actors, recordables, and metadata
 - Mixin-style event logging with `recording.log_event!`
 
@@ -492,7 +491,7 @@ Recordables are immutable; history is append-only.
 - **Recording**: Identity handle and capability surface.
 - **Recordable**: Immutable snapshot of state.
 - **Event**: Append-only historical entry.
-- **Container**: Owner and API surface for recordings.
+- **Root Recording**: Owner and API surface for recordings.
 
 ## Limitations
 
@@ -510,24 +509,24 @@ are **admin**, **edit**, and **view** (hierarchy: admin > edit > view).
 
 - **Recording-level access**: create an Access recording as a child of the
   target recording (`parent_recording_id = target.id`).
-- **Container-level access**: create an Access recording as a root recording
-  under the container (`parent_recording_id = nil`).
+- **Root-level access**: create an Access recording as a root recording
+  under the root recording (`parent_recording_id = root_recording.id`).
 
 ```ruby
 # Grant edit access on a specific recording
 access = RecordingStudio::Access.create!(actor: user, role: :edit)
 RecordingStudio::Recording.create!(
-  container: workspace,
+  root_recording: root_recording,
   recordable: access,
   parent_recording: page_recording
 )
 
-# Grant view access at the container level
+# Grant view access at the root level
 access = RecordingStudio::Access.create!(actor: user, role: :view)
 RecordingStudio::Recording.create!(
-  container: workspace,
+  root_recording: root_recording,
   recordable: access,
-  parent_recording: nil
+  parent_recording: root_recording
 )
 ```
 
@@ -542,7 +541,7 @@ minimum.
 # Create a boundary that blocks all inheritance
 boundary = RecordingStudio::AccessBoundary.create!
 RecordingStudio::Recording.create!(
-  container: workspace,
+  root_recording: root_recording,
   recordable: boundary,
   parent_recording: parent_recording
 )
@@ -550,7 +549,7 @@ RecordingStudio::Recording.create!(
 # Create a boundary that allows edit or higher to pass through
 boundary = RecordingStudio::AccessBoundary.create!(minimum_role: :edit)
 RecordingStudio::Recording.create!(
-  container: workspace,
+  root_recording: root_recording,
   recordable: boundary,
   parent_recording: parent_recording
 )
@@ -574,10 +573,10 @@ RecordingStudio::Services::AccessCheck.allowed?(actor: user, recording: recordin
 
 | Method | Returns | What it does | How to use |
 | --- | --- | --- | --- |
-| `RecordingStudio::Services::AccessCheck.role_for(actor:, recording:)` | `:admin`, `:edit`, `:view`, or `nil` | Resolves an actor’s effective role for a specific recording, considering recording-level access, `AccessBoundary` rules, and container-level access. | `role = RecordingStudio::Services::AccessCheck.role_for(actor: user, recording: page_recording)` |
+| `RecordingStudio::Services::AccessCheck.role_for(actor:, recording:)` | `:admin`, `:edit`, `:view`, or `nil` | Resolves an actor’s effective role for a specific recording, considering recording-level access, `AccessBoundary` rules, and root-level access. | `role = RecordingStudio::Services::AccessCheck.role_for(actor: user, recording: page_recording)` |
 | `RecordingStudio::Services::AccessCheck.allowed?(actor:, recording:, role:)` | `true` / `false` | Authorization helper: checks whether the actor’s resolved role is at least the required role (admin > edit > view). | `RecordingStudio::Services::AccessCheck.allowed?(actor: user, recording: page_recording, role: :edit)` |
-| `RecordingStudio::Services::AccessCheck.containers_for(actor:, minimum_role: nil)` | `[[container_type, container_id], ...]` | Reverse-lookup: lists containers the actor has *container-level* access to via root access recordings (`parent_recording_id = nil`). Recording-level access is intentionally excluded. | `RecordingStudio::Services::AccessCheck.containers_for(actor: user, minimum_role: :view)` |
-| `RecordingStudio::Services::AccessCheck.container_ids_for(actor:, container_class:, minimum_role: nil)` | `[container_id, ...]` | Same as `containers_for`, but scoped to a single container class/type and returns only IDs (useful for `WHERE id IN (...)`). | `ids = RecordingStudio::Services::AccessCheck.container_ids_for(actor: user, container_class: Workspace)` |
+| `RecordingStudio::Services::AccessCheck.root_recordings_for(actor:, minimum_role: nil)` | `[root_recording_id, ...]` | Reverse-lookup: lists root recordings the actor has *root-level* access to via access recordings (`parent_recording_id = root_recording_id`). Recording-level access is intentionally excluded. | `RecordingStudio::Services::AccessCheck.root_recordings_for(actor: user, minimum_role: :view)` |
+| `RecordingStudio::Services::AccessCheck.root_recording_ids_for(actor:, minimum_role: nil)` | `[root_recording_id, ...]` | Same as `root_recordings_for` and returns root recording IDs for filtering queries (for example, then filter by root recordable type). | `ids = RecordingStudio::Services::AccessCheck.root_recording_ids_for(actor: user)` |
 | `RecordingStudio::Services::AccessCheck.access_recordings_for(recording)` | `ActiveRecord::Relation<RecordingStudio::Recording>` | Helper scope: returns non-trashed access recordings directly under a recording (children where `recordable_type = "RecordingStudio::Access"`). This does not filter by actor; it’s mainly for inspection/debugging and tests. | `RecordingStudio::Services::AccessCheck.access_recordings_for(page_recording).includes(:recordable)` |
 | `RecordingStudio::Access.roles` | `{ "view"=>0, "edit"=>1, "admin"=>2 }` | Enum mapping used for role ordering/comparisons (and for converting role symbols/strings to integer values). | `RecordingStudio::Access.roles.fetch("admin") # => 2` |
 | `RecordingStudio::AccessBoundary.minimum_roles` | `{ "view"=>0, "edit"=>1, "admin"=>2 }` | Enum mapping for `AccessBoundary.minimum_role` thresholds (used when comparing whether a role can pass through a boundary). | `RecordingStudio::AccessBoundary.minimum_roles.fetch("edit") # => 1` |

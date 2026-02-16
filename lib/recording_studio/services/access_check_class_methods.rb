@@ -11,23 +11,20 @@ module RecordingStudio
         call(actor: actor, recording: recording, role: role).value
       end
 
-      def containers_for(actor:, minimum_role: nil)
+      def root_recordings_for(actor:, minimum_role: nil)
         return [] unless actor
 
         root_access_recordings_for(actor: actor, minimum_role: minimum_role)
           .distinct
-          .pluck(:container_type, :container_id)
+          .pluck(:root_recording_id)
       end
 
-      def container_ids_for(actor:, container_class:, minimum_role: nil)
+      def root_recording_ids_for(actor:, minimum_role: nil)
         return [] unless actor
 
-        container_type = container_class.is_a?(Class) ? container_class.name : container_class.to_s
-
         root_access_recordings_for(actor: actor, minimum_role: minimum_role)
-          .where(container_type: container_type)
           .distinct
-          .pluck(:container_id)
+          .pluck(:root_recording_id)
       end
 
       def access_recordings_for(recording)
@@ -43,9 +40,10 @@ module RecordingStudio
         access_scope = access_scope_for(actor: actor, minimum_role: minimum_role)
         return RecordingStudio::Recording.none unless access_scope
 
+        root_ids = RecordingStudio::Recording.unscoped.where(parent_recording_id: nil).select(:id)
         RecordingStudio::Recording.unscoped
                                   .where(recordable_type: "RecordingStudio::Access")
-                                  .where(parent_recording_id: nil)
+                                  .where(parent_recording_id: root_ids)
                                   .where(trashed_at: nil)
                                   .where(recordable_id: access_scope.select(:id))
       end
