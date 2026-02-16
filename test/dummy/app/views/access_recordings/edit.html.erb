@@ -4,7 +4,7 @@
   <% breadcrumb.item(text: "Home", href: root_path) %>
   <% breadcrumb.item(text: "Workspaces", href: workspaces_path) %>
   <% breadcrumb.item(text: @access_recording.root_recording.recordable.name, href: workspace_path(@access_recording.root_recording.recordable)) %>
-  <% if @access_recording.parent_recording %>
+  <% if @access_recording.parent_recording && @access_recording.parent_recording_id != @access_recording.root_recording_id %>
     <% breadcrumb.item(
       text: recordable_label(@access_recording.parent_recording.recordable),
       href: recording_path(@access_recording.parent_recording)

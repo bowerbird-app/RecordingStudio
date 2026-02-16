@@ -6,11 +6,11 @@ class RecordingsController < ApplicationController
       .recent
   end
 
-  before_action :load_recording, except: [:index]
+  before_action :load_recording, except: [ :index ]
 
   def show
     @events = @recording.events
-    @recordables = ([@recording.recordable] + @events.flat_map { |event| [event.recordable, event.previous_recordable] })
+    @recordables = ([ @recording.recordable ] + @events.flat_map { |event| [ event.recordable, event.previous_recordable ] })
       .compact
       .uniq { |recordable| recordable.id }
   end
@@ -32,8 +32,7 @@ class RecordingsController < ApplicationController
       raise ActiveRecord::RecordNotFound
     end
 
-    recordable_class = recordable_type.safe_constantize
-    raise ActiveRecord::RecordNotFound unless recordable_class
+    recordable_class = @recording.recordable.class
 
     recordable = recordable_class.find(params[:recordable_id])
 

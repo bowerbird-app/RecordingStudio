@@ -1,10 +1,10 @@
 class AccessRecordingsController < ApplicationController
   before_action :set_return_to
-  before_action :set_access_recording, only: [:edit, :update]
-  before_action :authorize_edit_access!, only: [:edit, :update]
+  before_action :set_access_recording, only: [ :edit, :update ]
+  before_action :authorize_edit_access!, only: [ :edit, :update ]
 
-  before_action :set_access_context, only: [:new, :create]
-  before_action :authorize_create_access!, only: [:new, :create]
+  before_action :set_access_context, only: [ :new, :create ]
+  before_action :authorize_create_access!, only: [ :new, :create ]
 
   helper_method :access_actor_options
 
@@ -13,7 +13,8 @@ class AccessRecordingsController < ApplicationController
   end
 
   def create
-    role = access_params[:role].to_s
+    access_attributes = params.require(:access)
+    role = access_attributes[:role].to_s
 
     unless RecordingStudio::Access.roles.key?(role)
       @access = RecordingStudio::Access.new(role: role)
@@ -21,11 +22,17 @@ class AccessRecordingsController < ApplicationController
       return render :new, status: :unprocessable_entity
     end
 
-    actor = actor_from_key(access_params[:actor_key])
+    actor = actor_from_key(access_attributes[:actor_key])
 
     unless actor.is_a?(User) || actor.is_a?(SystemActor)
       @access = RecordingStudio::Access.new(role: role)
       flash.now[:alert] = "Actor is invalid."
+      return render :new, status: :unprocessable_entity
+    end
+
+    if access_exists_for_actor?(actor)
+      @access = RecordingStudio::Access.new(actor: actor, role: role)
+      flash.now[:alert] = "Actor already has access."
       return render :new, status: :unprocessable_entity
     end
 
@@ -42,7 +49,7 @@ class AccessRecordingsController < ApplicationController
   end
 
   def update
-    role = access_params[:role].to_s
+    role = params.require(:access)[:role].to_s
 
     unless RecordingStudio::Access.roles.key?(role)
       @access = @access_recording.recordable
@@ -78,8 +85,8 @@ class AccessRecordingsController < ApplicationController
   end
 
   def access_actor_options
-    users = User.order(:name).map { |user| ["#{user.name} (User)", "User:#{user.id}"] }
-    system_actors = SystemActor.order(:name).map { |system_actor| ["#{system_actor.name} (System)", "SystemActor:#{system_actor.id}"] }
+    users = User.order(:name).map { |user| [ "#{user.name} (User)", "User:#{user.id}" ] }
+    system_actors = SystemActor.order(:name).map { |system_actor| [ "#{system_actor.name} (System)", "SystemActor:#{system_actor.id}" ] }
     options = users
     options += system_actors if system_actors.any?
     options
@@ -113,10 +120,6 @@ class AccessRecordingsController < ApplicationController
     path
   rescue URI::InvalidURIError
     nil
-  end
-
-  def access_params
-    params.require(:access).permit(:role, :actor_key)
   end
 
   def authorize_create_access!
@@ -156,5 +159,16 @@ class AccessRecordingsController < ApplicationController
 
     redirect_to(safe_return_to || workspace_path(@access_recording.root_recording.recordable),
                 alert: "You are not authorized to edit access.")
+  end
+
+  def access_exists_for_actor?(actor)
+    parent_id = @parent_recording&.id || @root_recording.id
+
+    RecordingStudio::Recording
+      .joins("INNER JOIN recording_studio_accesses ON recording_studio_accesses.id = recording_studio_recordings.recordable_id")
+      .where(recordable_type: "RecordingStudio::Access", root_recording_id: @root_recording.id,
+             parent_recording_id: parent_id)
+      .where(recording_studio_accesses: { actor_type: actor.class.name, actor_id: actor.id })
+      .exists?
   end
 end

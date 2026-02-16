@@ -50,11 +50,11 @@ class ApplicationController < ActionController::Base
     impersonated_user = impersonated_user_from_session
 
     if system_actor
-      [system_actor, nil]
+      [ system_actor, nil ]
     else
       actor = impersonated_user || current_user
       impersonator = impersonated_user ? true_user : nil
-      [actor, impersonator]
+      [ actor, impersonator ]
     end
   end
 

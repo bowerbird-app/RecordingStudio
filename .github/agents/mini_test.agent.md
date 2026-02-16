@@ -6,6 +6,11 @@ description: Minitest coverage guidance for this gem engine.
 
 # Agent Instructions
 
+- This repository has two test suites, and both are required for reliable validation:
+	- Gem suite: tests under `test/` (engine/library behavior).
+	- Dummy app suite: tests under `test/dummy/test/` (host-app wiring and integration behavior).
+- Always run both suites before considering work complete, so gem internals and dummy app integration are both verified.
+
 - Target 100% method coverage for all public APIs; add tests for every public method, module function, and service.
 - For each class/module, add: happy path, failure path, edge cases, and nil/blank input tests.
 - Prefer unit tests for POROs/modules; use minimal Rails integration tests for engine wiring.

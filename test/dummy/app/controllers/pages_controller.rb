@@ -1,9 +1,10 @@
 class PagesController < ApplicationController
   before_action :load_workspace
+  before_action :load_root_recording
   before_action :load_recording, only: %i[show edit update destroy restore]
 
   def index
-    scope = @workspace.recordings_of(RecordingStudioPage)
+    scope = @root_recording.recordings_of(RecordingStudioPage)
     @recordings = if params[:trashed].to_s == "true"
       scope.including_trashed.trashed.recent
     else
@@ -20,7 +21,7 @@ class PagesController < ApplicationController
   end
 
   def create
-    recording = @workspace.record(RecordingStudioPage, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }) do |page|
+    recording = @root_recording.record(RecordingStudioPage, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }) do |page|
       page.assign_attributes(page_params)
     end
 
@@ -32,7 +33,7 @@ class PagesController < ApplicationController
   end
 
   def update
-    updated_recording = @workspace.revise(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }) do |page|
+    updated_recording = @root_recording.revise(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }) do |page|
       page.assign_attributes(page_params)
     end
 
@@ -40,12 +41,12 @@ class PagesController < ApplicationController
   end
 
   def destroy
-    @workspace.trash(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }, include_children: true)
+    @root_recording.trash(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }, include_children: true)
     redirect_to pages_path
   end
 
   def restore
-    @workspace.restore(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }, include_children: true)
+    @root_recording.restore(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }, include_children: true)
     redirect_to recording_path(@recording)
   end
 
@@ -55,8 +56,15 @@ class PagesController < ApplicationController
     @workspace = Workspace.first_or_create!(name: "Studio Workspace")
   end
 
+  def load_root_recording
+    @root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
+      recordable: @workspace,
+      parent_recording_id: nil
+    )
+  end
+
   def load_recording
-    @recording = @workspace.recordings.including_trashed.find(params[:recording_id])
+    @recording = RecordingStudio::Recording.for_root(@root_recording.id).including_trashed.find(params[:recording_id])
   end
 
   def page_params

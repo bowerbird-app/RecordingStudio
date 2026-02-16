@@ -20,11 +20,11 @@
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
-    <%= javascript_importmap_tags %>
+    <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
   </head>
 
   <body class="bg-[#FCFDFD] text-slate-900">
-    <%= turbo_stream_from "recording_studio_toasts" %>
+    <%= turbo_stream_from "recording_studio_toasts" if respond_to?(:turbo_stream_from) %>
     <div class="min-h-screen bg-gradient-to-br from-[#FCFDFD] via-white to-[#FCFDFD]">
       <div class="flex min-h-screen" data-sidebar-shell>
         <% if user_signed_in? %>

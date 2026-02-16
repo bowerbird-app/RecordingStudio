@@ -48,4 +48,10 @@ class ApplicationHelperTest < ActionView::TestCase
     label = actor_with_impersonator_label(@user, @admin)
     assert_includes label, "impersonated by"
   end
+
+  def test_recordable_label_uses_name_when_title_is_missing
+    workspace = Workspace.create!(name: "Studio Workspace")
+
+    assert_equal "Studio Workspace", recordable_label(workspace)
+  end
 end

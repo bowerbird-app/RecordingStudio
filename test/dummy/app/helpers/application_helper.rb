@@ -8,12 +8,12 @@ module ApplicationHelper
       ""
     end
 
-    user_options = User.where.not(id: true_user.id).order(:name).map { |user| [user.name, "User:#{user.id}"] }
-    system_options = system_actors.map { |system_actor| ["#{system_actor.name} (System)", "SystemActor:#{system_actor.id}"] }
+    user_options = User.where.not(id: true_user.id).order(:name).map { |user| [ user.name, "User:#{user.id}" ] }
+    system_options = system_actors.map { |system_actor| [ "#{system_actor.name} (System)", "SystemActor:#{system_actor.id}" ] }
     grouped_options = { "Users" => user_options }
     grouped_options["System actors"] = system_options if system_options.any?
 
-    [grouped_options, selected, "Signed in as #{true_user.name}"]
+    [ grouped_options, selected, "Signed in as #{true_user.name}" ]
   end
 
   def actor_label(actor)
@@ -51,6 +51,12 @@ module ApplicationHelper
       return snippet.present? ? "Comment: #{snippet}" : "Comment"
     end
 
-    recordable.respond_to?(:title) ? recordable.title : "#{recordable.class.name} ##{recordable.id}"
+    title = recordable.respond_to?(:title) ? recordable.title.presence : nil
+    return title if title
+
+    name = recordable.respond_to?(:name) ? recordable.name.presence : nil
+    return name if name
+
+    "#{recordable.class.name} ##{recordable.id}"
   end
 end

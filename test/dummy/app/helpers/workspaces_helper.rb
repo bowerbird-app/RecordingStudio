@@ -14,7 +14,7 @@ module WorkspacesHelper
             )
 
             nested = recordings_hierarchy_list(recordings_by_parent, parent_id: recording.id)
-            safe_join([link, nested])
+            safe_join([ link, nested ])
           end
         end
       )

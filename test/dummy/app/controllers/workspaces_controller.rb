@@ -95,7 +95,7 @@ class WorkspacesController < ApplicationController
       access = recording.recordable
       next unless access
 
-      key = [access.actor_type, access.actor_id]
+      key = [ access.actor_type, access.actor_id ]
       current_best = best_by_actor[key]
       next if current_best && !better_access_grant?(recording, current_best)
 
@@ -104,7 +104,7 @@ class WorkspacesController < ApplicationController
 
     best_by_actor.values.sort_by do |recording|
       access = recording.recordable
-      [access&.actor&.name.to_s.downcase, access&.actor_type.to_s, access&.actor_id.to_s]
+      [ access&.actor&.name.to_s.downcase, access&.actor_type.to_s, access&.actor_id.to_s ]
     end
   end
 

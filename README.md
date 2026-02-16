@@ -88,6 +88,7 @@ The install generator creates an initializer and mounts the engine routes.
 | History | `Event` | Append-only timeline of activity |
 
 Recordables are immutable snapshots. Recordings repoint to newer recordables. Events are append-only.
+Event timelines rely on `occurred_at` and `created_at`; `updated_at` is not required for event behavior.
 
 ## Data Model
 

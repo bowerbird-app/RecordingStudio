@@ -22,7 +22,7 @@ quinn.password = default_password
 quinn.password_confirmation = default_password
 quinn.save!
 
-["Background task", "AI agent"].each do |name|
+[ "Background task", "AI agent" ].each do |name|
   SystemActor.find_or_create_by!(name: name)
 end
 
@@ -112,7 +112,7 @@ if studio_root.recordings_of(RecordingStudioComment).where(parent_recording_id: 
 end
 
 # Backfill counter caches for recordables in the dummy app.
-[RecordingStudioPage, RecordingStudioComment].each do |recordable_class|
+[ RecordingStudioPage, RecordingStudioComment ].each do |recordable_class|
   recordable_class.update_all(recordings_count: 0, events_count: 0)
 
   RecordingStudio::Recording

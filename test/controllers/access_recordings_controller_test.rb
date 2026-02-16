@@ -63,6 +63,16 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "edit", @target_access_recording.recordable.role
   end
 
+  test "edit page does not duplicate workspace breadcrumb for root-level access" do
+    sign_in_as @admin
+
+    get edit_access_recording_path(@target_access_recording), headers: { "User-Agent" => MODERN_UA }
+
+    assert_response :success
+    assert_includes @response.body, %(href="#{workspace_path(@workspace)}")
+    refute_includes @response.body, %(href="#{recording_path(@root_recording)}")
+  end
+
   test "admin can add root-level access" do
     sign_in_as @admin
 
@@ -72,6 +82,26 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
 
     created = latest_root_access_recording
     assert_access_recording(created: created, role: "view", actor: new_user)
+  end
+
+  test "admin cannot add duplicate root-level access for same actor" do
+    sign_in_as @admin
+
+    assert_no_difference(["RecordingStudio::Access.count", "RecordingStudio::Recording.count"]) do
+      post access_recordings_path,
+           params: {
+             root_recording_id: @root_recording.id,
+             return_to: workspace_path(@workspace),
+             access: {
+               actor_key: "User:#{@target.id}",
+               role: "admin"
+             }
+           },
+           headers: { "User-Agent" => MODERN_UA }
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes @response.body, "Actor already has access."
   end
 
   test "non-admin cannot add root-level access" do
