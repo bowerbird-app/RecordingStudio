@@ -6,6 +6,7 @@ module RecordingStudio
 
     config.to_prepare do
       RecordingStudio::DelegatedTypeRegistrar.apply!
+      RecordingStudio.apply_capabilities!
     end
 
     # Run before_initialize hooks

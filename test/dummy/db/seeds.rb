@@ -103,9 +103,7 @@ if studio_root.recordings_of(RecordingStudioComment).where(parent_recording_id: 
     "Can we add more detail to the summary?",
     "Approved from my side."
   ].each do |body|
-    studio_root.record(RecordingStudioComment, actor: actors.first, parent_recording: page_recording, metadata: { seeded: true }) do |comment|
-      comment.body = body
-    end
+    page_recording.comment!(body: body, actor: actors.first, metadata: { seeded: true })
   end
 end
 

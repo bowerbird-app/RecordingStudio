@@ -28,6 +28,8 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Extension Philosophy](#extension-philosophy)
 - [Glossary](#glossary)
 - [Limitations](#limitations)
+- [Built-in Capabilities](#built-in-capabilities)
+- [Creating Custom Capabilities](#creating-custom-capabilities)
 - [Access Control](#access-control)
 
 ## Why RecordingStudio
@@ -498,6 +500,88 @@ Recordables are immutable; history is append-only.
 
 - No built-in UI; this gem focuses on the data and service layer.
 - Storage growth is linear with history; plan retention policies accordingly.
+
+## Built-in Capabilities
+
+RecordingStudio ships with two built-in capabilities that can be enabled per recordable type.
+Capability methods are guarded and raise `RecordingStudio::CapabilityDisabled` unless the capability
+is enabled for that recording's recordable type.
+
+### Movable
+
+`Movable` allows a recording to move to a new parent recording under the same root.
+
+Enable it on a recordable model:
+
+```ruby
+class RecordingStudioPage < ApplicationRecord
+  include RecordingStudio::Capabilities::Movable.to("RecordingStudioFolder", "Workspace")
+end
+```
+
+Use it from a recording:
+
+```ruby
+recording.move_to!(new_parent: target_recording, actor: current_user)
+```
+
+- Requires `:edit` access on both the source recording and target parent recording.
+- Raises `RecordingStudio::AccessDenied` if access checks fail.
+- Only allows target parent recordable types listed in `.to(...)`.
+- Logs a `"moved"` event with `from_parent_id` and `to_parent_id` metadata.
+
+### Copyable
+
+`Copyable` duplicates the current recording's recordable and creates a new recording under a target
+parent recording in the same root.
+
+Enable it on a recordable model:
+
+```ruby
+class RecordingStudioPage < ApplicationRecord
+  include RecordingStudio::Capabilities::Copyable.to("RecordingStudioFolder", "Workspace")
+end
+```
+
+Use it from a recording:
+
+```ruby
+copied = recording.copy_to!(new_parent: target_recording, actor: current_user)
+```
+
+- Requires `:view` access on the source recording.
+- Requires `:edit` access on the target parent recording.
+- Raises `RecordingStudio::AccessDenied` if access checks fail.
+- Only allows target parent recordable types listed in `.to(...)`.
+- Logs a `"copied"` event with `source_recording_id`, `source_recordable_id`, and
+  `source_recordable_type` metadata.
+
+## Creating Custom Capabilities
+
+Host applications can build capabilities using the same pattern. The dummy app includes
+`Capabilities::Commentable` as a concrete example.
+
+1. Create a capability module with:
+   - A builder method (for example `Commentable.with(comment_class:)`) that returns a module to include on the recordable model.
+   - A `RecordingMethods` module containing methods that will be mixed into `RecordingStudio::Recording`.
+   - An `assert_capability!` guard in each recording method so behavior remains off-by-default.
+2. Register the recording methods with `RecordingStudio.register_capability(:name, RecordingMethods)`.
+3. Include the builder on your recordable models.
+4. Use the capability API from `RecordingStudio::Recording`.
+
+Example:
+
+```ruby
+class MyPage < ApplicationRecord
+  include Capabilities::Commentable.with(comment_class: "MyComment")
+end
+
+recording.comment!(body: "Great work!", actor: current_user)
+recording.comments
+```
+
+If a capability is not enabled for a recordable type, calling its recording method raises
+`RecordingStudio::CapabilityDisabled`.
 
 ## Access Control
 
