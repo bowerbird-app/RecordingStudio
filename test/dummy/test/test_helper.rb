@@ -17,6 +17,33 @@ require "minitest/autorun"
 require "rails/test_help"
 require "devise/test/integration_helpers"
 
+unless Object.new.respond_to?(:stub)
+  class Object
+    def stub(method_name, return_value = nil, callable = nil)
+      value = callable || return_value
+
+      singleton = class << self; self; end
+      original_defined = singleton.method_defined?(method_name)
+      original_method = singleton.instance_method(method_name) if original_defined
+
+      singleton.define_method(method_name) do |*args, **kwargs, &block|
+        if value.respond_to?(:call)
+          value.call(*args, **kwargs, &block)
+        else
+          value
+        end
+      end
+
+      yield self
+    ensure
+      singleton.send(:remove_method, method_name)
+      if original_defined
+        singleton.define_method(method_name, original_method)
+      end
+    end
+  end
+end
+
 unless ActionController::Base.respond_to?(:impersonates)
   class << ActionController::Base
     def impersonates(*)

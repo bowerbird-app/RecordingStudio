@@ -113,4 +113,114 @@ class HelpersLogicTest < ActiveSupport::TestCase
     assert_includes html, "Child Page"
     assert_includes html, "list-disc"
   end
+
+  test "actor_switcher_options selects impersonated user" do
+    true_user = User.create!(
+      name: "True User",
+      email: "true-user-imp-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    impersonated_user = User.create!(
+      name: "Impersonated",
+      email: "imp-user-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+
+    grouped, selected, _label = ApplicationController.helpers.actor_switcher_options(
+      current_actor: impersonated_user,
+      current_user: impersonated_user,
+      true_user: true_user,
+      system_actors: [],
+      impersonating: true
+    )
+
+    assert_equal "User:#{impersonated_user.id}", selected
+    refute grouped.key?("System actors")
+  end
+
+  test "recordable_type_label handles class string instance and blank" do
+    page = RecordingStudioPage.create!(title: "Type Page")
+
+    assert_equal "Page", ApplicationController.helpers.recordable_type_label("RecordingStudioPage")
+    assert_equal "Page", ApplicationController.helpers.recordable_type_label(RecordingStudioPage)
+    assert_equal "Page", ApplicationController.helpers.recordable_type_label(page)
+    assert_equal "Unknown type", ApplicationController.helpers.recordable_type_label("UnknownType")
+    assert_equal "—", ApplicationController.helpers.recordable_type_label(nil)
+  end
+
+  test "recordable_title falls back from title to name to label" do
+    page = RecordingStudioPage.create!(title: "  Squished   Title  ")
+    folder = RecordingStudioFolder.create!(name: " Folder Name ")
+    nameless_class = Class.new do
+      attr_reader :id
+
+      def initialize(id)
+        @id = id
+      end
+    end
+    Object.const_set("TitleFallbackThing", nameless_class)
+    nameless = TitleFallbackThing.new(55)
+
+    assert_equal "Squished Title", ApplicationController.helpers.recordable_title(page)
+    assert_equal "Folder Name", ApplicationController.helpers.recordable_title(folder)
+    assert_equal "TitleFallbackThing #55", ApplicationController.helpers.recordable_title(nameless)
+    assert_equal "—", ApplicationController.helpers.recordable_title(nil)
+  ensure
+    Object.send(:remove_const, :TitleFallbackThing) if Object.const_defined?(:TitleFallbackThing)
+  end
+
+  test "recordable_summary uses summary then truncated body then nil" do
+    summary_class = Class.new do
+      def summary
+        "  Already summarized  "
+      end
+    end
+    Object.const_set("SummaryThing", summary_class)
+
+    long_text = "word " * 80
+    body_class = Class.new do
+      define_method(:initialize) { |body| @body = body }
+      attr_reader :body
+    end
+    Object.const_set("BodyThing", body_class)
+
+    assert_equal "Already summarized", ApplicationController.helpers.recordable_summary(SummaryThing.new)
+
+    truncated = ApplicationController.helpers.recordable_summary(BodyThing.new(long_text))
+    assert truncated.length <= 160
+    assert_includes truncated, "..."
+
+    no_content = Struct.new(:summary, :body).new(nil, nil)
+    assert_nil ApplicationController.helpers.recordable_summary(no_content)
+    assert_nil ApplicationController.helpers.recordable_summary(nil)
+  ensure
+    Object.send(:remove_const, :SummaryThing) if Object.const_defined?(:SummaryThing)
+    Object.send(:remove_const, :BodyThing) if Object.const_defined?(:BodyThing)
+  end
+
+  test "recordings_hierarchy_list renders boundary badge" do
+    workspace = Workspace.create!(name: "Boundary Workspace")
+    root = RecordingStudio::Recording.create!(recordable: workspace)
+    boundary = RecordingStudio::AccessBoundary.create!(minimum_role: :edit)
+    boundary_recording = RecordingStudio::Recording.create!(
+      root_recording: root,
+      parent_recording: root,
+      recordable: boundary
+    )
+
+    grouped = {
+      nil => [ root ],
+      root.id => [ boundary_recording ]
+    }
+
+    helpers = ApplicationController.helpers
+    helpers.singleton_class.send(:define_method, :recording_path) { |recording| "/recordings/#{recording.id}" }
+
+    html = helpers.recordings_hierarchy_list(grouped)
+
+    assert_includes html, "🔒 Boundary (min: edit)"
+    assert_includes html, "rounded bg-slate-100"
+  end
 end

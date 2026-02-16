@@ -29,6 +29,16 @@ class ApplicationController < ActionController::Base
     raise RecordingStudio::AccessDenied unless allowed_ids.include?(root_recording.id)
   end
 
+  def require_recording_access!(recording, minimum_role: :view)
+    allowed = RecordingStudio::Services::AccessCheck.allowed?(
+      actor: current_actor,
+      recording: recording,
+      role: minimum_role
+    )
+
+    raise RecordingStudio::AccessDenied unless allowed
+  end
+
   def handle_access_denied
     respond_to do |format|
       format.html { render "shared/no_access", status: :forbidden }

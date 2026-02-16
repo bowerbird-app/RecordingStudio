@@ -222,3 +222,23 @@ end
 require File.expand_path("dummy/config/environment", __dir__)
 require "rails/test_help"
 require "recording_studio"
+
+ActiveSupport::TestCase.class_eval do
+  def assert_not(value, message = nil)
+    assert_equal false, !!value, message
+  end
+
+  def assert_not_nil(value, message = nil)
+    assert_equal false, value.nil?, message
+  end
+end
+
+Minitest::Test.class_eval do
+  def assert_not(value, message = nil)
+    assert_equal false, !!value, message
+  end
+
+  def assert_not_nil(value, message = nil)
+    assert_equal false, value.nil?, message
+  end
+end

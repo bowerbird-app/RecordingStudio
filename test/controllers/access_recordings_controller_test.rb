@@ -70,7 +70,7 @@ class AccessRecordingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes @response.body, %(href="#{workspace_path(@workspace)}")
-    refute_includes @response.body, %(href="#{recording_path(@root_recording)}")
+    assert_not_includes @response.body, %(href="#{recording_path(@root_recording)}")
   end
 
   test "admin can add root-level access" do

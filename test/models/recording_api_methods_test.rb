@@ -42,7 +42,7 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
 
     revised = root_recording.revise(recording) { |page| page.title = "Updated" }
 
-    refute_equal original_recordable_id, revised.recordable_id
+    assert_not_equal original_recordable_id, revised.recordable_id
     assert_equal "updated", revised.events.first.action
   end
 
@@ -116,8 +116,8 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
     first = root_recording.record(RecordingStudioPage) { |page| page.title = "A" }
     second = root_recording.record(RecordingStudioPage) { |page| page.title = "Z" }
 
-    first.update_column(:updated_at, Time.current)
-    second.update_column(:updated_at, 1.minute.ago)
+    set_timestamps!(first, updated_at: Time.current)
+    set_timestamps!(second, updated_at: 1.minute.ago)
 
     recordings = root_recording.recordings_query(
       include_children: true,
@@ -153,8 +153,8 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
     first = root_recording.record(RecordingStudioPage) { |page| page.title = "First" }
     second = root_recording.record(RecordingStudioPage) { |page| page.title = "Second" }
 
-    first.update_column(:updated_at, 1.minute.ago)
-    second.update_column(:updated_at, Time.current)
+    set_timestamps!(first, updated_at: 1.minute.ago)
+    set_timestamps!(second, updated_at: Time.current)
 
     recordings = root_recording.recordings_query(order: "nonexistent desc, updated_at asc")
 
@@ -166,8 +166,8 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
     first = root_recording.record(RecordingStudioPage) { |page| page.title = "First" }
     second = root_recording.record(RecordingStudioPage) { |page| page.title = "Second" }
 
-    first.update_column(:updated_at, 1.minute.ago)
-    second.update_column(:updated_at, Time.current)
+    set_timestamps!(first, updated_at: 1.minute.ago)
+    set_timestamps!(second, updated_at: Time.current)
 
     recordings = root_recording.recordings_query(order: { updated_at: :asc, unknown: :desc })
 
@@ -257,9 +257,9 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
     second = root_recording.record(RecordingStudioPage) { |page| page.title = "Second" }
     third = root_recording.record(RecordingStudioPage) { |page| page.title = "Third" }
 
-    first.update_columns(created_at: 3.days.ago, updated_at: 3.days.ago)
-    second.update_columns(created_at: 2.days.ago, updated_at: 2.days.ago)
-    third.update_columns(created_at: 1.day.ago, updated_at: 1.day.ago)
+    set_timestamps!(first, created_at: 3.days.ago, updated_at: 3.days.ago)
+    set_timestamps!(second, created_at: 2.days.ago, updated_at: 2.days.ago)
+    set_timestamps!(third, created_at: 1.day.ago, updated_at: 1.day.ago)
 
     filters = {
       created_after: 4.days.ago,
@@ -339,5 +339,16 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
     workspace = Workspace.create!(name: name)
     root_recording = RecordingStudio::Recording.create!(recordable: workspace)
     [workspace, root_recording]
+  end
+
+  def set_timestamps!(record, created_at: nil, updated_at: nil)
+    original = record.class.record_timestamps
+    record.class.record_timestamps = false
+    attributes = {}
+    attributes[:created_at] = created_at if created_at
+    attributes[:updated_at] = updated_at if updated_at
+    record.update!(attributes)
+  ensure
+    record.class.record_timestamps = original
   end
 end

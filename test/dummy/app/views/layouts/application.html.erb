@@ -82,6 +82,14 @@
                   </span>
                   <span class="sidebar-label min-w-0 max-w-[12rem] overflow-hidden whitespace-nowrap transition-[opacity,max-width] duration-300 ease-in-out">Workspaces</span>
                 <% end %>
+                <%= link_to folders_path, class: "grid grid-cols-[2rem_1fr] items-center rounded-lg px-3 py-2 text-slate-700 transition hover:bg-slate-100" do %>
+                  <span class="inline-flex h-8 w-8 items-center justify-center">
+                    <svg class="h-5 w-5 text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 7.5A2.25 2.25 0 0 1 4.5 5.25h5.379a2.25 2.25 0 0 1 1.591.659l1.122 1.121a2.25 2.25 0 0 0 1.591.659H19.5A2.25 2.25 0 0 1 21.75 9.94v8.31A2.25 2.25 0 0 1 19.5 20.5H4.5a2.25 2.25 0 0 1-2.25-2.25V7.5Z" />
+                    </svg>
+                  </span>
+                  <span class="sidebar-label min-w-0 max-w-[12rem] overflow-hidden whitespace-nowrap transition-[opacity,max-width] duration-300 ease-in-out">Folders</span>
+                <% end %>
 
                 <%= link_to actors_path, class: "grid grid-cols-[2rem_1fr] items-center rounded-lg px-3 py-2 text-slate-700 transition hover:bg-slate-100" do %>
                   <span class="inline-flex h-8 w-8 items-center justify-center">

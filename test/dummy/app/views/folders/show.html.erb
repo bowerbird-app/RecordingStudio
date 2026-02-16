@@ -1,0 +1,68 @@
+<% content_for :title, @recording.recordable.name %>
+
+<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+  <% breadcrumb.item(text: "Home", href: root_path) %>
+  <% breadcrumb.item(text: "Folders", href: folders_path) %>
+  <% breadcrumb.item(text: @recording.recordable.name) %>
+<% end %>
+
+<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+  <% card.header(divider: false) do %>
+    <div class="space-y-3">
+      <div>
+        <h2 class="text-2xl font-semibold"><%= @recording.recordable.name %></h2>
+        <p class="text-sm text-slate-500">Folder recording details and children.</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <%= render FlatPack::Button::Component.new(text: "Back to Folders", style: :secondary, url: folders_path) %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+  <% card.header(divider: false) do %>
+    <div>
+      <h3 class="text-lg font-semibold">Boundary</h3>
+      <p class="text-sm text-slate-500">Manage access boundary attached to this folder.</p>
+    </div>
+  <% end %>
+
+  <% card.body do %>
+    <% if @boundary_recording %>
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="rounded bg-slate-100 px-2 py-1 text-sm text-slate-700">
+          🔒 Boundary (min: <%= @boundary_recording.recordable.minimum_role.presence || "none" %>)
+        </span>
+        <%= render FlatPack::Button::Component.new(text: "Edit boundary", style: :secondary, url: edit_boundary_recording_path(@boundary_recording, return_to: folder_path(@recording))) %>
+      </div>
+    <% else %>
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="text-sm text-slate-500">No boundary attached.</span>
+        <%= render FlatPack::Button::Component.new(text: "Add boundary", style: :secondary, url: new_boundary_recording_path(parent_recording_id: @recording.id, return_to: folder_path(@recording))) %>
+      </div>
+    <% end %>
+  <% end %>
+<% end %>
+
+<div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
+  <% if @children.any? %>
+    <%= render FlatPack::Table::Component.new(data: @children) do |table| %>
+      <% table.column(title: "Recordable", html: ->(recording) {
+        label = recordable_label(recording.recordable)
+
+        case recording.recordable_type
+        when "RecordingStudioFolder"
+          link_to(label, folder_path(recording), class: "hover:underline")
+        when "RecordingStudioPage"
+          link_to(label, page_path(recording), class: "hover:underline")
+        else
+          link_to(label, recording_path(recording), class: "hover:underline")
+        end
+      }) %>
+      <% table.column(title: "Type", html: ->(recording) { recording.recordable_type.to_s.demodulize }) %>
+    <% end %>
+  <% else %>
+    <div class="px-6 py-10 text-center text-sm text-slate-500">No child recordings.</div>
+  <% end %>
+</div>

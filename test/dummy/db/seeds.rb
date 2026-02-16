@@ -44,12 +44,10 @@ def seed_root_access!(root_recording, actor:, role:)
 
   return if existing
 
-  access = RecordingStudio::Access.create!(actor: actor, role: role)
-  RecordingStudio::Recording.create!(
-    root_recording: root_recording,
-    parent_recording: root_recording,
-    recordable: access
-  )
+  root_recording.record(RecordingStudio::Access, actor: actor, metadata: { seeded: true }, parent_recording: root_recording) do |access|
+    access.actor = actor
+    access.role = role
+  end
 end
 
 seed_root_access!(studio_root, actor: admin_user, role: :admin)
@@ -111,8 +109,47 @@ if studio_root.recordings_of(RecordingStudioComment).where(parent_recording_id: 
   end
 end
 
+unless RecordingStudioFolder.exists?(name: "Projects")
+  projects_recording = studio_root.record(RecordingStudioFolder, actor: admin_user, metadata: { seeded: true }) do |folder|
+    folder.name = "Projects"
+  end
+
+  public_recording = studio_root.record(RecordingStudioFolder, actor: admin_user, parent_recording: projects_recording, metadata: { seeded: true }) do |folder|
+    folder.name = "Public"
+  end
+
+  studio_root.record(RecordingStudioPage, actor: admin_user, parent_recording: public_recording, metadata: { seeded: true }) do |page|
+    page.title = "Public Roadmap"
+  end
+
+  confidential_recording = studio_root.record(RecordingStudioFolder, actor: admin_user, parent_recording: projects_recording, metadata: { seeded: true }) do |folder|
+    folder.name = "Confidential"
+  end
+
+  studio_root.record(RecordingStudio::AccessBoundary, actor: admin_user, parent_recording: confidential_recording, metadata: { seeded: true }) do |boundary|
+    boundary.minimum_role = :edit
+  end
+
+  internal_recording = studio_root.record(RecordingStudioFolder, actor: admin_user, parent_recording: confidential_recording, metadata: { seeded: true }) do |folder|
+    folder.name = "Internal"
+  end
+
+  studio_root.record(RecordingStudioPage, actor: admin_user, parent_recording: internal_recording, metadata: { seeded: true }) do |page|
+    page.title = "Strategy"
+  end
+
+  budget_recording = studio_root.record(RecordingStudioPage, actor: admin_user, parent_recording: confidential_recording, metadata: { seeded: true }) do |page|
+    page.title = "Budget"
+  end
+
+  studio_root.record(RecordingStudio::Access, actor: admin_user, parent_recording: budget_recording, metadata: { seeded: true }) do |access|
+    access.actor = quinn
+    access.role = :edit
+  end
+end
+
 # Backfill counter caches for recordables in the dummy app.
-[ RecordingStudioPage, RecordingStudioComment ].each do |recordable_class|
+[ RecordingStudioPage, RecordingStudioComment, RecordingStudioFolder ].each do |recordable_class|
   recordable_class.update_all(recordings_count: 0, events_count: 0)
 
   RecordingStudio::Recording

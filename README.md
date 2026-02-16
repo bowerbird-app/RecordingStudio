@@ -533,13 +533,21 @@ RecordingStudio::Recording.create!(
 
 ### AccessBoundary Recordable
 
-`RecordingStudio::AccessBoundary` stops access inheritance up the recording
-tree. An optional `minimum_role` allows role-based passthrough: access above
-the boundary is allowed through only if the actor's role meets or exceeds the
-minimum.
+`RecordingStudio::AccessBoundary` stops access inheritance through the node it
+is attached to. The boundary is created as a child recording of that node.
+Other content recordings can remain as sibling children (no re-parenting
+required). An optional `minimum_role` allows role-based passthrough: access
+above the attached node is allowed through only if the actor's role meets or
+exceeds the minimum.
 
 ```ruby
-# Create a boundary that blocks all inheritance
+# Parent node (for example, a folder/page)
+parent_recording = root_recording.record(RecordingStudioPage) { |page| page.title = "Projects" }
+
+# Content remains a direct child of the same parent
+root_recording.record(RecordingStudioPage, parent_recording: parent_recording) { |page| page.title = "Roadmap" }
+
+# Create a boundary child that blocks inherited access through parent_recording
 boundary = RecordingStudio::AccessBoundary.create!
 RecordingStudio::Recording.create!(
   root_recording: root_recording,
@@ -547,7 +555,7 @@ RecordingStudio::Recording.create!(
   parent_recording: parent_recording
 )
 
-# Create a boundary that allows edit or higher to pass through
+# Create a boundary child that allows edit or higher to pass through
 boundary = RecordingStudio::AccessBoundary.create!(minimum_role: :edit)
 RecordingStudio::Recording.create!(
   root_recording: root_recording,

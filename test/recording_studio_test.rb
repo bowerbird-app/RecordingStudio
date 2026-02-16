@@ -4,7 +4,7 @@ require "test_helper"
 
 class RecordingStudioTest < Minitest::Test
   def test_version_exists
-    refute_nil ::RecordingStudio::VERSION
+    assert_not_nil ::RecordingStudio::VERSION
   end
 
   def test_engine_exists

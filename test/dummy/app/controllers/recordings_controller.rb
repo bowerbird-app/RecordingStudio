@@ -1,12 +1,14 @@
 class RecordingsController < ApplicationController
+  before_action :load_recording, except: [ :index ]
+  before_action :authorize_view_recording!, only: [ :show ]
+  before_action :authorize_edit_recording!, only: [ :log_event, :revert ]
+
   def index
     @recordings = RecordingStudio::Recording
       .including_trashed
       .includes(:recordable, :root_recording, :events)
       .recent
   end
-
-  before_action :load_recording, except: [ :index ]
 
   def show
     @events = @recording.events
@@ -52,5 +54,13 @@ class RecordingsController < ApplicationController
   def load_recording
     recording_id = params[:id] || params[:recording_id]
     @recording = RecordingStudio::Recording.including_trashed.find(recording_id)
+  end
+
+  def authorize_view_recording!
+    require_recording_access!(@recording, minimum_role: :view)
+  end
+
+  def authorize_edit_recording!
+    require_recording_access!(@recording, minimum_role: :edit)
   end
 end
