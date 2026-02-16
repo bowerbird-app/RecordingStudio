@@ -149,21 +149,20 @@ class AccessCheckTest < ActiveSupport::TestCase
   # --- AccessBoundary stops inheritance ---
 
   def test_boundary_stops_inheritance
-    parent = create_page_recording("Parent")
-    boundary_recording = create_boundary_child(parent)
-    child = create_child_recording(boundary_recording, "Child")
+    grandparent = create_page_recording("Grandparent")
+    parent = create_child_recording(grandparent, "Parent")
+    add_boundary_to(parent)
+    child = create_child_recording(parent, "Child")
 
-    # Access granted above boundary
-    grant_access(parent, @actor, :admin)
+    grant_access(grandparent, @actor, :admin)
 
-    # No access inside boundary
     assert_nil AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   def test_boundary_allows_explicit_access_inside
     parent = create_page_recording("Parent")
-    boundary_recording = create_boundary_child(parent)
-    child = create_child_recording(boundary_recording, "Child")
+    add_boundary_to(parent)
+    child = create_child_recording(parent, "Child")
 
     grant_access(child, @actor, :edit)
 
@@ -172,43 +171,43 @@ class AccessCheckTest < ActiveSupport::TestCase
 
   def test_boundary_allows_access_on_boundary_itself
     parent = create_page_recording("Parent")
-    boundary_recording = create_boundary_child(parent)
+    child = create_child_recording(parent, "Child")
+    add_boundary_to(parent)
 
-    grant_access(boundary_recording, @actor, :view)
+    grant_access(parent, @actor, :view)
 
-    assert_equal :view, AccessCheck.role_for(actor: @actor, recording: boundary_recording)
+    assert_equal :view, AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   # --- AccessBoundary with minimum_role allows passthrough ---
 
   def test_boundary_with_minimum_role_allows_passthrough
-    parent = create_page_recording("Parent")
-    boundary_recording = create_boundary_child(parent, minimum_role: :edit)
-    child = create_child_recording(boundary_recording, "Child")
+    grandparent = create_page_recording("Grandparent")
+    parent = create_child_recording(grandparent, "Parent")
+    add_boundary_to(parent, minimum_role: :edit)
+    child = create_child_recording(parent, "Child")
 
-    # Access above boundary with admin role (>= edit minimum_role)
-    grant_access(parent, @actor, :admin)
+    grant_access(grandparent, @actor, :admin)
 
     assert_equal :admin, AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   def test_boundary_with_minimum_role_blocks_insufficient_role
-    parent = create_page_recording("Parent")
-    boundary_recording = create_boundary_child(parent, minimum_role: :admin)
-    child = create_child_recording(boundary_recording, "Child")
+    grandparent = create_page_recording("Grandparent")
+    parent = create_child_recording(grandparent, "Parent")
+    add_boundary_to(parent, minimum_role: :admin)
+    child = create_child_recording(parent, "Child")
 
-    # Access above boundary with edit role (< admin minimum_role)
-    grant_access(parent, @actor, :edit)
+    grant_access(grandparent, @actor, :edit)
 
     assert_nil AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   def test_boundary_with_minimum_role_allows_root_passthrough
     parent = create_page_recording("Parent")
-    boundary_recording = create_boundary_child(parent, minimum_role: :view)
-    child = create_child_recording(boundary_recording, "Child")
+    add_boundary_to(parent, minimum_role: :view)
+    child = create_child_recording(parent, "Child")
 
-    # Root-level access with view role (>= view minimum_role)
     grant_root_access(@root_recording, @actor, :view)
 
     assert_equal :view, AccessCheck.role_for(actor: @actor, recording: child)
@@ -217,8 +216,8 @@ class AccessCheckTest < ActiveSupport::TestCase
   # --- Boundary at root blocks root access ---
 
   def test_boundary_at_root_blocks_root_access_without_minimum_role
-    boundary_recording = create_boundary_root
-    child = create_child_recording(boundary_recording, "Child")
+    add_boundary_to(@root_recording)
+    child = create_child_recording(@root_recording, "Child")
 
     grant_root_access(@root_recording, @actor, :admin)
 
@@ -226,12 +225,49 @@ class AccessCheckTest < ActiveSupport::TestCase
   end
 
   def test_boundary_at_root_allows_root_access_with_minimum_role
-    boundary_recording = create_boundary_root(minimum_role: :view)
-    child = create_child_recording(boundary_recording, "Child")
+    add_boundary_to(@root_recording, minimum_role: :view)
+    child = create_child_recording(@root_recording, "Child")
 
     grant_root_access(@root_recording, @actor, :edit)
 
     assert_equal :edit, AccessCheck.role_for(actor: @actor, recording: child)
+  end
+
+  def test_trashed_boundary_does_not_block_access
+    grandparent = create_page_recording("Grandparent")
+    parent = create_child_recording(grandparent, "Parent")
+    boundary_recording = add_boundary_to(parent)
+    child = create_child_recording(parent, "Child")
+    grant_access(grandparent, @actor, :admin)
+
+    boundary_recording.update!(trashed_at: Time.current)
+
+    assert_equal :admin, AccessCheck.role_for(actor: @actor, recording: child)
+  end
+
+  def test_removing_boundary_restores_inheritance
+    grandparent = create_page_recording("Grandparent")
+    parent = create_child_recording(grandparent, "Parent")
+    boundary_recording = add_boundary_to(parent)
+    child = create_child_recording(parent, "Child")
+    grant_access(grandparent, @actor, :view)
+
+    assert_nil AccessCheck.role_for(actor: @actor, recording: child)
+
+    boundary_recording.destroy!
+
+    assert_equal :view, AccessCheck.role_for(actor: @actor, recording: child)
+  end
+
+  def test_boundary_as_sibling_protects_existing_children
+    grandparent = create_page_recording("Grandparent")
+    parent = create_child_recording(grandparent, "Parent")
+    child = create_child_recording(parent, "Child")
+    grant_access(grandparent, @actor, :edit)
+
+    add_boundary_to(parent)
+
+    assert_nil AccessCheck.role_for(actor: @actor, recording: child)
   end
 
   # --- Query helper ---
@@ -297,21 +333,12 @@ class AccessCheckTest < ActiveSupport::TestCase
     )
   end
 
-  def create_boundary_child(parent, minimum_role: nil)
+  def add_boundary_to(recording, minimum_role: nil)
     boundary = RecordingStudio::AccessBoundary.create!(minimum_role: minimum_role)
     RecordingStudio::Recording.create!(
       root_recording: @root_recording,
       recordable: boundary,
-      parent_recording: parent
-    )
-  end
-
-  def create_boundary_root(minimum_role: nil)
-    boundary = RecordingStudio::AccessBoundary.create!(minimum_role: minimum_role)
-    RecordingStudio::Recording.create!(
-      root_recording: @root_recording,
-      recordable: boundary,
-      parent_recording: @root_recording
+      parent_recording: recording
     )
   end
 end

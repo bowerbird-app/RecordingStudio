@@ -14,6 +14,10 @@ Rails.application.routes.draw do
   resources :pages, param: :recording_id do
     post :restore, on: :member
   end
+  resources :folders, param: :recording_id, only: [ :index, :show ] do
+    post :add_boundary, on: :member
+    delete :remove_boundary, on: :member
+  end
   resources :workspaces, only: [ :index, :show, :new, :create, :destroy ]
   resources :access_recordings, only: [ :new, :create, :edit, :update ]
   resources :events, only: [ :index ]

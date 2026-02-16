@@ -10,3 +10,4 @@ end
 RecordingStudio.register_recordable_type("Workspace")
 RecordingStudio.register_recordable_type("RecordingStudioPage")
 RecordingStudio.register_recordable_type("RecordingStudioComment")
+RecordingStudio.register_recordable_type("RecordingStudioFolder")

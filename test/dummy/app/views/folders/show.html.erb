@@ -1,0 +1,71 @@
+<% content_for :title, @recording.recordable.name %>
+
+<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+  <% breadcrumb.item(text: "Home", href: root_path) %>
+  <% breadcrumb.item(text: "Folders", href: folders_path) %>
+  <% breadcrumb.item(text: @recording.recordable.name) %>
+<% end %>
+
+<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+  <% card.header(divider: false) do %>
+    <div class="space-y-3">
+      <div>
+        <h2 class="text-2xl font-semibold"><%= @recording.recordable.name %></h2>
+        <p class="text-sm text-slate-500">Folder recording details and children.</p>
+      </div>
+      <div class="flex flex-wrap items-center gap-2">
+        <%= render FlatPack::Button::Component.new(text: "Back to Folders", style: :secondary, url: folders_path) %>
+      </div>
+    </div>
+  <% end %>
+<% end %>
+
+<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+  <% card.header(divider: false) do %>
+    <div>
+      <h3 class="text-lg font-semibold">Boundary</h3>
+      <p class="text-sm text-slate-500">Manage access boundary attached to this folder.</p>
+    </div>
+  <% end %>
+
+  <% card.body do %>
+    <% if @boundary_recording %>
+      <div class="flex items-center gap-3">
+        <span class="rounded bg-slate-100 px-2 py-1 text-sm text-slate-700">
+          🔒 Boundary (min: <%= @boundary_recording.recordable.minimum_role.presence || "none" %>)
+        </span>
+        <%= button_to "Remove boundary", remove_boundary_folder_path(@recording), method: :delete, data: { turbo_confirm: "Remove this boundary?" }, class: "rounded-lg border border-rose-200 px-3 py-2 text-sm text-rose-700 hover:bg-rose-50" %>
+      </div>
+    <% else %>
+      <%= form_with url: add_boundary_folder_path(@recording), method: :post, local: true, class: "flex flex-wrap items-end gap-3" do |form| %>
+        <div>
+          <%= form.label :minimum_role, "Minimum role", class: "mb-1 block text-sm font-medium text-slate-700" %>
+          <%= form.select :minimum_role, options_for_select([["None", ""], ["View", "view"], ["Edit", "edit"], ["Admin", "admin"]]), {}, class: "rounded-lg border border-slate-300 px-3 py-2 text-sm" %>
+        </div>
+        <%= form.submit "Add boundary", class: "rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800" %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+
+<div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
+  <% if @children.any? %>
+    <%= render FlatPack::Table::Component.new(data: @children) do |table| %>
+      <% table.column(title: "Recordable", html: ->(recording) {
+        label = recordable_label(recording.recordable)
+
+        case recording.recordable_type
+        when "RecordingStudioFolder"
+          link_to(label, folder_path(recording), class: "hover:underline")
+        when "RecordingStudioPage"
+          link_to(label, page_path(recording), class: "hover:underline")
+        else
+          link_to(label, recording_path(recording), class: "hover:underline")
+        end
+      }) %>
+      <% table.column(title: "Type", html: ->(recording) { recording.recordable_type.to_s.demodulize }) %>
+    <% end %>
+  <% else %>
+    <div class="px-6 py-10 text-center text-sm text-slate-500">No child recordings.</div>
+  <% end %>
+</div>

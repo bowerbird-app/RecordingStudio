@@ -45,6 +45,10 @@ module ApplicationHelper
       return minimum.present? ? "Access boundary (min: #{minimum})" : "Access boundary"
     end
 
+    if recordable.is_a?(RecordingStudioFolder)
+      return "📁 #{recordable.name}"
+    end
+
     if (defined?(RecordingStudioComment) && recordable.is_a?(RecordingStudioComment)) || recordable.class.name == "RecordingStudio::Comment"
       body = recordable.body.to_s.squish
       snippet = body.present? ? truncate(body, length: 60) : ""

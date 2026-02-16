@@ -111,8 +111,44 @@ if studio_root.recordings_of(RecordingStudioComment).where(parent_recording_id: 
   end
 end
 
+unless RecordingStudioFolder.exists?(name: "Projects")
+  projects_recording = studio_root.record(RecordingStudioFolder, actor: admin_user, metadata: { seeded: true }) do |folder|
+    folder.name = "Projects"
+  end
+
+  public_recording = studio_root.record(RecordingStudioFolder, actor: admin_user, parent_recording: projects_recording, metadata: { seeded: true }) do |folder|
+    folder.name = "Public"
+  end
+
+  studio_root.record(RecordingStudioPage, actor: admin_user, parent_recording: public_recording, metadata: { seeded: true }) do |page|
+    page.title = "Public Roadmap"
+  end
+
+  confidential_recording = studio_root.record(RecordingStudioFolder, actor: admin_user, parent_recording: projects_recording, metadata: { seeded: true }) do |folder|
+    folder.name = "Confidential"
+  end
+
+  boundary = RecordingStudio::AccessBoundary.create!(minimum_role: :edit)
+  RecordingStudio::Recording.create!(root_recording: studio_root, recordable: boundary, parent_recording: confidential_recording)
+
+  internal_recording = studio_root.record(RecordingStudioFolder, actor: admin_user, parent_recording: confidential_recording, metadata: { seeded: true }) do |folder|
+    folder.name = "Internal"
+  end
+
+  studio_root.record(RecordingStudioPage, actor: admin_user, parent_recording: internal_recording, metadata: { seeded: true }) do |page|
+    page.title = "Strategy"
+  end
+
+  budget_recording = studio_root.record(RecordingStudioPage, actor: admin_user, parent_recording: confidential_recording, metadata: { seeded: true }) do |page|
+    page.title = "Budget"
+  end
+
+  access = RecordingStudio::Access.create!(actor: quinn, role: :edit)
+  RecordingStudio::Recording.create!(root_recording: studio_root, recordable: access, parent_recording: budget_recording)
+end
+
 # Backfill counter caches for recordables in the dummy app.
-[ RecordingStudioPage, RecordingStudioComment ].each do |recordable_class|
+[ RecordingStudioPage, RecordingStudioComment, RecordingStudioFolder ].each do |recordable_class|
   recordable_class.update_all(recordings_count: 0, events_count: 0)
 
   RecordingStudio::Recording
