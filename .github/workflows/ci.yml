@@ -73,3 +73,14 @@ jobs:
 
     - name: Run tests
       run: bundle exec rake app:test
+      env:
+        RAILS_ENV: test
+        DB_USER: postgres
+        DB_PASSWORD: postgres
+        DB_NAME: gem_template_test
+        DB_NAME_TEST: gem_template_test
+        DB_HOST: localhost
+        DB_PORT: 5432
+        PGUSER: postgres
+        PGPASSWORD: postgres
+        DATABASE_URL: postgres://postgres:postgres@localhost:5432/gem_template_test
