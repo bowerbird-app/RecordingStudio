@@ -13,6 +13,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Recordable Table Names](#recordable-table-names)
 - [Recordable Table Shape](#recordable-table-shape)
 - [Installation](#installation)
+- [Quick Start: Root Recording Setup](#quick-start-root-recording-setup)
 - [Identity vs State vs History](#identity-vs-state-vs-history)
 - [Data Model](#data-model)
 - [Recording Hierarchy](#recording-hierarchy)
@@ -25,9 +26,12 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Instrumentation](#instrumentation)
 - [Dummy Sandbox](#dummy-sandbox)
 - [Testing Guidance](#testing-guidance)
+- [Release Process](#release-process)
 - [Extension Philosophy](#extension-philosophy)
 - [Glossary](#glossary)
 - [Limitations](#limitations)
+- [Built-in Capabilities](#built-in-capabilities)
+- [Creating Custom Capabilities](#creating-custom-capabilities)
 - [Access Control](#access-control)
 
 ## Why RecordingStudio
@@ -78,6 +82,65 @@ rails db:migrate
 ```
 
 The install generator creates an initializer and mounts the engine routes.
+
+## Quick Start: Root Recording Setup
+
+If you want a fast path for host gems/apps to start using RecordingStudio, use this minimal flow.
+
+1. Define a top-level recordable (for example `Workspace`):
+
+```ruby
+class Workspace < ApplicationRecord
+end
+```
+
+2. Ensure your app sets `Current.actor` (so APIs can infer actor automatically):
+
+```ruby
+class ApplicationController < ActionController::Base
+  before_action :current_actor
+
+  private
+
+  def current_actor
+    Current.actor = current_user
+  end
+end
+```
+
+3. Create/find the root recording for that top-level recordable:
+
+```ruby
+workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
+
+root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
+  recordable: workspace,
+  parent_recording_id: nil
+)
+```
+
+4. (Recommended) Grant root-level access to the current actor:
+
+```ruby
+access = RecordingStudio::Access.create!(actor: Current.actor, role: :admin)
+
+RecordingStudio::Recording.unscoped.find_or_create_by!(
+  root_recording_id: root_recording.id,
+  parent_recording_id: root_recording.id,
+  recordable: access
+)
+```
+
+5. Create your first recording under that root:
+
+```ruby
+recording = root_recording.record(Page) do |page|
+  page.title = "Getting started"
+end
+```
+
+At this point, you can use `root_recording.revise`, `root_recording.trash`, `root_recording.restore`, and
+`RecordingStudio::Services::AccessCheck` for authorization-aware workflows.
 
 ## Identity vs State vs History
 
@@ -482,6 +545,18 @@ bin/dev
 - Assert `Event` counts and actions, not direct model mutations.
 - Use `idempotency_key` in tests for retriable flows.
 
+## Release Process
+
+RecordingStudio uses automated semantic versioning on merges to `main` through Release Please.
+
+- A Release PR is opened/updated automatically from merged changes.
+- Merging the Release PR updates `lib/recording_studio/version.rb`, updates `CHANGELOG.md`, and creates a Git tag/release.
+- Use Conventional Commits to drive version bumps:
+  - `fix:` -> patch bump
+  - `feat:` -> minor bump
+  - `feat!:` or `BREAKING CHANGE:` footer -> major bump
+- For breaking changes, include migration/upgrade notes in the PR description so release notes are actionable.
+
 ## Extension Philosophy
 
 Recording is the capability surface. All mixins should use `recording.log_event!` and never write directly to `Event`.
@@ -498,6 +573,88 @@ Recordables are immutable; history is append-only.
 
 - No built-in UI; this gem focuses on the data and service layer.
 - Storage growth is linear with history; plan retention policies accordingly.
+
+## Built-in Capabilities
+
+RecordingStudio ships with two built-in capabilities that can be enabled per recordable type.
+Capability methods are guarded and raise `RecordingStudio::CapabilityDisabled` unless the capability
+is enabled for that recording's recordable type.
+
+### Movable
+
+`Movable` allows a recording to move to a new parent recording under the same root.
+
+Enable it on a recordable model:
+
+```ruby
+class RecordingStudioPage < ApplicationRecord
+  include RecordingStudio::Capabilities::Movable.to("RecordingStudioFolder", "Workspace")
+end
+```
+
+Use it from a recording:
+
+```ruby
+recording.move_to!(new_parent: target_recording, actor: current_user)
+```
+
+- Requires `:edit` access on both the source recording and target parent recording.
+- Raises `RecordingStudio::AccessDenied` if access checks fail.
+- Only allows target parent recordable types listed in `.to(...)`.
+- Logs a `"moved"` event with `from_parent_id` and `to_parent_id` metadata.
+
+### Copyable
+
+`Copyable` duplicates the current recording's recordable and creates a new recording under a target
+parent recording in the same root.
+
+Enable it on a recordable model:
+
+```ruby
+class RecordingStudioPage < ApplicationRecord
+  include RecordingStudio::Capabilities::Copyable.to("RecordingStudioFolder", "Workspace")
+end
+```
+
+Use it from a recording:
+
+```ruby
+copied = recording.copy_to!(new_parent: target_recording, actor: current_user)
+```
+
+- Requires `:view` access on the source recording.
+- Requires `:edit` access on the target parent recording.
+- Raises `RecordingStudio::AccessDenied` if access checks fail.
+- Only allows target parent recordable types listed in `.to(...)`.
+- Logs a `"copied"` event with `source_recording_id`, `source_recordable_id`, and
+  `source_recordable_type` metadata.
+
+## Creating Custom Capabilities
+
+Host applications can build capabilities using the same pattern. The dummy app includes
+`Capabilities::Commentable` as a concrete example.
+
+1. Create a capability module with:
+   - A builder method (for example `Commentable.with(comment_class:)`) that returns a module to include on the recordable model.
+   - A `RecordingMethods` module containing methods that will be mixed into `RecordingStudio::Recording`.
+   - An `assert_capability!` guard in each recording method so behavior remains off-by-default.
+2. Register the recording methods with `RecordingStudio.register_capability(:name, RecordingMethods)`.
+3. Include the builder on your recordable models.
+4. Use the capability API from `RecordingStudio::Recording`.
+
+Example:
+
+```ruby
+class MyPage < ApplicationRecord
+  include Capabilities::Commentable.with(comment_class: "MyComment")
+end
+
+recording.comment!(body: "Great work!", actor: current_user)
+recording.comments
+```
+
+If a capability is not enabled for a recordable type, calling its recording method raises
+`RecordingStudio::CapabilityDisabled`.
 
 ## Access Control
 

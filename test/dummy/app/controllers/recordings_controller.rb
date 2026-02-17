@@ -4,7 +4,10 @@ class RecordingsController < ApplicationController
   before_action :authorize_edit_recording!, only: [ :log_event, :revert ]
 
   def index
+    root_ids = RecordingStudio::Services::AccessCheck.root_recording_ids_for(actor: current_actor, minimum_role: :view)
+
     @recordings = RecordingStudio::Recording
+      .where(root_recording_id: root_ids)
       .including_trashed
       .includes(:recordable, :root_recording, :events)
       .recent

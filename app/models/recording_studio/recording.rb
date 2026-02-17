@@ -13,6 +13,7 @@ module RecordingStudio
     has_many :events, -> { recent }, class_name: "RecordingStudio::Event", inverse_of: :recording, dependent: :destroy
 
     validate :parent_recording_root_consistency
+    validate :parent_recording_must_not_create_cycle
 
     before_create :assign_root_recording_id
     after_create :set_self_root_recording_id, if: -> { parent_recording_id.nil? && root_recording_id.nil? }
@@ -384,6 +385,18 @@ module RecordingStudio
       raise ArgumentError, "recording must belong to this root recording"
     end
 
+    def assert_parent_recording_not_self_or_descendant!(candidate_parent)
+      return if candidate_parent.nil? || id.blank?
+      raise ArgumentError, "Cannot move recording under itself" if candidate_parent.id == id
+
+      current_parent = candidate_parent
+      while current_parent
+        raise ArgumentError, "Cannot move recording under its descendant" if current_parent.id == id
+
+        current_parent = current_parent.parent_recording
+      end
+    end
+
     def enforce_recordings_scope(scope, root_id:, include_children:)
       constrained = scope.where(root_recording_id: root_id, trashed_at: nil)
       constrained = constrained.where(parent_recording_id: root_id) unless include_children
@@ -438,6 +451,32 @@ module RecordingStudio
       return if my_root == parent_recording.root_recording_id
 
       errors.add(:parent_recording_id, "must belong to the same root recording")
+    end
+
+    def parent_recording_must_not_create_cycle
+      return if parent_recording_id.nil?
+
+      if id.present? && parent_recording_id == id
+        errors.add(:parent_recording_id, "cannot be itself or a descendant recording")
+        return
+      end
+
+      return if id.blank?
+
+      visited_ids = Set.new
+      current_parent_id = parent_recording_id
+
+      while current_parent_id.present?
+        return if visited_ids.include?(current_parent_id)
+
+        if current_parent_id == id
+          errors.add(:parent_recording_id, "cannot be itself or a descendant recording")
+          return
+        end
+
+        visited_ids << current_parent_id
+        current_parent_id = self.class.unscoped.where(id: current_parent_id).pick(:parent_recording_id)
+      end
     end
   end
   # rubocop:enable Metrics/ClassLength

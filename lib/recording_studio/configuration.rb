@@ -11,6 +11,8 @@ module RecordingStudio
 
     def initialize
       @recordable_types = []
+      @capabilities = {}
+      @capability_options = {}
       @actor = -> { defined?(Current) ? Current.actor : nil }
       @impersonator = -> { defined?(Current) ? Current.impersonator : nil }
       @event_notifications_enabled = true
@@ -30,6 +32,27 @@ module RecordingStudio
 
     def recordable_types=(types)
       @recordable_types = Array(types).map { |type| type.is_a?(Class) ? type.name : type.to_s }.uniq
+    end
+
+    def enable_capability(capability, on:)
+      type_name = on.is_a?(Class) ? on.name : on.to_s
+      @capabilities[type_name] ||= Set.new
+      @capabilities[type_name].add(capability.to_sym)
+    end
+
+    def capability_enabled?(capability, for_type:)
+      type_name = for_type.is_a?(Class) ? for_type.name : for_type.to_s
+      @capabilities[type_name]&.include?(capability.to_sym) || false
+    end
+
+    def set_capability_options(capability, on:, **options)
+      type_name = on.is_a?(Class) ? on.name : on.to_s
+      @capability_options[[capability.to_sym, type_name]] = options
+    end
+
+    def capability_options(capability, for_type:)
+      type_name = for_type.is_a?(Class) ? for_type.name : for_type.to_s
+      @capability_options[[capability.to_sym, type_name]]
     end
 
     def to_h

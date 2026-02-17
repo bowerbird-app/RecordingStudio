@@ -11,6 +11,7 @@ require "recording_studio/services/example_service"
 require "recording_studio/services/access_check_class_methods"
 require "recording_studio/services/access_check"
 
+# rubocop:disable Metrics/ModuleLength, Metrics/ClassLength
 module RecordingStudio
   class << self
     def configuration
@@ -21,10 +22,38 @@ module RecordingStudio
       yield(configuration) if block_given?
     end
 
+    def registered_capabilities
+      @registered_capabilities ||= {}
+    end
+
+    def register_capability(name, mod)
+      registered_capabilities[name.to_sym] = mod
+    end
+
+    def apply_capabilities!
+      registered_capabilities.each_value do |mod|
+        next if RecordingStudio::Recording.included_modules.include?(mod)
+
+        RecordingStudio::Recording.include(mod)
+      end
+    end
+
     def register_recordable_type(name)
       type_name = name.is_a?(Class) ? name.name : name.to_s
       configuration.recordable_types = (configuration.recordable_types + [type_name]).uniq
       RecordingStudio::DelegatedTypeRegistrar.apply!
+    end
+
+    def enable_capability(capability, on:)
+      configuration.enable_capability(capability, on: on)
+    end
+
+    def set_capability_options(capability, on:, **)
+      configuration.set_capability_options(capability, on: on, **)
+    end
+
+    def capability_options(capability, for_type:)
+      configuration.capability_options(capability, for_type: for_type)
     end
 
     def record!(action:, recordable:, recording: nil, root_recording: nil, actor: nil, impersonator: nil,
@@ -131,3 +160,8 @@ module RecordingStudio
     end
   end
 end
+# rubocop:enable Metrics/ModuleLength, Metrics/ClassLength
+
+require "recording_studio/capability"
+require "recording_studio/capabilities/movable"
+require "recording_studio/capabilities/copyable"

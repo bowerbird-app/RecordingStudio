@@ -1,7 +1,7 @@
 workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
 quinn_workspace = Workspace.find_or_create_by!(name: "Quinn Workspace")
 
-default_password = "password123"
+default_password = ENV.fetch("DUMMY_SEED_PASSWORD", "change-me-please")
 
 admin_user = User.find_or_initialize_by(email: "admin@example.com")
 admin_user.name = "Admin User"
@@ -103,9 +103,7 @@ if studio_root.recordings_of(RecordingStudioComment).where(parent_recording_id: 
     "Can we add more detail to the summary?",
     "Approved from my side."
   ].each do |body|
-    studio_root.record(RecordingStudioComment, actor: actors.first, parent_recording: page_recording, metadata: { seeded: true }) do |comment|
-      comment.body = body
-    end
+    page_recording.comment!(body: body, actor: actors.first, metadata: { seeded: true })
   end
 end
 

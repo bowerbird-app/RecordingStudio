@@ -1,5 +1,5 @@
 class ActorsController < ApplicationController
-  before_action :require_admin!, only: [ :update, :switch ]
+  before_action :require_admin!, only: [ :index, :update, :switch ]
 
   def index
     user_rows = User.order(:name).map { |user| { name: user.name, email: user.email } }

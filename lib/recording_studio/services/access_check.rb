@@ -22,15 +22,20 @@ module RecordingStudio
       private
 
       def perform
-        resolved = resolve_role
-        if @role
-          required_role_value = ROLE_ORDER[@role]
-          return success(false) unless required_role_value
+        return success(false) if @actor.nil? && @role
+        return success(nil) if @actor.nil?
 
-          success(resolved.present? && ROLE_ORDER.fetch(resolved, -1) >= required_role_value)
-        else
-          success(resolved&.to_sym)
-        end
+        resolved = resolve_role
+        return success(role_satisfies_requirement?(resolved)) if @role
+
+        success(resolved&.to_sym)
+      end
+
+      def role_satisfies_requirement?(resolved)
+        required_role_value = ROLE_ORDER[@role]
+        return false unless required_role_value
+
+        resolved.present? && ROLE_ORDER.fetch(resolved, -1) >= required_role_value
       end
 
       def resolve_role
