@@ -44,7 +44,11 @@ class ActorsControllerTest < ActionDispatch::IntegrationTest
     get root_path, headers: { "User-Agent" => MODERN_UA }
 
     assert_response :success
-    assert_match(/<option[^>]*value=\"User:#{Regexp.escape(@target.id)}\"[^>]*selected=\"selected\"|<option[^>]*selected=\"selected\"[^>]*value=\"User:#{Regexp.escape(@target.id)}\"/, @response.body)
+    # rubocop:disable Layout/LineLength
+    assert_match(
+      /<option[^>]*value="User:#{Regexp.escape(@target.id)}"[^>]*selected="selected"|<option[^>]*selected="selected"[^>]*value="User:#{Regexp.escape(@target.id)}"/, @response.body
+    )
+    # rubocop:enable Layout/LineLength
   end
 
   test "top nav actor select uses stimulus autosubmit" do

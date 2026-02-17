@@ -11,6 +11,7 @@ module RecordingStudio
 
       private
 
+      # rubocop:disable Metrics/MethodLength
       def current_root_recording
         @current_root_recording ||= begin
           result = RecordingStudio::Services::RootRecordingResolver.call(
@@ -29,32 +30,35 @@ module RecordingStudio
           result.value if result.success?
         end
       end
+      # rubocop:enable Metrics/MethodLength
 
       def current_device_session
         @current_device_session ||= RecordingStudio::DeviceSession
-          .for_actor(current_actor)
-          .for_device(device_fingerprint)
-          .first
+                                    .for_actor(current_actor)
+                                    .for_device(device_fingerprint)
+                                    .first
       end
 
+      # rubocop:disable Metrics/MethodLength
       def switch_root_recording!(new_root_recording)
         session = RecordingStudio::DeviceSession.resolve(
           actor: current_actor,
           device_fingerprint: device_fingerprint,
           user_agent: request.user_agent
         )
-        
+
         old_recording_id = session.root_recording_id
         session.switch_to!(new_root_recording)
-        
+
         Rails.logger.info(
           "Workspace switched: actor_id=#{current_actor.id} actor_type=#{current_actor.class.name} " \
           "from_recording=#{old_recording_id} to_recording=#{new_root_recording.id}"
         )
-        
+
         @current_root_recording = new_root_recording
         @current_device_session = session
       end
+      # rubocop:enable Metrics/MethodLength
 
       def device_fingerprint
         cookies.signed[:rs_device_id] ||= {

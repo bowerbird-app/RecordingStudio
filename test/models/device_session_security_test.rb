@@ -36,7 +36,7 @@ class DeviceSessionSecurityTest < ActiveSupport::TestCase
       actor: @user,
       device_fingerprint: @device_fingerprint,
       root_recording: @root_recording,
-      user_agent: "A" * 300  # Exceeds 255 limit
+      user_agent: "A" * 300 # Exceeds 255 limit
     )
 
     assert_not session.valid?
@@ -160,7 +160,7 @@ class DeviceSessionSecurityTest < ActiveSupport::TestCase
   def test_cannot_switch_to_unauthorized_workspace
     workspace2 = Workspace.create!(name: "Private Workspace")
     root_recording2 = RecordingStudio::Recording.create!(recordable: workspace2)
-    # Note: NOT granting access to @user
+    # NOTE: NOT granting access to @user
 
     session = RecordingStudio::DeviceSession.resolve(
       actor: @user,
