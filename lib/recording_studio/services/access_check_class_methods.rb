@@ -4,10 +4,14 @@ module RecordingStudio
   module Services
     module AccessCheckClassMethods
       def role_for(actor:, recording:)
+        return nil unless actor
+
         call(actor: actor, recording: recording).value
       end
 
       def allowed?(actor:, recording:, role:)
+        return false unless actor
+
         call(actor: actor, recording: recording, role: role).value
       end
 

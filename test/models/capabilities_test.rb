@@ -69,6 +69,81 @@ class CapabilitiesTest < ActiveSupport::TestCase
     assert_equal target_parent.id, event.metadata["to_parent_id"]
   end
 
+  def test_move_to_rejects_self_parent
+    _, root = create_workspace_root
+    actor = create_user("editor-self@example.com")
+    grant_root_access(root: root, actor: actor, role: :edit)
+
+    folder = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |recording_folder|
+      recording_folder.name = "Self"
+    end
+
+    error = assert_raises(ArgumentError) do
+      folder.move_to!(new_parent: folder, actor: actor)
+    end
+    assert_match(/under itself/, error.message)
+  end
+
+  def test_move_to_rejects_descendant_parent
+    _, root = create_workspace_root
+    actor = create_user("editor-descendant@example.com")
+    grant_root_access(root: root, actor: actor, role: :edit)
+
+    parent_folder = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Parent"
+    end
+    child_folder = root.record(RecordingStudioFolder, actor: actor, parent_recording: parent_folder) do |folder|
+      folder.name = "Child"
+    end
+
+    error = assert_raises(ArgumentError) do
+      parent_folder.move_to!(new_parent: child_folder, actor: actor)
+    end
+    assert_match(/under its descendant/, error.message)
+  end
+
+  def test_move_to_denies_when_actor_lacks_source_edit_access
+    _, root = create_workspace_root
+    actor = create_user("move-source-deny@example.com")
+
+    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Source"
+    end
+    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Target"
+    end
+    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
+      page.title = "Move me"
+    end
+    grant_access(recording: target_parent, actor: actor, role: :edit)
+
+    error = assert_raises(RecordingStudio::AccessDenied) do
+      page_recording.move_to!(new_parent: target_parent, actor: actor)
+    end
+    assert_equal "Actor does not have edit access on the source recording", error.message
+  end
+
+  def test_move_to_denies_when_actor_lacks_target_edit_access
+    _, root = create_workspace_root
+    actor = create_user("move-target-deny@example.com")
+
+    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Source"
+    end
+    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Target"
+    end
+    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
+      page.title = "Move me"
+    end
+    grant_access(recording: page_recording, actor: actor, role: :edit)
+
+    error = assert_raises(RecordingStudio::AccessDenied) do
+      page_recording.move_to!(new_parent: target_parent, actor: actor)
+    end
+    assert_equal "Actor does not have edit access on the target recording", error.message
+  end
+
   def test_page_copy_to_creates_duplicate_and_logs_source_metadata
     _, root = create_workspace_root
     actor = create_user("copier@example.com")
@@ -94,6 +169,48 @@ class CapabilitiesTest < ActiveSupport::TestCase
     assert_equal page_recording.id, event.metadata["source_recording_id"]
     assert_equal page_recording.recordable_id, event.metadata["source_recordable_id"]
     assert_equal page_recording.recordable_type, event.metadata["source_recordable_type"]
+  end
+
+  def test_copy_to_denies_when_actor_lacks_source_view_access
+    _, root = create_workspace_root
+    actor = create_user("copy-source-deny@example.com")
+
+    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Source"
+    end
+    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Target"
+    end
+    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
+      page.title = "Copy me"
+    end
+    grant_access(recording: target_parent, actor: actor, role: :edit)
+
+    error = assert_raises(RecordingStudio::AccessDenied) do
+      page_recording.copy_to!(new_parent: target_parent, actor: actor)
+    end
+    assert_equal "Actor does not have view access on the source recording", error.message
+  end
+
+  def test_copy_to_denies_when_actor_lacks_target_edit_access
+    _, root = create_workspace_root
+    actor = create_user("copy-target-deny@example.com")
+
+    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Source"
+    end
+    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Target"
+    end
+    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
+      page.title = "Copy me"
+    end
+    grant_access(recording: page_recording, actor: actor, role: :view)
+
+    error = assert_raises(RecordingStudio::AccessDenied) do
+      page_recording.copy_to!(new_parent: target_parent, actor: actor)
+    end
+    assert_equal "Actor does not have edit access on the target recording", error.message
   end
 
   def test_page_commentable_api_creates_and_lists_comment_recordings
@@ -123,6 +240,13 @@ class CapabilitiesTest < ActiveSupport::TestCase
 
   def grant_root_access(root:, actor:, role:)
     root.record(RecordingStudio::Access, actor: actor, parent_recording: root) do |access|
+      access.actor = actor
+      access.role = role
+    end
+  end
+
+  def grant_access(recording:, actor:, role:)
+    recording.root_recording.record(RecordingStudio::Access, actor: actor, parent_recording: recording) do |access|
       access.actor = actor
       access.role = role
     end

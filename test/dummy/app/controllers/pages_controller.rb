@@ -1,7 +1,11 @@
 class PagesController < ApplicationController
   before_action :load_workspace
   before_action :load_root_recording
+  before_action :authorize_view_root!, only: %i[index]
+  before_action :authorize_edit_root!, only: %i[new create]
   before_action :load_recording, only: %i[show edit update destroy restore]
+  before_action :authorize_view_recording!, only: %i[show]
+  before_action :authorize_edit_recording!, only: %i[edit update destroy restore]
 
   def index
     scope = @root_recording.recordings_of(RecordingStudioPage)
@@ -69,5 +73,21 @@ class PagesController < ApplicationController
 
   def page_params
     params.require(:page).permit(:title, :summary)
+  end
+
+  def authorize_view_root!
+    require_root_access!(@root_recording, minimum_role: :view)
+  end
+
+  def authorize_edit_root!
+    require_root_access!(@root_recording, minimum_role: :edit)
+  end
+
+  def authorize_view_recording!
+    require_recording_access!(@recording, minimum_role: :view)
+  end
+
+  def authorize_edit_recording!
+    require_recording_access!(@recording, minimum_role: :edit)
   end
 end

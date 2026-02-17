@@ -11,7 +11,7 @@ description: Minitest coverage guidance for this gem engine.
 	- Dummy app suite: tests under `test/dummy/test/` (host-app wiring and integration behavior).
 - Always run both suites before considering work complete, so gem internals and dummy app integration are both verified.
 
-- Target 100% method coverage for all public APIs; add tests for every public method, module function, and service.
+- Target at least 94% test coverage. If coverage is below 94%, add additional tests to increase coverage until it meets or exceeds 94%.
 - For each class/module, add: happy path, failure path, edge cases, and nil/blank input tests.
 - Prefer unit tests for POROs/modules; use minimal Rails integration tests for engine wiring.
 - Use factories/fixtures sparingly; keep tests fast and deterministic.

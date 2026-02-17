@@ -1,7 +1,7 @@
 workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
 quinn_workspace = Workspace.find_or_create_by!(name: "Quinn Workspace")
 
-default_password = "password123"
+default_password = ENV.fetch("DUMMY_SEED_PASSWORD", "change-me-please")
 
 admin_user = User.find_or_initialize_by(email: "admin@example.com")
 admin_user.name = "Admin User"

@@ -13,6 +13,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Recordable Table Names](#recordable-table-names)
 - [Recordable Table Shape](#recordable-table-shape)
 - [Installation](#installation)
+- [Quick Start: Root Recording Setup](#quick-start-root-recording-setup)
 - [Identity vs State vs History](#identity-vs-state-vs-history)
 - [Data Model](#data-model)
 - [Recording Hierarchy](#recording-hierarchy)
@@ -25,6 +26,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Instrumentation](#instrumentation)
 - [Dummy Sandbox](#dummy-sandbox)
 - [Testing Guidance](#testing-guidance)
+- [Release Process](#release-process)
 - [Extension Philosophy](#extension-philosophy)
 - [Glossary](#glossary)
 - [Limitations](#limitations)
@@ -80,6 +82,65 @@ rails db:migrate
 ```
 
 The install generator creates an initializer and mounts the engine routes.
+
+## Quick Start: Root Recording Setup
+
+If you want a fast path for host gems/apps to start using RecordingStudio, use this minimal flow.
+
+1. Define a top-level recordable (for example `Workspace`):
+
+```ruby
+class Workspace < ApplicationRecord
+end
+```
+
+2. Ensure your app sets `Current.actor` (so APIs can infer actor automatically):
+
+```ruby
+class ApplicationController < ActionController::Base
+  before_action :current_actor
+
+  private
+
+  def current_actor
+    Current.actor = current_user
+  end
+end
+```
+
+3. Create/find the root recording for that top-level recordable:
+
+```ruby
+workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
+
+root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
+  recordable: workspace,
+  parent_recording_id: nil
+)
+```
+
+4. (Recommended) Grant root-level access to the current actor:
+
+```ruby
+access = RecordingStudio::Access.create!(actor: Current.actor, role: :admin)
+
+RecordingStudio::Recording.unscoped.find_or_create_by!(
+  root_recording_id: root_recording.id,
+  parent_recording_id: root_recording.id,
+  recordable: access
+)
+```
+
+5. Create your first recording under that root:
+
+```ruby
+recording = root_recording.record(Page) do |page|
+  page.title = "Getting started"
+end
+```
+
+At this point, you can use `root_recording.revise`, `root_recording.trash`, `root_recording.restore`, and
+`RecordingStudio::Services::AccessCheck` for authorization-aware workflows.
 
 ## Identity vs State vs History
 
@@ -483,6 +544,18 @@ bin/dev
 - Assert that recordables are immutable by verifying a new recordable was created on `revise`.
 - Assert `Event` counts and actions, not direct model mutations.
 - Use `idempotency_key` in tests for retriable flows.
+
+## Release Process
+
+RecordingStudio uses automated semantic versioning on merges to `main` through Release Please.
+
+- A Release PR is opened/updated automatically from merged changes.
+- Merging the Release PR updates `lib/recording_studio/version.rb`, updates `CHANGELOG.md`, and creates a Git tag/release.
+- Use Conventional Commits to drive version bumps:
+  - `fix:` -> patch bump
+  - `feat:` -> minor bump
+  - `feat!:` or `BREAKING CHANGE:` footer -> major bump
+- For breaking changes, include migration/upgrade notes in the PR description so release notes are actionable.
 
 ## Extension Philosophy
 

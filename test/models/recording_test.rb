@@ -176,6 +176,31 @@ class RecordingTest < ActiveSupport::TestCase
     assert_includes child.errors[:parent_recording_id], "must belong to the same root recording"
   end
 
+  def test_parent_recording_rejects_cycles
+    _, root = create_workspace_root
+
+    parent = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Parent"),
+      root_recording: root,
+      parent_recording: root
+    ).recording
+    child = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Child"),
+      root_recording: root,
+      parent_recording: parent
+    ).recording
+
+    parent.parent_recording = child
+    assert_not parent.valid?
+    assert_includes parent.errors[:parent_recording_id], "cannot be itself or a descendant recording"
+
+    child.parent_recording = child
+    assert_not child.valid?
+    assert_includes child.errors[:parent_recording_id], "cannot be itself or a descendant recording"
+  end
+
   private
 
   def create_workspace_root(name: "Workspace")

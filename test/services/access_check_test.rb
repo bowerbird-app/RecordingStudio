@@ -76,6 +76,13 @@ class AccessCheckTest < ActiveSupport::TestCase
     assert_not AccessCheck.allowed?(actor: @actor, recording: page_recording, role: :view)
   end
 
+  def test_nil_actor_returns_nil_role_and_false_allowed
+    page_recording = create_page_recording("Page")
+
+    assert_nil AccessCheck.role_for(actor: nil, recording: page_recording)
+    assert_not AccessCheck.allowed?(actor: nil, recording: page_recording, role: :view)
+  end
+
   # --- Access inherited from parent recording ---
 
   def test_access_inherited_from_parent

@@ -9,7 +9,6 @@
         <%= render FlatPack::EmailInput::Component.new(
           name: "#{resource_name}[email]",
           label: "Email",
-          value: "admin@example.com",
           required: true,
           autofocus: true,
           autocomplete: "email"
@@ -18,7 +17,6 @@
         <%= render FlatPack::PasswordInput::Component.new(
           name: "#{resource_name}[password]",
           label: "Password",
-          value: "password123",
           required: true,
           autocomplete: "current-password"
         ) %>

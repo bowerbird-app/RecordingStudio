@@ -75,8 +75,6 @@ Rails.application.configure do
 
   # Codespaces environment configuration
   if ENV["CODESPACES"] == "true"
-    # Relax CSRF origin check
-    config.action_controller.forgery_protection_origin_check = false
     # Allow GitHub Codespaces hosts
     config.hosts << ".app.github.dev"
   end

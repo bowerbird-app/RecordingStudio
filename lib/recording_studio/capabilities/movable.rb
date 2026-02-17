@@ -18,35 +18,44 @@ module RecordingStudio
       module RecordingMethods
         include RecordingStudio::Capability
 
-        # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
+        # rubocop:disable Metrics/MethodLength, Metrics/AbcSize, Metrics/BlockLength
         def move_to!(new_parent:, actor:, impersonator: nil, metadata: {})
-          assert_capability!(:movable)
-          assert_recording_belongs_to_root!(new_parent)
+          self.class.transaction do
+            ordered_ids = [id, new_parent.id].compact.uniq.sort
+            ordered_ids.each { |recording_id| self.class.lock.find(recording_id) }
 
-          opts = RecordingStudio.capability_options(:movable, for_type: recordable_type) || {}
-          allowed = opts.fetch(:allowed_parent_types, [])
-          unless allowed.include?(new_parent.recordable_type)
-            raise ArgumentError, "Cannot move to #{new_parent.recordable_type}; allowed: #{allowed.join(', ')}"
+            reload
+            new_parent = self.class.find(new_parent.id)
+
+            assert_capability!(:movable)
+            assert_recording_belongs_to_root!(new_parent)
+            assert_parent_recording_not_self_or_descendant!(new_parent)
+
+            opts = RecordingStudio.capability_options(:movable, for_type: recordable_type) || {}
+            allowed = opts.fetch(:allowed_parent_types, [])
+            unless allowed.include?(new_parent.recordable_type)
+              raise ArgumentError, "Cannot move to #{new_parent.recordable_type}; allowed: #{allowed.join(', ')}"
+            end
+
+            unless RecordingStudio::Services::AccessCheck.allowed?(actor: actor, recording: self, role: :edit)
+              raise RecordingStudio::AccessDenied, "Actor does not have edit access on the source recording"
+            end
+
+            unless RecordingStudio::Services::AccessCheck.allowed?(actor: actor, recording: new_parent, role: :edit)
+              raise RecordingStudio::AccessDenied, "Actor does not have edit access on the target recording"
+            end
+
+            from_id = parent_recording_id
+            log_event!(
+              action: "moved",
+              actor: actor,
+              impersonator: impersonator,
+              metadata: metadata.merge(from_parent_id: from_id, to_parent_id: new_parent.id)
+            )
+            update!(parent_recording: new_parent)
           end
-
-          unless RecordingStudio::Services::AccessCheck.allowed?(actor: actor, recording: self, role: :edit)
-            raise RecordingStudio::AccessDenied, "Actor does not have edit access on the source recording"
-          end
-
-          unless RecordingStudio::Services::AccessCheck.allowed?(actor: actor, recording: new_parent, role: :edit)
-            raise RecordingStudio::AccessDenied, "Actor does not have edit access on the target recording"
-          end
-
-          from_id = parent_recording_id
-          log_event!(
-            action: "moved",
-            actor: actor,
-            impersonator: impersonator,
-            metadata: metadata.merge(from_parent_id: from_id, to_parent_id: new_parent.id)
-          )
-          update!(parent_recording: new_parent)
         end
-        # rubocop:enable Metrics/MethodLength, Metrics/AbcSize
+        # rubocop:enable Metrics/MethodLength, Metrics/AbcSize, Metrics/BlockLength
       end
     end
   end
