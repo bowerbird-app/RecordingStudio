@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::Base
+  include RecordingStudio::Concerns::DeviceSessionConcern
+
   ALLOWED_ACTOR_TYPES = {
     "User" => User,
     "SystemActor" => SystemActor

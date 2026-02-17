@@ -11,6 +11,8 @@ Rails.application.routes.draw do
   resources :actors, only: [ :index ]
   post "actor_switch" => "actors#switch", as: :actor_switch
 
+  post "workspace_switches", to: "workspace_switches#create"
+
   resources :pages, param: :recording_id do
     post :restore, on: :member
   end
