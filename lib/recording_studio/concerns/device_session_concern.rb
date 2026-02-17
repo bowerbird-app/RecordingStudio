@@ -18,6 +18,14 @@ module RecordingStudio
             device_fingerprint: device_fingerprint,
             user_agent: request.user_agent
           )
+
+          if result.failure?
+            Rails.logger.warn(
+              "Failed to resolve root recording: #{result.error} " \
+              "(actor_id: #{current_actor&.id}, device_fingerprint: #{device_fingerprint})"
+            )
+          end
+
           result.value if result.success?
         end
       end

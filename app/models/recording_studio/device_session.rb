@@ -20,42 +20,52 @@ module RecordingStudio
     }
 
     def switch_to!(new_root_recording, minimum_role: :view)
-      unless RecordingStudio::Services::AccessCheck
-               .root_recording_ids_for(actor: actor, minimum_role: minimum_role)
-               .include?(new_root_recording.id)
-        raise RecordingStudio::AccessDenied,
-              "Actor does not have access to the target root recording"
-      end
+      transaction do
+        lock! # Lock the record
 
-      update!(
-        root_recording: new_root_recording,
-        last_active_at: Time.current
-      )
+        unless RecordingStudio::Services::AccessCheck
+                 .root_recording_ids_for(actor: actor, minimum_role: minimum_role)
+                 .include?(new_root_recording.id)
+          raise RecordingStudio::AccessDenied,
+                "Actor does not have access to the target root recording"
+        end
+
+        update!(
+          root_recording: new_root_recording,
+          last_active_at: Time.current
+        )
+      end
     end
 
     def self.resolve(actor:, device_fingerprint:, user_agent: nil)
-      session = find_or_initialize_by(
-        actor_type: actor.class.name,
-        actor_id: actor.id,
-        device_fingerprint: device_fingerprint
-      )
+      retry_count = 0
+      begin
+        session = find_or_create_by!(
+          actor_type: actor.class.name,
+          actor_id: actor.id,
+          device_fingerprint: device_fingerprint
+        ) do |s|
+          default_root_id = RecordingStudio::Services::AccessCheck
+                              .root_recording_ids_for(actor: actor)
+                              .first
 
-      if session.new_record?
-        default_root_id = RecordingStudio::Services::AccessCheck
-                            .root_recording_ids_for(actor: actor)
-                            .first
+          return nil unless default_root_id
 
-        return nil unless default_root_id
+          s.root_recording_id = default_root_id
+          s.user_agent = user_agent
+          s.last_active_at = Time.current
+        end
 
-        session.root_recording_id = default_root_id
-        session.user_agent = user_agent
-        session.last_active_at = Time.current
-        session.save!
-      else
-        session.touch(:last_active_at)
+        session.touch(:last_active_at) unless session.previously_new_record?
+        session
+      rescue ActiveRecord::RecordInvalid => e
+        # Retry once on race condition for uniqueness violation
+        if retry_count.zero? && e.record.errors[:device_fingerprint].present?
+          retry_count += 1
+          retry
+        end
+        raise
       end
-
-      session
     end
 
     private
@@ -63,8 +73,11 @@ module RecordingStudio
     def root_recording_must_be_root
       return if root_recording_id.blank?
 
-      recording = RecordingStudio::Recording.unscoped.find_by(id: root_recording_id)
-      return if recording&.parent_recording_id.nil?
+      recording = RecordingStudio::Recording.unscoped
+                    .where(parent_recording_id: nil)
+                    .find_by(id: root_recording_id)
+
+      return if recording
 
       errors.add(:root_recording, "must be a root recording (no parent)")
     end
