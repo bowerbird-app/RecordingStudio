@@ -140,6 +140,31 @@ class HelpersLogicTest < ActiveSupport::TestCase
     refute grouped.key?("System actors")
   end
 
+  test "actor_switcher_options uses current_actor when current_user differs" do
+    true_user = User.create!(
+      name: "True User Selected",
+      email: "true-user-selected-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    impersonated_user = User.create!(
+      name: "Impersonated Selected",
+      email: "imp-selected-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+
+    _grouped, selected, _label = ApplicationController.helpers.actor_switcher_options(
+      current_actor: impersonated_user,
+      current_user: true_user,
+      true_user: true_user,
+      system_actors: [],
+      impersonating: true
+    )
+
+    assert_equal "User:#{impersonated_user.id}", selected
+  end
+
   test "recordable_type_label handles class string instance and blank" do
     page = RecordingStudioPage.create!(title: "Type Page")
 
@@ -222,5 +247,28 @@ class HelpersLogicTest < ActiveSupport::TestCase
 
     assert_includes html, "🔒 Boundary (min: edit)"
     assert_includes html, "rounded bg-slate-100"
+  end
+
+  test "workspace_switcher_options returns only accessible workspaces and selected workspace" do
+    actor = User.create!(
+      name: "Workspace Actor",
+      email: "workspace-actor-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    allowed_workspace = Workspace.create!(name: "Allowed Workspace")
+    denied_workspace = Workspace.create!(name: "Denied Workspace")
+    allowed_root = RecordingStudio::Recording.create!(recordable: allowed_workspace)
+    RecordingStudio::Recording.create!(recordable: denied_workspace)
+
+    RecordingStudio::Services::AccessCheck.stub(:root_recording_ids_for, [ allowed_root.id ]) do
+      options, selected_workspace_id = ApplicationController.helpers.workspace_switcher_options(
+        current_actor: actor,
+        current_root_recording: allowed_root
+      )
+
+      assert_equal [ [ "Allowed Workspace", allowed_workspace.id ] ], options
+      assert_equal allowed_workspace.id, selected_workspace_id
+    end
   end
 end

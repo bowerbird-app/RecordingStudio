@@ -4,5 +4,9 @@ import "controllers"
 import { application } from "controllers/application"
 
 // Flatpack Stimulus Controllers
-import * as FlatPack from "flat_pack"
-FlatPack.register(application)
+import("flat_pack")
+	.then((FlatPack) => {
+		FlatPack.register(application)
+	})
+	.catch(() => {
+	})

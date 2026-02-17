@@ -20,6 +20,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Delegated Type Registration](#delegated-type-registration)
 - [Configuration](#configuration)
 - [Root Recording API](#root-recording-api)
+- [Device Sessions (Per-Device Root Persistence)](#device-sessions-per-device-root-persistence)
 - [Actors](#actors)
 - [Query API](#query-api)
 - [Generators](#generators)
@@ -345,6 +346,102 @@ Behavior is controlled by `idempotency_mode`:
 - `:raise` raises an error when the key is reused (forces explicit duplicate handling).
 
 If you don’t pass a key, every call creates a new event.
+
+## Device Sessions (Per-Device Root Persistence)
+
+RecordingStudio supports per-device root persistence using `RecordingStudio::DeviceSession`. The selected root recording is
+stored per **actor + device fingerprint**, so users can keep different active workspaces on different devices.
+
+### Database table setup
+
+The migration creates `recording_studio_device_sessions` with:
+
+- `id` (UUID primary key)
+- `actor_type` (`string`, required)
+- `actor_id` (`uuid`, required)
+- `device_fingerprint` (`string`, required)
+- `device_name` (`string`, optional)
+- `last_active_at` (`datetime`, required, defaults to `CURRENT_TIMESTAMP`)
+- `root_recording_id` (`uuid`, required)
+- `user_agent` (`string`, optional)
+- `created_at` / `updated_at`
+
+Indexes and constraints:
+
+- Unique index on `[:actor_type, :actor_id, :device_fingerprint]` (one session per actor/device pair)
+- Index on `:root_recording_id`
+- Foreign key from `root_recording_id` to `recording_studio_recordings.id`
+
+Model validation additionally ensures `root_recording_id` references a **root** recording (`parent_recording_id: nil`).
+
+### How resolution works at request time
+
+`RecordingStudio::Concerns::DeviceSessionConcern` reads `cookies.signed[:rs_device_id]`. If missing, it creates one and stores
+it with:
+
+- `expires: 2.years.from_now`
+- `httponly: true`
+- `secure: !Rails.env.development?`
+- `same_site: :lax`
+- `domain: :all`
+
+`current_root_recording` then calls `RecordingStudio::Services::RootRecordingResolver.call` with actor, fingerprint, and
+user agent.
+
+Resolver flow:
+
+1. Validate actor and fingerprint.
+2. Resolve/create session via `RecordingStudio::DeviceSession.resolve`.
+3. For new sessions, choose default root from `RecordingStudio::Services::AccessCheck.root_recording_ids_for(actor:).first`.
+4. For existing sessions, update activity with `touch(:last_active_at)`.
+5. Return the session's root recording if it exists and remains accessible.
+
+If no accessible roots exist for that actor/device, resolution fails.
+
+### Switching to a different root recording
+
+Use `switch_root_recording!(new_root_recording)` (from the concern).
+
+- It resolves the device session for the current actor/fingerprint.
+- It calls `DeviceSession#switch_to!` inside a transaction and row lock.
+- Access is enforced using `AccessCheck.root_recording_ids_for(actor:, minimum_role:)`.
+- If unauthorized, it raises `RecordingStudio::AccessDenied`.
+- If authorized, it updates `root_recording_id` and `last_active_at`.
+
+### Persistence behavior across devices
+
+Sessions are scoped to `(actor_type, actor_id, device_fingerprint)`, so each device keeps an independent selected root.
+
+- Same actor, **device A** switched to workspace 2 -> device A now resolves to workspace 2.
+- Same actor, **device B** unchanged -> device B continues resolving to its original workspace.
+
+### Access-revocation fallback
+
+If a stored `root_recording_id` is no longer accessible, resolver attempts a fallback to the first currently accessible root,
+updates the session, and returns that fallback root. If no accessible root remains, resolver returns failure.
+
+### Host app wiring (minimal)
+
+```ruby
+class ApplicationController < ActionController::Base
+  include RecordingStudio::Concerns::DeviceSessionConcern
+
+  before_action :current_actor
+end
+
+class WorkspaceSwitchesController < ApplicationController
+  def create
+    workspace = Workspace.find(params[:workspace_id])
+    root_recording = RecordingStudio::Recording.unscoped.find_by!(
+      recordable: workspace,
+      parent_recording_id: nil
+    )
+
+    switch_root_recording!(root_recording)
+    redirect_to workspace_path(workspace)
+  end
+end
+```
 
 ## Mixin / Capability Pipeline
 

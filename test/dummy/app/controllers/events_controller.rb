@@ -5,7 +5,7 @@ class EventsController < ApplicationController
     @events = RecordingStudio::Event
       .joins(:recording)
       .where(recording_studio_recordings: { root_recording_id: root_ids })
-      .includes(:recording, :recordable, :previous_recordable, :actor, :impersonator)
+      .preload(:recording, :recordable, :previous_recordable, :actor, :impersonator)
       .recent
   end
 end

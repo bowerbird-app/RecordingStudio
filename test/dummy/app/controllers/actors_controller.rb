@@ -35,6 +35,7 @@ class ActorsController < ApplicationController
       if user.present? && user.id != true_user.id
         clear_system_actor_session
         impersonate_user(user)
+        set_impersonated_user_session(user)
         redirect_back fallback_location: root_path, notice: "Now impersonating #{user.name}."
       else
         redirect_back fallback_location: root_path, alert: "Unable to impersonate that user."
@@ -51,6 +52,7 @@ class ActorsController < ApplicationController
     else
       stop_impersonating_user if impersonating?
       clear_system_actor_session
+      clear_impersonated_user_session
       redirect_back fallback_location: root_path, notice: "Stopped impersonation and system actor mode."
     end
   end
@@ -59,6 +61,7 @@ class ActorsController < ApplicationController
 
   def switch_to_system_actor(actor)
     stop_impersonating_user if impersonating?
+    clear_impersonated_user_session
     session[:actor_type] = actor.class.name
     session[:actor_id] = actor.id
   end
@@ -66,5 +69,13 @@ class ActorsController < ApplicationController
   def clear_system_actor_session
     session.delete(:actor_type)
     session.delete(:actor_id)
+  end
+
+  def set_impersonated_user_session(user)
+    session[:impersonated_user_id] = user.id
+  end
+
+  def clear_impersonated_user_session
+    session.delete(:impersonated_user_id)
   end
 end

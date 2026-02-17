@@ -148,6 +148,54 @@ class ControllerLogicTest < ActiveSupport::TestCase
     assert controller.send(:impersonating?)
   end
 
+  test "application controller current_actor uses pretender impersonated user when session key is missing" do
+    admin = User.create!(
+      name: "Pretender Admin",
+      email: "pret-admin-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    impersonated = User.create!(
+      name: "Pretender User",
+      email: "pret-user-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    controller = ApplicationController.new
+    session_hash = {}
+    controller.singleton_class.send(:define_method, :session) { session_hash.with_indifferent_access }
+    controller.singleton_class.send(:define_method, :current_user) { impersonated }
+    controller.singleton_class.send(:define_method, :true_user) { admin }
+
+    resolved = controller.send(:current_actor)
+
+    assert_equal impersonated, resolved
+    assert_equal impersonated, Current.actor
+    assert_equal admin, Current.impersonator
+  end
+
+  test "application controller impersonating returns true when pretender impersonation is active" do
+    admin = User.create!(
+      name: "Pretender Admin Flag",
+      email: "pret-admin-flag-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    impersonated = User.create!(
+      name: "Pretender User Flag",
+      email: "pret-user-flag-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    controller = ApplicationController.new
+    session_hash = {}
+    controller.singleton_class.send(:define_method, :session) { session_hash.with_indifferent_access }
+    controller.singleton_class.send(:define_method, :current_user) { impersonated }
+    controller.singleton_class.send(:define_method, :true_user) { admin }
+
+    assert controller.send(:impersonating?)
+  end
+
   test "application controller admin_user reflects true_user admin flag" do
     admin = User.create!(
       name: "Admin",
@@ -218,6 +266,99 @@ class ControllerLogicTest < ActiveSupport::TestCase
     controller.singleton_class.send(:define_method, :session) { session_hash.with_indifferent_access }
 
     assert_nil controller.send(:system_actor_from_session)
+  end
+
+  test "actors switch stores impersonated user in session" do
+    controller = ActorsController.new
+    admin = User.create!(
+      name: "Admin Actor",
+      email: "admin-actor-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      admin: true
+    )
+    target_user = User.create!(
+      name: "Quinn Writer",
+      email: "quinn-writer-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    redirects = []
+    impersonated = []
+    session_hash = ActiveSupport::HashWithIndifferentAccess.new
+
+    controller.singleton_class.send(:define_method, :session) { session_hash }
+    controller.singleton_class.send(:define_method, :params) { ActionController::Parameters.new(actor_selection: "User:#{target_user.id}") }
+    controller.singleton_class.send(:define_method, :true_user) { admin }
+    controller.singleton_class.send(:define_method, :root_path) { "/" }
+    controller.singleton_class.send(:define_method, :impersonating?) { false }
+    controller.singleton_class.send(:define_method, :impersonate_user) { |user| impersonated << user }
+    controller.singleton_class.send(:define_method, :redirect_back) { |*args, **kwargs| redirects << { args: args, kwargs: kwargs } }
+
+    controller.switch
+
+    assert_equal target_user.id, session_hash[:impersonated_user_id]
+    assert_equal [ target_user ], impersonated
+    assert_equal "Now impersonating #{target_user.name}.", redirects.first[:kwargs][:notice]
+  end
+
+  test "actors switch stores impersonated user after session reset in impersonate_user" do
+    controller = ActorsController.new
+    admin = User.create!(
+      name: "Admin Actor 2",
+      email: "admin-actor-2-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123",
+      admin: true
+    )
+    target_user = User.create!(
+      name: "Quinn Writer 2",
+      email: "quinn-writer-2-#{SecureRandom.hex(4)}@example.com",
+      password: "password123",
+      password_confirmation: "password123"
+    )
+    redirects = []
+    session_hash = ActiveSupport::HashWithIndifferentAccess.new(actor_type: "SystemActor", actor_id: SecureRandom.uuid)
+
+    controller.singleton_class.send(:define_method, :session) { session_hash }
+    controller.singleton_class.send(:define_method, :params) { ActionController::Parameters.new(actor_selection: "User:#{target_user.id}") }
+    controller.singleton_class.send(:define_method, :true_user) { admin }
+    controller.singleton_class.send(:define_method, :root_path) { "/" }
+    controller.singleton_class.send(:define_method, :impersonating?) { false }
+    controller.singleton_class.send(:define_method, :impersonate_user) do |_user|
+      session_hash.clear
+    end
+    controller.singleton_class.send(:define_method, :redirect_back) { |*args, **kwargs| redirects << { args: args, kwargs: kwargs } }
+
+    controller.switch
+
+    assert_equal target_user.id, session_hash[:impersonated_user_id]
+    assert_equal "Now impersonating #{target_user.name}.", redirects.first[:kwargs][:notice]
+  end
+
+  test "actors switch to system actor clears impersonated user session" do
+    controller = ActorsController.new
+    system_actor = SystemActor.create!(name: "System Mode")
+    redirects = []
+    session_hash = ActiveSupport::HashWithIndifferentAccess.new(
+      impersonated_user_id: @user.id,
+      actor_type: nil,
+      actor_id: nil
+    )
+
+    controller.singleton_class.send(:define_method, :session) { session_hash }
+    controller.singleton_class.send(:define_method, :params) { ActionController::Parameters.new(actor_selection: "SystemActor:#{system_actor.id}") }
+    controller.singleton_class.send(:define_method, :root_path) { "/" }
+    controller.singleton_class.send(:define_method, :impersonating?) { true }
+    controller.singleton_class.send(:define_method, :stop_impersonating_user) { true }
+    controller.singleton_class.send(:define_method, :redirect_back) { |*args, **kwargs| redirects << { args: args, kwargs: kwargs } }
+
+    controller.switch
+
+    assert_nil session_hash[:impersonated_user_id]
+    assert_equal "SystemActor", session_hash[:actor_type]
+    assert_equal system_actor.id, session_hash[:actor_id]
+    assert_equal "Switched to #{system_actor.name}.", redirects.first[:kwargs][:notice]
   end
 
   test "application controller actor_from_session delegates to system_actor_from_session" do
@@ -808,5 +949,51 @@ class ControllerLogicTest < ActiveSupport::TestCase
     refute controller.send(:better_access_grant?, older_recording, newer_recording)
     refute controller.send(:better_access_grant?, Struct.new(:recordable).new(nil), older_recording)
     assert controller.send(:better_access_grant?, newer_recording, Struct.new(:recordable).new(nil))
+  end
+
+  test "workspace switches create switches to accessible workspace" do
+    controller = WorkspaceSwitchesController.new
+    actor = @user
+    redirects = []
+    switched_roots = []
+    target_workspace = Workspace.create!(name: "Target Workspace")
+    target_root = RecordingStudio::Recording.create!(recordable: target_workspace)
+
+    controller.singleton_class.send(:define_method, :current_actor) { actor }
+    controller.singleton_class.send(:define_method, :params) { ActionController::Parameters.new(workspace_id: target_workspace.id) }
+    controller.singleton_class.send(:define_method, :workspace_path) { |workspace| "/workspaces/#{workspace.id}" }
+    controller.singleton_class.send(:define_method, :redirect_to) { |*args, **kwargs| redirects << { args: args, kwargs: kwargs } }
+    controller.singleton_class.send(:define_method, :switch_root_recording!) { |root| switched_roots << root }
+
+    RecordingStudio::Services::AccessCheck.stub(:root_recording_ids_for, [ target_root.id ]) do
+      controller.create
+    end
+
+    assert_equal [ target_root ], switched_roots
+    assert_equal "/workspaces/#{target_workspace.id}", redirects.first[:args].first
+    assert_equal "Switched to #{target_workspace.name}", redirects.first[:kwargs][:notice]
+  end
+
+  test "workspace switches create denies inaccessible workspace" do
+    controller = WorkspaceSwitchesController.new
+    actor = @user
+    redirects = []
+    target_workspace = Workspace.create!(name: "Denied Target Workspace")
+    RecordingStudio::Recording.create!(recordable: target_workspace)
+
+    controller.singleton_class.send(:define_method, :current_actor) { actor }
+    controller.singleton_class.send(:define_method, :params) { ActionController::Parameters.new(workspace_id: target_workspace.id) }
+    controller.singleton_class.send(:define_method, :workspaces_path) { "/workspaces" }
+    controller.singleton_class.send(:define_method, :redirect_to) { |*args, **kwargs| redirects << { args: args, kwargs: kwargs } }
+    controller.singleton_class.send(:define_method, :switch_root_recording!) do |_root|
+      raise "switch_root_recording! should not be called for inaccessible workspace"
+    end
+
+    RecordingStudio::Services::AccessCheck.stub(:root_recording_ids_for, []) do
+      controller.create
+    end
+
+    assert_equal "/workspaces", redirects.first[:args].first
+    assert_equal "You don't have access to that workspace.", redirects.first[:kwargs][:alert]
   end
 end

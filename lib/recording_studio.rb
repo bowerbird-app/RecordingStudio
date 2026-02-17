@@ -10,6 +10,8 @@ require "recording_studio/services/base_service"
 require "recording_studio/services/example_service"
 require "recording_studio/services/access_check_class_methods"
 require "recording_studio/services/access_check"
+require "recording_studio/services/root_recording_resolver"
+require "recording_studio/concerns/device_session_concern"
 
 # rubocop:disable Metrics/ModuleLength, Metrics/ClassLength
 module RecordingStudio

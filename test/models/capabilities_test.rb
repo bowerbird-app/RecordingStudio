@@ -16,6 +16,7 @@ class CapabilitiesTest < ActiveSupport::TestCase
     RecordingStudio.apply_capabilities!
 
     RecordingStudio::Event.delete_all
+    RecordingStudio::DeviceSession.delete_all
     RecordingStudio::Recording.delete_all
     RecordingStudio::Access.delete_all
     RecordingStudioPage.delete_all

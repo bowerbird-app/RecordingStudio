@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::Base
+  include RecordingStudio::Concerns::DeviceSessionConcern
+
   ALLOWED_ACTOR_TYPES = {
     "User" => User,
     "SystemActor" => SystemActor
@@ -57,7 +59,7 @@ class ApplicationController < ActionController::Base
 
   def resolve_actor_context
     system_actor = system_actor_from_session
-    impersonated_user = impersonated_user_from_session
+    impersonated_user = impersonated_user_from_session || impersonated_user_from_pretender
 
     if system_actor
       [ system_actor, nil ]
@@ -69,7 +71,7 @@ class ApplicationController < ActionController::Base
   end
 
   def impersonating?
-    impersonated_user_from_session.present?
+    impersonated_user_from_session.present? || impersonated_user_from_pretender.present?
   end
 
   def admin_user?
@@ -92,6 +94,13 @@ class ApplicationController < ActionController::Base
     @impersonated_user_from_session = if session[:impersonated_user_id].present?
       User.find_by(id: session[:impersonated_user_id])
     end
+  end
+
+  def impersonated_user_from_pretender
+    return unless current_user.present? && true_user.present?
+    return if current_user == true_user
+
+    current_user
   end
 
   def actor_from_key(value)

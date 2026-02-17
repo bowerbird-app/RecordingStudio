@@ -10,6 +10,20 @@ end
 ENV["SECRET_KEY_BASE"] ||= SecureRandom.hex(64)
 ENV["RAILS_ENV"] = "test"
 ENV["RACK_ENV"] = "test"
+ENV["DB_USER"] ||= "postgres"
+ENV["DB_PASSWORD"] ||= "postgres"
+ENV["DB_HOST"] ||= "localhost"
+ENV["DB_PORT"] ||= "5432"
+ENV["DB_NAME_TEST"] ||= ENV.fetch("DB_NAME", "gem_template_test")
+db_user = ENV.fetch("DB_USER", nil)
+db_password = ENV.fetch("DB_PASSWORD", nil)
+db_host = ENV.fetch("DB_HOST", nil)
+db_port = ENV.fetch("DB_PORT", nil)
+db_name_test = ENV.fetch("DB_NAME_TEST", nil)
+
+ENV["PGUSER"] ||= db_user
+ENV["PGPASSWORD"] ||= db_password
+ENV["DATABASE_URL"] ||= "postgres://#{db_user}:#{db_password}@#{db_host}:#{db_port}/#{db_name_test}"
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift File.expand_path("../app/models", __dir__)

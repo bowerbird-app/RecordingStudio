@@ -5,6 +5,7 @@ require "test_helper"
 class ImpersonationEventTest < ActiveSupport::TestCase
   def setup
     RecordingStudio::Event.delete_all
+    RecordingStudio::DeviceSession.delete_all
     RecordingStudio::Recording.delete_all
     RecordingStudioPage.delete_all
     Workspace.delete_all
