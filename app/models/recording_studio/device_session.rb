@@ -9,6 +9,7 @@ module RecordingStudio
 
     validates :device_fingerprint, presence: true
     validates :device_fingerprint, uniqueness: { scope: %i[actor_type actor_id] }
+    validates :user_agent, length: { maximum: 255 }, allow_blank: true
     validate :root_recording_must_be_root
 
     scope :for_actor, ->(actor) {
@@ -23,9 +24,11 @@ module RecordingStudio
       transaction do
         lock! # Lock the record
 
-        unless RecordingStudio::Services::AccessCheck
-                 .root_recording_ids_for(actor: actor, minimum_role: minimum_role)
-                 .include?(new_root_recording.id)
+        accessible_ids = RecordingStudio::Services::AccessCheck
+                          .root_recording_ids_for(actor: actor, minimum_role: minimum_role)
+                          .to_set
+
+        unless accessible_ids.include?(new_root_recording.id)
           raise RecordingStudio::AccessDenied,
                 "Actor does not have access to the target root recording"
         end
@@ -52,7 +55,7 @@ module RecordingStudio
           return nil unless default_root_id
 
           s.root_recording_id = default_root_id
-          s.user_agent = user_agent
+          s.user_agent = user_agent&.slice(0, 255)
           s.last_active_at = Time.current
         end
 
