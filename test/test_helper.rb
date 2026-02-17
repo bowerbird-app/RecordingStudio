@@ -15,9 +15,15 @@ ENV["DB_PASSWORD"] ||= "postgres"
 ENV["DB_HOST"] ||= "localhost"
 ENV["DB_PORT"] ||= "5432"
 ENV["DB_NAME_TEST"] ||= ENV.fetch("DB_NAME", "gem_template_test")
-ENV["PGUSER"] ||= ENV["DB_USER"]
-ENV["PGPASSWORD"] ||= ENV["DB_PASSWORD"]
-ENV["DATABASE_URL"] ||= "postgres://#{ENV["DB_USER"]}:#{ENV["DB_PASSWORD"]}@#{ENV["DB_HOST"]}:#{ENV["DB_PORT"]}/#{ENV["DB_NAME_TEST"]}"
+db_user = ENV.fetch("DB_USER", nil)
+db_password = ENV.fetch("DB_PASSWORD", nil)
+db_host = ENV.fetch("DB_HOST", nil)
+db_port = ENV.fetch("DB_PORT", nil)
+db_name_test = ENV.fetch("DB_NAME_TEST", nil)
+
+ENV["PGUSER"] ||= db_user
+ENV["PGPASSWORD"] ||= db_password
+ENV["DATABASE_URL"] ||= "postgres://#{db_user}:#{db_password}@#{db_host}:#{db_port}/#{db_name_test}"
 
 $LOAD_PATH.unshift File.expand_path("../lib", __dir__)
 $LOAD_PATH.unshift File.expand_path("../app/models", __dir__)
