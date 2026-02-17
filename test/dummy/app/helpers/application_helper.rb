@@ -1,9 +1,23 @@
 module ApplicationHelper
+  def workspace_switcher_options(current_actor:, current_root_recording:)
+    return [ [], nil ] if current_actor.blank?
+
+    root_ids = RecordingStudio::Services::AccessCheck.root_recording_ids_for(actor: current_actor)
+    workspace_ids = RecordingStudio::Recording.unscoped.where(id: root_ids, recordable_type: "Workspace").pluck(:recordable_id)
+    options = Workspace.where(id: workspace_ids).order(:name).map { |workspace| [ workspace.name, workspace.id ] }
+
+    selected_workspace_id = if current_root_recording&.recordable_type == "Workspace"
+      current_root_recording.recordable_id
+    end
+
+    [ options, selected_workspace_id ]
+  end
+
   def actor_switcher_options(current_actor:, current_user:, true_user:, system_actors:, impersonating:)
     selected = if current_actor.is_a?(SystemActor)
       "SystemActor:#{current_actor.id}"
-    elsif impersonating
-      "User:#{current_user.id}"
+    elsif impersonating && current_actor.is_a?(User)
+      "User:#{current_actor.id}"
     else
       ""
     end

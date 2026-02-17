@@ -123,6 +123,22 @@
           <header class="sticky top-0 z-10 bg-[#FCFDFD]/90 backdrop-blur">
             <div class="mx-auto flex w-full max-w-6xl items-center justify-end px-6 py-4">
               <div class="flex items-center gap-3">
+                <% workspace_options, selected_workspace_id = workspace_switcher_options(
+                  current_actor: current_actor,
+                  current_root_recording: current_root_recording
+                ) %>
+
+                <% if workspace_options.any? %>
+                  <%= form_with url: workspace_switches_path, method: :post, local: true, data: { turbo: false, controller: "autosubmit" }, class: "flex items-center gap-3" do |form| %>
+                    <%= form.label :workspace_id, "Workspace", class: "text-sm font-medium text-slate-500" %>
+                    <%= form.select :workspace_id,
+                      options_for_select(workspace_options, selected_workspace_id),
+                      {},
+                      class: "rounded-md border border-slate-200 bg-white/80 px-3 py-2 text-sm backdrop-blur",
+                      data: { action: "change->autosubmit#submit" } %>
+                  <% end %>
+                <% end %>
+
                 <% if admin_user? %>
                   <% grouped_options, selected_actor_selection, blank_label = actor_switcher_options(
                     current_actor: current_actor,
@@ -132,9 +148,9 @@
                     impersonating: impersonating?
                   ) %>
 
-                  <%= form_with url: actor_switch_path, method: :post, local: true, class: "flex items-center gap-3" do |form| %>
+                  <%= form_with url: actor_switch_path, method: :post, local: true, data: { turbo: false, controller: "autosubmit" }, class: "flex items-center gap-3" do |form| %>
                     <%= form.label :actor_selection, "Actor", class: "text-sm font-medium text-slate-500" %>
-                    <%= form.select :actor_selection, grouped_options_for_select(grouped_options, selected_actor_selection), { include_blank: blank_label }, class: "rounded-md border border-slate-200 bg-white/80 px-3 py-2 text-sm backdrop-blur", onchange: "this.form.requestSubmit()" %>
+                    <%= form.select :actor_selection, grouped_options_for_select(grouped_options, selected_actor_selection), { include_blank: blank_label }, class: "rounded-md border border-slate-200 bg-white/80 px-3 py-2 text-sm backdrop-blur", data: { action: "change->autosubmit#submit" } %>
                   <% end %>
                 <% end %>
               </div>

@@ -5,10 +5,15 @@
     <% end %>
 
     <% card.body do %>
+      <% prefill_credentials = Rails.env.development? || Rails.env.test? %>
+      <% prefill_email = prefill_credentials ? ENV.fetch("DUMMY_SIGN_IN_EMAIL", "admin@example.com") : nil %>
+      <% prefill_password = prefill_credentials ? ENV.fetch("DUMMY_SEED_PASSWORD", "change-me-please") : nil %>
+
       <%= form_with(model: resource, as: resource_name, url: session_path(resource_name), data: { turbo: false }, class: "space-y-4") do |f| %>
         <%= render FlatPack::EmailInput::Component.new(
           name: "#{resource_name}[email]",
           label: "Email",
+          value: prefill_email,
           required: true,
           autofocus: true,
           autocomplete: "email"
@@ -17,6 +22,7 @@
         <%= render FlatPack::PasswordInput::Component.new(
           name: "#{resource_name}[password]",
           label: "Password",
+          value: prefill_password,
           required: true,
           autocomplete: "current-password"
         ) %>

@@ -36,7 +36,7 @@
   },
   "remoteUser": "root",
   "features": {},
-  "postCreateCommand": "git lfs install && cd test/dummy && bundle install && bundle exec rails db:prepare && bundle exec rails tailwindcss:build",
+  "postCreateCommand": "git lfs install && npm install && npx playwright install --with-deps chromium && cd test/dummy && bundle install && bundle exec rails db:prepare && bundle exec rails tailwindcss:build",
   "env": {
     "CODESPACES": "true"
   }
