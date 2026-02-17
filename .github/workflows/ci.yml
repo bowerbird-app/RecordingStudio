@@ -11,8 +11,12 @@ jobs:
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_NAME: gem_template_test
+      DB_NAME_TEST: gem_template_test
       DB_HOST: localhost
       DB_PORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/gem_template_test
     
     permissions:
       contents: read
@@ -53,25 +57,19 @@ jobs:
       working-directory: test/dummy
       env:
         BUNDLE_GITHUB__COM: x-access-token:${{ secrets.BOWERBIRD_ORG_CI_TOKEN }}
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/gem_template_test
     
     - name: Run database migrations
       run: bundle exec rake db:migrate RAILS_ENV=test
       working-directory: test/dummy
-      env:
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/gem_template_test
 
     - name: Build Tailwind assets
       run: bundle exec rails tailwindcss:build
       working-directory: test/dummy
       env:
         RAILS_ENV: test
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/gem_template_test
 
     - name: Run RuboCop
       run: bundle exec rubocop
 
     - name: Run tests
       run: bundle exec rake app:test
-      env:
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/gem_template_test
