@@ -12,8 +12,8 @@ class DeviceSessionTest < ActiveSupport::TestCase
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     RecordingStudio::Event.delete_all
-    RecordingStudio::Recording.unscoped.delete_all
     RecordingStudio::DeviceSession.delete_all
+    RecordingStudio::Recording.unscoped.delete_all
     RecordingStudio::Access.delete_all
     Workspace.delete_all
     User.delete_all
@@ -154,6 +154,7 @@ class DeviceSessionTest < ActiveSupport::TestCase
       actor: @user,
       device_fingerprint: device2
     )
+    session2_initial_root_id = session2.root_recording_id
 
     session1.switch_to!(root_recording2)
 
@@ -162,7 +163,7 @@ class DeviceSessionTest < ActiveSupport::TestCase
 
     assert_not_equal session1.id, session2.id
     assert_equal root_recording2.id, session1.root_recording_id
-    assert_equal @root_recording.id, session2.root_recording_id
+    assert_equal session2_initial_root_id, session2.root_recording_id
   end
 
   def test_validates_root_recording_must_be_root

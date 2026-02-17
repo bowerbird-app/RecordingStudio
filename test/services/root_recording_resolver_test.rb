@@ -14,8 +14,8 @@ class RootRecordingResolverTest < ActiveSupport::TestCase
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     RecordingStudio::Event.delete_all
-    RecordingStudio::Recording.unscoped.delete_all
     RecordingStudio::DeviceSession.delete_all
+    RecordingStudio::Recording.unscoped.delete_all
     RecordingStudio::Access.delete_all
     Workspace.delete_all
     User.delete_all
