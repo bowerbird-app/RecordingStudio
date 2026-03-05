@@ -9,6 +9,8 @@ module RecordingStudio
           extend ActiveSupport::Concern
 
           included do |base|
+            next unless RecordingStudio.features.move?
+
             RecordingStudio.enable_capability(:movable, on: base.name)
             RecordingStudio.set_capability_options(:movable, on: base.name, allowed_parent_types: type_names)
           end
@@ -27,6 +29,11 @@ module RecordingStudio
             reload
             new_parent = self.class.find(new_parent.id)
 
+            unless RecordingStudio.features.move?
+              raise RecordingStudio::CapabilityDisabled, "Legacy move feature is disabled"
+            end
+
+            RecordingStudio.warn_legacy_feature_use!(:move, used_by: "RecordingStudio::Recording#move_to!")
             assert_capability!(:movable)
             assert_recording_belongs_to_root!(new_parent)
             assert_parent_recording_not_self_or_descendant!(new_parent)

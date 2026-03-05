@@ -9,6 +9,8 @@ module RecordingStudio
           extend ActiveSupport::Concern
 
           included do |base|
+            next unless RecordingStudio.features.copyable?
+
             RecordingStudio.enable_capability(:copyable, on: base.name)
             RecordingStudio.set_capability_options(:copyable, on: base.name, allowed_parent_types: type_names)
           end
@@ -27,6 +29,7 @@ module RecordingStudio
             reload
             new_parent = self.class.find(new_parent.id)
 
+            assert_copyable_feature_enabled!
             assert_capability!(:copyable)
             assert_recording_belongs_to_root!(new_parent)
 
@@ -63,6 +66,16 @@ module RecordingStudio
           end
         end
         # rubocop:enable Metrics/MethodLength, Metrics/AbcSize, Metrics/BlockLength
+
+        private
+
+        def assert_copyable_feature_enabled!
+          unless RecordingStudio.features.copyable?
+            raise RecordingStudio::CapabilityDisabled, "Legacy copyable feature is disabled"
+          end
+
+          RecordingStudio.warn_legacy_feature_use!(:copyable, used_by: "RecordingStudio::Recording#copy_to!")
+        end
       end
     end
   end

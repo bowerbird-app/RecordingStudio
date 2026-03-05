@@ -14,6 +14,7 @@ module RecordingStudio
       RecordingStudio::Hooks.run(:before_initialize, self)
     end
 
+    # rubocop:disable Metrics/BlockLength
     initializer "recording_studio.load_config" do |app|
       # Load config/recording_studio.yml via Rails config_for if present
       if app.respond_to?(:config_for)
@@ -46,9 +47,12 @@ module RecordingStudio
         end
       end
 
+      RecordingStudio.warn_legacy_addon_conflicts!
+
       # Run on_configuration hooks after config is loaded
       RecordingStudio::Hooks.run(:on_configuration, RecordingStudio.configuration)
     end
+    # rubocop:enable Metrics/BlockLength
 
     # Run after_initialize hooks
     initializer "recording_studio.after_initialize", after: "recording_studio.load_config" do |_app|

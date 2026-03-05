@@ -12,9 +12,12 @@ module RecordingStudio
 
       private
 
-      # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+      # rubocop:disable Metrics/AbcSize, Metrics/MethodLength, Metrics/CyclomaticComplexity
       def perform
         return failure("Actor is required") unless @actor
+
+        return resolve_without_device_sessions unless RecordingStudio.features.device_sessions?
+
         return failure("Device fingerprint is required") if @device_fingerprint.blank?
 
         session = RecordingStudio::DeviceSession.resolve(
@@ -48,7 +51,17 @@ module RecordingStudio
 
         success(root_recording)
       end
-      # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
+      # rubocop:enable Metrics/AbcSize, Metrics/MethodLength, Metrics/CyclomaticComplexity
+
+      def resolve_without_device_sessions
+        root_id = RecordingStudio::Services::AccessCheck.root_recording_ids_for(actor: @actor).first
+        return failure("No accessible root recordings found") unless root_id
+
+        root_recording = RecordingStudio::Recording.unscoped.find_by(id: root_id)
+        return failure("Root recording no longer exists") unless root_recording
+
+        success(root_recording)
+      end
     end
   end
 end
