@@ -27,7 +27,7 @@ class HelpersLogicTest < ActiveSupport::TestCase
     )
 
     assert_equal "SystemActor:#{system_actor.id}", selected
-    assert_equal "Signed in as #{true_user.name}", label
+    assert_equal "Sign out", label
     assert_includes grouped.fetch("Users"), [ other_user.name, "User:#{other_user.id}" ]
     assert_includes grouped.fetch("System actors"), [ "#{system_actor.name} (System)", "SystemActor:#{system_actor.id}" ]
   end

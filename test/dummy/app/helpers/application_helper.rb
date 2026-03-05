@@ -27,7 +27,7 @@ module ApplicationHelper
     grouped_options = { "Users" => user_options }
     grouped_options["System actors"] = system_options if system_options.any?
 
-    [ grouped_options, selected, "Signed in as #{true_user.name}" ]
+    [ grouped_options, selected, "Sign out" ]
   end
 
   def actor_label(actor)
