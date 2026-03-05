@@ -202,7 +202,18 @@ RecordingStudio.configure do |config|
   # Include child recordings by default when trashing/restoring
   config.include_children = true
   config.recordable_dup_strategy = :dup
+  config.features.move = true
+  config.features.copyable = true
+  config.features.device_sessions = true
 end
+```
+
+You can query feature state at runtime with:
+
+```ruby
+RecordingStudio.features.move?
+RecordingStudio.features.copyable?
+RecordingStudio.features.device_sessions?
 ```
 
 ### Configuration Notes
@@ -212,6 +223,22 @@ end
   the key matches, so callers must handle duplicates explicitly.
 - `include_children`: When `true`, `trash` and `restore` will include child recordings by default.
 - `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
+- `features.move`, `features.copyable`, `features.device_sessions`: Legacy built-in feature flags. All default to `true`
+  for backward compatibility.
+
+### Migrating legacy features to addons
+
+RecordingStudio keeps legacy built-in `move`, `copyable`, and `device_sessions` enabled by default.
+If you install addon gems (`recording-studio-move`, `recording-studio-copy`, `recording-studio-device-sessions`),
+disable the corresponding built-in feature to avoid overlap:
+
+```ruby
+RecordingStudio.configure do |config|
+  config.features.move = false
+  config.features.copyable = false
+  config.features.device_sessions = false
+end
+```
 
 ## Root Recording API
 
@@ -351,6 +378,9 @@ If you don’t pass a key, every call creates a new event.
 
 RecordingStudio supports per-device root persistence using `RecordingStudio::DeviceSession`. The selected root recording is
 stored per **actor + device fingerprint**, so users can keep different active workspaces on different devices.
+
+If `config.features.device_sessions = false`, request-time resolution skips device session tracking entirely and picks the
+first accessible root recording for the current actor without creating cookies or `DeviceSession` rows.
 
 ### Database table setup
 
@@ -676,6 +706,15 @@ Recordables are immutable; history is append-only.
 RecordingStudio ships with two built-in capabilities that can be enabled per recordable type.
 Capability methods are guarded and raise `RecordingStudio::CapabilityDisabled` unless the capability
 is enabled for that recording's recordable type.
+
+Both capabilities are legacy built-ins. If you are migrating to addon gems, disable them in configuration:
+
+```ruby
+RecordingStudio.configure do |config|
+  config.features.move = false
+  config.features.copyable = false
+end
+```
 
 ### Movable
 

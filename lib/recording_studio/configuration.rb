@@ -4,11 +4,63 @@ require_relative "hooks"
 
 module RecordingStudio
   class Configuration
+    class Features
+      attr_reader :move, :copyable, :device_sessions
+
+      def initialize
+        @move = true
+        @copyable = true
+        @device_sessions = true
+      end
+
+      def move=(value)
+        @move = !!value
+      end
+
+      def copyable=(value)
+        @copyable = !!value
+      end
+
+      def device_sessions=(value)
+        @device_sessions = !!value
+      end
+
+      def move?
+        move
+      end
+
+      def copyable?
+        copyable
+      end
+
+      def device_sessions?
+        device_sessions
+      end
+
+      def merge!(hash)
+        return unless hash.respond_to?(:each)
+
+        hash.each do |k, v|
+          setter = "#{k}="
+          public_send(setter, v) if respond_to?(setter)
+        end
+      end
+
+      def to_h
+        {
+          move: move,
+          copyable: copyable,
+          device_sessions: device_sessions
+        }
+      end
+    end
+
     attr_accessor :actor, :impersonator, :event_notifications_enabled,
                   :idempotency_mode, :recordable_dup_strategy,
                   :include_children
-    attr_reader :recordable_types, :hooks
+    attr_reader :recordable_types, :hooks, :features
 
+    # rubocop:disable Metrics/MethodLength
     def initialize
       @recordable_types = []
       @capabilities = {}
@@ -20,7 +72,9 @@ module RecordingStudio
       @recordable_dup_strategy = :dup
       @include_children = false
       @hooks = Hooks.new
+      @features = Features.new
     end
+    # rubocop:enable Metrics/MethodLength
 
     def instrumentation_enabled
       event_notifications_enabled
@@ -62,6 +116,7 @@ module RecordingStudio
         idempotency_mode: idempotency_mode,
         include_children: include_children,
         recordable_dup_strategy: recordable_dup_strategy,
+        features: features.to_h,
         hooks_registered: hooks.instance_variable_get(:@registry).transform_values(&:size)
       }
     end
@@ -71,6 +126,11 @@ module RecordingStudio
 
       hash.each do |k, v|
         key = k.to_s
+        if key == "features"
+          features.merge!(v)
+          next
+        end
+
         setter = "#{key}="
         public_send(setter, v) if respond_to?(setter)
       end

@@ -7,6 +7,8 @@ class RootRecordingResolverTest < ActiveSupport::TestCase
 
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
+    @original_device_sessions_flag = RecordingStudio.features.device_sessions?
+    RecordingStudio.features.device_sessions = true
     RecordingStudio.configuration.recordable_types = %w[
       Workspace RecordingStudioPage
       RecordingStudio::Access RecordingStudio::AccessBoundary
@@ -29,6 +31,7 @@ class RootRecordingResolverTest < ActiveSupport::TestCase
   end
 
   def teardown
+    RecordingStudio.features.device_sessions = @original_device_sessions_flag
     RecordingStudio.configuration.recordable_types = @original_types
   end
 
@@ -112,6 +115,19 @@ class RootRecordingResolverTest < ActiveSupport::TestCase
 
     assert result.failure?
     assert_equal "No accessible root recordings found", result.error
+  end
+
+  def test_resolves_without_creating_device_session_when_device_sessions_feature_disabled
+    RecordingStudio.features.device_sessions = false
+
+    result = RootRecordingResolver.call(
+      actor: @user,
+      device_fingerprint: nil
+    )
+
+    assert result.success?
+    assert_equal @root_recording.id, result.value.id
+    assert_equal 0, RecordingStudio::DeviceSession.count
   end
 
   private
