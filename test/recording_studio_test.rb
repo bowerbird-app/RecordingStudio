@@ -41,6 +41,18 @@ class RecordingStudioTest < Minitest::Test
     assert_not RecordingStudio.features.device_sessions?
   end
 
+  def test_feature_toggles_cast_common_string_values
+    RecordingStudio.configure do |config|
+      config.features.move = "false"
+      config.features.copyable = "1"
+      config.features.device_sessions = "0"
+    end
+
+    assert_not RecordingStudio.features.move?
+    assert RecordingStudio.features.copyable?
+    assert_not RecordingStudio.features.device_sessions?
+  end
+
   def test_warn_legacy_feature_use_emits_once_per_feature
     warnings = capture_logger_warnings do
       RecordingStudio.warn_legacy_feature_use!(:move, used_by: "test")

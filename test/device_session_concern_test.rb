@@ -17,7 +17,11 @@ class DeviceSessionConcernTest < ActiveSupport::TestCase
     end
 
     def []=(key, value)
-      store[key] = value
+      store[key] = if value.is_a?(Hash) && value.key?(:value)
+                     value[:value]
+                   else
+                     value
+                   end
     end
   end
 

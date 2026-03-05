@@ -14,15 +14,15 @@ module RecordingStudio
       end
 
       def move=(value)
-        @move = !!value
+        @move = boolean_from?(value)
       end
 
       def copyable=(value)
-        @copyable = !!value
+        @copyable = boolean_from?(value)
       end
 
       def device_sessions=(value)
-        @device_sessions = !!value
+        @device_sessions = boolean_from?(value)
       end
 
       def move?
@@ -52,6 +52,16 @@ module RecordingStudio
           copyable: copyable,
           device_sessions: device_sessions
         }
+      end
+
+      private
+
+      def boolean_from?(value)
+        if defined?(ActiveModel::Type::Boolean)
+          !!ActiveModel::Type::Boolean.new.cast(value)
+        else
+          !!value
+        end
       end
     end
 
