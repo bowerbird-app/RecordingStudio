@@ -81,4 +81,8 @@ module RecordingStudio
   end
 end
 
-RecordingStudio.register_capability(:copyable, RecordingStudio::Capabilities::Copyable::RecordingMethods)
+RecordingStudio.register_capability(
+  :copyable,
+  RecordingStudio::Capabilities::Copyable::RecordingMethods,
+  legacy_feature_gate: :copyable
+)

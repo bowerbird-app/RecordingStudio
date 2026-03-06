@@ -68,4 +68,8 @@ module RecordingStudio
   end
 end
 
-RecordingStudio.register_capability(:movable, RecordingStudio::Capabilities::Movable::RecordingMethods)
+RecordingStudio.register_capability(
+  :movable,
+  RecordingStudio::Capabilities::Movable::RecordingMethods,
+  legacy_feature_gate: :move
+)

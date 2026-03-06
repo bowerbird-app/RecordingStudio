@@ -41,13 +41,19 @@ module RecordingStudio
       @registered_capabilities ||= {}
     end
 
-    def register_capability(name, mod)
-      registered_capabilities[name.to_sym] = mod
+    def register_capability(name, mod, legacy_feature_gate: nil)
+      registered_capabilities[name.to_sym] = {
+        mod: mod,
+        legacy_feature_gate: legacy_feature_gate&.to_sym
+      }
+      apply_capabilities! if defined?(RecordingStudio::Recording)
     end
 
     def apply_capabilities!
-      registered_capabilities.each do |name, mod|
-        next unless capability_feature_enabled?(name)
+      registered_capabilities.each_value do |registration|
+        mod = registration.fetch(:mod)
+        legacy_feature_gate = registration[:legacy_feature_gate]
+        next if legacy_feature_gate && !legacy_feature_enabled?(legacy_feature_gate)
         next if RecordingStudio::Recording.included_modules.include?(mod)
 
         RecordingStudio::Recording.include(mod)
@@ -153,17 +159,6 @@ module RecordingStudio
     end
 
     private
-
-    def capability_feature_enabled?(capability_name)
-      case capability_name.to_sym
-      when :movable
-        features.move?
-      when :copyable
-        features.copyable?
-      else
-        true
-      end
-    end
 
     def legacy_feature_enabled?(feature_key)
       features.public_send("#{feature_key}?")

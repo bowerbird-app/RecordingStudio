@@ -6,6 +6,7 @@ require "stringio"
 class RecordingStudioTest < Minitest::Test
   def setup
     @original_features = RecordingStudio.features.to_h
+    @original_registered_capabilities = RecordingStudio.registered_capabilities.dup
     RecordingStudio.reset_runtime_warnings!
   end
 
@@ -13,6 +14,7 @@ class RecordingStudioTest < Minitest::Test
     @original_features.each do |feature_name, value|
       RecordingStudio.features.public_send("#{feature_name}=", value)
     end
+    RecordingStudio.instance_variable_set(:@registered_capabilities, @original_registered_capabilities)
   end
 
   def test_version_exists
@@ -61,6 +63,34 @@ class RecordingStudioTest < Minitest::Test
 
     assert_includes warnings, "config.features.move = false"
     assert_equal 1, warnings.scan("Legacy built-in 'move' feature").size
+  end
+
+  def test_register_capability_applies_capability_without_manual_apply
+    capability_module = Module.new do
+      def capability_auto_apply_probe_value
+        :ok
+      end
+    end
+
+    RecordingStudio.register_capability(:auto_apply_probe, capability_module)
+
+    assert_includes RecordingStudio::Recording.included_modules, capability_module
+    assert RecordingStudio::Recording.new.respond_to?(:capability_auto_apply_probe_value)
+  end
+
+  def test_capability_registration_can_override_legacy_gate_for_addon_replacements
+    RecordingStudio.features.move = false
+
+    capability_module = Module.new do
+      def addon_move_probe_value
+        :ok
+      end
+    end
+
+    RecordingStudio.register_capability(:movable, capability_module)
+
+    assert_includes RecordingStudio::Recording.included_modules, capability_module
+    assert RecordingStudio::Recording.new.respond_to?(:addon_move_probe_value)
   end
 
   private
