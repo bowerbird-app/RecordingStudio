@@ -823,9 +823,10 @@ Addon gems are responsible for:
 Recommended integration sequence (works for `move`, `copy`, `commentable`, and future capabilities):
 
 1. Addon gem defines capability code (recordable mixin + recording methods).
-2. Addon gem registers recording methods with `RecordingStudio.register_capability` (capability modules
-   are applied to `RecordingStudio::Recording`; `RecordingStudio.apply_capabilities!` remains available
-   for explicit re-application in reloader/boot hooks).
+2. Addon gem registers recording methods with `RecordingStudio.register_capability`.
+   Capability modules are automatically applied to `RecordingStudio::Recording`.
+   `RecordingStudio.apply_capabilities!` remains available for explicit re-application in reloader/boot
+   hooks, for example when your app/gem manually reloads capability constants during development.
 3. Host app registers recordable types with RecordingStudio.
 4. Host app includes addon mixins on specific recordable models.
 5. RecordingStudio checks capability enablement/options by `recordable_type`.

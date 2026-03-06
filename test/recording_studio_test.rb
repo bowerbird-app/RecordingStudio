@@ -73,9 +73,13 @@ class RecordingStudioTest < Minitest::Test
     end
 
     RecordingStudio.register_capability(:auto_apply_probe, capability_module)
+    RecordingStudio.register_capability(:auto_apply_probe, capability_module)
 
     assert_includes RecordingStudio::Recording.included_modules, capability_module
     assert RecordingStudio::Recording.new.respond_to?(:capability_auto_apply_probe_value)
+    included_count = RecordingStudio::Recording.included_modules.count { |mod| mod == capability_module }
+    assert_equal 1, included_count
+    assert_equal capability_module, RecordingStudio.registered_capabilities.fetch(:auto_apply_probe).fetch(:mod)
   end
 
   def test_capability_registration_can_override_legacy_gate_for_addon_replacements
