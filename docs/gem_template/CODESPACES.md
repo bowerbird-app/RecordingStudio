@@ -31,19 +31,19 @@ This document covers how the devcontainer is configured and how to work in GitHu
 The `postCreateCommand` in `.devcontainer/devcontainer.json` executes:
 
 ```bash
-git lfs install && \
-bundle config set --local path '/usr/local/bundle' && \
-bundle install && \
-cd test/dummy && \
-bundle exec rails db:prepare && \
-bundle exec rails tailwindcss:build
+bash .devcontainer/post-create.sh
 ```
 
-This:
+That script:
 - Installs Git LFS (if needed)
+- Installs Node dependencies
+- Installs Playwright Chromium and its system packages
+- Waits for PostgreSQL to become reachable on `db:5432`
 - Installs gem dependencies
-- Prepares the PostgreSQL database (creates, migrates, seeds)
+- Prepares the PostgreSQL database (creates, migrates, and seeds as needed via `db:prepare`)
 - Builds TailwindCSS assets
+
+The explicit wait is important because Codespaces can start the app container before the sibling database service is fully reachable, even when Docker Compose health checks are configured.
 
 ---
 
@@ -164,7 +164,7 @@ If you change `.devcontainer/` files:
 | Issue | Solution |
 |-------|----------|
 | Container fails to start | Check Docker Compose logs in the terminal. |
-| Database connection refused | Ensure `db` service is healthy (`docker ps`). |
+| Database connection refused during setup | Re-run `bash .devcontainer/post-create.sh`; it defaults `DB_HOST=db` and waits for PostgreSQL before running Rails tasks. |
 | Tailwind not rebuilding | Restart `bin/dev` or run `bin/rails tailwindcss:build`. |
 | Port already in use | Use a different port: `PORT=3001 bin/dev`. |
 
@@ -175,6 +175,7 @@ If you change `.devcontainer/` files:
 | File | Purpose |
 |------|---------|
 | `.devcontainer/devcontainer.json` | Codespaces/VS Code configuration |
+| `.devcontainer/post-create.sh` | Robust post-create bootstrap script |
 | `.devcontainer/docker-compose.yml` | Service definitions |
 | `.devcontainer/Dockerfile` | Ruby container build |
 | `test/dummy/Procfile.dev` | Foreman process definitions |
