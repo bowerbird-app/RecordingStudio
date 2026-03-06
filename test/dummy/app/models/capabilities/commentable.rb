@@ -39,4 +39,3 @@ module Capabilities
 end
 
 RecordingStudio.register_capability(:commentable, Capabilities::Commentable::RecordingMethods)
-RecordingStudio.apply_capabilities! if defined?(RecordingStudio::Recording)

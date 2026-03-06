@@ -701,13 +701,141 @@ Recordables are immutable; history is append-only.
 - No built-in UI; this gem focuses on the data and service layer.
 - Storage growth is linear with history; plan retention policies accordingly.
 
-## Built-in Capabilities
+## Plugins / Addon Gems
 
-RecordingStudio ships with two built-in capabilities that can be enabled per recordable type.
-Capability methods are guarded and raise `RecordingStudio::CapabilityDisabled` unless the capability
-is enabled for that recording's recordable type.
+RecordingStudio is designed as a core platform with optional capability addons.
 
-Both capabilities are legacy built-ins. If you are migrating to addon gems, disable them in configuration:
+- `RecordingStudio::Recording` is the stable identity/lifecycle API surface.
+- `recordable` is the delegated model that stores an immutable state snapshot.
+- Recordable classes must be registered so delegated-type behavior works.
+- Capability enablement is separate from recordable registration.
+
+Registering a recordable means it can participate in recording/state behavior. It does **not**
+automatically enable capability behavior (`move`, `copy`, `commentable`, etc.).
+
+### Registering recordable types (host app)
+
+```ruby
+RecordingStudio.configure do |config|
+  config.recordable_types = ["Workspace", "Page", "Folder"]
+end
+
+RecordingStudio.register_recordable_type("Workspace")
+RecordingStudio.register_recordable_type("Page")
+RecordingStudio.register_recordable_type("Folder")
+```
+
+### Capability mixins are explicit opt-in
+
+A capability is enabled for a recordable type only when that model includes its mixin:
+
+```ruby
+class Page < ApplicationRecord
+  include RecordingStudio::Capabilities::Movable.to("Folder")
+end
+```
+
+This means:
+
+- `Page` is movable.
+- Other recordable types are **not** movable unless they also include the mixin.
+- Installing an addon gem does not silently enable behavior globally.
+
+The mixin may come from `RecordingStudio::Capabilities::*` (legacy/built-in transition) or from an
+extracted addon gem namespace in the long-term model.
+
+### Capability behavior is called on recordings
+
+Mixins are included on the **recordable model**, but behavior is invoked on the corresponding
+`RecordingStudio::Recording`:
+
+```ruby
+page_recording.move_to!(new_parent: folder_recording, actor: current_user)
+```
+
+### Capability mixin options configure behavior per recordable type
+
+Capability mixins can accept parameters; they are not only on/off flags:
+
+```ruby
+class Page < ApplicationRecord
+  include RecordingStudio::Capabilities::Movable.to("Folder")
+end
+```
+
+`Page` can move only to `Folder`.
+
+```ruby
+class Page < ApplicationRecord
+  include RecordingStudio::Capabilities::Movable.to("Folder", "Project")
+end
+```
+
+`Page` can move to `Folder` or `Project`.
+
+Capability calls outside configured rules should fail (for example, invalid target types for move).
+
+### Using addon gems in a host app
+
+1. Add gems to your `Gemfile`.
+2. `bundle install`.
+3. During migration, disable corresponding legacy built-ins if needed.
+4. Register recordable types.
+5. Include addon mixins on specific recordable models.
+6. Call capability behavior from `RecordingStudio::Recording`.
+
+```ruby
+gem "recording_studio"
+gem "recording-studio-move"
+```
+
+During migration from the built-in move capability:
+
+```ruby
+RecordingStudio.configure do |config|
+  config.features.move = false
+end
+```
+
+`config.features.move = false` is a temporary migration switch to avoid conflicts during extraction.
+It is not the intended permanent addon API.
+
+### Core vs addon responsibilities
+
+RecordingStudio core is responsible for:
+
+- recordings / recordables / events
+- delegated-type registration (`register_recordable_type`)
+- capability registration/apply infrastructure (`register_capability`, `apply_capabilities!`)
+- capability enablement + options lookup (`enable_capability`, `set_capability_options`, `capability_options`)
+- shared guards/infrastructure (`RecordingStudio::Capability`, capability-disabled checks)
+
+Addon gems are responsible for:
+
+- defining capability-specific mixins and APIs
+- registering capability behavior with RecordingStudio
+- opting recordable types into capabilities via mixins
+- defining and enforcing capability-specific rules/options
+- logging capability-specific events through RecordingStudio recording/event APIs
+
+### Building addon gems
+
+Recommended integration sequence (works for `move`, `copy`, `commentable`, and future capabilities):
+
+1. Addon gem defines capability code (recordable mixin + recording methods).
+2. Addon gem registers recording methods with `RecordingStudio.register_capability`.
+   Capability modules are automatically applied to `RecordingStudio::Recording`.
+   `RecordingStudio.apply_capabilities!` remains available for explicit re-application in reloader/boot
+   hooks, for example when your app/gem manually reloads capability constants during development.
+3. Host app registers recordable types with RecordingStudio.
+4. Host app includes addon mixins on specific recordable models.
+5. RecordingStudio checks capability enablement/options by `recordable_type`.
+6. Host app invokes capability behavior on `RecordingStudio::Recording`.
+
+### Migration from legacy built-ins (transitional)
+
+`move` and `copyable` are still available as legacy built-ins in this gem while extraction is in
+progress. Temporary feature flags exist only to prevent conflicts during migration:
 
 ```ruby
 RecordingStudio.configure do |config|
@@ -716,69 +844,54 @@ RecordingStudio.configure do |config|
 end
 ```
 
+These flags are transitional. As extracted addons become the default, legacy conflict flags may be
+removed.
+
+## Legacy Built-in Capabilities (temporary)
+
 ### Movable
 
 `Movable` allows a recording to move to a new parent recording under the same root.
-
-Enable it on a recordable model:
 
 ```ruby
 class RecordingStudioPage < ApplicationRecord
   include RecordingStudio::Capabilities::Movable.to("RecordingStudioFolder", "Workspace")
 end
-```
 
-Use it from a recording:
-
-```ruby
 recording.move_to!(new_parent: target_recording, actor: current_user)
 ```
 
-- Requires `:edit` access on both the source recording and target parent recording.
-- Raises `RecordingStudio::AccessDenied` if access checks fail.
-- Only allows target parent recordable types listed in `.to(...)`.
-- Logs a `"moved"` event with `from_parent_id` and `to_parent_id` metadata.
+- Requires `:edit` access on both source and target parent recordings.
+- Raises `RecordingStudio::AccessDenied` when access checks fail.
+- Logs a `"moved"` event with `from_parent_id` and `to_parent_id`.
 
 ### Copyable
 
-`Copyable` duplicates the current recording's recordable and creates a new recording under a target
-parent recording in the same root.
-
-Enable it on a recordable model:
+`Copyable` duplicates the current recording's recordable under a target parent in the same root.
 
 ```ruby
 class RecordingStudioPage < ApplicationRecord
   include RecordingStudio::Capabilities::Copyable.to("RecordingStudioFolder", "Workspace")
 end
-```
 
-Use it from a recording:
-
-```ruby
 copied = recording.copy_to!(new_parent: target_recording, actor: current_user)
 ```
 
-- Requires `:view` access on the source recording.
-- Requires `:edit` access on the target parent recording.
-- Raises `RecordingStudio::AccessDenied` if access checks fail.
-- Only allows target parent recordable types listed in `.to(...)`.
-- Logs a `"copied"` event with `source_recording_id`, `source_recordable_id`, and
-  `source_recordable_type` metadata.
+- Requires `:view` on source and `:edit` on target parent.
+- Raises `RecordingStudio::AccessDenied` when access checks fail.
+- Logs a `"copied"` event with source recording/recordable metadata.
 
-## Creating Custom Capabilities
+## Custom / Extracted Capability Pattern (`commentable` example)
 
-Host applications can build capabilities using the same pattern. The dummy app includes
-`Capabilities::Commentable` as a concrete example.
+`commentable` in the dummy app is a concrete addon-style capability example and part of the same
+plugin architecture story as extracted capabilities:
 
-1. Create a capability module with:
-   - A builder method (for example `Commentable.with(comment_class:)`) that returns a module to include on the recordable model.
-   - A `RecordingMethods` module containing methods that will be mixed into `RecordingStudio::Recording`.
-   - An `assert_capability!` guard in each recording method so behavior remains off-by-default.
-2. Register the recording methods with `RecordingStudio.register_capability(:name, RecordingMethods)`.
-3. Include the builder on your recordable models.
-4. Use the capability API from `RecordingStudio::Recording`.
-
-Example:
+1. Provide a builder method that returns a recordable mixin (for example, `Commentable.with(...)`).
+2. Register recording methods with `RecordingStudio.register_capability(:commentable, RecordingMethods)`.
+3. In the mixin, opt specific recordable types in via `enable_capability`.
+4. Store per-recordable configuration with `set_capability_options`.
+5. Optionally register supporting recordable types when needed (for example, comment recordables).
+6. Invoke behavior from the recording:
 
 ```ruby
 class MyPage < ApplicationRecord

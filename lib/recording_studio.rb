@@ -41,16 +41,26 @@ module RecordingStudio
       @registered_capabilities ||= {}
     end
 
-    def register_capability(name, mod)
-      registered_capabilities[name.to_sym] = mod
+    def register_capability(name, mod, legacy_feature_gate: nil)
+      capability_mutex.synchronize do
+        registered_capabilities[name.to_sym] = {
+          mod: mod,
+          legacy_feature_gate: legacy_feature_gate&.to_sym
+        }
+      end
+      apply_capabilities! if defined?(RecordingStudio::Recording)
     end
 
     def apply_capabilities!
-      registered_capabilities.each do |name, mod|
-        next unless capability_feature_enabled?(name)
-        next if RecordingStudio::Recording.included_modules.include?(mod)
+      capability_mutex.synchronize do
+        registered_capabilities.each_value do |registration|
+          mod = registration.fetch(:mod)
+          legacy_feature_gate = registration[:legacy_feature_gate]
+          next if legacy_feature_gate && !legacy_feature_enabled?(legacy_feature_gate)
+          next if RecordingStudio::Recording.included_modules.include?(mod)
 
-        RecordingStudio::Recording.include(mod)
+          RecordingStudio::Recording.include(mod)
+        end
       end
     end
 
@@ -154,17 +164,6 @@ module RecordingStudio
 
     private
 
-    def capability_feature_enabled?(capability_name)
-      case capability_name.to_sym
-      when :movable
-        features.move?
-      when :copyable
-        features.copyable?
-      else
-        true
-      end
-    end
-
     def legacy_feature_enabled?(feature_key)
       features.public_send("#{feature_key}?")
     end
@@ -191,6 +190,10 @@ module RecordingStudio
       already_warned = @runtime_warnings.include?(key)
       @runtime_warnings << key
       already_warned
+    end
+
+    def capability_mutex
+      @capability_mutex ||= Mutex.new
     end
 
     def emit_warning(message)
