@@ -1,10 +1,38 @@
-name: CI
+name: Pull Request Checks
 
 on:
-  push:
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+concurrency:
+  group: pull-request-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
+  rubocop:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby 3.3
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+        env:
+          BUNDLE_GITHUB__COM: x-access-token:${{ secrets.BOWERBIRD_ORG_CI_TOKEN }}
+
+      - name: Run RuboCop
+        run: bundle exec rubocop
+
   test:
     runs-on: ubuntu-latest
     env:
@@ -17,10 +45,7 @@ jobs:
       PGUSER: postgres
       PGPASSWORD: postgres
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/gem_template_test
-    
-    permissions:
-      contents: read
-    
+
     services:
       postgres:
         image: postgres:16
@@ -35,52 +60,35 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        ruby-version: ['3.3']
-    
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Ruby ${{ matrix.ruby-version }}
-      uses: ruby/setup-ruby@v1
-      with:
-        ruby-version: ${{ matrix.ruby-version }}
-        bundler-cache: true
-      env:
-        BUNDLE_GITHUB__COM: x-access-token:${{ secrets.BOWERBIRD_ORG_CI_TOKEN }}
-    
-    - name: Install dummy app dependencies
-      run: bundle install
-      working-directory: test/dummy
-      env:
-        BUNDLE_GITHUB__COM: x-access-token:${{ secrets.BOWERBIRD_ORG_CI_TOKEN }}
-    
-    - name: Run database migrations
-      run: bundle exec rake db:migrate RAILS_ENV=test
-      working-directory: test/dummy
+      - uses: actions/checkout@v4
 
-    - name: Build Tailwind assets
-      run: bundle exec rails tailwindcss:build
-      working-directory: test/dummy
-      env:
-        RAILS_ENV: test
+      - name: Set up Ruby 3.3
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+        env:
+          BUNDLE_GITHUB__COM: x-access-token:${{ secrets.BOWERBIRD_ORG_CI_TOKEN }}
 
-    - name: Run RuboCop
-      run: bundle exec rubocop
+      - name: Install dummy app dependencies
+        run: bundle install
+        working-directory: test/dummy
+        env:
+          BUNDLE_GITHUB__COM: x-access-token:${{ secrets.BOWERBIRD_ORG_CI_TOKEN }}
 
-    - name: Run tests
-      run: bundle exec rake app:test
-      env:
-        RAILS_ENV: test
-        DB_USER: postgres
-        DB_PASSWORD: postgres
-        DB_NAME: gem_template_test
-        DB_NAME_TEST: gem_template_test
-        DB_HOST: localhost
-        DB_PORT: 5432
-        PGUSER: postgres
-        PGPASSWORD: postgres
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/gem_template_test
+      - name: Run database migrations
+        run: bundle exec rake db:migrate RAILS_ENV=test
+        working-directory: test/dummy
+
+      - name: Build Tailwind assets
+        run: bundle exec rails tailwindcss:build
+        working-directory: test/dummy
+        env:
+          RAILS_ENV: test
+
+      - name: Run tests
+        run: bundle exec rake test
+        env:
+          RAILS_ENV: test
