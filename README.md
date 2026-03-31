@@ -703,7 +703,7 @@ Recordables are immutable; history is append-only.
 RecordingStudio is designed as a core platform with optional capability addons.
 
 Moveable behavior is no longer bundled in RecordingStudio. If your app needs that capability,
-use the dedicated `RecordingStudio_moveable` addon gem instead of expecting built-in move APIs.
+use the dedicated moveable addon instead of expecting built-in move APIs.
 
 - `RecordingStudio::Recording` is the stable identity/lifecycle API surface.
 - `recordable` is the delegated model that stores an immutable state snapshot.
