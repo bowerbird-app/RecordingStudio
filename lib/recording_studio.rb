@@ -16,7 +16,6 @@ require "recording_studio/concerns/device_session_concern"
 # rubocop:disable Metrics/ModuleLength, Metrics/ClassLength
 module RecordingStudio
   LEGACY_FEATURE_ADDONS = {
-    move: { gem_name: "recording-studio-move", constant_paths: %w[RecordingStudio::Move] },
     copyable: { gem_name: "recording-studio-copy", constant_paths: %w[RecordingStudio::Copy] },
     device_sessions: {
       gem_name: "recording-studio-device-sessions",
@@ -260,5 +259,4 @@ end
 # rubocop:enable Metrics/ModuleLength, Metrics/ClassLength
 
 require "recording_studio/capability"
-require "recording_studio/capabilities/movable"
 require "recording_studio/capabilities/copyable"

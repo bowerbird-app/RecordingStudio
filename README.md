@@ -202,7 +202,6 @@ RecordingStudio.configure do |config|
   # Include child recordings by default when trashing/restoring
   config.include_children = true
   config.recordable_dup_strategy = :dup
-  config.features.move = true
   config.features.copyable = true
   config.features.device_sessions = true
 end
@@ -211,7 +210,6 @@ end
 You can query feature state at runtime with:
 
 ```ruby
-RecordingStudio.features.move?
 RecordingStudio.features.copyable?
 RecordingStudio.features.device_sessions?
 ```
@@ -223,18 +221,17 @@ RecordingStudio.features.device_sessions?
   the key matches, so callers must handle duplicates explicitly.
 - `include_children`: When `true`, `trash` and `restore` will include child recordings by default.
 - `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
-- `features.move`, `features.copyable`, `features.device_sessions`: Legacy built-in feature flags. All default to `true`
+- `features.copyable`, `features.device_sessions`: Legacy built-in feature flags. Both default to `true`
   for backward compatibility.
 
 ### Migrating legacy features to addons
 
-RecordingStudio keeps legacy built-in `move`, `copyable`, and `device_sessions` enabled by default.
-If you install addon gems (`recording-studio-move`, `recording-studio-copy`, `recording-studio-device-sessions`),
-disable the corresponding built-in feature to avoid overlap:
+RecordingStudio keeps legacy built-in `copyable` and `device_sessions` enabled by default.
+If you install addon gems (`recording-studio-copy`, `recording-studio-device-sessions`), disable the
+corresponding built-in feature to avoid overlap:
 
 ```ruby
 RecordingStudio.configure do |config|
-  config.features.move = false
   config.features.copyable = false
   config.features.device_sessions = false
 end
@@ -705,13 +702,16 @@ Recordables are immutable; history is append-only.
 
 RecordingStudio is designed as a core platform with optional capability addons.
 
+Moveable behavior is no longer bundled in RecordingStudio. If your app needs that capability,
+use the dedicated moveable addon instead of expecting built-in move APIs.
+
 - `RecordingStudio::Recording` is the stable identity/lifecycle API surface.
 - `recordable` is the delegated model that stores an immutable state snapshot.
 - Recordable classes must be registered so delegated-type behavior works.
 - Capability enablement is separate from recordable registration.
 
 Registering a recordable means it can participate in recording/state behavior. It does **not**
-automatically enable capability behavior (`move`, `copy`, `commentable`, etc.).
+automatically enable capability behavior (`copy`, `commentable`, etc.).
 
 ### Registering recordable types (host app)
 
@@ -731,14 +731,14 @@ A capability is enabled for a recordable type only when that model includes its 
 
 ```ruby
 class Page < ApplicationRecord
-  include RecordingStudio::Capabilities::Movable.to("Folder")
+  include RecordingStudio::Capabilities::Copyable.to("Folder")
 end
 ```
 
 This means:
 
-- `Page` is movable.
-- Other recordable types are **not** movable unless they also include the mixin.
+- `Page` is copyable.
+- Other recordable types are **not** copyable unless they also include the mixin.
 - Installing an addon gem does not silently enable behavior globally.
 
 The mixin may come from `RecordingStudio::Capabilities::*` (legacy/built-in transition) or from an
@@ -750,7 +750,7 @@ Mixins are included on the **recordable model**, but behavior is invoked on the 
 `RecordingStudio::Recording`:
 
 ```ruby
-page_recording.move_to!(new_parent: folder_recording, actor: current_user)
+page_recording.copy_to!(new_parent: folder_recording, actor: current_user)
 ```
 
 ### Capability mixin options configure behavior per recordable type
@@ -759,21 +759,21 @@ Capability mixins can accept parameters; they are not only on/off flags:
 
 ```ruby
 class Page < ApplicationRecord
-  include RecordingStudio::Capabilities::Movable.to("Folder")
+  include RecordingStudio::Capabilities::Copyable.to("Folder")
 end
 ```
 
-`Page` can move only to `Folder`.
+`Page` can copy only to `Folder`.
 
 ```ruby
 class Page < ApplicationRecord
-  include RecordingStudio::Capabilities::Movable.to("Folder", "Project")
+  include RecordingStudio::Capabilities::Copyable.to("Folder", "Project")
 end
 ```
 
-`Page` can move to `Folder` or `Project`.
+`Page` can copy to `Folder` or `Project`.
 
-Capability calls outside configured rules should fail (for example, invalid target types for move).
+Capability calls outside configured rules should fail (for example, invalid target types for copy).
 
 ### Using addon gems in a host app
 
@@ -786,18 +786,18 @@ Capability calls outside configured rules should fail (for example, invalid targ
 
 ```ruby
 gem "recording_studio"
-gem "recording-studio-move"
+gem "recording-studio-copy"
 ```
 
-During migration from the built-in move capability:
+During migration from the built-in copy capability:
 
 ```ruby
 RecordingStudio.configure do |config|
-  config.features.move = false
+  config.features.copyable = false
 end
 ```
 
-`config.features.move = false` is a temporary migration switch to avoid conflicts during extraction.
+`config.features.copyable = false` is a temporary migration switch to avoid conflicts during extraction.
 It is not the intended permanent addon API.
 
 ### Core vs addon responsibilities
@@ -820,7 +820,7 @@ Addon gems are responsible for:
 
 ### Building addon gems
 
-Recommended integration sequence (works for `move`, `copy`, `commentable`, and future capabilities):
+Recommended integration sequence (works for `copy`, `commentable`, and future capabilities):
 
 1. Addon gem defines capability code (recordable mixin + recording methods).
 2. Addon gem registers recording methods with `RecordingStudio.register_capability`.
@@ -834,12 +834,11 @@ Recommended integration sequence (works for `move`, `copy`, `commentable`, and f
 
 ### Migration from legacy built-ins (transitional)
 
-`move` and `copyable` are still available as legacy built-ins in this gem while extraction is in
-progress. Temporary feature flags exist only to prevent conflicts during migration:
+`copyable` is still available as a legacy built-in in this gem while extraction is in progress.
+Temporary feature flags exist only to prevent conflicts during migration:
 
 ```ruby
 RecordingStudio.configure do |config|
-  config.features.move = false
   config.features.copyable = false
 end
 ```
@@ -848,22 +847,6 @@ These flags are transitional. As extracted addons become the default, legacy con
 removed.
 
 ## Legacy Built-in Capabilities (temporary)
-
-### Movable
-
-`Movable` allows a recording to move to a new parent recording under the same root.
-
-```ruby
-class RecordingStudioPage < ApplicationRecord
-  include RecordingStudio::Capabilities::Movable.to("RecordingStudioFolder", "Workspace")
-end
-
-recording.move_to!(new_parent: target_recording, actor: current_user)
-```
-
-- Requires `:edit` access on both source and target parent recordings.
-- Raises `RecordingStudio::AccessDenied` when access checks fail.
-- Logs a `"moved"` event with `from_parent_id` and `to_parent_id`.
 
 ### Copyable
 
