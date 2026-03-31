@@ -6,7 +6,6 @@ class CapabilitiesTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
     @original_feature_flags = RecordingStudio.features.to_h
-    RecordingStudio.features.move = true
     RecordingStudio.features.copyable = true
     RecordingStudio.configuration.recordable_types = %w[
       Workspace
@@ -38,120 +37,6 @@ class CapabilitiesTest < ActiveSupport::TestCase
     RecordingStudio::DelegatedTypeRegistrar.apply!
   end
 
-  def test_move_to_requires_capability
-    _, root = create_workspace_root
-    actor = create_user("mover@example.com")
-    workspace_recording = root
-    target_folder = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "A"
-    end
-    grant_root_access(root: root, actor: actor, role: :admin)
-
-    error = assert_raises(RecordingStudio::CapabilityDisabled) do
-      workspace_recording.move_to!(new_parent: target_folder, actor: actor)
-    end
-    assert_match(/Capability :movable is not enabled/, error.message)
-  end
-
-  def test_page_move_to_moves_and_logs_event
-    _, root = create_workspace_root
-    actor = create_user("editor@example.com")
-    grant_root_access(root: root, actor: actor, role: :edit)
-
-    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Source"
-    end
-    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Target"
-    end
-    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
-      page.title = "Move me"
-    end
-
-    page_recording.move_to!(new_parent: target_parent, actor: actor, metadata: { reason: "reorg" })
-
-    assert_equal target_parent.id, page_recording.reload.parent_recording_id
-    event = page_recording.events.first
-    assert_equal "moved", event.action
-    assert_equal source_parent.id, event.metadata["from_parent_id"]
-    assert_equal target_parent.id, event.metadata["to_parent_id"]
-  end
-
-  def test_move_to_rejects_self_parent
-    _, root = create_workspace_root
-    actor = create_user("editor-self@example.com")
-    grant_root_access(root: root, actor: actor, role: :edit)
-
-    folder = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |recording_folder|
-      recording_folder.name = "Self"
-    end
-
-    error = assert_raises(ArgumentError) do
-      folder.move_to!(new_parent: folder, actor: actor)
-    end
-    assert_match(/under itself/, error.message)
-  end
-
-  def test_move_to_rejects_descendant_parent
-    _, root = create_workspace_root
-    actor = create_user("editor-descendant@example.com")
-    grant_root_access(root: root, actor: actor, role: :edit)
-
-    parent_folder = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Parent"
-    end
-    child_folder = root.record(RecordingStudioFolder, actor: actor, parent_recording: parent_folder) do |folder|
-      folder.name = "Child"
-    end
-
-    error = assert_raises(ArgumentError) do
-      parent_folder.move_to!(new_parent: child_folder, actor: actor)
-    end
-    assert_match(/under its descendant/, error.message)
-  end
-
-  def test_move_to_denies_when_actor_lacks_source_edit_access
-    _, root = create_workspace_root
-    actor = create_user("move-source-deny@example.com")
-
-    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Source"
-    end
-    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Target"
-    end
-    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
-      page.title = "Move me"
-    end
-    grant_access(recording: target_parent, actor: actor, role: :edit)
-
-    error = assert_raises(RecordingStudio::AccessDenied) do
-      page_recording.move_to!(new_parent: target_parent, actor: actor)
-    end
-    assert_equal "Actor does not have edit access on the source recording", error.message
-  end
-
-  def test_move_to_denies_when_actor_lacks_target_edit_access
-    _, root = create_workspace_root
-    actor = create_user("move-target-deny@example.com")
-
-    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Source"
-    end
-    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Target"
-    end
-    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
-      page.title = "Move me"
-    end
-    grant_access(recording: page_recording, actor: actor, role: :edit)
-
-    error = assert_raises(RecordingStudio::AccessDenied) do
-      page_recording.move_to!(new_parent: target_parent, actor: actor)
-    end
-    assert_equal "Actor does not have edit access on the target recording", error.message
-  end
-
   def test_page_copy_to_creates_duplicate_and_logs_source_metadata
     _, root = create_workspace_root
     actor = create_user("copier@example.com")
@@ -177,28 +62,6 @@ class CapabilitiesTest < ActiveSupport::TestCase
     assert_equal page_recording.id, event.metadata["source_recording_id"]
     assert_equal page_recording.recordable_id, event.metadata["source_recordable_id"]
     assert_equal page_recording.recordable_type, event.metadata["source_recordable_type"]
-  end
-
-  def test_move_to_raises_when_move_feature_is_disabled
-    _, root = create_workspace_root
-    actor = create_user("move-disabled@example.com")
-    grant_root_access(root: root, actor: actor, role: :edit)
-    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "A"
-    end
-    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "B"
-    end
-    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
-      page.title = "Move me"
-    end
-
-    RecordingStudio.features.move = false
-
-    error = assert_raises(RecordingStudio::CapabilityDisabled) do
-      page_recording.move_to!(new_parent: target_parent, actor: actor)
-    end
-    assert_equal "Legacy move feature is disabled", error.message
   end
 
   def test_copy_to_raises_when_copyable_feature_is_disabled

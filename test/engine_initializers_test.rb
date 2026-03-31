@@ -69,20 +69,6 @@ class EngineInitializersTest < ActiveSupport::TestCase
     app.singleton_class.send(:define_method, :config_for, original_method)
   end
 
-  def test_load_config_warns_when_move_addon_is_loaded_and_legacy_feature_enabled
-    initializer = RecordingStudio::Engine.initializers.find { |init| init.name == "recording_studio.load_config" }
-    Gem.loaded_specs["recording-studio-move"] = Gem::Specification.new
-
-    warnings = capture_logger_warnings do
-      initializer.run(Rails.application)
-    end
-
-    assert_includes warnings, "recording-studio-move"
-    assert_includes warnings, "config.features.move = false"
-  ensure
-    Gem.loaded_specs.delete("recording-studio-move")
-  end
-
   def test_load_config_warns_for_each_legacy_addon_conflict
     initializer = RecordingStudio::Engine.initializers.find { |init| init.name == "recording_studio.load_config" }
     %w[recording-studio-copy recording-studio-device-sessions].each do |gem_name|
@@ -104,8 +90,8 @@ class EngineInitializersTest < ActiveSupport::TestCase
 
   def test_load_config_does_not_warn_when_conflicting_legacy_feature_is_disabled
     initializer = RecordingStudio::Engine.initializers.find { |init| init.name == "recording_studio.load_config" }
-    RecordingStudio.features.move = false
-    Gem.loaded_specs["recording-studio-move"] = Gem::Specification.new
+    RecordingStudio.features.copyable = false
+    Gem.loaded_specs["recording-studio-copy"] = Gem::Specification.new
 
     warnings = capture_logger_warnings do
       initializer.run(Rails.application)
@@ -113,7 +99,7 @@ class EngineInitializersTest < ActiveSupport::TestCase
 
     assert_equal "", warnings
   ensure
-    Gem.loaded_specs.delete("recording-studio-move")
+    Gem.loaded_specs.delete("recording-studio-copy")
   end
 
   private

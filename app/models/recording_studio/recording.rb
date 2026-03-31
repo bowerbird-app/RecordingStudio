@@ -385,18 +385,6 @@ module RecordingStudio
       raise ArgumentError, "recording must belong to this root recording"
     end
 
-    def assert_parent_recording_not_self_or_descendant!(candidate_parent)
-      return if candidate_parent.nil? || id.blank?
-      raise ArgumentError, "Cannot move recording under itself" if candidate_parent.id == id
-
-      current_parent = candidate_parent
-      while current_parent
-        raise ArgumentError, "Cannot move recording under its descendant" if current_parent.id == id
-
-        current_parent = current_parent.parent_recording
-      end
-    end
-
     def enforce_recordings_scope(scope, root_id:, include_children:)
       constrained = scope.where(root_recording_id: root_id, trashed_at: nil)
       constrained = constrained.where(parent_recording_id: root_id) unless include_children
