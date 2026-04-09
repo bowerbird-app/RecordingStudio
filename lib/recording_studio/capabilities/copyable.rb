@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "cgi"
+require "rack/utils"
 
 module RecordingStudio
   module Capabilities
@@ -246,13 +247,31 @@ module RecordingStudio
           decoded_path = CGI.unescape(path)
 
           return if path.blank?
-          return if !path.start_with?("/") || path.start_with?("//")
-          return if !decoded_path.start_with?("/") || decoded_path.start_with?("//")
-          return if decoded_path.split("/").any? { |segment| %w[. ..].include?(segment) }
+          return unless safe_relative_path?(path)
+          return unless safe_relative_path?(decoded_path)
 
-          path += "?#{uri.query}" if uri.query.present?
+          sanitized_query = sanitize_return_to_query(uri.query)
+          return if uri.query.present? && sanitized_query.nil?
+
+          path += "?#{sanitized_query}" if sanitized_query.present?
           path
         rescue URI::InvalidURIError
+          nil
+        end
+
+        def safe_relative_path?(path)
+          return false if path.blank?
+          return false unless path.start_with?("/")
+          return false if path.start_with?("//")
+
+          path.split("/").none? { |segment| %w[. ..].include?(segment) }
+        end
+
+        def sanitize_return_to_query(query)
+          return if query.blank?
+
+          Rack::Utils.build_nested_query(Rack::Utils.parse_nested_query(query))
+        rescue StandardError
           nil
         end
 
