@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "cgi"
+require "pathname"
 require "rack/utils"
 
 module RecordingStudio
@@ -222,7 +223,7 @@ module RecordingStudio
           return if source_parent.nil?
           return if RecordingStudio::Services::AccessCheck.allowed?(actor: actor, recording: source_parent, role: :edit)
 
-          raise RecordingStudio::AccessDenied, "Actor does not have edit access on the copy parent"
+          raise RecordingStudio::AccessDenied, "Actor does not have edit access on the source parent"
         end
 
         def build_redirect(copied_recording, redirect:, return_to:)
@@ -263,6 +264,7 @@ module RecordingStudio
           return false if path.blank?
           return false unless path.start_with?("/")
           return false if path.start_with?("//")
+          return false unless Pathname.new(path).cleanpath.to_s == path
 
           path.split("/").none? { |segment| %w[. ..].include?(segment) }
         end
