@@ -15,7 +15,7 @@ module RecordingStudio
         RecordingStudio::DeviceSession
       ].freeze
 
-      def self.to(*_legacy_parent_types, **options)
+      def self.to(*_deprecated_parent_types, **options)
         Module.new do
           extend ActiveSupport::Concern
 
@@ -264,9 +264,8 @@ module RecordingStudio
           return false if path.blank?
           return false unless path.start_with?("/")
           return false if path.start_with?("//")
-          return false unless Pathname.new(path).cleanpath.to_s == path
 
-          path.split("/").none? { |segment| %w[. ..].include?(segment) }
+          Pathname.new(path).cleanpath.to_s == path
         end
 
         def sanitize_return_to_query(query)
