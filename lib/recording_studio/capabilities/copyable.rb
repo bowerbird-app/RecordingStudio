@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "cgi"
+
 module RecordingStudio
   module Capabilities
     module Copyable
@@ -233,11 +235,14 @@ module RecordingStudio
 
           uri = URI.parse(candidate)
           path = uri.path.to_s
-          path += "?#{uri.query}" if uri.query.present?
+          decoded_path = CGI.unescape(path)
 
-          return if path.blank?
+          return if path.blank? || decoded_path.blank?
           return if !path.start_with?("/") || path.start_with?("//")
+          return if !decoded_path.start_with?("/") || decoded_path.start_with?("//")
+          return if decoded_path.split("/").any? { |segment| %w[. ..].include?(segment) }
 
+          path += "?#{uri.query}" if uri.query.present?
           path
         rescue URI::InvalidURIError
           nil

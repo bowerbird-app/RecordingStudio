@@ -82,6 +82,13 @@ class CapabilitiesTest < ActiveSupport::TestCase
       return_to: "https://example.com/recordings/#{page_recording.id}?copied=1"
     )
     invalid_return_to_result = page_recording.copy!(actor: actor, redirect: :return_to, return_to: "%zz")
+    protocol_relative_result = page_recording.copy!(actor: actor, redirect: :return_to, return_to: "//evil.test/path")
+    path_traversal_result = page_recording.copy!(actor: actor, redirect: :return_to, return_to: "/../admin")
+    encoded_path_traversal_result = page_recording.copy!(
+      actor: actor,
+      redirect: :return_to,
+      return_to: "/%2e%2e/admin"
+    )
 
     assert_equal :reload, reload_result.redirect.action
     assert_equal :open, open_result.redirect.action
@@ -89,6 +96,9 @@ class CapabilitiesTest < ActiveSupport::TestCase
     assert_equal :return_to, return_to_result.redirect.action
     assert_equal "/recordings/#{page_recording.id}?copied=1", return_to_result.redirect.location
     assert_nil invalid_return_to_result.redirect
+    assert_nil protocol_relative_result.redirect
+    assert_nil path_traversal_result.redirect
+    assert_nil encoded_path_traversal_result.redirect
   end
 
   def test_folder_copy_uses_class_level_deep_copy_defaults
