@@ -55,6 +55,12 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_equal "Studio Workspace", recordable_label(workspace)
   end
 
+  def test_recordable_type_label_uses_recordable_contract
+    folder = RecordingStudioFolder.create!(name: "Projects")
+
+    assert_equal "Folder", recordable_type_label(folder)
+  end
+
   def test_recordable_title_uses_name_for_folder
     folder = RecordingStudioFolder.create!(name: "Projects")
 

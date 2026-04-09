@@ -19,14 +19,14 @@
     <%= render FlatPack::Table::Component.new(data: @recordings) do |table| %>
       <% table.column(
         title: "Recordable",
-        html: ->(recording) { link_to(recordable_label(recording.recordable), recording_path(recording), class: "hover:underline") }
+        html: ->(recording) { link_to(recording.label, recording_path(recording), class: "hover:underline") }
       ) %>
 
-      <% table.column(title: "Type", html: ->(recording) { recording.recordable_type }) %>
+      <% table.column(title: "Type", html: ->(recording) { recording.type_label }) %>
 
       <% table.column(
         title: "Root",
-        html: ->(recording) { "#{recording.root_recording&.recordable&.class&.name || recording.recordable_type} ##{recording.root_recording_id}" }
+        html: ->(recording) { recording.root_recording&.label || "—" }
       ) %>
 
       <% table.column(

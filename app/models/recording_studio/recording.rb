@@ -178,6 +178,22 @@ module RecordingStudio
       recordings_query.of_type(recordable_class)
     end
 
+    def label
+      RecordingStudio::Labels.label_for(recordable)
+    end
+
+    def type_label
+      RecordingStudio::Labels.type_label_for(recordable || recordable_type)
+    end
+
+    def title
+      RecordingStudio::Labels.title_for(recordable)
+    end
+
+    def summary
+      RecordingStudio::Labels.summary_for(recordable)
+    end
+
     def log_event!(action:, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current,
                    idempotency_key: nil)
       RecordingStudio.record!(

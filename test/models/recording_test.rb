@@ -5,12 +5,18 @@ require "test_helper"
 class RecordingTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
-    RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioPage RecordingStudioComment]
+    RecordingStudio.configuration.recordable_types = %w[
+      Workspace
+      RecordingStudioPage
+      RecordingStudioComment
+      RecordingStudioFolder
+    ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     RecordingStudio::Event.delete_all
     RecordingStudio::DeviceSession.delete_all
     RecordingStudio::Recording.delete_all
+    RecordingStudioFolder.delete_all
     RecordingStudioPage.delete_all
     RecordingStudioComment.delete_all
     Workspace.delete_all
@@ -200,6 +206,25 @@ class RecordingTest < ActiveSupport::TestCase
     child.parent_recording = child
     assert_not child.valid?
     assert_includes child.errors[:parent_recording_id], "cannot be itself or a descendant recording"
+  end
+
+  def test_label_accessors_use_current_recordable_and_root_recording
+    workspace, root = create_workspace_root(name: "Studio Workspace")
+
+    folder_recording = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioFolder.new(name: "Projects"),
+      root_recording: root,
+      parent_recording: root
+    ).recording
+
+    assert_equal workspace.recording_studio_label, root.label
+    assert_equal Workspace.recording_studio_type_label, root.type_label
+    assert_equal "📁 Projects", folder_recording.label
+    assert_equal "Folder", folder_recording.type_label
+    assert_equal "Projects", folder_recording.title
+    assert_nil folder_recording.summary
+    assert_equal root.label, folder_recording.root_recording.label
   end
 
   private

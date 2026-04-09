@@ -64,6 +64,13 @@ class HelpersLogicTest < ActiveSupport::TestCase
     assert_equal "A Titled Page", ApplicationController.helpers.recordable_label(page)
   end
 
+  test "recordable labels use recordable contract when available" do
+    folder = RecordingStudioFolder.create!(name: "Projects")
+
+    assert_equal "📁 Projects", ApplicationController.helpers.recordable_label(folder)
+    assert_equal "Folder", ApplicationController.helpers.recordable_type_label(folder)
+  end
+
   test "recordable_label handles comment snippets and blank comment" do
     comment = RecordingStudioComment.create!(body: "This is a very long comment body that should still render as a comment snippet for labels")
     blank_comment = RecordingStudioComment.new(body: " ")

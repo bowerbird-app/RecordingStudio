@@ -45,89 +45,18 @@ module ApplicationHelper
   end
 
   def recordable_label(recordable)
-    return "—" unless recordable
-
-    if recordable.is_a?(RecordingStudio::Access)
-      actor = recordable.actor
-      role = recordable.role
-      actor_text = actor ? actor_label(actor) : "Unknown actor"
-      return "Access: #{role} — #{actor_text}"
-    end
-
-    if recordable.is_a?(RecordingStudio::AccessBoundary)
-      minimum = recordable.minimum_role
-      return minimum.present? ? "Access boundary (min: #{minimum})" : "Access boundary"
-    end
-
-    if recordable.is_a?(RecordingStudioFolder)
-      return "📁 #{recordable.name}"
-    end
-
-    if (defined?(RecordingStudioComment) && recordable.is_a?(RecordingStudioComment)) || recordable.class.name == "RecordingStudio::Comment"
-      body = recordable.body.to_s.squish
-      snippet = body.present? ? truncate(body, length: 60) : ""
-      return snippet.present? ? "Comment: #{snippet}" : "Comment"
-    end
-
-    title = recordable.respond_to?(:title) ? recordable.title.presence : nil
-    return title if title
-
-    name = recordable.respond_to?(:name) ? recordable.name.presence : nil
-    return name if name
-
-    "#{recordable.class.name} ##{recordable.id}"
+    RecordingStudio::Labels.label_for(recordable)
   end
 
   def recordable_type_label(recordable_or_type)
-    return "—" if recordable_or_type.blank?
-
-    type_name = case recordable_or_type
-    when String
-      recordable_or_type
-    when Class
-      recordable_or_type.name
-    else
-      recordable_or_type.class.name
-    end
-
-    klass = type_name.safe_constantize
-    model_label = klass&.model_name&.human.to_s
-    if model_label.present?
-      if type_name.demodulize.start_with?("RecordingStudio")
-        stripped = model_label.sub(/\ARecording studio\s+/i, "").strip
-        return stripped.underscore.humanize if stripped.present?
-      end
-
-      return model_label
-    end
-
-    demodulized = type_name.demodulize
-    normalized = demodulized.sub(/\ARecordingStudio/, "")
-    normalized = demodulized if normalized.blank?
-    normalized.underscore.humanize
+    RecordingStudio::Labels.type_label_for(recordable_or_type)
   end
 
   def recordable_title(recordable)
-    return "—" unless recordable
-
-    title = recordable.respond_to?(:title) ? recordable.title.to_s.squish.presence : nil
-    return title if title
-
-    name = recordable.respond_to?(:name) ? recordable.name.to_s.squish.presence : nil
-    return name if name
-
-    recordable_label(recordable)
+    RecordingStudio::Labels.title_for(recordable)
   end
 
   def recordable_summary(recordable)
-    return nil unless recordable
-
-    summary = recordable.respond_to?(:summary) ? recordable.summary.to_s.squish.presence : nil
-    return summary if summary
-
-    body = recordable.respond_to?(:body) ? recordable.body.to_s.squish.presence : nil
-    return truncate(body, length: 160) if body
-
-    nil
+    RecordingStudio::Labels.summary_for(recordable)
   end
 end
