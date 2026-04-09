@@ -1,16 +1,16 @@
-<% content_for :title, @recording.recordable.name %>
+<% content_for :title, @recording.title %>
 
 <%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
   <% breadcrumb.item(text: "Home", href: root_path) %>
   <% breadcrumb.item(text: "Folders", href: folders_path) %>
-  <% breadcrumb.item(text: @recording.recordable.name) %>
+  <% breadcrumb.item(text: @recording.title) %>
 <% end %>
 
 <%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
   <% card.header(divider: false) do %>
     <div class="space-y-3">
       <div>
-        <h2 class="text-2xl font-semibold"><%= @recording.recordable.name %></h2>
+        <h2 class="text-2xl font-semibold"><%= @recording.title %></h2>
         <p class="text-sm text-slate-500">Folder recording details and children.</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
@@ -49,18 +49,16 @@
   <% if @children.any? %>
     <%= render FlatPack::Table::Component.new(data: @children) do |table| %>
       <% table.column(title: "Recordable", html: ->(recording) {
-        label = recordable_label(recording.recordable)
-
         case recording.recordable_type
         when "RecordingStudioFolder"
-          link_to(label, folder_path(recording), class: "hover:underline")
+          link_to(recording.name, folder_path(recording), class: "hover:underline")
         when "RecordingStudioPage"
-          link_to(label, page_path(recording), class: "hover:underline")
+          link_to(recording.name, page_path(recording), class: "hover:underline")
         else
-          link_to(label, recording_path(recording), class: "hover:underline")
+          link_to(recording.name, recording_path(recording), class: "hover:underline")
         end
       }) %>
-      <% table.column(title: "Type", html: ->(recording) { recording.recordable_type.to_s.demodulize }) %>
+      <% table.column(title: "Type", html: ->(recording) { recording.type_label }) %>
     <% end %>
   <% else %>
     <div class="px-6 py-10 text-center text-sm text-slate-500">No child recordings.</div>

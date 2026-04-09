@@ -65,36 +65,6 @@ class WorkspacesController < ApplicationController
     params.require(:workspace).permit(:name)
   end
 
-  def root_recording_for(workspace)
-    RecordingStudio::Recording.unscoped.find_by!(recordable: workspace, parent_recording_id: nil)
-  end
-
-  def ensure_root_access!(workspace)
-    return if current_actor.nil?
-
-    root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: workspace, parent_recording_id: nil)
-    role_value = RecordingStudio::Access.roles.fetch("admin")
-
-    existing = RecordingStudio::Recording.unscoped
-      .where(root_recording_id: root_recording.id, parent_recording_id: root_recording.id, recordable_type: "RecordingStudio::Access")
-      .joins("INNER JOIN recording_studio_accesses ON recording_studio_accesses.id = recording_studio_recordings.recordable_id")
-      .where(recording_studio_accesses: { actor_type: current_actor.class.name, actor_id: current_actor.id, role: role_value })
-      .exists?
-
-    return if existing
-
-    root_recording.record(
-      RecordingStudio::Access,
-      actor: current_actor,
-      impersonator: Current.impersonator,
-      metadata: { source: "ui" },
-      parent_recording: root_recording
-    ) do |access|
-      access.actor = current_actor
-      access.role = :admin
-    end
-  end
-
   def root_access_grants(root)
     access_recordings = RecordingStudio::Recording.unscoped
       .where(root_recording_id: root.id, parent_recording_id: root.id, recordable_type: "RecordingStudio::Access")

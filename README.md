@@ -191,6 +191,41 @@ with `delegated_type`, so the class must be loadable in your app.
 
 The engine applies `delegated_type` on boot and reload via a Railtie, and registration is idempotent.
 
+## Labeling Recordables
+
+Recordable naming now lives in the engine, so callers can ask a `RecordingStudio::Recording` for its current
+`name`, `type_label`, `title`, and `summary` without re-implementing UI helper logic.
+
+Host apps can opt into custom naming by defining:
+
+```ruby
+class Workspace < ApplicationRecord
+  def self.recordable_type_label
+    "Workspace"
+  end
+
+  def recordable_name
+    name
+  end
+end
+```
+
+Resolution order for `RecordingStudio::Labels.name_for(recordable)` and `recording.name` is:
+
+1. `recordable.recordable_name`
+2. `recordable.recording_studio_label` (compatibility alias)
+3. Engine fallbacks: `title`, `name`, built-in comment/access/boundary formatting, then class-and-id
+4. `recordable.class.recordable_type_label`
+5. `recordable.class.recording_studio_type_label` (compatibility alias)
+
+`RecordingStudio::Labels.label_for(recordable)` and `recording.label` remain as compatibility aliases for
+`name_for` and `name`.
+
+`RecordingStudio::Labels.type_label_for(...)` and `recording.type_label` use
+`recordable.class.recordable_type_label` first, then fall back to the legacy `recording_studio_type_label`,
+the model's human name, or a humanized class name.
+Root recordings use the same APIs as any other recording because their names come from the root recordable.
+
 ## Configuration
 
 ```ruby

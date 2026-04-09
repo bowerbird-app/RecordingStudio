@@ -53,8 +53,8 @@
         title: "Recordable",
         html: ->(event) {
           safe_join([
-            recordable_label(event.recordable),
-            ("Previous: #{recordable_label(event.previous_recordable)}" if event.previous_recordable)
+            recordable_name(event.recordable),
+            ("Previous: #{recordable_name(event.previous_recordable)}" if event.previous_recordable)
           ].compact.map { |entry| tag.div(entry, class: entry.start_with?("Previous:") ? "text-xs text-slate-500" : nil) })
         }
       ) %>
