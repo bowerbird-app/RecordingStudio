@@ -65,6 +65,7 @@ Metrics/PerceivedComplexity:
 Metrics/ModuleLength:
   Exclude:
     - 'app/models/concerns/**/has_recordings_container.rb'
+    - 'lib/recording_studio/labels.rb'
 
 Metrics/ParameterLists:
   Exclude:

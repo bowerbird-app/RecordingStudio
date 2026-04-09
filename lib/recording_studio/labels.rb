@@ -7,13 +7,15 @@ module RecordingStudio
 
     module_function
 
-    def label_for(recordable)
+    def name_for(recordable)
       return EMPTY_LABEL unless recordable
 
-      explicit_label_for(recordable) ||
-        explicit_type_label_for(recordable.class) ||
-        heuristic_label_for(recordable)
+      explicit_name_for(recordable) ||
+        heuristic_name_for(recordable) ||
+        explicit_type_label_for(recordable.class)
     end
+
+    alias label_for name_for
 
     def type_label_for(recordable_or_type)
       return EMPTY_LABEL if recordable_or_type.blank?
@@ -33,7 +35,7 @@ module RecordingStudio
 
       squished_value(recordable, :title) ||
         squished_value(recordable, :name) ||
-        label_for(recordable)
+        name_for(recordable)
     end
 
     def summary_for(recordable)
@@ -43,68 +45,75 @@ module RecordingStudio
         squished_value(recordable, :body)&.truncate(160)
     end
 
-    def explicit_label_for(recordable)
+    def explicit_name_for(recordable)
+      return normalize_label(recordable.recordable_name) if recordable.respond_to?(:recordable_name)
+
       return unless recordable.respond_to?(:recording_studio_label)
 
-      normalize_label(recordable.public_send(:recording_studio_label))
+      normalize_label(recordable.recording_studio_label)
     end
-    private_class_method :explicit_label_for
+    private_class_method :explicit_name_for
 
     def explicit_type_label_for(recordable_class)
-      return unless recordable_class&.respond_to?(:recording_studio_type_label)
+      if recordable_class.respond_to?(:recordable_type_label)
+        return normalize_label(recordable_class.recordable_type_label)
+      end
 
-      normalize_label(recordable_class.public_send(:recording_studio_type_label))
+      return unless recordable_class.respond_to?(:recording_studio_type_label)
+
+      normalize_label(recordable_class.recording_studio_type_label)
     end
     private_class_method :explicit_type_label_for
 
-    def heuristic_label_for(recordable)
+    def heuristic_name_for(recordable)
       squished_value(recordable, :title) ||
         squished_value(recordable, :name) ||
-        access_label_for(recordable) ||
-        access_boundary_label_for(recordable) ||
-        comment_label_for(recordable) ||
-        fallback_label_for(recordable)
+        access_name_for(recordable) ||
+        access_boundary_name_for(recordable) ||
+        comment_name_for(recordable) ||
+        fallback_name_for(recordable)
     end
-    private_class_method :heuristic_label_for
+    private_class_method :heuristic_name_for
 
-    def access_label_for(recordable)
+    def access_name_for(recordable)
       return unless access_recordable?(recordable)
 
-      actor = recordable.actor
-      actor_name = actor&.respond_to?(:name) ? normalize_label(actor.name) : nil
-      actor_text = if actor_name.present?
-        suffix = actor.class.name.demodulize == "SystemActor" ? "System" : "User"
-        "#{actor_name} (#{suffix})"
-      else
-        "Unknown actor"
-      end
-
-      "Access: #{recordable.role} — #{actor_text}"
+      "Access: #{recordable.role} — #{access_actor_text_for(recordable.actor)}"
     end
-    private_class_method :access_label_for
+    private_class_method :access_name_for
 
-    def access_boundary_label_for(recordable)
+    def access_actor_text_for(actor)
+      actor_name = actor.respond_to?(:name) ? normalize_label(actor.name) : nil
+
+      return "Unknown actor" unless actor_name.present?
+
+      suffix = actor.class.name.demodulize == "SystemActor" ? "System" : "User"
+      "#{actor_name} (#{suffix})"
+    end
+    private_class_method :access_actor_text_for
+
+    def access_boundary_name_for(recordable)
       return unless access_boundary_recordable?(recordable)
 
       minimum_role = normalize_label(recordable.minimum_role)
       minimum_role.present? ? "Access boundary (min: #{minimum_role})" : "Access boundary"
     end
-    private_class_method :access_boundary_label_for
+    private_class_method :access_boundary_name_for
 
-    def comment_label_for(recordable)
+    def comment_name_for(recordable)
       return unless comment_recordable?(recordable)
 
       snippet = squished_value(recordable, :body)
       snippet.present? ? "Comment: #{snippet.truncate(60)}" : "Comment"
     end
-    private_class_method :comment_label_for
+    private_class_method :comment_name_for
 
-    def fallback_label_for(recordable)
+    def fallback_name_for(recordable)
       class_name = normalize_label(recordable.class.name) || recordable.class.to_s
       identifier = recordable.respond_to?(:id) ? recordable.id : nil
       identifier.present? ? "#{class_name} ##{identifier}" : class_name
     end
-    private_class_method :fallback_label_for
+    private_class_method :fallback_name_for
 
     def model_type_label_for(klass, type_name)
       model_label = normalize_label(klass&.model_name&.human)

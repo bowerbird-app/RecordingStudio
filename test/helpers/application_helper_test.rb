@@ -49,10 +49,10 @@ class ApplicationHelperTest < ActionView::TestCase
     assert_includes label, "impersonated by"
   end
 
-  def test_recordable_label_uses_name_when_title_is_missing
+  def test_recordable_name_uses_name_when_title_is_missing
     workspace = Workspace.create!(name: "Studio Workspace")
 
-    assert_equal "Studio Workspace", recordable_label(workspace)
+    assert_equal "Studio Workspace", recordable_name(workspace)
   end
 
   def test_recordable_type_label_uses_recordable_contract

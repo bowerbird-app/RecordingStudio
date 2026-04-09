@@ -3,7 +3,7 @@
 <%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
   <% breadcrumb.item(text: "Home", href: root_path) %>
   <% breadcrumb.item(text: "Recordings", href: recordings_path) %>
-  <% breadcrumb.item(text: @recording.label) %>
+  <% breadcrumb.item(text: @recording.name) %>
 <% end %>
 
 <div class="space-y-6">
@@ -53,7 +53,7 @@
     <% card.body do %>
       <% if child_recordings.any? %>
         <%= render FlatPack::Table::Component.new(data: child_recordings) do |table| %>
-          <% table.column(title: "Recordable", html: ->(child) { link_to(child.label, recording_path(child), class: "hover:underline") }) %>
+          <% table.column(title: "Recordable", html: ->(child) { link_to(child.name, recording_path(child), class: "hover:underline") }) %>
           <% table.column(title: "Status", html: ->(child) { child.trashed_at ? "Trashed" : "Active" }) %>
           <% table.column(title: "Recording ID", html: ->(child) { child.id }) %>
           <% table.column(title: "Parent ID", html: ->(child) { child.parent_recording_id }) %>
@@ -78,7 +78,7 @@
     { label: "Recordable ID", value: @recording.recordable.id },
     { label: "Last updated", value: "#{time_ago_in_words(@recording.updated_at)} ago" },
     { label: "Root Recording ID", value: @recording.root_recording_id },
-    { label: "Root Recordable", value: @recording.root_recording&.label || "—" },
+    { label: "Root Recordable", value: @recording.root_recording&.name || "—" },
     { label: "Status", value: @recording.trashed_at ? "Trashed" : "Active" }
   ] %>
   <%= render FlatPack::Card::Component.new do |card| %>
@@ -128,11 +128,11 @@
                     </div>
                     <div class="flex flex-wrap items-center justify-between gap-2">
                       <dt class="font-medium text-slate-500">Recordable</dt>
-                      <dd><%= recordable_label(event.recordable) %></dd>
+                      <dd><%= recordable_name(event.recordable) %></dd>
                     </div>
                     <div class="flex flex-wrap items-center justify-between gap-2">
                       <dt class="font-medium text-slate-500">Previous</dt>
-                      <dd><%= recordable_label(event.previous_recordable) %></dd>
+                      <dd><%= recordable_name(event.previous_recordable) %></dd>
                     </div>
                   </dl>
 
@@ -182,7 +182,7 @@
               <%= render FlatPack::Card::Component.new(style: :outlined, padding: :sm) do |recordable_card| %>
                 <% recordable_card.body do %>
                   <div class="flex flex-wrap items-center gap-2">
-                    <h4 class="text-sm font-semibold text-slate-900"><%= recordable_label(recordable) %></h4>
+                    <h4 class="text-sm font-semibold text-slate-900"><%= recordable_name(recordable) %></h4>
                     <% if recordable.id == @recording.recordable.id %>
                       <%= render FlatPack::Badge::Component.new(text: "Current", style: :success, size: :sm) %>
                     <% end %>

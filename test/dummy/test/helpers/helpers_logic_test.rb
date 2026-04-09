@@ -48,7 +48,7 @@ class HelpersLogicTest < ActiveSupport::TestCase
                  ApplicationController.helpers.actor_with_impersonator_label(user, system_actor)
   end
 
-  test "recordable_label handles access boundary and generic title" do
+  test "recordable_name handles access boundary and generic title" do
     user = User.create!(
       name: "Access User",
       email: "access-user-#{SecureRandom.hex(4)}@example.com",
@@ -59,27 +59,27 @@ class HelpersLogicTest < ActiveSupport::TestCase
     boundary = RecordingStudio::AccessBoundary.create!(minimum_role: :edit)
     page = RecordingStudioPage.create!(title: "A Titled Page")
 
-    assert_equal "Access: admin — Access User (User)", ApplicationController.helpers.recordable_label(access)
-    assert_equal "Access boundary (min: edit)", ApplicationController.helpers.recordable_label(boundary)
-    assert_equal "A Titled Page", ApplicationController.helpers.recordable_label(page)
+    assert_equal "Access: admin — Access User (User)", ApplicationController.helpers.recordable_name(access)
+    assert_equal "Access boundary (min: edit)", ApplicationController.helpers.recordable_name(boundary)
+    assert_equal "A Titled Page", ApplicationController.helpers.recordable_name(page)
   end
 
-  test "recordable labels use recordable contract when available" do
+  test "recordable names use recordable contract when available" do
     folder = RecordingStudioFolder.create!(name: "Projects")
 
-    assert_equal "📁 Projects", ApplicationController.helpers.recordable_label(folder)
+    assert_equal "📁 Projects", ApplicationController.helpers.recordable_name(folder)
     assert_equal "Folder", ApplicationController.helpers.recordable_type_label(folder)
   end
 
-  test "recordable_label handles comment snippets and blank comment" do
+  test "recordable_name handles comment snippets and blank comment" do
     comment = RecordingStudioComment.create!(body: "This is a very long comment body that should still render as a comment snippet for labels")
     blank_comment = RecordingStudioComment.new(body: " ")
 
-    assert_includes ApplicationController.helpers.recordable_label(comment), "Comment:"
-    assert_equal "Comment", ApplicationController.helpers.recordable_label(blank_comment)
+    assert_includes ApplicationController.helpers.recordable_name(comment), "Comment:"
+    assert_equal "Comment", ApplicationController.helpers.recordable_name(blank_comment)
   end
 
-  test "recordable_label handles boundary without minimum and unknown fallback" do
+  test "recordable_name handles boundary without minimum and unknown fallback" do
     boundary = RecordingStudio::AccessBoundary.create!(minimum_role: nil)
     fallback_class = Class.new do
       attr_reader :id
@@ -91,9 +91,9 @@ class HelpersLogicTest < ActiveSupport::TestCase
     Object.const_set("FallbackThing", fallback_class)
     fallback = FallbackThing.new("x-1")
 
-    assert_equal "Access boundary", ApplicationController.helpers.recordable_label(boundary)
-    assert_equal "FallbackThing #x-1", ApplicationController.helpers.recordable_label(fallback)
-    assert_equal "—", ApplicationController.helpers.recordable_label(nil)
+    assert_equal "Access boundary", ApplicationController.helpers.recordable_name(boundary)
+    assert_equal "FallbackThing #x-1", ApplicationController.helpers.recordable_name(fallback)
+    assert_equal "—", ApplicationController.helpers.recordable_name(nil)
   ensure
     Object.send(:remove_const, :FallbackThing) if Object.const_defined?(:FallbackThing)
   end

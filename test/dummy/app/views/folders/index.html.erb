@@ -17,9 +17,9 @@
 <div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
   <% if @folders.any? %>
     <%= render FlatPack::Table::Component.new(data: @folders) do |table| %>
-      <% table.column(title: "Name", html: ->(recording) { link_to(recording.label, folder_path(recording), class: "hover:underline") }) %>
-      <% table.column(title: "Parent", html: ->(recording) { recording.parent_recording&.label || "—" }) %>
-      <% table.column(title: "Root", html: ->(recording) { recording.root_recording&.label || "—" }) %>
+      <% table.column(title: "Name", html: ->(recording) { link_to(recording.name, folder_path(recording), class: "hover:underline") }) %>
+      <% table.column(title: "Parent", html: ->(recording) { recording.parent_recording&.name || "—" }) %>
+      <% table.column(title: "Root", html: ->(recording) { recording.root_recording&.name || "—" }) %>
     <% end %>
   <% else %>
     <div class="px-6 py-10 text-center text-sm text-slate-500">

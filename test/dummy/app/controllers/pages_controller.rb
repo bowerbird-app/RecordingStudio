@@ -65,6 +65,8 @@ class PagesController < ApplicationController
       recordable: @workspace,
       parent_recording_id: nil
     )
+
+    ensure_root_access!(@workspace)
   end
 
   def load_recording

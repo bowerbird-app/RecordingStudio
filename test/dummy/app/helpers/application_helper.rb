@@ -44,9 +44,11 @@ module ApplicationHelper
     "#{label} (impersonated by #{actor_label(impersonator)})"
   end
 
-  def recordable_label(recordable)
-    RecordingStudio::Labels.label_for(recordable)
+  def recordable_name(recordable)
+    RecordingStudio::Labels.name_for(recordable)
   end
+
+  alias_method :recordable_label, :recordable_name
 
   def recordable_type_label(recordable_or_type)
     RecordingStudio::Labels.type_label_for(recordable_or_type)

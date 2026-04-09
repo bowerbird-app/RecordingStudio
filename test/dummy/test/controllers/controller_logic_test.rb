@@ -609,6 +609,34 @@ class ControllerLogicTest < ActiveSupport::TestCase
     end
   end
 
+  test "pages load_root_recording ensures root access for current actor" do
+    controller = PagesController.new
+    actor = @user
+    workspace = Workspace.create!(name: "Pages Workspace #{SecureRandom.hex(3)}")
+
+    controller.instance_variable_set(:@workspace, workspace)
+    controller.singleton_class.send(:define_method, :current_actor) { actor }
+
+    assert_difference("RecordingStudio::Access.where(actor: actor).count", 1) do
+      controller.send(:load_root_recording)
+    end
+
+    root = controller.instance_variable_get(:@root_recording)
+    assert RecordingStudio::Services::AccessCheck.allowed?(actor: actor, recording: root, role: :view)
+  end
+
+  test "pages load_root_recording skips access bootstrap when actor is nil" do
+    controller = PagesController.new
+    workspace = Workspace.create!(name: "Pages Nil Actor #{SecureRandom.hex(3)}")
+
+    controller.instance_variable_set(:@workspace, workspace)
+    controller.singleton_class.send(:define_method, :current_actor) { nil }
+
+    assert_no_difference("RecordingStudio::Access.count") do
+      controller.send(:load_root_recording)
+    end
+  end
+
   test "workspaces root_access_grants chooses strongest role per actor" do
     controller = WorkspacesController.new
     access_view = RecordingStudio::Access.create!(actor: @user, role: :view)

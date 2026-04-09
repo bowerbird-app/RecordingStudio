@@ -208,7 +208,7 @@ class RecordingTest < ActiveSupport::TestCase
     assert_includes child.errors[:parent_recording_id], "cannot be itself or a descendant recording"
   end
 
-  def test_label_accessors_use_current_recordable_and_root_recording
+  def test_name_accessors_use_current_recordable_and_root_recording
     workspace, root = create_workspace_root(name: "Studio Workspace")
 
     folder_recording = RecordingStudio.record!(
@@ -218,13 +218,19 @@ class RecordingTest < ActiveSupport::TestCase
       parent_recording: root
     ).recording
 
-    assert_equal workspace.recording_studio_label, root.label
-    assert_equal Workspace.recording_studio_type_label, root.type_label
-    assert_equal "📁 Projects", folder_recording.label
+    assert_equal workspace.recordable_name, root.name
+    assert_equal Workspace.recordable_type_label, root.type_label
+    assert_equal "📁 Projects", folder_recording.name
     assert_equal "Folder", folder_recording.type_label
     assert_equal "Projects", folder_recording.title
     assert_nil folder_recording.summary
-    assert_equal root.label, folder_recording.root_recording.label
+    assert_equal root.name, folder_recording.root_recording.name
+  end
+
+  def test_label_remains_an_alias_for_name
+    _workspace, root = create_workspace_root(name: "Studio Workspace")
+
+    assert_equal root.name, root.label
   end
 
   private

@@ -178,9 +178,11 @@ module RecordingStudio
       recordings_query.of_type(recordable_class)
     end
 
-    def label
-      RecordingStudio::Labels.label_for(recordable)
+    def name
+      RecordingStudio::Labels.name_for(recordable)
     end
+
+    alias label name
 
     def type_label
       RecordingStudio::Labels.type_label_for(recordable || recordable_type)

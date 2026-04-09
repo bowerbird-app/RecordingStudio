@@ -51,11 +51,11 @@
       <% table.column(title: "Recordable", html: ->(recording) {
         case recording.recordable_type
         when "RecordingStudioFolder"
-          link_to(recording.label, folder_path(recording), class: "hover:underline")
+          link_to(recording.name, folder_path(recording), class: "hover:underline")
         when "RecordingStudioPage"
-          link_to(recording.label, page_path(recording), class: "hover:underline")
+          link_to(recording.name, page_path(recording), class: "hover:underline")
         else
-          link_to(recording.label, recording_path(recording), class: "hover:underline")
+          link_to(recording.name, recording_path(recording), class: "hover:underline")
         end
       }) %>
       <% table.column(title: "Type", html: ->(recording) { recording.type_label }) %>

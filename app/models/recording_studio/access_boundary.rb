@@ -8,13 +8,19 @@ module RecordingStudio
 
     enum :minimum_role, { view: 0, edit: 1, admin: 2 }
 
-    def self.recording_studio_type_label
+    def self.recordable_type_label
       "Access boundary"
     end
 
-    def recording_studio_label
+    class << self
+      alias recording_studio_type_label recordable_type_label
+    end
+
+    def recordable_name
       minimum = minimum_role.to_s.squish.presence
       minimum.present? ? "Access boundary (min: #{minimum})" : "Access boundary"
     end
+
+    alias recording_studio_label recordable_name
   end
 end
