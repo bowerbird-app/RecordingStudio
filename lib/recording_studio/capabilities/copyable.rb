@@ -39,7 +39,7 @@ module RecordingStudio
             assert_capability!(:copyable)
             assert_copy_parent_present!(copy_parent)
             assert_recording_visible!(actor: actor, recording: self)
-            assert_copy_parent_editable!(actor: actor, copy_parent: copy_parent)
+            assert_current_parent_editable!(actor: actor, copy_parent: copy_parent)
 
             copied = duplicate_recording_tree!(
               source_recording: self,
@@ -160,7 +160,7 @@ module RecordingStudio
             next unless copy_child_recording?(child_recording, deep_copy_options: copy_options[:deep_copy])
 
             assert_recording_visible!(actor: actor, recording: child_recording)
-            assert_copy_parent_editable!(actor: actor, copy_parent: child_recording.parent_recording)
+            assert_source_parent_editable!(actor: actor, source_recording: child_recording)
 
             duplicate_recording_tree!(
               source_recording: child_recording,
@@ -210,8 +210,16 @@ module RecordingStudio
           raise RecordingStudio::AccessDenied, "Actor does not have view access on the source recording"
         end
 
-        def assert_copy_parent_editable!(actor:, copy_parent:)
+        def assert_current_parent_editable!(actor:, copy_parent:)
           return if RecordingStudio::Services::AccessCheck.allowed?(actor: actor, recording: copy_parent, role: :edit)
+
+          raise RecordingStudio::AccessDenied, "Actor does not have edit access on the copy parent"
+        end
+
+        def assert_source_parent_editable!(actor:, source_recording:)
+          source_parent = source_recording.parent_recording
+          return if source_parent.nil?
+          return if RecordingStudio::Services::AccessCheck.allowed?(actor: actor, recording: source_parent, role: :edit)
 
           raise RecordingStudio::AccessDenied, "Actor does not have edit access on the copy parent"
         end
@@ -237,7 +245,7 @@ module RecordingStudio
           path = uri.path.to_s
           decoded_path = CGI.unescape(path)
 
-          return if path.blank? || decoded_path.blank?
+          return if path.blank?
           return if !path.start_with?("/") || path.start_with?("//")
           return if !decoded_path.start_with?("/") || decoded_path.start_with?("//")
           return if decoded_path.split("/").any? { |segment| %w[. ..].include?(segment) }
