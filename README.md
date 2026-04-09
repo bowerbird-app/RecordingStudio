@@ -731,7 +731,7 @@ A capability is enabled for a recordable type only when that model includes its 
 
 ```ruby
 class Page < ApplicationRecord
-  include RecordingStudio::Capabilities::Copyable.to("Folder")
+  include RecordingStudio::Capabilities::Copyable.to
 end
 ```
 
@@ -750,7 +750,8 @@ Mixins are included on the **recordable model**, but behavior is invoked on the 
 `RecordingStudio::Recording`:
 
 ```ruby
-page_recording.copy_to!(new_parent: folder_recording, actor: current_user)
+result = page_recording.copy!(actor: current_user)
+copied = result.recording
 ```
 
 ### Capability mixin options configure behavior per recordable type
@@ -758,22 +759,16 @@ page_recording.copy_to!(new_parent: folder_recording, actor: current_user)
 Capability mixins can accept parameters; they are not only on/off flags:
 
 ```ruby
-class Page < ApplicationRecord
-  include RecordingStudio::Capabilities::Copyable.to("Folder")
+class Folder < ApplicationRecord
+  include RecordingStudio::Capabilities::Copyable.to(
+    deep_copy: { include: ["Page", "Folder"] },
+    redirect: :open
+  )
 end
 ```
 
-`Page` can copy only to `Folder`.
-
-```ruby
-class Page < ApplicationRecord
-  include RecordingStudio::Capabilities::Copyable.to("Folder", "Project")
-end
-```
-
-`Page` can copy to `Folder` or `Project`.
-
-Capability calls outside configured rules should fail (for example, invalid target types for copy).
+This configures default deep-copy behavior and a default redirect outcome for copied recordings.
+Per-call options can further narrow or expand descendant inclusion.
 
 ### Using addon gems in a host app
 
@@ -850,19 +845,23 @@ removed.
 
 ### Copyable
 
-`Copyable` duplicates the current recording's recordable under a target parent in the same root.
+`Copyable` duplicates the current recording under its existing parent in the same root.
 
 ```ruby
 class RecordingStudioPage < ApplicationRecord
-  include RecordingStudio::Capabilities::Copyable.to("RecordingStudioFolder", "Workspace")
+  include RecordingStudio::Capabilities::Copyable.to
 end
 
-copied = recording.copy_to!(new_parent: target_recording, actor: current_user)
+result = recording.copy!(actor: current_user, redirect: :open)
+copied = result.recording
 ```
 
-- Requires `:view` on source and `:edit` on target parent.
+- Requires `:view` on the source and `:edit` on the current parent.
 - Raises `RecordingStudio::AccessDenied` when access checks fail.
 - Logs a `"copied"` event with source recording/recordable metadata.
+- Supports API-level redirect instructions (`:reload`, `:return_to`, `:open`) without shipping copy UI.
+- Supports selective deep copy through class-level capability options and per-call overrides.
+- Skips access/system recordables during deep copy unless explicitly allowed.
 
 ## Custom / Extracted Capability Pattern (`commentable` example)
 
