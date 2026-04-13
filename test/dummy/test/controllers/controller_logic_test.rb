@@ -392,7 +392,7 @@ class ControllerLogicTest < ActiveSupport::TestCase
     end
     controller.singleton_class.send(:define_method, :request) { Struct.new(:referer).new(nil) }
 
-    assert_equal "/workspaces?filters[copied]=1", controller.send(:safe_return_to)
+    assert_equal "/workspaces?filters%5Bcopied%5D=1", controller.send(:safe_return_to)
   end
 
   test "access recordings safe return_to rejects traversal paths" do

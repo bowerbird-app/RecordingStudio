@@ -24,10 +24,11 @@ module RecordingStudio
         end
       end
 
+      # rubocop:disable Metrics/ModuleLength, Metrics/ParameterLists
       module RecordingMethods
         include RecordingStudio::Capability
 
-        # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
+        # rubocop:disable Metrics/MethodLength
         def copy!(actor:, impersonator: nil, metadata: {}, deep_copy: nil, redirect: nil, return_to: nil)
           self.class.transaction do
             copy_parent = lock_copy_parent!
@@ -54,7 +55,7 @@ module RecordingStudio
             )
           end
         end
-        # rubocop:enable Metrics/MethodLength, Metrics/AbcSize
+        # rubocop:enable Metrics/MethodLength
 
         private
 
@@ -82,6 +83,7 @@ module RecordingStudio
           defaults.deep_dup.merge(overrides.deep_dup)
         end
 
+        # rubocop:disable Metrics/MethodLength, Metrics/CyclomaticComplexity
         def normalize_deep_copy_options(options)
           case options
           when nil, false
@@ -97,16 +99,22 @@ module RecordingStudio
             }
           when Hash
             symbolized = options.deep_symbolize_keys
+            enabled = if symbolized.key?(:enabled)
+                        symbolized[:enabled] ? true : false
+                      else
+                        true
+                      end
             {
-              enabled: symbolized.key?(:enabled) ? !!symbolized[:enabled] : true,
+              enabled: enabled,
               include: normalize_recordable_types(symbolized[:include]),
               exclude: normalize_recordable_types(symbolized[:exclude]) || [],
-              allow_sensitive_types: !!symbolized[:allow_sensitive_types]
+              allow_sensitive_types: symbolized[:allow_sensitive_types] ? true : false
             }
           else
             raise ArgumentError, "deep_copy must be a boolean, array, or hash"
           end
         end
+        # rubocop:enable Metrics/MethodLength, Metrics/CyclomaticComplexity
 
         def normalize_recordable_types(types)
           Array(types).filter_map do |type|
@@ -114,8 +122,9 @@ module RecordingStudio
           end.presence
         end
 
+        # rubocop:disable Metrics/MethodLength
         def duplicate_recording_tree!(source_recording:, target_parent:, actor:, impersonator:,
-                                     metadata:, copy_options:)
+                                      metadata:, copy_options:)
           duplicate = duplicate_recordable(source_recording.recordable)
           duplicate.save!
 
@@ -140,7 +149,9 @@ module RecordingStudio
 
           copied_recording
         end
+        # rubocop:enable Metrics/MethodLength
 
+        # rubocop:disable Metrics/MethodLength
         def copy_child_recordings!(source_recording:, copied_recording:, actor:, impersonator:,
                                    metadata:, copy_options:)
           return unless copy_options.dig(:deep_copy, :enabled)
@@ -161,6 +172,7 @@ module RecordingStudio
             )
           end
         end
+        # rubocop:enable Metrics/MethodLength
 
         def copy_child_recording?(recording, deep_copy_options:)
           return false unless deep_copy_options[:enabled]
@@ -235,6 +247,7 @@ module RecordingStudio
           RecordingStudio.warn_legacy_feature_use!(:copyable, used_by: "RecordingStudio::Recording#copy!")
         end
       end
+      # rubocop:enable Metrics/ModuleLength, Metrics/ParameterLists
     end
   end
 end

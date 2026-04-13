@@ -11,22 +11,25 @@ module RecordingStudio
 
     def sanitize(candidate)
       return if candidate.blank?
+      return if candidate.start_with?("//")
 
       uri = URI.parse(candidate)
-      path = uri.path.to_s
-      decoded_path = CGI.unescape(path)
+      path = sanitize_path(uri.path.to_s)
+      return unless path
 
-      return if path.blank?
-      return unless safe_relative_path?(path)
-      return unless safe_relative_path?(decoded_path)
+      query = sanitize_query(uri.query)
+      return if uri.query.present? && query.nil?
 
-      sanitized_query = sanitize_query(uri.query)
-      return if uri.query.present? && sanitized_query.nil?
-
-      path += "?#{sanitized_query}" if sanitized_query.present?
-      path
+      build_location(path, query)
     rescue URI::InvalidURIError
       nil
+    end
+
+    def sanitize_path(path)
+      return unless safe_relative_path?(path)
+      return unless safe_relative_path?(CGI.unescape(path))
+
+      path
     end
 
     def safe_relative_path?(path)
@@ -43,6 +46,12 @@ module RecordingStudio
       Rack::Utils.build_nested_query(Rack::Utils.parse_nested_query(query))
     rescue StandardError
       nil
+    end
+
+    def build_location(path, query)
+      return path if query.blank?
+
+      "#{path}?#{query}"
     end
   end
 end

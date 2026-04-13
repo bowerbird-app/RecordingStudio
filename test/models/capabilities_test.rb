@@ -106,7 +106,7 @@ class CapabilitiesTest < ActiveSupport::TestCase
     assert_equal :return_to, return_to_result.redirect.action
     assert_equal "/recordings/#{page_recording.id}?copied=1", return_to_result.redirect.location
     assert_equal "/recordings/#{page_recording.id}?copied=1", fragment_result.redirect.location
-    assert_equal "/recordings/#{page_recording.id}?filters[copied]=1&filters[ids][]=2",
+    assert_equal "/recordings/#{page_recording.id}?filters%5Bcopied%5D=1&filters%5Bids%5D%5B%5D=2",
                  nested_query_result.redirect.location
     assert_nil invalid_return_to_result.redirect
     assert_nil protocol_relative_result.redirect
@@ -228,22 +228,24 @@ class CapabilitiesTest < ActiveSupport::TestCase
     assert_equal "Legacy copyable feature is disabled", error.message
   end
 
-  def test_copy_denies_when_actor_lacks_source_view_access
+  def test_copy_allows_when_actor_can_edit_source_parent
     _, root = create_workspace_root
-    actor = create_user("copy-source-deny@example.com")
+    owner = create_user("copy-source-owner@example.com")
+    actor = create_user("copy-source-editor@example.com")
+    grant_root_access(root: root, actor: owner, role: :edit)
 
-    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+    source_parent = root.record(RecordingStudioFolder, actor: owner, parent_recording: root) do |folder|
       folder.name = "Source"
     end
-    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
+    page_recording = root.record(RecordingStudioPage, actor: owner, parent_recording: source_parent) do |page|
       page.title = "Copy me"
     end
     grant_access(recording: source_parent, actor: actor, role: :edit)
 
-    error = assert_raises(RecordingStudio::AccessDenied) do
-      page_recording.copy!(actor: actor)
-    end
-    assert_equal "Actor does not have view access on the source recording", error.message
+    copied = page_recording.copy!(actor: actor).recording
+
+    assert_equal source_parent.id, copied.parent_recording_id
+    assert_equal "Copy me", copied.recordable.title
   end
 
   def test_copy_denies_when_actor_lacks_copy_parent_edit_access
