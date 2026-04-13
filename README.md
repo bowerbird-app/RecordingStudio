@@ -860,6 +860,7 @@ copied = result.recording
 - Raises `RecordingStudio::AccessDenied` when access checks fail.
 - Logs a `"copied"` event with source recording/recordable metadata.
 - Supports API-level redirect instructions (`:reload`, `:return_to`, `:open`) without shipping copy UI.
+- `redirect: :return_to` only returns sanitized local paths; absolute URLs are reduced to their local path/query, fragments are dropped, and invalid or traversal-style values are rejected.
 - Supports selective deep copy through class-level capability options and per-call overrides.
 - Skips access/system recordables during deep copy unless explicitly allowed.
 

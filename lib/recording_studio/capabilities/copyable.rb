@@ -1,9 +1,5 @@
 # frozen_string_literal: true
 
-require "cgi"
-require "pathname"
-require "rack/utils"
-
 module RecordingStudio
   module Capabilities
     module Copyable
@@ -59,15 +55,6 @@ module RecordingStudio
           end
         end
         # rubocop:enable Metrics/MethodLength, Metrics/AbcSize
-
-        def copy_to!(new_parent: nil, **kwargs)
-          if new_parent.present?
-            raise ArgumentError,
-                  "copy_to! no longer accepts new_parent; use copy! to duplicate within the current parent"
-          end
-
-          copy!(**kwargs)
-        end
 
         private
 
@@ -231,49 +218,13 @@ module RecordingStudio
           when :reload
             Redirect.new(action: :reload)
           when :return_to
-            sanitized_return_to = sanitize_return_to(return_to)
+            sanitized_return_to = RecordingStudio::SafeReturnTo.sanitize(return_to)
             return unless sanitized_return_to
 
             Redirect.new(action: :return_to, location: sanitized_return_to)
           when :open
             Redirect.new(action: :open, recording: copied_recording)
           end
-        end
-
-        def sanitize_return_to(candidate)
-          return if candidate.blank?
-
-          uri = URI.parse(candidate)
-          path = uri.path.to_s
-          decoded_path = CGI.unescape(path)
-
-          return if path.blank?
-          return unless safe_relative_path?(path)
-          return unless safe_relative_path?(decoded_path)
-
-          sanitized_query = sanitize_return_to_query(uri.query)
-          return if uri.query.present? && sanitized_query.nil?
-
-          path += "?#{sanitized_query}" if sanitized_query.present?
-          path
-        rescue URI::InvalidURIError
-          nil
-        end
-
-        def safe_relative_path?(path)
-          return false if path.blank?
-          return false unless path.start_with?("/")
-          return false if path.start_with?("//")
-
-          Pathname.new(path).cleanpath.to_s == path
-        end
-
-        def sanitize_return_to_query(query)
-          return if query.blank?
-
-          Rack::Utils.build_nested_query(Rack::Utils.parse_nested_query(query))
-        rescue StandardError
-          nil
         end
 
         def assert_copyable_feature_enabled!

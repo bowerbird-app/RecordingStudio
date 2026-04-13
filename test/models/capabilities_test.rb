@@ -89,12 +89,25 @@ class CapabilitiesTest < ActiveSupport::TestCase
       redirect: :return_to,
       return_to: "/%2e%2e/admin"
     )
+    fragment_result = page_recording.copy!(
+      actor: actor,
+      redirect: :return_to,
+      return_to: "https://example.com/recordings/#{page_recording.id}?copied=1#details"
+    )
+    nested_query_result = page_recording.copy!(
+      actor: actor,
+      redirect: :return_to,
+      return_to: "/recordings/#{page_recording.id}?filters%5Bcopied%5D=1&filters%5Bids%5D%5B%5D=2"
+    )
 
     assert_equal :reload, reload_result.redirect.action
     assert_equal :open, open_result.redirect.action
     assert_equal open_result.recording, open_result.redirect.recording
     assert_equal :return_to, return_to_result.redirect.action
     assert_equal "/recordings/#{page_recording.id}?copied=1", return_to_result.redirect.location
+    assert_equal "/recordings/#{page_recording.id}?copied=1", fragment_result.redirect.location
+    assert_equal "/recordings/#{page_recording.id}?filters[copied]=1&filters[ids][]=2",
+                 nested_query_result.redirect.location
     assert_nil invalid_return_to_result.redirect
     assert_nil protocol_relative_result.redirect
     assert_nil path_traversal_result.redirect
@@ -251,7 +264,7 @@ class CapabilitiesTest < ActiveSupport::TestCase
     assert_equal "Actor does not have edit access on the copy parent", error.message
   end
 
-  def test_copy_to_rejects_new_parent_argument
+  def test_recordings_expose_copy_but_not_copy_to
     _, root = create_workspace_root
     actor = create_user("copy-transition@example.com")
     grant_root_access(root: root, actor: actor, role: :edit)
@@ -259,19 +272,12 @@ class CapabilitiesTest < ActiveSupport::TestCase
     source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
       folder.name = "Source"
     end
-    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Target"
-    end
     page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
       page.title = "Copy me"
     end
 
-    error = assert_raises(ArgumentError) do
-      page_recording.copy_to!(new_parent: target_parent, actor: actor)
-    end
-
-    assert_equal "copy_to! no longer accepts new_parent; use copy! to duplicate within the current parent",
-                 error.message
+    assert_respond_to page_recording, :copy!
+    refute_respond_to page_recording, :copy_to!
   end
 
   def test_page_commentable_api_creates_and_lists_comment_recordings

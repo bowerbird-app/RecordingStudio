@@ -108,18 +108,7 @@ class AccessRecordingsController < ApplicationController
 
   def safe_return_to
     candidate = params[:return_to].presence || request.referer
-    return if candidate.blank?
-
-    uri = URI.parse(candidate)
-    path = uri.path.to_s
-    path += "?#{uri.query}" if uri.query.present?
-
-    return if path.blank?
-    return if !path.start_with?("/") || path.start_with?("//")
-
-    path
-  rescue URI::InvalidURIError
-    nil
+    RecordingStudio::SafeReturnTo.sanitize(candidate)
   end
 
   def authorize_create_access!

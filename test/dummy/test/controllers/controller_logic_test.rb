@@ -385,6 +385,24 @@ class ControllerLogicTest < ActiveSupport::TestCase
     assert_equal "/workspaces", controller.send(:safe_return_to)
   end
 
+  test "access recordings safe return_to strips fragments and preserves query" do
+    controller = AccessRecordingsController.new
+    controller.singleton_class.send(:define_method, :params) do
+      ActionController::Parameters.new(return_to: "https://example.com/workspaces?filters%5Bcopied%5D=1#details")
+    end
+    controller.singleton_class.send(:define_method, :request) { Struct.new(:referer).new(nil) }
+
+    assert_equal "/workspaces?filters[copied]=1", controller.send(:safe_return_to)
+  end
+
+  test "access recordings safe return_to rejects traversal paths" do
+    controller = AccessRecordingsController.new
+    controller.singleton_class.send(:define_method, :params) { ActionController::Parameters.new(return_to: "/../admin") }
+    controller.singleton_class.send(:define_method, :request) { Struct.new(:referer).new(nil) }
+
+    assert_nil controller.send(:safe_return_to)
+  end
+
   test "workspaces better_access_grant compares role priority" do
     controller = WorkspacesController.new
 
@@ -482,6 +500,16 @@ class ControllerLogicTest < ActiveSupport::TestCase
     controller.singleton_class.send(:define_method, :request) { Struct.new(:referer).new(nil) }
 
     assert_nil controller.send(:safe_return_to)
+  end
+
+  test "boundary recordings safe return_to sanitizes request referer" do
+    controller = BoundaryRecordingsController.new
+    controller.singleton_class.send(:define_method, :params) { ActionController::Parameters.new }
+    controller.singleton_class.send(:define_method, :request) do
+      Struct.new(:referer).new("https://example.com/boundary_recordings/new?parent=1#dialog")
+    end
+
+    assert_equal "/boundary_recordings/new?parent=1", controller.send(:safe_return_to)
   end
 
   test "set_return_to stores computed safe path" do
