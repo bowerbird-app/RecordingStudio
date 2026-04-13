@@ -11,7 +11,9 @@ module RecordingStudio
         RecordingStudio::DeviceSession
       ].freeze
 
-      def self.to(*_deprecated_parent_types, **options)
+      def self.to(*deprecated_parent_types, **options)
+        warn_deprecated_parent_types!(deprecated_parent_types)
+
         Module.new do
           extend ActiveSupport::Concern
 
@@ -22,6 +24,15 @@ module RecordingStudio
             RecordingStudio.set_capability_options(:copyable, on: base.name, **options.deep_dup)
           end
         end
+      end
+
+      def self.warn_deprecated_parent_types!(deprecated_parent_types)
+        return if deprecated_parent_types.empty?
+
+        ActiveSupport::Deprecation.warn(
+          "RecordingStudio::Capabilities::Copyable.to no longer accepts parent type arguments. " \
+          "Pass keyword options only."
+        )
       end
 
       module DeepCopyOptions
