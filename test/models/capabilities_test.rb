@@ -107,6 +107,7 @@ class CapabilitiesTest < ActiveSupport::TestCase
     assert_equal open_result.recording, open_result.redirect.recording
     assert_equal :return_to, return_to_result.redirect.action
     assert_equal "/recordings/#{page_recording.id}?copied=1", return_to_result.redirect.location
+    refute_includes return_to_result.redirect.location, "example.com"
     assert_equal :return_to, grouped_return_to_result.redirect.action
     assert_equal "/recordings/#{page_recording.id}?filters%5Bcopied%5D=1&filters%5Bids%5D%5B%5D=2",
                  grouped_return_to_result.redirect.location
