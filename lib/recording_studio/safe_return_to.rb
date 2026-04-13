@@ -14,7 +14,19 @@ module RecordingStudio
       return if candidate.blank?
       return if candidate.start_with?("//")
 
-      uri = URI.parse(candidate)
+      uri = parse_uri(candidate)
+      return unless uri
+
+      sanitize_uri(uri, allowed_prefixes: allowed_prefixes)
+    end
+
+    def parse_uri(candidate)
+      URI.parse(candidate)
+    rescue URI::InvalidURIError
+      nil
+    end
+
+    def sanitize_uri(uri, allowed_prefixes:)
       path = sanitize_path(uri.path.to_s)
       return unless path
 
@@ -22,8 +34,6 @@ module RecordingStudio
       return if uri.query.present? && query.nil?
 
       build_location(path, query) if allowed_path?(path, allowed_prefixes)
-    rescue URI::InvalidURIError
-      nil
     end
 
     def sanitize_path(path)
