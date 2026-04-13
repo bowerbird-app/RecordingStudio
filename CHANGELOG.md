@@ -12,11 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `config.features.device_sessions` (both default to `true`).
 - Added runtime addon conflict warnings when addon gems are present while matching legacy built-ins are still enabled.
 - Added once-per-process deprecation guidance when legacy built-in features are actively used.
+- Added optional `allowed_prefixes` filtering to `RecordingStudio::SafeReturnTo.sanitize` for host-app UI redirect allowlists.
 
 ### Changed
 - Removed legacy built-in move/movable support in favor of the external moveable addon gem.
+- Removed the legacy `copy_to!` entrypoint in favor of `copy!` as the single copy API.
 - Gated legacy copyable capability activation by feature flags.
 - Gated legacy device session tracking so it can be disabled without cookie/session side effects.
+- Hardened `SafeReturnTo` to reject encoded separators, backslashes, and ambiguous path-parameter style redirects.
+- Refactored copy capability internals into smaller deep-copy, redirect, and authorization units.
 - Documented migration guidance for disabling legacy built-ins when using addon gems.
 
 ## [0.1.0] - 2025-12-04

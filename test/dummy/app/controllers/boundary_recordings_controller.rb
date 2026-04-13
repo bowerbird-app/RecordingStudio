@@ -1,4 +1,6 @@
 class BoundaryRecordingsController < ApplicationController
+  include ReturnToPath
+
   before_action :set_return_to
 
   before_action :set_parent_recording, only: [ :new, :create ]
@@ -128,15 +130,6 @@ class BoundaryRecordingsController < ApplicationController
       .where(parent_recording_id: recording.id, recordable_type: "RecordingStudio::AccessBoundary", trashed_at: nil)
       .order(created_at: :desc, id: :desc)
       .first
-  end
-
-  def set_return_to
-    @return_to = safe_return_to
-  end
-
-  def safe_return_to
-    candidate = params[:return_to].presence || request.referer
-    RecordingStudio::SafeReturnTo.sanitize(candidate)
   end
 
   def default_return_path(parent_recording)

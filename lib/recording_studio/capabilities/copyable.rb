@@ -24,48 +24,8 @@ module RecordingStudio
         end
       end
 
-      # rubocop:disable Metrics/ModuleLength, Metrics/ParameterLists
-      module RecordingMethods
-        include RecordingStudio::Capability
-
-        # rubocop:disable Metrics/MethodLength
-        def copy!(actor:, impersonator: nil, metadata: {}, deep_copy: nil, redirect: nil, return_to: nil)
-          self.class.transaction do
-            copy_parent = lock_copy_parent!
-            copy_options = resolved_copy_options(deep_copy: deep_copy, redirect: redirect)
-
-            assert_copyable_feature_enabled!
-            assert_capability!(:copyable)
-            assert_copy_parent_present!(copy_parent)
-            assert_recording_visible!(actor: actor, recording: self)
-            assert_current_parent_editable!(actor: actor, copy_parent: copy_parent)
-
-            copied = duplicate_recording_tree!(
-              source_recording: self,
-              target_parent: copy_parent,
-              actor: actor,
-              impersonator: impersonator,
-              metadata: metadata,
-              copy_options: copy_options
-            )
-
-            Result.new(
-              recording: copied,
-              redirect: build_redirect(copied, redirect: copy_options[:redirect], return_to: return_to)
-            )
-          end
-        end
-        # rubocop:enable Metrics/MethodLength
-
+      module DeepCopyOptions
         private
-
-        def lock_copy_parent!
-          ordered_ids = [id, parent_recording_id].compact.uniq.sort
-          ordered_ids.each { |recording_id| self.class.lock.find(recording_id) }
-
-          reload
-          self.class.find(parent_recording_id) if parent_recording_id.present?
-        end
 
         def resolved_copy_options(deep_copy:, redirect:)
           capability_options = RecordingStudio.capability_options(:copyable, for_type: recordable_type) || {}
@@ -73,6 +33,16 @@ module RecordingStudio
           {
             deep_copy: normalize_deep_copy_options(merge_deep_copy_options(capability_options[:deep_copy], deep_copy)),
             redirect: redirect.nil? ? capability_options[:redirect] : redirect
+          }
+        end
+
+        def resolved_redirect_options(redirect, return_to)
+          return { action: redirect, return_to: return_to } unless redirect.is_a?(Hash)
+
+          symbolized = redirect.deep_symbolize_keys
+          {
+            action: symbolized[:action],
+            return_to: symbolized.key?(:return_to) ? symbolized[:return_to] : return_to
           }
         end
 
@@ -99,16 +69,12 @@ module RecordingStudio
             }
           when Hash
             symbolized = options.deep_symbolize_keys
-            enabled = if symbolized.key?(:enabled)
-                        symbolized[:enabled] ? true : false
-                      else
-                        true
-                      end
+            enabled = symbolized.key?(:enabled) ? symbolized[:enabled] == true : true
             {
               enabled: enabled,
               include: normalize_recordable_types(symbolized[:include]),
               exclude: normalize_recordable_types(symbolized[:exclude]) || [],
-              allow_sensitive_types: symbolized[:allow_sensitive_types] ? true : false
+              allow_sensitive_types: symbolized[:allow_sensitive_types] == true
             }
           else
             raise ArgumentError, "deep_copy must be a boolean, array, or hash"
@@ -122,9 +88,31 @@ module RecordingStudio
           end.presence
         end
 
-        # rubocop:disable Metrics/MethodLength
-        def duplicate_recording_tree!(source_recording:, target_parent:, actor:, impersonator:,
-                                      metadata:, copy_options:)
+        def copy_child_recording?(recording, deep_copy_options:)
+          return false unless deep_copy_options[:enabled]
+          return false if excluded_recordable_type?(recording.recordable_type, deep_copy_options: deep_copy_options)
+
+          included_types = deep_copy_options[:include]
+          return true if included_types.blank?
+
+          included_types.include?(recording.recordable_type)
+        end
+
+        def excluded_recordable_type?(recordable_type, deep_copy_options:)
+          excluded_types = deep_copy_options[:exclude] || []
+          return true if excluded_types.include?(recordable_type)
+          return false unless SENSITIVE_RECORDABLE_TYPES.include?(recordable_type)
+
+          deep_copy_options[:allow_sensitive_types] != true &&
+            !(deep_copy_options[:include] || []).include?(recordable_type)
+        end
+      end
+
+      module CopyTree
+        private
+
+        # rubocop:disable Metrics/MethodLength, Metrics/ParameterLists
+        def duplicate_recording_tree!(source_recording:, target_parent:, actor:, impersonator:, metadata:, copy_options:)
           duplicate = duplicate_recordable(source_recording.recordable)
           duplicate.save!
 
@@ -149,11 +137,10 @@ module RecordingStudio
 
           copied_recording
         end
-        # rubocop:enable Metrics/MethodLength
+        # rubocop:enable Metrics/MethodLength, Metrics/ParameterLists
 
-        # rubocop:disable Metrics/MethodLength
-        def copy_child_recordings!(source_recording:, copied_recording:, actor:, impersonator:,
-                                   metadata:, copy_options:)
+        # rubocop:disable Metrics/MethodLength, Metrics/ParameterLists
+        def copy_child_recordings!(source_recording:, copied_recording:, actor:, impersonator:, metadata:, copy_options:)
           return unless copy_options.dig(:deep_copy, :enabled)
 
           source_recording.child_recordings.reorder(:created_at, :id).each do |child_recording|
@@ -172,26 +159,7 @@ module RecordingStudio
             )
           end
         end
-        # rubocop:enable Metrics/MethodLength
-
-        def copy_child_recording?(recording, deep_copy_options:)
-          return false unless deep_copy_options[:enabled]
-          return false if excluded_recordable_type?(recording.recordable_type, deep_copy_options: deep_copy_options)
-
-          included_types = deep_copy_options[:include]
-          return true if included_types.blank?
-
-          included_types.include?(recording.recordable_type)
-        end
-
-        def excluded_recordable_type?(recordable_type, deep_copy_options:)
-          excluded_types = deep_copy_options[:exclude] || []
-          return true if excluded_types.include?(recordable_type)
-          return false unless SENSITIVE_RECORDABLE_TYPES.include?(recordable_type)
-
-          deep_copy_options[:allow_sensitive_types] != true &&
-            !(deep_copy_options[:include] || []).include?(recordable_type)
-        end
+        # rubocop:enable Metrics/MethodLength, Metrics/ParameterLists
 
         def copy_metadata_for(source_recording, metadata)
           metadata.merge(
@@ -200,10 +168,10 @@ module RecordingStudio
             source_recordable_type: source_recording.recordable_type
           )
         end
+      end
 
-        def assert_copy_parent_present!(copy_parent)
-          raise ArgumentError, "Cannot copy a root recording" if copy_parent.nil?
-        end
+      module CopyAccessAssertions
+        private
 
         def assert_recording_visible!(actor:, recording:)
           return if RecordingStudio::Services::AccessCheck.allowed?(actor: actor, recording: recording, role: :view)
@@ -225,20 +193,6 @@ module RecordingStudio
           raise RecordingStudio::AccessDenied, "Actor does not have edit access on the source parent"
         end
 
-        def build_redirect(copied_recording, redirect:, return_to:)
-          case redirect&.to_sym
-          when :reload
-            Redirect.new(action: :reload)
-          when :return_to
-            sanitized_return_to = RecordingStudio::SafeReturnTo.sanitize(return_to)
-            return unless sanitized_return_to
-
-            Redirect.new(action: :return_to, location: sanitized_return_to)
-          when :open
-            Redirect.new(action: :open, recording: copied_recording)
-          end
-        end
-
         def assert_copyable_feature_enabled!
           unless RecordingStudio.features.copyable?
             raise RecordingStudio::CapabilityDisabled, "Legacy copyable feature is disabled"
@@ -247,7 +201,77 @@ module RecordingStudio
           RecordingStudio.warn_legacy_feature_use!(:copyable, used_by: "RecordingStudio::Recording#copy!")
         end
       end
-      # rubocop:enable Metrics/ModuleLength, Metrics/ParameterLists
+
+      module CopyRedirects
+        private
+
+        def build_redirect(copied_recording, redirect_options:)
+          case redirect_options[:action]&.to_sym
+          when :reload
+            Redirect.new(action: :reload)
+          when :return_to
+            build_return_to_redirect(redirect_options[:return_to])
+          when :open
+            Redirect.new(action: :open, recording: copied_recording)
+          end
+        end
+
+        def build_return_to_redirect(return_to)
+          sanitized_return_to = RecordingStudio::SafeReturnTo.sanitize(return_to)
+          return unless sanitized_return_to
+
+          Redirect.new(action: :return_to, location: sanitized_return_to)
+        end
+      end
+
+      module RecordingMethods
+        include RecordingStudio::Capability
+        include CopyAccessAssertions
+        include CopyRedirects
+        include CopyTree
+        include DeepCopyOptions
+
+        # rubocop:disable Metrics/MethodLength, Metrics/ParameterLists
+        def copy!(actor:, impersonator: nil, metadata: {}, deep_copy: nil, redirect: nil, return_to: nil)
+          self.class.transaction do
+            copy_parent = lock_copy_parent!
+            copy_options = resolved_copy_options(deep_copy: deep_copy, redirect: redirect)
+            redirect_options = resolved_redirect_options(copy_options[:redirect], return_to)
+
+            assert_copyable_feature_enabled!
+            assert_capability!(:copyable)
+            assert_copy_parent_present!(copy_parent)
+            assert_recording_visible!(actor: actor, recording: self)
+            assert_current_parent_editable!(actor: actor, copy_parent: copy_parent)
+
+            copied = duplicate_recording_tree!(
+              source_recording: self,
+              target_parent: copy_parent,
+              actor: actor,
+              impersonator: impersonator,
+              metadata: metadata,
+              copy_options: copy_options
+            )
+
+            Result.new(recording: copied, redirect: build_redirect(copied, redirect_options: redirect_options))
+          end
+        end
+        # rubocop:enable Metrics/MethodLength, Metrics/ParameterLists
+
+        private
+
+        def lock_copy_parent!
+          ordered_ids = [id, parent_recording_id].compact.uniq.sort
+          ordered_ids.each { |recording_id| self.class.lock.find(recording_id) }
+
+          reload
+          self.class.find(parent_recording_id) if parent_recording_id.present?
+        end
+
+        def assert_copy_parent_present!(copy_parent)
+          raise ArgumentError, "Cannot copy a root recording" if copy_parent.nil?
+        end
+      end
     end
   end
 end

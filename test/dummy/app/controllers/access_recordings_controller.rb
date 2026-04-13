@@ -1,4 +1,6 @@
 class AccessRecordingsController < ApplicationController
+  include ReturnToPath
+
   before_action :set_return_to
   before_action :set_access_recording, only: [ :edit, :update ]
   before_action :authorize_edit_access!, only: [ :edit, :update ]
@@ -100,15 +102,6 @@ class AccessRecordingsController < ApplicationController
     return if @access_recording.recordable_type == "RecordingStudio::Access"
 
     raise ActiveRecord::RecordNotFound
-  end
-
-  def set_return_to
-    @return_to = safe_return_to
-  end
-
-  def safe_return_to
-    candidate = params[:return_to].presence || request.referer
-    RecordingStudio::SafeReturnTo.sanitize(candidate)
   end
 
   def authorize_create_access!

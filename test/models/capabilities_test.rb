@@ -81,6 +81,13 @@ class CapabilitiesTest < ActiveSupport::TestCase
       redirect: :return_to,
       return_to: "https://example.com/recordings/#{page_recording.id}?copied=1"
     )
+    grouped_return_to_result = page_recording.copy!(
+      actor: actor,
+      redirect: {
+        action: :return_to,
+        return_to: "/recordings/#{page_recording.id}?filters%5Bcopied%5D=1&filters%5Bids%5D%5B%5D=2"
+      }
+    )
     invalid_return_to_result = page_recording.copy!(actor: actor, redirect: :return_to, return_to: "%zz")
     protocol_relative_result = page_recording.copy!(actor: actor, redirect: :return_to, return_to: "//evil.test/path")
     path_traversal_result = page_recording.copy!(actor: actor, redirect: :return_to, return_to: "/../admin")
@@ -94,20 +101,16 @@ class CapabilitiesTest < ActiveSupport::TestCase
       redirect: :return_to,
       return_to: "https://example.com/recordings/#{page_recording.id}?copied=1#details"
     )
-    nested_query_result = page_recording.copy!(
-      actor: actor,
-      redirect: :return_to,
-      return_to: "/recordings/#{page_recording.id}?filters%5Bcopied%5D=1&filters%5Bids%5D%5B%5D=2"
-    )
 
     assert_equal :reload, reload_result.redirect.action
     assert_equal :open, open_result.redirect.action
     assert_equal open_result.recording, open_result.redirect.recording
     assert_equal :return_to, return_to_result.redirect.action
     assert_equal "/recordings/#{page_recording.id}?copied=1", return_to_result.redirect.location
-    assert_equal "/recordings/#{page_recording.id}?copied=1", fragment_result.redirect.location
+    assert_equal :return_to, grouped_return_to_result.redirect.action
     assert_equal "/recordings/#{page_recording.id}?filters%5Bcopied%5D=1&filters%5Bids%5D%5B%5D=2",
-                 nested_query_result.redirect.location
+                 grouped_return_to_result.redirect.location
+    assert_equal "/recordings/#{page_recording.id}?copied=1", fragment_result.redirect.location
     assert_nil invalid_return_to_result.redirect
     assert_nil protocol_relative_result.redirect
     assert_nil path_traversal_result.redirect

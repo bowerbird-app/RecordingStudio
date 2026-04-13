@@ -854,13 +854,30 @@ end
 
 result = recording.copy!(actor: current_user, redirect: :open)
 copied = result.recording
+
+return_to_result = recording.copy!(
+  actor: current_user,
+  redirect: { action: :return_to, return_to: request.fullpath }
+)
 ```
+
+`copy!` returns a `RecordingStudio::Capabilities::Copyable::Result` with:
+
+- `result.recording` — the copied recording
+- `result.redirect` — either `nil` or a `Redirect` struct with:
+  - `action: :reload`
+  - `action: :open, recording: copied_recording`
+  - `action: :return_to, location: "/local/path?query=1"`
+
+Additional notes:
 
 - Requires `:view` on the source and `:edit` on the current parent.
 - Raises `RecordingStudio::AccessDenied` when access checks fail.
 - Logs a `"copied"` event with source recording/recordable metadata.
 - Supports API-level redirect instructions (`:reload`, `:return_to`, `:open`) without shipping copy UI.
-- `redirect: :return_to` only returns sanitized local paths; absolute URLs are reduced to their local path/query, fragments are dropped, and invalid or traversal-style values are rejected.
+- `redirect` may be a symbol (`:open`) or a hash (`{ action:, return_to: }`) when you want a more explicit call site.
+- `redirect: :return_to` only returns sanitized local paths; absolute URLs are reduced to their local path/query, fragments are dropped, encoded separators/backslashes/path parameters are rejected, and nested query params stay percent-encoded in the returned location.
+- `RecordingStudio::SafeReturnTo.sanitize(candidate, allowed_prefixes: %w[/workspaces /recordings])` can further constrain redirects for host-app UI flows.
 - Supports selective deep copy through class-level capability options and per-call overrides.
 - Skips access/system recordables during deep copy unless explicitly allowed.
 

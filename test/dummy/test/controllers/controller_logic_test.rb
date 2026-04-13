@@ -403,6 +403,14 @@ class ControllerLogicTest < ActiveSupport::TestCase
     assert_nil controller.send(:safe_return_to)
   end
 
+  test "access recordings safe return_to rejects disallowed local paths" do
+    controller = AccessRecordingsController.new
+    controller.singleton_class.send(:define_method, :params) { ActionController::Parameters.new(return_to: "/admin") }
+    controller.singleton_class.send(:define_method, :request) { Struct.new(:referer).new(nil) }
+
+    assert_nil controller.send(:safe_return_to)
+  end
+
   test "workspaces better_access_grant compares role priority" do
     controller = WorkspacesController.new
 
