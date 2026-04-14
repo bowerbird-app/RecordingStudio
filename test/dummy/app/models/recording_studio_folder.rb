@@ -1,8 +1,6 @@
 class RecordingStudioFolder < ApplicationRecord
   validates :name, presence: true
 
-  include RecordingStudio::Capabilities::Copyable.to("RecordingStudioFolder", "Workspace")
-
   def self.recordable_type_label
     "Folder"
   end

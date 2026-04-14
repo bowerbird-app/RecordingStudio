@@ -26,38 +26,23 @@ class RecordingStudioTest < Minitest::Test
   end
 
   def test_feature_toggles_default_to_true
-    assert RecordingStudio.features.copyable?
     assert RecordingStudio.features.device_sessions?
   end
 
   def test_feature_toggles_are_independent
     RecordingStudio.configure do |config|
-      config.features.copyable = true
       config.features.device_sessions = false
     end
 
-    assert RecordingStudio.features.copyable?
     assert_not RecordingStudio.features.device_sessions?
   end
 
   def test_feature_toggles_cast_common_string_values
     RecordingStudio.configure do |config|
-      config.features.copyable = "1"
       config.features.device_sessions = "0"
     end
 
-    assert RecordingStudio.features.copyable?
     assert_not RecordingStudio.features.device_sessions?
-  end
-
-  def test_warn_legacy_feature_use_emits_once_per_feature
-    warnings = capture_logger_warnings do
-      RecordingStudio.warn_legacy_feature_use!(:copyable, used_by: "test")
-      RecordingStudio.warn_legacy_feature_use!(:copyable, used_by: "test")
-    end
-
-    assert_includes warnings, "config.features.copyable = false"
-    assert_equal 1, warnings.scan("Legacy built-in 'copyable' feature").size
   end
 
   def test_register_capability_applies_capability_without_manual_apply
@@ -77,9 +62,7 @@ class RecordingStudioTest < Minitest::Test
     assert_equal capability_module, RecordingStudio.registered_capabilities.fetch(:auto_apply_probe).fetch(:mod)
   end
 
-  def test_capability_registration_can_override_legacy_gate_for_addon_replacements
-    RecordingStudio.features.copyable = false
-
+  def test_register_capability_works_without_legacy_gate
     capability_module = Module.new do
       def addon_copy_probe_value
         :ok

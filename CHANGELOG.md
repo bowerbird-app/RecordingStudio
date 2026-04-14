@@ -7,17 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Removed the legacy built-in `copyable` capability from core. Copy behavior is no longer part of
+  RecordingStudio core; implement copy via an external addon gem using `RecordingStudio.register_capability`.
+- Removed `config.features.copyable` configuration option.
+- Removed copy-specific documentation, tests, and dummy app wiring.
+
 ## [0.2.0] - 2026-04-09
 
 ### Added
-- Added legacy feature toggles: `config.features.copyable` and
-  `config.features.device_sessions` (both default to `true`).
+- Added legacy feature toggle: `config.features.device_sessions` (defaults to `true`).
 - Added runtime addon conflict warnings when addon gems are present while matching legacy built-ins are still enabled.
 - Added once-per-process deprecation guidance when legacy built-in features are actively used.
 
 ### Changed
 - Removed legacy built-in move/movable support in favor of the external moveable addon gem.
-- Gated legacy copyable capability activation by feature flags.
 - Gated legacy device session tracking so it can be disabled without cookie/session side effects.
 - Documented migration guidance for disabling legacy built-ins when using addon gems.
 - Refactored recordable naming terminology to prefer `recordable_name`, `recordable_type_label`, `recording.name`, and `RecordingStudio::Labels.name_for`, while keeping legacy label methods as compatibility aliases.
