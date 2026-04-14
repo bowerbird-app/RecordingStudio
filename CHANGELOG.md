@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-14
+
 ### Removed
 - Removed the legacy built-in capability that was extracted from core.
 - Removed the associated legacy feature-flag configuration.
@@ -38,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/recording_studio/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/bowerbird-app/recording_studio/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/bowerbird-app/recording_studio/releases/tag/v0.3.0
 [0.2.0]: https://github.com/bowerbird-app/recording_studio/releases/tag/v0.2.0
 [0.1.0]: https://github.com/bowerbird-app/recording_studio/releases/tag/v0.1.0
