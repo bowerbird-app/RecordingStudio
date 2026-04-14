@@ -742,7 +742,7 @@ use the dedicated moveable addon instead of expecting built-in move APIs.
 - Capability enablement is separate from recordable registration.
 
 Registering a recordable means it can participate in recording/state behavior. It does **not**
-automatically enable capability behavior (`copy`, `commentable`, etc.).
+automatically enable optional capability behavior.
 
 ### Registering recordable types (host app)
 

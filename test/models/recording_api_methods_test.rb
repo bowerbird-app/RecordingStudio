@@ -326,12 +326,12 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
     recording = root_recording.record(RecordingStudioPage) { |page| page.title = "Draft" }
 
     RecordingStudio.configuration.recordable_dup_strategy = lambda do |recordable|
-      RecordingStudioPage.new(title: "Copy of #{recordable.title}")
+      RecordingStudioPage.new(title: "Revised #{recordable.title}")
     end
 
     revised = root_recording.revise(recording)
 
-    assert_equal "Copy of Draft", revised.recordable.title
+    assert_equal "Revised Draft", revised.recordable.title
   end
 
   private

@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Removed
-- Removed the built-in copy capability from core, tests, and current documentation.
+- Removed a legacy built-in capability from core, tests, and current documentation.
 
 ## [0.2.0] - 2026-04-09
 
