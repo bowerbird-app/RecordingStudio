@@ -64,15 +64,15 @@ class RecordingStudioTest < Minitest::Test
 
   def test_register_capability_works_without_legacy_gate
     capability_module = Module.new do
-      def addon_copy_probe_value
+      def addon_capability_probe_value
         :ok
       end
     end
 
-    RecordingStudio.register_capability(:copyable, capability_module)
+    RecordingStudio.register_capability(:addon_probe, capability_module)
 
     assert_includes RecordingStudio::Recording.included_modules, capability_module
-    assert RecordingStudio::Recording.new.respond_to?(:addon_copy_probe_value)
+    assert RecordingStudio::Recording.new.respond_to?(:addon_capability_probe_value)
   end
 
   private

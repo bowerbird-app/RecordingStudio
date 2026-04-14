@@ -8,10 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Removed
-- Removed the legacy built-in `copyable` capability from core. Copy behavior is no longer part of
-  RecordingStudio core; implement copy via an external addon gem using `RecordingStudio.register_capability`.
-- Removed `config.features.copyable` configuration option.
-- Removed copy-specific documentation, tests, and dummy app wiring.
+- Removed the legacy built-in capability that was extracted from core.
+- Removed the associated legacy feature-flag configuration.
+- Removed related documentation, tests, and dummy app wiring.
 
 ## [0.2.0] - 2026-04-09
 
