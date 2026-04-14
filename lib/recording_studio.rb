@@ -7,10 +7,12 @@ require "recording_studio/delegated_type_registrar"
 require "recording_studio/errors"
 require "recording_studio/labels"
 require "recording_studio/recordable"
+require "recording_studio/recordable_duplicator"
 require "recording_studio/services/base_service"
 require "recording_studio/services/example_service"
 require "recording_studio/services/access_check_class_methods"
 require "recording_studio/services/access_check"
+require "recording_studio/services/duplicate_recording"
 require "recording_studio/services/root_recording_resolver"
 require "recording_studio/concerns/device_session_concern"
 
@@ -261,3 +263,4 @@ end
 
 require "recording_studio/capability"
 require "recording_studio/capabilities/copyable"
+require "recording_studio/capabilities/duplicable"

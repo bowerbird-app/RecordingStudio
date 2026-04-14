@@ -13,6 +13,7 @@ class CapabilitiesTest < ActiveSupport::TestCase
       RecordingStudioFolder
       RecordingStudioComment
       RecordingStudio::Access
+      RecordingStudio::AccessBoundary
     ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
     RecordingStudio.apply_capabilities!
@@ -21,6 +22,7 @@ class CapabilitiesTest < ActiveSupport::TestCase
     RecordingStudio::DeviceSession.delete_all
     RecordingStudio::Recording.delete_all
     RecordingStudio::Access.delete_all
+    RecordingStudio::AccessBoundary.delete_all
     RecordingStudioPage.delete_all
     RecordingStudioFolder.delete_all
     RecordingStudioComment.delete_all
@@ -163,6 +165,179 @@ class CapabilitiesTest < ActiveSupport::TestCase
 
     assert page_recording.respond_to?(:comment!)
     refute page_recording.recordable.respond_to?(:comment!)
+  end
+
+  def test_duplicate_creates_sibling_recording_and_logs_provenance
+    _, root = create_workspace_root
+    actor = create_user("duplicator@example.com")
+    grant_root_access(root: root, actor: actor, role: :edit)
+
+    parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Parent"
+    end
+    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: parent) do |page|
+      page.title = "Duplicate me"
+    end
+
+    assert page_recording.duplicatable?(actor: actor)
+
+    duplicated = page_recording.duplicate!(actor: actor, metadata: { reason: "template" })
+
+    assert_equal parent.id, duplicated.parent_recording_id
+    assert_equal root.id, duplicated.root_recording_id
+    assert_equal "Duplicate me", duplicated.recordable.title
+    assert_not_equal page_recording.id, duplicated.id
+    assert_not_equal page_recording.recordable_id, duplicated.recordable_id
+
+    event = duplicated.events.first
+    assert_equal "duplicated", event.action
+    assert_equal "template", event.metadata["reason"]
+    assert_equal page_recording.id, event.metadata["source_recording_id"]
+    assert_equal page_recording.recordable_id, event.metadata["source_recordable_id"]
+    assert_equal page_recording.recordable_type, event.metadata["source_recordable_type"]
+    assert_equal parent.id, event.metadata["source_parent_recording_id"]
+  end
+
+  def test_duplicate_with_children_preserves_subtree_structure
+    _, root = create_workspace_root
+    actor = create_user("duplicate-tree@example.com")
+    grant_root_access(root: root, actor: actor, role: :edit)
+
+    parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Projects"
+    end
+    source = root.record(RecordingStudioFolder, actor: actor, parent_recording: parent) do |folder|
+      folder.name = "Source Folder"
+    end
+    child_folder = root.record(RecordingStudioFolder, actor: actor, parent_recording: source) do |folder|
+      folder.name = "Nested Folder"
+    end
+    nested_page = root.record(RecordingStudioPage, actor: actor, parent_recording: child_folder) do |page|
+      page.title = "Nested Page"
+    end
+
+    duplicated = source.duplicate!(actor: actor, include_children: true)
+
+    duplicated_child_folder = duplicated.child_recordings.find_by!(recordable_type: "RecordingStudioFolder")
+    duplicated_nested_page = duplicated_child_folder.child_recordings.find_by!(recordable_type: "RecordingStudioPage")
+
+    assert_equal parent.id, duplicated.parent_recording_id
+    assert_equal "Source Folder", duplicated.recordable.name
+    assert_equal "Nested Folder", duplicated_child_folder.recordable.name
+    assert_equal "Nested Page", duplicated_nested_page.recordable.title
+    assert_not_equal child_folder.id, duplicated_child_folder.id
+    assert_not_equal nested_page.id, duplicated_nested_page.id
+    assert_equal duplicated.id, duplicated_child_folder.parent_recording_id
+    assert_equal duplicated_child_folder.id, duplicated_nested_page.parent_recording_id
+  end
+
+  def test_duplicate_uses_idempotency_key_for_safe_retries
+    _, root = create_workspace_root
+    actor = create_user("duplicate-idempotent@example.com")
+    grant_root_access(root: root, actor: actor, role: :edit)
+
+    parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Parent"
+    end
+    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: parent) do |page|
+      page.title = "Retry me"
+    end
+
+    first = page_recording.duplicate!(actor: actor, idempotency_key: "dup-123")
+    second = page_recording.duplicate!(actor: actor, idempotency_key: "dup-123")
+
+    assert_equal first.id, second.id
+    assert_equal 1, RecordingStudio::Event.where(action: "duplicated", idempotency_key: "dup-123").count
+  end
+
+  def test_duplicate_rejects_trashed_source_recordings
+    _, root = create_workspace_root
+    actor = create_user("duplicate-trashed@example.com")
+    grant_root_access(root: root, actor: actor, role: :edit)
+
+    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: root) do |page|
+      page.title = "Trash me"
+    end
+    root.trash(page_recording, actor: actor)
+
+    error = assert_raises(ArgumentError) do
+      page_recording.duplicate!(actor: actor)
+    end
+
+    assert_equal "trashed recordings cannot be duplicated", error.message
+  end
+
+  def test_duplicate_include_children_requires_opt_in_for_all_descendants
+    _, root = create_workspace_root
+    actor = create_user("duplicate-opt-in@example.com")
+    grant_root_access(root: root, actor: actor, role: :edit)
+
+    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: root) do |page|
+      page.title = "Discuss"
+    end
+    page_recording.comment!(body: "This comment should block duplication", actor: actor)
+
+    error = assert_raises(RecordingStudio::CapabilityDisabled) do
+      page_recording.duplicate!(actor: actor, include_children: true)
+    end
+
+    assert_match(/Capability :duplicable is not enabled for RecordingStudioComment/, error.message)
+  end
+
+  def test_duplicate_include_children_rejects_access_boundary_recordings
+    _, root = create_workspace_root
+    actor = create_user("duplicate-boundary@example.com")
+    grant_root_access(root: root, actor: actor, role: :admin)
+
+    folder_recording = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Boundary parent"
+    end
+    root.record(RecordingStudio::AccessBoundary, actor: actor, parent_recording: folder_recording) do |boundary|
+      boundary.minimum_role = :admin
+    end
+
+    error = assert_raises(RecordingStudio::CapabilityDisabled) do
+      folder_recording.duplicate!(actor: actor, include_children: true)
+    end
+
+    assert_match(/Capability :duplicable is not enabled for RecordingStudio::AccessBoundary/, error.message)
+  end
+
+  def test_duplicate_raises_when_idempotency_mode_is_raise_and_key_is_reused
+    _, root = create_workspace_root
+    actor = create_user("duplicate-idempotency-raise@example.com")
+    grant_root_access(root: root, actor: actor, role: :edit)
+
+    parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Parent"
+    end
+    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: parent) do |page|
+      page.title = "Raise on retry"
+    end
+
+    original_mode = RecordingStudio.configuration.idempotency_mode
+    RecordingStudio.configuration.idempotency_mode = :raise
+
+    page_recording.duplicate!(actor: actor, idempotency_key: "dup-raise")
+
+    assert_raises(RecordingStudio::IdempotencyError) do
+      page_recording.duplicate!(actor: actor, idempotency_key: "dup-raise")
+    end
+  ensure
+    RecordingStudio.configuration.idempotency_mode = original_mode
+  end
+
+  def test_root_recordings_are_not_duplicatable
+    _, root = create_workspace_root
+    actor = create_user("duplicate-root@example.com")
+
+    refute root.duplicatable?(actor: actor)
+
+    error = assert_raises(ArgumentError) do
+      root.duplicate!(actor: actor)
+    end
+
+    assert_equal "root recordings cannot be duplicated", error.message
   end
 
   private
