@@ -47,7 +47,7 @@ module RecordingStudio
               raise RecordingStudio::AccessDenied, "Actor does not have edit access on the target recording"
             end
 
-            duplicate = duplicate_recordable(recordable)
+            duplicate = RecordingStudio::RecordableDuplicator.call(recordable)
             duplicate.save!
 
             RecordingStudio.record!(

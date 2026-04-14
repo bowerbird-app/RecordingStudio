@@ -67,7 +67,7 @@ module RecordingStudio
     def revise(recording, actor: nil, impersonator: nil, metadata: {})
       assert_recording_belongs_to_root!(recording)
 
-      recordable = duplicate_recordable(recording.recordable)
+      recordable = RecordingStudio::RecordableDuplicator.call(recording.recordable)
       yield(recordable) if block_given?
       recordable.save!
 
@@ -80,6 +80,25 @@ module RecordingStudio
         impersonator: impersonator,
         metadata: metadata
       ).recording
+    end
+
+    def duplicate!(actor:, impersonator: nil, metadata: {}, include_children: false, idempotency_key: nil)
+      RecordingStudio::Services::DuplicateRecording.call(
+        recording: self,
+        actor: actor,
+        impersonator: impersonator,
+        metadata: metadata,
+        include_children: include_children,
+        idempotency_key: idempotency_key
+      )
+    end
+
+    def duplicatable?(actor:, include_children: false)
+      RecordingStudio::Services::DuplicateRecording.allowed?(
+        recording: self,
+        actor: actor,
+        include_children: include_children
+      )
     end
 
     def trash(recording = self, actor: nil, impersonator: nil, metadata: {}, include_children: false)
@@ -309,16 +328,6 @@ module RecordingStudio
 
     def build_recordable_instance(recordable_or_class)
       recordable_or_class.is_a?(Class) ? recordable_or_class.new : recordable_or_class
-    end
-
-    def duplicate_recordable(recordable)
-      strategy = RecordingStudio.configuration.recordable_dup_strategy
-      return strategy.call(recordable) if strategy.respond_to?(:call)
-
-      duplicated = recordable.dup
-      duplicated.recordings_count = 0 if duplicated.respond_to?(:recordings_count=)
-      duplicated.events_count = 0 if duplicated.respond_to?(:events_count=)
-      duplicated
     end
 
     def sanitize_order_for_model(order, model_class)

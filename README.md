@@ -255,7 +255,7 @@ RecordingStudio.features.device_sessions?
   original event when the key matches, so retries are safe and do not create duplicates. `:raise` raises an error when
   the key matches, so callers must handle duplicates explicitly.
 - `include_children`: When `true`, `trash` and `restore` will include child recordings by default.
-- `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
+- `recordable_dup_strategy`: `:dup` clones attributes on revision and duplication; you can supply a callable for custom duplication.
 - `features.copyable`, `features.device_sessions`: Legacy built-in feature flags. Both default to `true`
   for backward compatibility.
 
@@ -327,6 +327,20 @@ recording = root_recording.revise(recording, actor: current_user) do |page|
   page.title = "Updated title"
 end
 ```
+
+### Duplicate
+
+Duplicate an opted-in recording under the same parent. This creates a new recordable snapshot and appends a
+`duplicated` event on the new recording.
+
+```ruby
+duplicated = recording.duplicate!(actor: current_user, metadata: { reason: "template" })
+recording.duplicatable?(actor: current_user)
+```
+
+Pass `include_children: true` to duplicate an entire subtree. Every duplicated descendant must also opt in to
+the capability, the actor must have access to every included recording, and the duplication fails if any
+descendant has already been trashed.
 
 ### Trash
 
@@ -766,14 +780,14 @@ A capability is enabled for a recordable type only when that model includes its 
 
 ```ruby
 class Page < ApplicationRecord
-  include RecordingStudio::Capabilities::Copyable.to("Folder")
+  include RecordingStudio::Capabilities::Duplicable
 end
 ```
 
 This means:
 
-- `Page` is copyable.
-- Other recordable types are **not** copyable unless they also include the mixin.
+- `Page` is duplicable.
+- Other recordable types are **not** duplicable unless they also include the mixin.
 - Installing an addon gem does not silently enable behavior globally.
 
 The mixin may come from `RecordingStudio::Capabilities::*` (legacy/built-in transition) or from an
@@ -785,7 +799,7 @@ Mixins are included on the **recordable model**, but behavior is invoked on the 
 `RecordingStudio::Recording`:
 
 ```ruby
-page_recording.copy_to!(new_parent: folder_recording, actor: current_user)
+page_recording.duplicate!(actor: current_user)
 ```
 
 ### Capability mixin options configure behavior per recordable type
@@ -855,7 +869,7 @@ Addon gems are responsible for:
 
 ### Building addon gems
 
-Recommended integration sequence (works for `copy`, `commentable`, and future capabilities):
+Recommended integration sequence (works for `duplicate`, `copy`, `commentable`, and future capabilities):
 
 1. Addon gem defines capability code (recordable mixin + recording methods).
 2. Addon gem registers recording methods with `RecordingStudio.register_capability`.
@@ -882,6 +896,25 @@ These flags are transitional. As extracted addons become the default, legacy con
 removed.
 
 ## Legacy Built-in Capabilities (temporary)
+
+### Duplicable
+
+`Duplicable` is a fresh, opt-in recording capability that duplicates the current recording under the same parent.
+
+```ruby
+class RecordingStudioPage < ApplicationRecord
+  include RecordingStudio::Capabilities::Duplicable
+end
+
+duplicated = recording.duplicate!(actor: current_user, include_children: true, idempotency_key: "dup-123")
+```
+
+- Requires `:view` on the source recording and `:edit` on its parent.
+- Rejects root recordings, trashed source recordings, and trashed descendants when duplicating a subtree.
+- When `include_children: true`, every included descendant must also be duplicable and viewable.
+- Preserves provenance in event metadata with the source recording/recordable identifiers.
+- Uses the configured `idempotency_mode` for safe retries when `idempotency_key` is provided.
+- Idempotency keys are resolved per source recording and are not actor-scoped.
 
 ### Copyable
 
