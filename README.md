@@ -338,8 +338,9 @@ duplicated = recording.duplicate!(actor: current_user, metadata: { reason: "temp
 recording.duplicatable?(actor: current_user)
 ```
 
-Pass `include_children: true` to duplicate an entire active subtree. Every duplicated descendant must also opt in to
-the capability, and the actor must have access to every included recording.
+Pass `include_children: true` to duplicate an entire subtree. Every duplicated descendant must also opt in to
+the capability, the actor must have access to every included recording, and the duplication fails if any
+descendant has already been trashed.
 
 ### Trash
 
@@ -909,10 +910,11 @@ duplicated = recording.duplicate!(actor: current_user, include_children: true, i
 ```
 
 - Requires `:view` on the source recording and `:edit` on its parent.
-- Rejects trashed recordings and root recordings.
+- Rejects root recordings, trashed source recordings, and trashed descendants when duplicating a subtree.
 - When `include_children: true`, every included descendant must also be duplicable and viewable.
 - Preserves provenance in event metadata with the source recording/recordable identifiers.
 - Uses the configured `idempotency_mode` for safe retries when `idempotency_key` is provided.
+- Idempotency keys are resolved per source recording and are not actor-scoped.
 
 ### Copyable
 

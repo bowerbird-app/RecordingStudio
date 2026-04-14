@@ -267,6 +267,26 @@ class CapabilitiesTest < ActiveSupport::TestCase
     assert_equal "trashed recordings cannot be duplicated", error.message
   end
 
+  def test_duplicate_with_children_rejects_trashed_descendants
+    _, root = create_workspace_root
+    actor = create_user("duplicate-trashed-child@example.com")
+    grant_root_access(root: root, actor: actor, role: :edit)
+
+    source = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Source"
+    end
+    child = root.record(RecordingStudioPage, actor: actor, parent_recording: source) do |page|
+      page.title = "Archived child"
+    end
+    root.trash(child, actor: actor)
+
+    error = assert_raises(ArgumentError) do
+      source.duplicate!(actor: actor, include_children: true)
+    end
+
+    assert_equal "trashed descendant recordings cannot be duplicated", error.message
+  end
+
   def test_duplicate_include_children_requires_opt_in_for_all_descendants
     _, root = create_workspace_root
     actor = create_user("duplicate-opt-in@example.com")
@@ -325,6 +345,28 @@ class CapabilitiesTest < ActiveSupport::TestCase
     end
   ensure
     RecordingStudio.configuration.idempotency_mode = original_mode
+  end
+
+  def test_duplicate_idempotency_key_is_scoped_to_source_recording_not_actor
+    _, root = create_workspace_root
+    first_actor = create_user("duplicate-idempotency-first@example.com")
+    second_actor = create_user("duplicate-idempotency-second@example.com")
+    grant_root_access(root: root, actor: first_actor, role: :edit)
+    grant_root_access(root: root, actor: second_actor, role: :edit)
+
+    parent = root.record(RecordingStudioFolder, actor: first_actor, parent_recording: root) do |folder|
+      folder.name = "Parent"
+    end
+    page_recording = root.record(RecordingStudioPage, actor: first_actor, parent_recording: parent) do |page|
+      page.title = "Shared key"
+    end
+
+    first = page_recording.duplicate!(actor: first_actor, idempotency_key: "dup-shared")
+    second = page_recording.duplicate!(actor: second_actor, idempotency_key: "dup-shared")
+
+    assert_equal first.id, second.id
+    assert_equal first_actor, first.events.first.actor
+    assert_equal 1, RecordingStudio::Event.where(action: "duplicated", idempotency_key: "dup-shared").count
   end
 
   def test_root_recordings_are_not_duplicatable

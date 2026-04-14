@@ -190,7 +190,7 @@ module RecordingStudio
 
       def child_recordings_for(recording)
         RecordingStudio::Recording.unscoped
-                                  .where(parent_recording_id: recording.id, trashed_at: nil)
+                                  .where(parent_recording_id: recording.id)
                                   .includes(:recordable)
                                   .order(:created_at, :id)
                                   .to_a
