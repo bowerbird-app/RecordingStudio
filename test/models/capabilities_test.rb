@@ -6,7 +6,6 @@ class CapabilitiesTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
     @original_feature_flags = RecordingStudio.features.to_h
-    RecordingStudio.features.copyable = true
     RecordingStudio.configuration.recordable_types = %w[
       Workspace
       RecordingStudioPage
@@ -35,97 +34,6 @@ class CapabilitiesTest < ActiveSupport::TestCase
 
     RecordingStudio.configuration.recordable_types = @original_types
     RecordingStudio::DelegatedTypeRegistrar.apply!
-  end
-
-  def test_page_copy_to_creates_duplicate_and_logs_source_metadata
-    _, root = create_workspace_root
-    actor = create_user("copier@example.com")
-    grant_root_access(root: root, actor: actor, role: :edit)
-
-    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Source"
-    end
-    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Target"
-    end
-    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
-      page.title = "Copy me"
-    end
-
-    copied = page_recording.copy_to!(new_parent: target_parent, actor: actor, metadata: { reason: "template" })
-
-    assert_equal "Copy me", copied.recordable.title
-    assert_equal target_parent.id, copied.parent_recording_id
-    assert_not_equal page_recording.recordable_id, copied.recordable_id
-    event = copied.events.first
-    assert_equal "copied", event.action
-    assert_equal page_recording.id, event.metadata["source_recording_id"]
-    assert_equal page_recording.recordable_id, event.metadata["source_recordable_id"]
-    assert_equal page_recording.recordable_type, event.metadata["source_recordable_type"]
-  end
-
-  def test_copy_to_raises_when_copyable_feature_is_disabled
-    _, root = create_workspace_root
-    actor = create_user("copy-disabled@example.com")
-    grant_root_access(root: root, actor: actor, role: :edit)
-    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "A"
-    end
-    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "B"
-    end
-    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
-      page.title = "Copy me"
-    end
-
-    RecordingStudio.features.copyable = false
-
-    error = assert_raises(RecordingStudio::CapabilityDisabled) do
-      page_recording.copy_to!(new_parent: target_parent, actor: actor)
-    end
-    assert_equal "Legacy copyable feature is disabled", error.message
-  end
-
-  def test_copy_to_denies_when_actor_lacks_source_view_access
-    _, root = create_workspace_root
-    actor = create_user("copy-source-deny@example.com")
-
-    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Source"
-    end
-    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Target"
-    end
-    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
-      page.title = "Copy me"
-    end
-    grant_access(recording: target_parent, actor: actor, role: :edit)
-
-    error = assert_raises(RecordingStudio::AccessDenied) do
-      page_recording.copy_to!(new_parent: target_parent, actor: actor)
-    end
-    assert_equal "Actor does not have view access on the source recording", error.message
-  end
-
-  def test_copy_to_denies_when_actor_lacks_target_edit_access
-    _, root = create_workspace_root
-    actor = create_user("copy-target-deny@example.com")
-
-    source_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Source"
-    end
-    target_parent = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
-      folder.name = "Target"
-    end
-    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: source_parent) do |page|
-      page.title = "Copy me"
-    end
-    grant_access(recording: page_recording, actor: actor, role: :view)
-
-    error = assert_raises(RecordingStudio::AccessDenied) do
-      page_recording.copy_to!(new_parent: target_parent, actor: actor)
-    end
-    assert_equal "Actor does not have edit access on the target recording", error.message
   end
 
   def test_page_commentable_api_creates_and_lists_comment_recordings

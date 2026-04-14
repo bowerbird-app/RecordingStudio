@@ -5,23 +5,14 @@ require_relative "hooks"
 module RecordingStudio
   class Configuration
     class Features
-      attr_reader :copyable, :device_sessions
+      attr_reader :device_sessions
 
       def initialize
-        @copyable = true
         @device_sessions = true
-      end
-
-      def copyable=(value)
-        @copyable = boolean_from?(value)
       end
 
       def device_sessions=(value)
         @device_sessions = boolean_from?(value)
-      end
-
-      def copyable?
-        copyable
       end
 
       def device_sessions?
@@ -39,7 +30,6 @@ module RecordingStudio
 
       def to_h
         {
-          copyable: copyable,
           device_sessions: device_sessions
         }
       end

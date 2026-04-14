@@ -41,6 +41,7 @@ test/dummy/config/credentials/*.key
 
 # Coverage
 coverage/
+test/dummy/coverage/
 
 # Build artifacts
 *.gem
