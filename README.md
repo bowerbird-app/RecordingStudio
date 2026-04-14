@@ -237,7 +237,6 @@ RecordingStudio.configure do |config|
   # Include child recordings by default when trashing/restoring
   config.include_children = true
   config.recordable_dup_strategy = :dup
-  config.features.copyable = true
   config.features.device_sessions = true
 end
 ```
@@ -245,7 +244,6 @@ end
 You can query feature state at runtime with:
 
 ```ruby
-RecordingStudio.features.copyable?
 RecordingStudio.features.device_sessions?
 ```
 
@@ -256,18 +254,16 @@ RecordingStudio.features.device_sessions?
   the key matches, so callers must handle duplicates explicitly.
 - `include_children`: When `true`, `trash` and `restore` will include child recordings by default.
 - `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
-- `features.copyable`, `features.device_sessions`: Legacy built-in feature flags. Both default to `true`
-  for backward compatibility.
+- `features.device_sessions`: Legacy built-in feature flag. Defaults to `true` for backward compatibility.
 
 ### Migrating legacy features to addons
 
-RecordingStudio keeps legacy built-in `copyable` and `device_sessions` enabled by default.
-If you install addon gems (`recording-studio-copy`, `recording-studio-device-sessions`), disable the
-corresponding built-in feature to avoid overlap:
+RecordingStudio keeps legacy built-in `device_sessions` enabled by default.
+If you install the addon gem (`recording-studio-device-sessions`), disable the corresponding built-in
+feature to avoid overlap:
 
 ```ruby
 RecordingStudio.configure do |config|
-  config.features.copyable = false
   config.features.device_sessions = false
 end
 ```
@@ -766,18 +762,17 @@ A capability is enabled for a recordable type only when that model includes its 
 
 ```ruby
 class Page < ApplicationRecord
-  include RecordingStudio::Capabilities::Copyable.to("Folder")
+  include Capabilities::Commentable.with(comment_class: "Comment")
 end
 ```
 
 This means:
 
-- `Page` is copyable.
-- Other recordable types are **not** copyable unless they also include the mixin.
+- `Page` is commentable.
+- Other recordable types are **not** commentable unless they also include the mixin.
 - Installing an addon gem does not silently enable behavior globally.
 
-The mixin may come from `RecordingStudio::Capabilities::*` (legacy/built-in transition) or from an
-extracted addon gem namespace in the long-term model.
+The mixin may come from your app or from an extracted addon gem namespace.
 
 ### Capability behavior is called on recordings
 
@@ -785,7 +780,7 @@ Mixins are included on the **recordable model**, but behavior is invoked on the 
 `RecordingStudio::Recording`:
 
 ```ruby
-page_recording.copy_to!(new_parent: folder_recording, actor: current_user)
+page_recording.comment!(body: "Great work!", actor: current_user)
 ```
 
 ### Capability mixin options configure behavior per recordable type
@@ -794,21 +789,11 @@ Capability mixins can accept parameters; they are not only on/off flags:
 
 ```ruby
 class Page < ApplicationRecord
-  include RecordingStudio::Capabilities::Copyable.to("Folder")
+  include Capabilities::Commentable.with(comment_class: "Comment")
 end
 ```
 
-`Page` can copy only to `Folder`.
-
-```ruby
-class Page < ApplicationRecord
-  include RecordingStudio::Capabilities::Copyable.to("Folder", "Project")
-end
-```
-
-`Page` can copy to `Folder` or `Project`.
-
-Capability calls outside configured rules should fail (for example, invalid target types for copy).
+`Page` will use the configured `Comment` recordable for comment creation and retrieval.
 
 ### Using addon gems in a host app
 
@@ -821,18 +806,18 @@ Capability calls outside configured rules should fail (for example, invalid targ
 
 ```ruby
 gem "recording_studio"
-gem "recording-studio-copy"
+gem "recording-studio-device-sessions"
 ```
 
-During migration from the built-in copy capability:
+During migration from the built-in device session capability:
 
 ```ruby
 RecordingStudio.configure do |config|
-  config.features.copyable = false
+  config.features.device_sessions = false
 end
 ```
 
-`config.features.copyable = false` is a temporary migration switch to avoid conflicts during extraction.
+`config.features.device_sessions = false` is a temporary migration switch to avoid conflicts during extraction.
 It is not the intended permanent addon API.
 
 ### Core vs addon responsibilities
@@ -855,7 +840,7 @@ Addon gems are responsible for:
 
 ### Building addon gems
 
-Recommended integration sequence (works for `copy`, `commentable`, and future capabilities):
+Recommended integration sequence (works for `commentable` and future capabilities):
 
 1. Addon gem defines capability code (recordable mixin + recording methods).
 2. Addon gem registers recording methods with `RecordingStudio.register_capability`.
@@ -866,38 +851,6 @@ Recommended integration sequence (works for `copy`, `commentable`, and future ca
 4. Host app includes addon mixins on specific recordable models.
 5. RecordingStudio checks capability enablement/options by `recordable_type`.
 6. Host app invokes capability behavior on `RecordingStudio::Recording`.
-
-### Migration from legacy built-ins (transitional)
-
-`copyable` is still available as a legacy built-in in this gem while extraction is in progress.
-Temporary feature flags exist only to prevent conflicts during migration:
-
-```ruby
-RecordingStudio.configure do |config|
-  config.features.copyable = false
-end
-```
-
-These flags are transitional. As extracted addons become the default, legacy conflict flags may be
-removed.
-
-## Legacy Built-in Capabilities (temporary)
-
-### Copyable
-
-`Copyable` duplicates the current recording's recordable under a target parent in the same root.
-
-```ruby
-class RecordingStudioPage < ApplicationRecord
-  include RecordingStudio::Capabilities::Copyable.to("RecordingStudioFolder", "Workspace")
-end
-
-copied = recording.copy_to!(new_parent: target_recording, actor: current_user)
-```
-
-- Requires `:view` on source and `:edit` on target parent.
-- Raises `RecordingStudio::AccessDenied` when access checks fail.
-- Logs a `"copied"` event with source recording/recordable metadata.
 
 ## Custom / Extracted Capability Pattern (`commentable` example)
 

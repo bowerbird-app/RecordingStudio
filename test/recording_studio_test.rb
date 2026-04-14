@@ -26,38 +26,33 @@ class RecordingStudioTest < Minitest::Test
   end
 
   def test_feature_toggles_default_to_true
-    assert RecordingStudio.features.copyable?
     assert RecordingStudio.features.device_sessions?
   end
 
-  def test_feature_toggles_are_independent
+  def test_feature_toggles_can_be_updated
     RecordingStudio.configure do |config|
-      config.features.copyable = true
       config.features.device_sessions = false
     end
 
-    assert RecordingStudio.features.copyable?
     assert_not RecordingStudio.features.device_sessions?
   end
 
   def test_feature_toggles_cast_common_string_values
     RecordingStudio.configure do |config|
-      config.features.copyable = "1"
       config.features.device_sessions = "0"
     end
 
-    assert RecordingStudio.features.copyable?
     assert_not RecordingStudio.features.device_sessions?
   end
 
   def test_warn_legacy_feature_use_emits_once_per_feature
     warnings = capture_logger_warnings do
-      RecordingStudio.warn_legacy_feature_use!(:copyable, used_by: "test")
-      RecordingStudio.warn_legacy_feature_use!(:copyable, used_by: "test")
+      RecordingStudio.warn_legacy_feature_use!(:device_sessions, used_by: "test")
+      RecordingStudio.warn_legacy_feature_use!(:device_sessions, used_by: "test")
     end
 
-    assert_includes warnings, "config.features.copyable = false"
-    assert_equal 1, warnings.scan("Legacy built-in 'copyable' feature").size
+    assert_includes warnings, "config.features.device_sessions = false"
+    assert_equal 1, warnings.scan("Legacy built-in 'device_sessions' feature").size
   end
 
   def test_register_capability_applies_capability_without_manual_apply
@@ -78,18 +73,18 @@ class RecordingStudioTest < Minitest::Test
   end
 
   def test_capability_registration_can_override_legacy_gate_for_addon_replacements
-    RecordingStudio.features.copyable = false
+    RecordingStudio.features.device_sessions = false
 
     capability_module = Module.new do
-      def addon_copy_probe_value
+      def addon_device_session_probe_value
         :ok
       end
     end
 
-    RecordingStudio.register_capability(:copyable, capability_module)
+    RecordingStudio.register_capability(:device_sessions, capability_module)
 
     assert_includes RecordingStudio::Recording.included_modules, capability_module
-    assert RecordingStudio::Recording.new.respond_to?(:addon_copy_probe_value)
+    assert RecordingStudio::Recording.new.respond_to?(:addon_device_session_probe_value)
   end
 
   private
