@@ -22,37 +22,12 @@ quinn.password = default_password
 quinn.password_confirmation = default_password
 quinn.save!
 
-[ "Background task", "AI agent" ].each do |name|
-  SystemActor.find_or_create_by!(name: name)
-end
-
 studio_root = RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: workspace, parent_recording_id: nil)
 quinn_root = RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: quinn_workspace, parent_recording_id: nil)
 actors = [
   User.find_by!(email: "avery@example.com"),
   User.find_by!(email: "quinn@example.com")
 ]
-
-def seed_root_access!(root_recording, actor:, role:)
-  role_value = RecordingStudio::Access.roles.fetch(role.to_s)
-
-  existing = RecordingStudio::Recording.unscoped
-    .where(root_recording_id: root_recording.id, parent_recording_id: root_recording.id, recordable_type: "RecordingStudio::Access")
-    .joins("INNER JOIN recording_studio_accesses ON recording_studio_accesses.id = recording_studio_recordings.recordable_id")
-    .where(recording_studio_accesses: { actor_type: actor.class.name, actor_id: actor.id, role: role_value })
-    .exists?
-
-  return if existing
-
-  root_recording.record(RecordingStudio::Access, actor: actor, metadata: { seeded: true }, parent_recording: root_recording) do |access|
-    access.actor = actor
-    access.role = role
-  end
-end
-
-seed_root_access!(studio_root, actor: admin_user, role: :admin)
-seed_root_access!(studio_root, actor: avery, role: :view)
-seed_root_access!(quinn_root, actor: quinn, role: :admin)
 
 template_title = "Template: Shared Page"
 template_page = RecordingStudioPage.find_by(title: template_title)
@@ -124,10 +99,6 @@ unless RecordingStudioFolder.exists?(name: "Projects")
     folder.name = "Confidential"
   end
 
-  studio_root.record(RecordingStudio::AccessBoundary, actor: admin_user, parent_recording: confidential_recording, metadata: { seeded: true }) do |boundary|
-    boundary.minimum_role = :edit
-  end
-
   internal_recording = studio_root.record(RecordingStudioFolder, actor: admin_user, parent_recording: confidential_recording, metadata: { seeded: true }) do |folder|
     folder.name = "Internal"
   end
@@ -140,9 +111,9 @@ unless RecordingStudioFolder.exists?(name: "Projects")
     page.title = "Budget"
   end
 
-  studio_root.record(RecordingStudio::Access, actor: admin_user, parent_recording: budget_recording, metadata: { seeded: true }) do |access|
-    access.actor = quinn
-    access.role = :edit
+  quinn_root.record(RecordingStudioPage, actor: quinn, parent_recording: quinn_root, metadata: { seeded: true }) do |page|
+    page.title = "Quinn Draft"
+    page.summary = "A second workspace showing independent root recordings."
   end
 end
 

@@ -1,68 +1,38 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "securerandom"
 
 class WorkspacesControllerTest < ActionDispatch::IntegrationTest
-  MODERN_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
-
   setup do
-    unique = SecureRandom.hex(8)
-
-    @admin = User.create!(
-      name: "Admin",
-      email: "admin-workspaces-#{unique}@example.com",
-      password: "password",
-      password_confirmation: "password"
-    )
-
-    @viewer = User.create!(
-      name: "Viewer",
-      email: "viewer-workspaces-#{unique}@example.com",
-      password: "password",
-      password_confirmation: "password"
-    )
-
+    @user = create_user(name: "Workspace Author")
     @workspace = Workspace.create!(name: "Workspace")
     @root_recording = RecordingStudio::Recording.create!(recordable: @workspace)
-
-    grant_root_access(@root_recording, @admin, :admin)
-    grant_root_access(@root_recording, @viewer, :view)
+    sign_in_as(@user)
   end
 
-  test "non-admin cannot destroy workspace" do
-    sign_in_as(@viewer)
+  test "index lists workspaces" do
+    get workspaces_path, headers: modern_headers
 
-    delete workspace_path(@workspace), headers: { "User-Agent" => MODERN_UA }
-
-    assert_response :forbidden
-    assert_nil @root_recording.reload.trashed_at
+    assert_response :success
+    assert_includes @response.body, @workspace.name
   end
 
-  test "admin can destroy workspace" do
-    sign_in_as(@admin)
+  test "create also creates a root recording" do
+    assert_difference(["Workspace.count", "RecordingStudio::Recording.count"], 1) do
+      post workspaces_path, params: { workspace: { name: "New Workspace" } }, headers: modern_headers
+    end
 
-    delete workspace_path(@workspace), headers: { "User-Agent" => MODERN_UA }
+    created_workspace = Workspace.order(:created_at).last
+    created_root = RecordingStudio::Recording.unscoped.find_by!(recordable: created_workspace, parent_recording_id: nil)
+
+    assert_redirected_to workspaces_path
+    assert_equal created_workspace, created_root.recordable
+  end
+
+  test "destroy trashes the workspace root recording" do
+    delete workspace_path(@workspace), headers: modern_headers
 
     assert_redirected_to workspaces_path
     assert_not_nil @root_recording.reload.trashed_at
-  end
-
-  private
-
-  def sign_in_as(user)
-    post user_session_path,
-         params: { user: { email: user.email, password: "password" } },
-         headers: { "User-Agent" => MODERN_UA }
-    assert_response :redirect
-  end
-
-  def grant_root_access(root_recording, actor, role)
-    access = RecordingStudio::Access.create!(actor: actor, role: role)
-    RecordingStudio::Recording.create!(
-      root_recording: root_recording,
-      parent_recording: root_recording,
-      recordable: access
-    )
   end
 end

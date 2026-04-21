@@ -14,7 +14,6 @@ class RecordingTest < ActiveSupport::TestCase
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     RecordingStudio::Event.delete_all
-    RecordingStudio::DeviceSession.delete_all
     RecordingStudio::Recording.delete_all
     RecordingStudioFolder.delete_all
     RecordingStudioPage.delete_all

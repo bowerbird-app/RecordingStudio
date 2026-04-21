@@ -4,53 +4,12 @@ require_relative "hooks"
 
 module RecordingStudio
   class Configuration
-    class Features
-      attr_reader :device_sessions
-
-      def initialize
-        @device_sessions = true
-      end
-
-      def device_sessions=(value)
-        @device_sessions = boolean_from?(value)
-      end
-
-      def device_sessions?
-        device_sessions
-      end
-
-      def merge!(hash)
-        return unless hash.respond_to?(:each)
-
-        hash.each do |k, v|
-          setter = "#{k}="
-          public_send(setter, v) if respond_to?(setter)
-        end
-      end
-
-      def to_h
-        {
-          device_sessions: device_sessions
-        }
-      end
-
-      private
-
-      def boolean_from?(value)
-        if defined?(ActiveModel::Type::Boolean)
-          !!ActiveModel::Type::Boolean.new.cast(value)
-        else
-          !!value
-        end
-      end
-    end
+    REMOVED_CONFIGURATION_KEYS = %w[features].freeze
 
     attr_accessor :actor, :impersonator, :event_notifications_enabled,
-                  :idempotency_mode, :recordable_dup_strategy,
-                  :include_children
-    attr_reader :recordable_types, :hooks, :features
+                   :idempotency_mode, :recordable_dup_strategy, :include_children
+    attr_reader :recordable_types, :hooks
 
-    # rubocop:disable Metrics/MethodLength
     def initialize
       @recordable_types = []
       @capabilities = {}
@@ -62,9 +21,7 @@ module RecordingStudio
       @recordable_dup_strategy = :dup
       @include_children = false
       @hooks = Hooks.new
-      @features = Features.new
     end
-    # rubocop:enable Metrics/MethodLength
 
     def instrumentation_enabled
       event_notifications_enabled
@@ -106,7 +63,6 @@ module RecordingStudio
         idempotency_mode: idempotency_mode,
         include_children: include_children,
         recordable_dup_strategy: recordable_dup_strategy,
-        features: features.to_h,
         hooks_registered: hooks.instance_variable_get(:@registry).transform_values(&:size)
       }
     end
@@ -116,13 +72,26 @@ module RecordingStudio
 
       hash.each do |k, v|
         key = k.to_s
-        if key == "features"
-          features.merge!(v)
+        if REMOVED_CONFIGURATION_KEYS.include?(key)
+          warn_removed_configuration_key!(key)
           next
         end
 
         setter = "#{key}="
         public_send(setter, v) if respond_to?(setter)
+      end
+    end
+
+    private
+
+    def warn_removed_configuration_key!(key)
+      message = "[RecordingStudio] '#{key}' configuration has been removed from core. " \
+                "Move access/device-session configuration to the extracted addon gem."
+
+      if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
+        Rails.logger.warn(message)
+      else
+        warn(message)
       end
     end
   end

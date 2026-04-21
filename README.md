@@ -20,7 +20,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Delegated Type Registration](#delegated-type-registration)
 - [Configuration](#configuration)
 - [Root Recording API](#root-recording-api)
-- [Device Sessions (Per-Device Root Persistence)](#device-sessions-per-device-root-persistence)
+- [Access Control and Root Selection](#access-control-and-root-selection)
 - [Actors](#actors)
 - [Query API](#query-api)
 - [Generators](#generators)
@@ -33,7 +33,6 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Limitations](#limitations)
 - [Built-in Capabilities](#built-in-capabilities)
 - [Creating Custom Capabilities](#creating-custom-capabilities)
-- [Access Control](#access-control)
 
 ## Why RecordingStudio
 
@@ -120,19 +119,7 @@ root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
 )
 ```
 
-4. (Recommended) Grant root-level access to the current actor:
-
-```ruby
-access = RecordingStudio::Access.create!(actor: Current.actor, role: :admin)
-
-RecordingStudio::Recording.unscoped.find_or_create_by!(
-  root_recording_id: root_recording.id,
-  parent_recording_id: root_recording.id,
-  recordable: access
-)
-```
-
-5. Create your first recording under that root:
+4. Create your first recording under that root:
 
 ```ruby
 recording = root_recording.record(Page) do |page|
@@ -141,7 +128,7 @@ end
 ```
 
 At this point, you can use `root_recording.revise`, `root_recording.trash`, `root_recording.restore`, and
-`RecordingStudio::Services::AccessCheck` for authorization-aware workflows.
+`root_recording.log_event!` for history-aware workflows.
 
 ## Identity vs State vs History
 
@@ -214,7 +201,7 @@ Resolution order for `RecordingStudio::Labels.name_for(recordable)` and `recordi
 
 1. `recordable.recordable_name`
 2. `recordable.recording_studio_label` (compatibility alias)
-3. Engine fallbacks: `title`, `name`, built-in comment/access/boundary formatting, then class-and-id
+3. Engine fallbacks: `title`, `name`, built-in comment formatting, then class-and-id
 4. `recordable.class.recordable_type_label`
 5. `recordable.class.recording_studio_type_label` (compatibility alias)
 
@@ -237,14 +224,7 @@ RecordingStudio.configure do |config|
   # Include child recordings by default when trashing/restoring
   config.include_children = true
   config.recordable_dup_strategy = :dup
-  config.features.device_sessions = true
 end
-```
-
-You can query feature state at runtime with:
-
-```ruby
-RecordingStudio.features.device_sessions?
 ```
 
 ### Configuration Notes
@@ -254,19 +234,6 @@ RecordingStudio.features.device_sessions?
   the key matches, so callers must handle duplicates explicitly.
 - `include_children`: When `true`, `trash` and `restore` will include child recordings by default.
 - `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
-- `features.device_sessions`: Legacy built-in feature flag. Defaults to `true` for backward compatibility.
-
-### Migrating legacy features to addons
-
-RecordingStudio keeps legacy built-in `device_sessions` enabled by default.
-If you install the addon gem (`recording-studio-device-sessions`), disable the corresponding built-in
-feature to avoid overlap:
-
-```ruby
-RecordingStudio.configure do |config|
-  config.features.device_sessions = false
-end
-```
 
 ## Root Recording API
 
@@ -402,101 +369,41 @@ Behavior is controlled by `idempotency_mode`:
 
 If you don’t pass a key, every call creates a new event.
 
-## Device Sessions (Per-Device Root Persistence)
+## Access Control and Root Selection
 
-RecordingStudio supports per-device root persistence using `RecordingStudio::DeviceSession`. The selected root recording is
-stored per **actor + device fingerprint**, so users can keep different active workspaces on different devices.
+RecordingStudio core no longer ships built-in access-control recordables, actor-based authorization services, or
+device-session workspace persistence.
 
-If `config.features.device_sessions = false`, request-time resolution skips device session tracking entirely and picks the
-first accessible root recording for the current actor without creating cookies or `DeviceSession` rows.
+Core is responsible for recording state and history. Your host app or addon gem is responsible for:
 
-### Database table setup
+- choosing the current root recording
+- authorizing reads and writes
+- handling workspace switching or per-device persistence
 
-The migration creates `recording_studio_device_sessions` with:
-
-- `id` (UUID primary key)
-- `actor_type` (`string`, required)
-- `actor_id` (`uuid`, required)
-- `device_fingerprint` (`string`, required)
-- `device_name` (`string`, optional)
-- `last_active_at` (`datetime`, required, defaults to `CURRENT_TIMESTAMP`)
-- `root_recording_id` (`uuid`, required)
-- `user_agent` (`string`, optional)
-- `created_at` / `updated_at`
-
-Indexes and constraints:
-
-- Unique index on `[:actor_type, :actor_id, :device_fingerprint]` (one session per actor/device pair)
-- Index on `:root_recording_id`
-- Foreign key from `root_recording_id` to `recording_studio_recordings.id`
-
-Model validation additionally ensures `root_recording_id` references a **root** recording (`parent_recording_id: nil`).
-
-### How resolution works at request time
-
-`RecordingStudio::Concerns::DeviceSessionConcern` reads `cookies.signed[:rs_device_id]`. If missing, it creates one and stores
-it with:
-
-- `expires: 2.years.from_now`
-- `httponly: true`
-- `secure: !Rails.env.development?`
-- `same_site: :lax`
-- `domain: :all`
-
-`current_root_recording` then calls `RecordingStudio::Services::RootRecordingResolver.call` with actor, fingerprint, and
-user agent.
-
-Resolver flow:
-
-1. Validate actor and fingerprint.
-2. Resolve/create session via `RecordingStudio::DeviceSession.resolve`.
-3. For new sessions, choose default root from `RecordingStudio::Services::AccessCheck.root_recording_ids_for(actor:).first`.
-4. For existing sessions, update activity with `touch(:last_active_at)`.
-5. Return the session's root recording if it exists and remains accessible.
-
-If no accessible roots exist for that actor/device, resolution fails.
-
-### Switching to a different root recording
-
-Use `switch_root_recording!(new_root_recording)` (from the concern).
-
-- It resolves the device session for the current actor/fingerprint.
-- It calls `DeviceSession#switch_to!` inside a transaction and row lock.
-- Access is enforced using `AccessCheck.root_recording_ids_for(actor:, minimum_role:)`.
-- If unauthorized, it raises `RecordingStudio::AccessDenied`.
-- If authorized, it updates `root_recording_id` and `last_active_at`.
-
-### Persistence behavior across devices
-
-Sessions are scoped to `(actor_type, actor_id, device_fingerprint)`, so each device keeps an independent selected root.
-
-- Same actor, **device A** switched to workspace 2 -> device A now resolves to workspace 2.
-- Same actor, **device B** unchanged -> device B continues resolving to its original workspace.
-
-### Access-revocation fallback
-
-If a stored `root_recording_id` is no longer accessible, resolver attempts a fallback to the first currently accessible root,
-updates the session, and returns that fallback root. If no accessible root remains, resolver returns failure.
-
-### Host app wiring (minimal)
+Minimal host app wiring:
 
 ```ruby
 class ApplicationController < ActionController::Base
-  include RecordingStudio::Concerns::DeviceSessionConcern
-
   before_action :current_actor
+
+  private
+
+  def current_actor
+    Current.actor = current_user
+  end
 end
 
-class WorkspaceSwitchesController < ApplicationController
+class PagesController < ApplicationController
   def create
     workspace = Workspace.find(params[:workspace_id])
-    root_recording = RecordingStudio::Recording.unscoped.find_by!(
+    root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
       recordable: workspace,
       parent_recording_id: nil
     )
 
-    switch_root_recording!(root_recording)
-    redirect_to workspace_path(workspace)
+    root_recording.record(Page, actor: Current.actor) do |page|
+      page.title = params[:title]
+    end
   end
 end
 ```
@@ -679,12 +586,13 @@ end
 
 ## Dummy Sandbox
 
-The dummy app in `test/dummy` showcases the architecture with a `Workspace` root recording, `Page` recordables, and polymorphic
-actors (`User`, `SystemActor`). It demonstrates:
+The dummy app in `test/dummy` showcases the architecture with `Workspace` root recordings, `Page` recordables, folders,
+comments, and event history. It demonstrates:
 
-- Recording creation, revisions, and unrecording via the root recording API
+- Recording creation, revisions, restore/trash flows, and nested content via the root recording API
 - Event timeline with actors, recordables, and metadata
 - Mixin-style event logging with `recording.log_event!`
+- Simple browsing of workspaces, recordings, folders, and page history without built-in access management or workspace switching
 
 Run the sandbox:
 
@@ -799,26 +707,13 @@ end
 
 1. Add gems to your `Gemfile`.
 2. `bundle install`.
-3. During migration, disable corresponding legacy built-ins if needed.
-4. Register recordable types.
-5. Include addon mixins on specific recordable models.
-6. Call capability behavior from `RecordingStudio::Recording`.
+3. Register recordable types.
+4. Include addon mixins on specific recordable models.
+5. Call capability behavior from `RecordingStudio::Recording`.
 
 ```ruby
 gem "recording_studio"
-gem "recording-studio-device-sessions"
 ```
-
-During migration from the built-in device session capability:
-
-```ruby
-RecordingStudio.configure do |config|
-  config.features.device_sessions = false
-end
-```
-
-`config.features.device_sessions = false` is a temporary migration switch to avoid conflicts during extraction.
-It is not the intended permanent addon API.
 
 ### Core vs addon responsibilities
 
@@ -878,94 +773,10 @@ If a capability is not enabled for a recordable type, calling its recording meth
 
 ## Access Control
 
-RecordingStudio ships with two built-in recordables for access control:
+Access control is now an application or addon concern.
 
-### Access Recordable
-
-`RecordingStudio::Access` stores a polymorphic actor and a role. Default roles
-are **admin**, **edit**, and **view** (hierarchy: admin > edit > view).
-
-- **Recording-level access**: create an Access recording as a child of the
-  target recording (`parent_recording_id = target.id`).
-- **Root-level access**: create an Access recording as a root recording
-  under the root recording (`parent_recording_id = root_recording.id`).
-
-```ruby
-# Grant edit access on a specific recording
-access = RecordingStudio::Access.create!(actor: user, role: :edit)
-RecordingStudio::Recording.create!(
-  root_recording: root_recording,
-  recordable: access,
-  parent_recording: page_recording
-)
-
-# Grant view access at the root level
-access = RecordingStudio::Access.create!(actor: user, role: :view)
-RecordingStudio::Recording.create!(
-  root_recording: root_recording,
-  recordable: access,
-  parent_recording: root_recording
-)
-```
-
-### AccessBoundary Recordable
-
-`RecordingStudio::AccessBoundary` stops access inheritance through the node it
-is attached to. The boundary is created as a child recording of that node.
-Other content recordings can remain as sibling children (no re-parenting
-required). An optional `minimum_role` allows role-based passthrough: access
-above the attached node is allowed through only if the actor's role meets or
-exceeds the minimum.
-
-```ruby
-# Parent node (for example, a folder/page)
-parent_recording = root_recording.record(RecordingStudioPage) { |page| page.title = "Projects" }
-
-# Content remains a direct child of the same parent
-root_recording.record(RecordingStudioPage, parent_recording: parent_recording) { |page| page.title = "Roadmap" }
-
-# Create a boundary child that blocks inherited access through parent_recording
-boundary = RecordingStudio::AccessBoundary.create!
-RecordingStudio::Recording.create!(
-  root_recording: root_recording,
-  recordable: boundary,
-  parent_recording: parent_recording
-)
-
-# Create a boundary child that allows edit or higher to pass through
-boundary = RecordingStudio::AccessBoundary.create!(minimum_role: :edit)
-RecordingStudio::Recording.create!(
-  root_recording: root_recording,
-  recordable: boundary,
-  parent_recording: parent_recording
-)
-```
-
-### Access Resolution
-
-Use `RecordingStudio::Services::AccessCheck` to check access:
-
-```ruby
-# Get the actor's role for a recording
-role = RecordingStudio::Services::AccessCheck.role_for(actor: user, recording: recording)
-# => :admin, :edit, :view, or nil
-
-# Check if an actor has at least a given role
-RecordingStudio::Services::AccessCheck.allowed?(actor: user, recording: recording, role: :edit)
-# => true or false
-```
-
-#### Access API reference
-
-| Method | Returns | What it does | How to use |
-| --- | --- | --- | --- |
-| `RecordingStudio::Services::AccessCheck.role_for(actor:, recording:)` | `:admin`, `:edit`, `:view`, or `nil` | Resolves an actor’s effective role for a specific recording, considering recording-level access, `AccessBoundary` rules, and root-level access. | `role = RecordingStudio::Services::AccessCheck.role_for(actor: user, recording: page_recording)` |
-| `RecordingStudio::Services::AccessCheck.allowed?(actor:, recording:, role:)` | `true` / `false` | Authorization helper: checks whether the actor’s resolved role is at least the required role (admin > edit > view). | `RecordingStudio::Services::AccessCheck.allowed?(actor: user, recording: page_recording, role: :edit)` |
-| `RecordingStudio::Services::AccessCheck.root_recordings_for(actor:, minimum_role: nil)` | `[root_recording_id, ...]` | Reverse-lookup: lists root recordings the actor has *root-level* access to via access recordings (`parent_recording_id = root_recording_id`). Recording-level access is intentionally excluded. | `RecordingStudio::Services::AccessCheck.root_recordings_for(actor: user, minimum_role: :view)` |
-| `RecordingStudio::Services::AccessCheck.root_recording_ids_for(actor:, minimum_role: nil)` | `[root_recording_id, ...]` | Same as `root_recordings_for` and returns root recording IDs for filtering queries (for example, then filter by root recordable type). | `ids = RecordingStudio::Services::AccessCheck.root_recording_ids_for(actor: user)` |
-| `RecordingStudio::Services::AccessCheck.access_recordings_for(recording)` | `ActiveRecord::Relation<RecordingStudio::Recording>` | Helper scope: returns non-trashed access recordings directly under a recording (children where `recordable_type = "RecordingStudio::Access"`). This does not filter by actor; it’s mainly for inspection/debugging and tests. | `RecordingStudio::Services::AccessCheck.access_recordings_for(page_recording).includes(:recordable)` |
-| `RecordingStudio::Access.roles` | `{ "view"=>0, "edit"=>1, "admin"=>2 }` | Enum mapping used for role ordering/comparisons (and for converting role symbols/strings to integer values). | `RecordingStudio::Access.roles.fetch("admin") # => 2` |
-| `RecordingStudio::AccessBoundary.minimum_roles` | `{ "view"=>0, "edit"=>1, "admin"=>2 }` | Enum mapping for `AccessBoundary.minimum_role` thresholds (used when comparing whether a role can pass through a boundary). | `RecordingStudio::AccessBoundary.minimum_roles.fetch("edit") # => 1` |
+If you need role-based authorization, workspace switching, or per-device root persistence, build it in your host app or
+use a dedicated addon gem and keep RecordingStudio focused on recordables, recordings, and events.
 
 ---
 

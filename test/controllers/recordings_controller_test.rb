@@ -1,106 +1,46 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "securerandom"
 
 class RecordingsControllerTest < ActionDispatch::IntegrationTest
-  MODERN_UA = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36"
-
   setup do
-    unique = SecureRandom.hex(8)
-
-    @user = User.create!(
-      name: "User",
-      email: "user-#{unique}@example.com",
-      password: "password",
-      password_confirmation: "password"
-    )
-
-    @viewer = User.create!(
-      name: "Viewer",
-      email: "viewer-#{unique}@example.com",
-      password: "password",
-      password_confirmation: "password"
-    )
+    @user = create_user(name: "User")
+    sign_in_as(@user)
+    workspace = Workspace.create!(name: "Workspace")
+    @root_recording = RecordingStudio::Recording.create!(recordable: workspace)
+    @recording = @root_recording.record(RecordingStudioPage, actor: @user, parent_recording: @root_recording) do |page|
+      page.title = "Plan"
+      page.summary = "Initial draft"
+    end
   end
 
-  test "show renders for folder recordable" do
-    sign_in_as(@user)
-
-    workspace = Workspace.create!(name: "Workspace")
-    root_recording = RecordingStudio::Recording.create!(recordable: workspace)
-    grant_root_access(root_recording, @user, :view)
-
-    folder = RecordingStudioFolder.create!(name: "Projects")
-    recording = RecordingStudio::Recording.create!(
-      root_recording: root_recording,
-      parent_recording: root_recording,
-      recordable: folder
-    )
-
-    get recording_path(recording), headers: { "User-Agent" => MODERN_UA }
+  test "show renders recording history details" do
+    get recording_path(@recording), headers: modern_headers
 
     assert_response :success
-    assert_includes @response.body, "Projects"
-    assert_includes @response.body, "Recordable Type"
-    assert_includes @response.body, "Folder"
+    assert_includes @response.body, "Plan"
+    assert_includes @response.body, "History"
+    assert_includes @response.body, "Recordables"
   end
 
-  test "show forbids user without recording access" do
-    workspace = Workspace.create!(name: "Private Workspace")
-    root_recording = RecordingStudio::Recording.create!(recordable: workspace)
-    grant_root_access(root_recording, @user, :view)
-
-    folder = RecordingStudioFolder.create!(name: "Secrets")
-    recording = RecordingStudio::Recording.create!(
-      root_recording: root_recording,
-      parent_recording: root_recording,
-      recordable: folder
-    )
-
-    sign_in_as(@viewer)
-
-    get recording_path(recording), headers: { "User-Agent" => MODERN_UA }
-
-    assert_response :forbidden
-  end
-
-  test "log_event forbids user without edit access" do
-    workspace = Workspace.create!(name: "Team Workspace")
-    root_recording = RecordingStudio::Recording.create!(recordable: workspace)
-    grant_root_access(root_recording, @user, :view)
-
-    page = RecordingStudioPage.create!(title: "Plan")
-    recording = RecordingStudio::Recording.create!(
-      root_recording: root_recording,
-      parent_recording: root_recording,
-      recordable: page
-    )
-
-    sign_in_as(@viewer)
-
-    assert_no_difference("RecordingStudio::Event.count") do
-      post log_event_recording_path(recording), headers: { "User-Agent" => MODERN_UA }
+  test "log_event appends a new event" do
+    assert_difference("RecordingStudio::Event.count", 1) do
+      post log_event_recording_path(@recording), headers: modern_headers
     end
 
-    assert_response :forbidden
+    assert_redirected_to recording_path(@recording)
+    assert_equal "commented", @recording.reload.events.first.action
   end
 
-  private
+  test "revert points the recording back to an earlier snapshot" do
+    previous_recordable = @recording.recordable
+    revised_recording = @root_recording.revise(@recording, actor: @user) do |page|
+      page.title = "Updated Plan"
+    end
 
-  def sign_in_as(user)
-    post user_session_path,
-         params: { user: { email: user.email, password: "password" } },
-         headers: { "User-Agent" => MODERN_UA }
-    assert_response :redirect
-  end
+    post revert_recording_path(revised_recording, recordable_id: previous_recordable.id), headers: modern_headers
 
-  def grant_root_access(root_recording, actor, role)
-    access = RecordingStudio::Access.create!(actor: actor, role: role)
-    RecordingStudio::Recording.create!(
-      root_recording: root_recording,
-      parent_recording: root_recording,
-      recordable: access
-    )
+    assert_redirected_to recording_path(revised_recording)
+    assert_equal previous_recordable.id, revised_recording.reload.recordable_id
   end
 end

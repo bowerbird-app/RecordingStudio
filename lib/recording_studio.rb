@@ -9,20 +9,10 @@ require "recording_studio/labels"
 require "recording_studio/recordable"
 require "recording_studio/services/base_service"
 require "recording_studio/services/example_service"
-require "recording_studio/services/access_check_class_methods"
-require "recording_studio/services/access_check"
-require "recording_studio/services/root_recording_resolver"
-require "recording_studio/concerns/device_session_concern"
 
 # rubocop:disable Metrics/ModuleLength, Metrics/ClassLength
-module RecordingStudio
-  LEGACY_FEATURE_ADDONS = {
-    device_sessions: {
-      gem_name: "recording-studio-device-sessions",
-      constant_paths: %w[RecordingStudio::DeviceSessions]
-    }
-  }.freeze
 
+module RecordingStudio
   class << self
     def configuration
       @configuration ||= Configuration.new
@@ -32,20 +22,13 @@ module RecordingStudio
       yield(configuration) if block_given?
     end
 
-    def features
-      configuration.features
-    end
-
     def registered_capabilities
       @registered_capabilities ||= {}
     end
 
-    def register_capability(name, mod, legacy_feature_gate: nil)
+    def register_capability(name, mod)
       capability_mutex.synchronize do
-        registered_capabilities[name.to_sym] = {
-          mod: mod,
-          legacy_feature_gate: legacy_feature_gate&.to_sym
-        }
+        registered_capabilities[name.to_sym] = { mod: mod }
       end
       apply_capabilities! if defined?(RecordingStudio::Recording)
     end
@@ -54,8 +37,6 @@ module RecordingStudio
       capability_mutex.synchronize do
         registered_capabilities.each_value do |registration|
           mod = registration.fetch(:mod)
-          legacy_feature_gate = registration[:legacy_feature_gate]
-          next if legacy_feature_gate && !legacy_feature_enabled?(legacy_feature_gate)
           next if RecordingStudio::Recording.included_modules.include?(mod)
 
           RecordingStudio::Recording.include(mod)
@@ -134,77 +115,10 @@ module RecordingStudio
       end
     end
 
-    def warn_legacy_feature_use!(feature_key, used_by:)
-      return unless legacy_feature_enabled?(feature_key)
-      return if warned_once?([:feature_use, feature_key])
-
-      emit_warning(
-        "[RecordingStudio] Legacy built-in '#{feature_key}' feature is enabled and used via #{used_by}. " \
-        "For addon migration, disable it in your initializer:\n#{feature_disable_snippet(feature_key)}"
-      )
-    end
-
-    def warn_legacy_addon_conflicts!
-      LEGACY_FEATURE_ADDONS.each do |feature_key, addon|
-        next unless legacy_feature_enabled?(feature_key)
-        next unless addon_loaded?(addon)
-        next if warned_once?([:addon_conflict, feature_key])
-
-        emit_warning(
-          "[RecordingStudio] Detected #{addon[:gem_name]} while built-in '#{feature_key}' is enabled. " \
-          "Disable the built-in feature to avoid conflicts:\n#{feature_disable_snippet(feature_key)}"
-        )
-      end
-    end
-
-    def reset_runtime_warnings!
-      @runtime_warnings = Set.new
-    end
-
     private
-
-    def legacy_feature_enabled?(feature_key)
-      features.public_send("#{feature_key}?")
-    end
-
-    def addon_loaded?(addon)
-      gem_loaded = Gem.loaded_specs.key?(addon.fetch(:gem_name))
-      constant_loaded = addon.fetch(:constant_paths, []).any? { |path| constant_defined_path?(path) }
-      gem_loaded || constant_loaded
-    end
-
-    def constant_defined_path?(path)
-      path.split("::").reject(&:empty?).inject(Object) do |scope, const_name|
-        return false unless scope.const_defined?(const_name, false)
-
-        scope.const_get(const_name, false)
-      end
-      true
-    rescue NameError
-      false
-    end
-
-    def warned_once?(key)
-      @runtime_warnings ||= Set.new
-      already_warned = @runtime_warnings.include?(key)
-      @runtime_warnings << key
-      already_warned
-    end
 
     def capability_mutex
       @capability_mutex ||= Mutex.new
-    end
-
-    def emit_warning(message)
-      if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
-        Rails.logger.warn(message)
-      else
-        warn(message)
-      end
-    end
-
-    def feature_disable_snippet(feature_key)
-      "RecordingStudio.configure do |config|\n  config.features.#{feature_key} = false\nend"
     end
 
     def find_idempotent_event(recording, idempotency_key)
@@ -256,6 +170,6 @@ module RecordingStudio
     end
   end
 end
-# rubocop:enable Metrics/ModuleLength, Metrics/ClassLength
 
 require "recording_studio/capability"
+# rubocop:enable Metrics/ModuleLength, Metrics/ClassLength

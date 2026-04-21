@@ -68,37 +68,10 @@ module RecordingStudio
     def heuristic_name_for(recordable)
       squished_value(recordable, :title) ||
         squished_value(recordable, :name) ||
-        access_name_for(recordable) ||
-        access_boundary_name_for(recordable) ||
         comment_name_for(recordable) ||
         fallback_name_for(recordable)
     end
     private_class_method :heuristic_name_for
-
-    def access_name_for(recordable)
-      return unless access_recordable?(recordable)
-
-      "Access: #{recordable.role} — #{access_actor_text_for(recordable.actor)}"
-    end
-    private_class_method :access_name_for
-
-    def access_actor_text_for(actor)
-      actor_name = actor.respond_to?(:name) ? normalize_label(actor.name) : nil
-
-      return "Unknown actor" unless actor_name.present?
-
-      suffix = actor.class.name.demodulize == "SystemActor" ? "System" : "User"
-      "#{actor_name} (#{suffix})"
-    end
-    private_class_method :access_actor_text_for
-
-    def access_boundary_name_for(recordable)
-      return unless access_boundary_recordable?(recordable)
-
-      minimum_role = normalize_label(recordable.minimum_role)
-      minimum_role.present? ? "Access boundary (min: #{minimum_role})" : "Access boundary"
-    end
-    private_class_method :access_boundary_name_for
 
     def comment_name_for(recordable)
       return unless comment_recordable?(recordable)
@@ -158,16 +131,6 @@ module RecordingStudio
       text.presence
     end
     private_class_method :normalize_label
-
-    def access_recordable?(recordable)
-      recordable.is_a?(RecordingStudio::Access)
-    end
-    private_class_method :access_recordable?
-
-    def access_boundary_recordable?(recordable)
-      recordable.is_a?(RecordingStudio::AccessBoundary)
-    end
-    private_class_method :access_boundary_recordable?
 
     def comment_recordable?(recordable)
       COMMENT_TYPE_NAMES.include?(recordable.class.name)
