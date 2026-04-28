@@ -73,7 +73,7 @@ class ActionDispatch::IntegrationTest
   end
 
   def sign_in_as(user)
-    sign_in user
+    sign_in user, scope: :user
   end
 
   def modern_headers(extra_headers = {})

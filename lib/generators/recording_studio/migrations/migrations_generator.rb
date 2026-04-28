@@ -17,14 +17,18 @@ module RecordingStudio
       include ActiveRecord::Generators::Migration
 
       source_root File.expand_path("../../../..", __dir__)
+      INSTALL_MIGRATIONS_DIR = File.join(source_root, "db", "install_migrate")
+      FULL_HISTORY_MIGRATIONS_DIR = File.join(source_root, "db", "migrate")
 
       desc "Copy RecordingStudio migrations to your application"
 
       class_option :skip_existing, type: :boolean, default: true,
                                    desc: "Skip migrations that already exist (based on name, ignoring timestamp)"
+      class_option :full_history, type: :boolean, default: false,
+                                  desc: "Install the full historical migration chain instead of the fresh-install set"
 
       def copy_migrations
-        migrations_dir = File.join(self.class.source_root, "db", "migrate")
+        migrations_dir = selected_migrations_dir
 
         unless File.directory?(migrations_dir)
           say "No migrations found in RecordingStudio engine.", :yellow
@@ -66,6 +70,10 @@ module RecordingStudio
       end
 
       private
+
+      def selected_migrations_dir
+        options[:full_history] ? FULL_HISTORY_MIGRATIONS_DIR : INSTALL_MIGRATIONS_DIR
+      end
 
       def migration_exists?(migration_name)
         Dir.glob(File.join(destination_root, "db/migrate", "*_#{migration_name}")).any?

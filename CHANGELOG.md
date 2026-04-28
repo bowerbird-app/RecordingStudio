@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed built-in access-control recordables, access services, device-session persistence, legacy feature flags,
   related dummy app flows, and their documentation from core.
 
+### Changed
+- Changed `recording_studio:migrations` to install the current core schema by default for fresh apps, with `--full_history` available for older apps that need the historical engine migration chain.
+
 ## [0.2.0] - 2026-04-09
 
 ### Added

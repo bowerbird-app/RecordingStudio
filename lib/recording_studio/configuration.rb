@@ -6,8 +6,14 @@ module RecordingStudio
   class Configuration
     REMOVED_CONFIGURATION_KEYS = %w[features].freeze
 
-    attr_accessor :actor, :impersonator, :event_notifications_enabled,
-                   :idempotency_mode, :recordable_dup_strategy, :include_children
+    attr_accessor(
+      :actor,
+      :impersonator,
+      :event_notifications_enabled,
+      :idempotency_mode,
+      :recordable_dup_strategy,
+      :include_children
+    )
     attr_reader :recordable_types, :hooks
 
     def initialize

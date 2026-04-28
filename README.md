@@ -570,7 +570,16 @@ rails g recording_studio:install
 rails g recording_studio:migrations
 ```
 
-The install generator creates the initializer and mounts the engine. The migrations generator installs the engine tables.
+The install generator creates the initializer and mounts the engine. The migrations generator installs the current
+core schema for fresh host apps.
+
+If you are upgrading an older host app that previously depended on RecordingStudio's historical migration chain, use:
+
+```bash
+rails g recording_studio:migrations --full_history
+```
+
+That copies the full engine migration history, including legacy compatibility migrations kept for upgrade paths.
 
 ## Instrumentation
 
