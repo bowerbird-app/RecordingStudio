@@ -5,21 +5,17 @@ require "test_helper"
 class CapabilitiesTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
-    @original_feature_flags = RecordingStudio.features.to_h
     RecordingStudio.configuration.recordable_types = %w[
       Workspace
       RecordingStudioPage
       RecordingStudioFolder
       RecordingStudioComment
-      RecordingStudio::Access
     ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
     RecordingStudio.apply_capabilities!
 
     RecordingStudio::Event.delete_all
-    RecordingStudio::DeviceSession.delete_all
     RecordingStudio::Recording.delete_all
-    RecordingStudio::Access.delete_all
     RecordingStudioPage.delete_all
     RecordingStudioFolder.delete_all
     RecordingStudioComment.delete_all
@@ -28,10 +24,6 @@ class CapabilitiesTest < ActiveSupport::TestCase
   end
 
   def teardown
-    @original_feature_flags.each do |feature_name, value|
-      RecordingStudio.features.public_send("#{feature_name}=", value)
-    end
-
     RecordingStudio.configuration.recordable_types = @original_types
     RecordingStudio::DelegatedTypeRegistrar.apply!
   end

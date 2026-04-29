@@ -59,13 +59,6 @@ unless Object.new.respond_to?(:stub)
   end
 end
 
-unless ActionController::Base.respond_to?(:impersonates)
-  class << ActionController::Base
-    def impersonates(*)
-    end
-  end
-end
-
 class ActiveSupport::TestCase
   parallelize(workers: 1)
 end
@@ -75,12 +68,12 @@ class ActionDispatch::IntegrationTest
 
   MODERN_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
 
-  def create_user(name: "Test User", email: "user-#{SecureRandom.hex(4)}@example.com", password: "password123", admin: false)
-    User.create!(name: name, email: email, password: password, password_confirmation: password, admin: admin)
+  def create_user(name: "Test User", email: "user-#{SecureRandom.hex(4)}@example.com", admin: false)
+    User.create!(name: name, email: email, password: "password123", password_confirmation: "password123", admin: admin)
   end
 
   def sign_in_as(user)
-    sign_in user
+    sign_in user, scope: :user
   end
 
   def modern_headers(extra_headers = {})
@@ -91,14 +84,5 @@ class ActionDispatch::IntegrationTest
     workspace = Workspace.create!(name: name)
     root = RecordingStudio::Recording.create!(recordable: workspace)
     [ workspace, root ]
-  end
-
-  def grant_root_access!(root_recording:, actor:, role: :admin)
-    access = RecordingStudio::Access.create!(actor: actor, role: role)
-    RecordingStudio::Recording.create!(
-      recordable: access,
-      root_recording: root_recording,
-      parent_recording: root_recording
-    )
   end
 end

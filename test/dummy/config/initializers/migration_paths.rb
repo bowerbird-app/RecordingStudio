@@ -2,7 +2,7 @@
 
 Rails.application.config.paths["db/migrate"] = [
   Rails.root.join("db/migrate_app"),
-  RecordingStudio::Engine.root.join("db/migrate")
+  RecordingStudio::Engine.root.join("db/install_migrate")
 ]
 
 if defined?(ActiveRecord::Migrator)

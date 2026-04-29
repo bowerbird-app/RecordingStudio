@@ -91,16 +91,6 @@
                   <span class="sidebar-label min-w-0 max-w-[12rem] overflow-hidden whitespace-nowrap transition-[opacity,max-width] duration-300 ease-in-out">Folders</span>
                 <% end %>
 
-                <%= link_to actors_path, class: "grid grid-cols-[2rem_1fr] items-center rounded-lg px-3 py-2 text-slate-700 transition hover:bg-slate-100" do %>
-                  <span class="inline-flex h-8 w-8 items-center justify-center">
-                    <svg class="h-5 w-5 text-slate-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493" />
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M9 19.128a9.38 9.38 0 0 1-2.625.372 9.337 9.337 0 0 1-4.121-.952 4.125 4.125 0 0 1 7.533-2.493" />
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 19.128v-.003c0-1.113.285-2.16.786-3.07m5.428 0A4.5 4.5 0 1 0 8.786 16.055m6.428 0A4.5 4.5 0 0 1 12 21.75a4.5 4.5 0 0 1-3.214-5.695" />
-                    </svg>
-                  </span>
-                  <span class="sidebar-label min-w-0 max-w-[12rem] overflow-hidden whitespace-nowrap transition-[opacity,max-width] duration-300 ease-in-out">Actors</span>
-                <% end %>
               </div>
             </nav>
             <div class="border-t border-slate-200 px-3 py-4">
@@ -122,36 +112,9 @@
         <div class="flex min-h-screen flex-1 flex-col">
           <header class="sticky top-0 z-10 bg-[#FCFDFD]/90 backdrop-blur">
             <div class="mx-auto flex w-full max-w-6xl items-center justify-end px-6 py-4">
-              <div class="flex items-center gap-3">
-                <% workspace_options, selected_workspace_id = workspace_switcher_options(
-                  current_actor: current_actor,
-                  current_root_recording: current_root_recording
-                ) %>
-
-                <% if workspace_options.any? %>
-                  <%= form_with url: workspace_switches_path, method: :post, local: true, data: { turbo: false, controller: "autosubmit" }, class: "flex items-center gap-3" do |form| %>
-                    <%= form.label :workspace_id, "Workspace", class: "text-sm font-medium text-slate-500" %>
-                    <%= form.select :workspace_id,
-                      options_for_select(workspace_options, selected_workspace_id),
-                      {},
-                      class: "rounded-md border border-slate-200 bg-white/80 px-3 py-2 text-sm backdrop-blur",
-                      data: { action: "change->autosubmit#submit" } %>
-                  <% end %>
-                <% end %>
-
-                <% if admin_user? %>
-                  <% grouped_options, selected_actor_selection, blank_label = actor_switcher_options(
-                    current_actor: current_actor,
-                    current_user: current_user,
-                    true_user: true_user,
-                    system_actors: system_actor_options,
-                    impersonating: impersonating?
-                  ) %>
-
-                  <%= form_with url: actor_switch_path, method: :post, local: true, data: { turbo: false, controller: "autosubmit" }, class: "flex items-center gap-3" do |form| %>
-                    <%= form.label :actor_selection, "Actor", class: "text-sm font-medium text-slate-500" %>
-                    <%= form.select :actor_selection, grouped_options_for_select(grouped_options, selected_actor_selection), { include_blank: blank_label }, class: "rounded-md border border-slate-200 bg-white/80 px-3 py-2 text-sm backdrop-blur", data: { action: "change->autosubmit#submit" } %>
-                  <% end %>
+              <div class="text-sm font-medium text-slate-500">
+                <% if current_actor %>
+                  Signed in as <span class="text-slate-900"><%= current_actor.name %></span>
                 <% end %>
               </div>
             </div>

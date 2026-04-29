@@ -145,18 +145,24 @@ module FlatPack
       def initialize(data:, **)
         @data = data
         @columns = []
+        @actions = []
       end
 
       def column(title:, html:)
         @columns << { title: title, html: html }
       end
 
+      def with_action(text:, url:, **)
+        @actions << { text: text, url: url }
+      end
+
       def render_in(view, &block)
         view.capture(self, &block) if block
+        columns = @columns + action_columns(view)
 
         header = view.content_tag(:thead) do
           view.content_tag(:tr) do
-            view.safe_join(@columns.map do |col|
+            view.safe_join(columns.map do |col|
               view.content_tag(:th, col[:title], class: "px-4 py-2 text-left text-sm")
             end)
           end
@@ -165,7 +171,7 @@ module FlatPack
         body = view.content_tag(:tbody) do
           rows = @data.map do |row|
             view.content_tag(:tr) do
-              cells = @columns.map do |col|
+              cells = columns.map do |col|
                 value = col[:html].respond_to?(:call) ? col[:html].call(row) : ""
                 view.content_tag(:td, value, class: "px-4 py-2 text-sm")
               end
@@ -176,6 +182,25 @@ module FlatPack
         end
 
         view.content_tag(:table, view.safe_join([header, body]), class: "min-w-full")
+      end
+
+      private
+
+      def action_columns(view)
+        return [] if @actions.empty?
+
+        [
+          {
+            title: "Actions",
+            html: lambda { |row|
+              links = @actions.map do |action|
+                href = action[:url].respond_to?(:call) ? action[:url].call(row) : action[:url]
+                view.link_to(action[:text], href)
+              end
+              view.safe_join(links, " ".html_safe)
+            }
+          }
+        ]
       end
     end
   end
@@ -236,6 +261,7 @@ end
 require File.expand_path("dummy/config/environment", __dir__)
 require "rails/test_help"
 require "recording_studio"
+require "devise/test/integration_helpers"
 
 ActiveSupport::TestCase.class_eval do
   def assert_not(value, message = nil)
@@ -254,5 +280,36 @@ Minitest::Test.class_eval do
 
   def assert_not_nil(value, message = nil)
     assert_equal false, value.nil?, message
+  end
+end
+
+module ActionDispatch
+  class IntegrationTest
+    include Devise::Test::IntegrationHelpers
+
+    MODERN_USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 " \
+                        "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+
+    def create_user(
+      name: "Test User",
+      email: "user-#{SecureRandom.hex(4)}@example.com",
+      admin: false
+    )
+      User.create!(
+        name: name,
+        email: email,
+        password: "password123",
+        password_confirmation: "password123",
+        admin: admin
+      )
+    end
+
+    def sign_in_as(user)
+      sign_in user, scope: :user
+    end
+
+    def modern_headers(extra_headers = {})
+      { "HTTP_USER_AGENT" => MODERN_USER_AGENT }.merge(extra_headers)
+    end
   end
 end

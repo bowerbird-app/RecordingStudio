@@ -88,7 +88,13 @@ jobs:
         env:
           RAILS_ENV: test
 
-      - name: Run tests
+      - name: Run gem tests
         run: bundle exec rake test
+        env:
+          RAILS_ENV: test
+
+      - name: Run dummy app tests
+        run: bundle exec rails test
+        working-directory: test/dummy
         env:
           RAILS_ENV: test

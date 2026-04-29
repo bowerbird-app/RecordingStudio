@@ -2,24 +2,13 @@ Rails.application.routes.draw do
   devise_for :users
 
   mount FlatPack::Engine => "/flatpack", as: "flatpack"
-  # Mount the RecordingStudio engine
   mount RecordingStudio::Engine, at: "/recording_studio"
-
-  resources :impersonations, only: :create
-  resource :impersonation, only: :destroy
-  resource :actor, only: :update
-  resources :actors, only: [ :index ]
-  post "actor_switch" => "actors#switch", as: :actor_switch
-
-  post "workspace_switches", to: "workspace_switches#create"
 
   resources :pages, param: :recording_id do
     post :restore, on: :member
   end
   resources :folders, param: :recording_id, only: [ :index, :show ]
   resources :workspaces, only: [ :index, :show, :new, :create, :destroy ]
-  resources :boundary_recordings, only: [ :new, :create, :edit, :update, :destroy ]
-  resources :access_recordings, only: [ :new, :create, :edit, :update ]
   resources :events, only: [ :index ]
   resources :recordings, only: [ :index, :show ] do
     post :log_event, on: :member
