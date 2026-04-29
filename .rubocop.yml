@@ -32,6 +32,8 @@ Metrics/MethodLength:
     - 'lib/generators/**/*'
     - 'app/models/concerns/**/has_recordings_container.rb'
     - 'app/models/recording_studio/recording.rb'
+    - 'app/models/recording_studio/recording/trashable.rb'
+    - 'app/models/recording_studio/recording/trashable_counters.rb'
     - 'db/migrate/**/*'
     - 'lib/recording_studio.rb'
     - 'lib/recording_studio/delegated_type_registrar.rb'
@@ -42,6 +44,8 @@ Metrics/AbcSize:
     - 'lib/generators/**/*'
     - 'app/models/concerns/**/has_recordings_container.rb'
     - 'app/models/recording_studio/recording.rb'
+    - 'app/models/recording_studio/recording/trashable.rb'
+    - 'app/models/recording_studio/recording/trashable_counters.rb'
     - 'db/migrate/**/*'
     - 'lib/recording_studio.rb'
     - 'lib/recording_studio/delegated_type_registrar.rb'
@@ -50,6 +54,8 @@ Metrics/CyclomaticComplexity:
   Exclude:
     - 'app/models/concerns/**/has_recordings_container.rb'
     - 'app/models/recording_studio/recording.rb'
+    - 'app/models/recording_studio/recording/trashable.rb'
+    - 'app/models/recording_studio/recording/trashable_counters.rb'
     - 'db/migrate/**/*'
     - 'lib/recording_studio.rb'
     - 'lib/recording_studio/delegated_type_registrar.rb'
@@ -58,6 +64,8 @@ Metrics/PerceivedComplexity:
   Exclude:
     - 'app/models/concerns/**/has_recordings_container.rb'
     - 'app/models/recording_studio/recording.rb'
+    - 'app/models/recording_studio/recording/trashable.rb'
+    - 'app/models/recording_studio/recording/trashable_counters.rb'
     - 'db/migrate/**/*'
     - 'lib/recording_studio.rb'
     - 'lib/recording_studio/delegated_type_registrar.rb'
@@ -71,6 +79,7 @@ Metrics/ParameterLists:
   Exclude:
     - 'app/models/concerns/**/has_recordings_container.rb'
     - 'app/models/recording_studio/recording.rb'
+    - 'app/models/recording_studio/recording/trashable.rb'
     - 'lib/recording_studio.rb'
 
 Metrics/BlockLength:
