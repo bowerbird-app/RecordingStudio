@@ -12,7 +12,6 @@ module RecordingStudio
 
     private
 
-    # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
     def increment_recordable_recordings_count
       return if trashed_at.present?
 
@@ -25,6 +24,7 @@ module RecordingStudio
       update_recordable_counter(recordable_type, recordable_id, :recordings_count, -1)
     end
 
+    # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
     def adjust_recordable_recordings_count
       if saved_change_to_trashed_at?
         if trashed_at_previously_was.nil? && trashed_at.present?
