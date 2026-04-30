@@ -3,11 +3,11 @@
 module RecordingStudio
   # rubocop:disable Metrics/ClassLength
   class Recording < ApplicationRecord
-    include Trashable
-    include TrashableScopes
-    include TrashableCounters
-
     self.table_name = "recording_studio_recordings"
+
+    include RecordingStudio::RecordingTrashable
+    include RecordingStudio::RecordingTrashableScopes
+    include RecordingStudio::RecordingTrashableCounters
 
     belongs_to :root_recording, class_name: "RecordingStudio::Recording", optional: true
     belongs_to :parent_recording, class_name: "RecordingStudio::Recording", optional: true,
