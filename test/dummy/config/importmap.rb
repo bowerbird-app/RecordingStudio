@@ -6,6 +6,7 @@ pin "@hotwired/stimulus", to: "stimulus.min.js"
 pin "@hotwired/stimulus-loading", to: "stimulus-loading.js"
 pin_all_from "app/javascript/controllers", under: "controllers"
 
-# Flatpack controllers
-pin "flat_pack", to: "flat_pack/index.js"
-pin_all_from Gem::Specification.find_by_name("flat_pack").gem_dir + "/app/javascript/flat_pack/controllers", under: "flat_pack/controllers"
+# FlatPack controllers without modulepreload for lazy loading
+pin_all_from FlatPack::Engine.root.join("app/javascript/flat_pack/controllers"), under: "controllers/flat_pack", to: "flat_pack/controllers", preload: false
+pin_all_from FlatPack::Engine.root.join("app/javascript/flat_pack/tiptap"), under: "flat_pack/tiptap", to: "flat_pack/tiptap", preload: false
+pin "flat_pack/heroicons", to: "flat_pack/heroicons.js", preload: false

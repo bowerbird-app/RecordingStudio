@@ -621,12 +621,15 @@ comments, and event history. It demonstrates:
 - Event timeline with actors, recordables, and metadata
 - Mixin-style event logging with `recording.log_event!`
 - Simple browsing of workspaces, recordings, folders, and page history without built-in access management or workspace switching
+- FlatPack `v0.1.33` as the UI layer, using the current FlatPack install contract for importmap, Stimulus, layout, and Tailwind wiring
 
 Run the sandbox:
 
 ```bash
 cd test/dummy
+bundle install
 bin/rails db:setup
+bin/rake flat_pack:verify_install
 bin/dev
 ```
 
@@ -635,6 +638,7 @@ bin/dev
 - Assert that recordables are immutable by verifying a new recordable was created on `revise`.
 - Assert `Event` counts and actions, not direct model mutations.
 - Use `idempotency_key` in tests for retriable flows.
+- When updating FlatPack in the dummy app, run `cd test/dummy && bin/rake flat_pack:verify_install` before the full test suite so install-contract drift is caught early.
 
 ## Release Process
 

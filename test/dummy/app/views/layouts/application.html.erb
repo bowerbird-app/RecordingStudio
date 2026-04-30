@@ -18,7 +18,10 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
 
-    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    <% if Gem.loaded_specs.key?("flat_pack") %>
+      <%= stylesheet_link_tag "flat_pack/variables", "data-turbo-track": "reload" %>
+      <%= stylesheet_link_tag "flat_pack/rich_text", "data-turbo-track": "reload" %>
+    <% end %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
   </head>

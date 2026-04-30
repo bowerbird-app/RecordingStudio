@@ -1,24 +1,32 @@
-# README
+# RecordingStudio Dummy App
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+This Rails app exercises the local `recording_studio` checkout and the pinned FlatPack UI integration used for sandbox and integration coverage.
 
-Things you may want to cover:
+## Dependencies
 
-* Ruby version
+- `recording_studio` is loaded from the repository root via `path: "../.."`.
+- `flat_pack` is pinned to `v0.1.33` from `https://github.com/bowerbird-app/flatpack.git`.
 
-* System dependencies
+## Setup
 
-* Configuration
+```bash
+bundle install
+bin/rails db:setup
+bin/rake flat_pack:verify_install
+```
 
-* Database creation
+## Development
 
-* Database initialization
+```bash
+bin/dev
+```
 
-* How to run the test suite
+This starts the Rails server and Tailwind watcher defined in `Procfile.dev`.
 
-* Services (job queues, cache servers, search engines, etc.)
+## Tests
 
-* Deployment instructions
+```bash
+bundle exec rake test
+```
 
-* ...
+Run the FlatPack verifier after dependency or asset-wiring changes so importmap, Stimulus, layout, and Tailwind contract drift fails fast.

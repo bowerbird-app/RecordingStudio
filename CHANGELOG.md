@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-04-30
+
+### Changed
+- Bumped the dummy app's `flat_pack` dependency to `v0.1.33` and aligned its importmap and initializer setup with FlatPack's current install contract.
+- Refreshed the dummy app bundle metadata so local development resolves against RecordingStudio `0.2.1`.
+
 ### Removed
 - Removed built-in access-control recordables, access services, device-session persistence, legacy feature flags,
   related dummy app flows, and their documentation from core.
@@ -40,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/recording_studio/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/bowerbird-app/recording_studio/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/bowerbird-app/recording_studio/releases/tag/v0.2.1
 [0.2.0]: https://github.com/bowerbird-app/recording_studio/releases/tag/v0.2.0
 [0.1.0]: https://github.com/bowerbird-app/recording_studio/releases/tag/v0.1.0
