@@ -18,18 +18,9 @@ module RecordingStudio
     before_create :assign_root_recording_id
     after_create :set_self_root_recording_id, if: -> { parent_recording_id.nil? && root_recording_id.nil? }
 
-    after_commit :increment_recordable_recordings_count, on: :create
-    after_commit :decrement_recordable_recordings_count, on: :destroy
-    after_commit :adjust_recordable_recordings_count, on: :update
-
-    default_scope { where(trashed_at: nil).order(updated_at: :desc) }
+    default_scope { order(updated_at: :desc) }
     scope :recent, -> { order(updated_at: :desc) }
     scope :for_root, ->(root_id) { where(root_recording_id: root_id) }
-    scope :trashed, -> { unscope(where: :trashed_at).where.not(trashed_at: nil) }
-    scope :including_trashed, -> { unscope(where: :trashed_at) }
-    def self.include_trashed
-      including_trashed
-    end
     scope :of_type, ->(klass) { where(recordable_type: klass.to_s) }
 
     def events(actions: nil, actor: nil, actor_type: nil, actor_id: nil, from: nil, to: nil, limit: nil, offset: nil)
@@ -80,30 +71,6 @@ module RecordingStudio
         impersonator: impersonator,
         metadata: metadata
       ).recording
-    end
-
-    def trash(recording = self, actor: nil, impersonator: nil, metadata: {}, include_children: false)
-      assert_recording_belongs_to_root!(recording)
-
-      include_children ||= RecordingStudio.configuration.include_children
-      delete_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata,
-                                     cascade: include_children, seen: Set.new, mode: :soft)
-    end
-
-    def hard_delete(recording = self, actor: nil, impersonator: nil, metadata: {}, include_children: false)
-      assert_recording_belongs_to_root!(recording)
-
-      include_children ||= RecordingStudio.configuration.include_children
-      delete_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata,
-                                     cascade: include_children, seen: Set.new, mode: :hard)
-    end
-
-    def restore(recording = self, actor: nil, impersonator: nil, metadata: {}, include_children: false)
-      assert_recording_belongs_to_root!(recording)
-
-      include_children ||= RecordingStudio.configuration.include_children
-      restore_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata,
-                                      cascade: include_children, seen: Set.new)
     end
 
     def log_event(recording = self, action:, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current,
@@ -167,6 +134,7 @@ module RecordingStudio
         end
       end
       scope = enforce_recordings_scope(scope, root_id: root_id, include_children: include_children)
+      scope = apply_recordings_query_extensions(scope) if respond_to?(:apply_recordings_query_extensions, true)
       safe_recording_order = sanitize_order_for_model(order, RecordingStudio::Recording)
       scope = scope.reorder(safe_recording_order) if safe_recording_order.present?
       scope = scope.limit(limit) if limit.present?
@@ -223,88 +191,6 @@ module RecordingStudio
 
     def set_self_root_recording_id
       update!(root_recording_id: id)
-    end
-
-    def delete_with_cascade(recording, actor:, impersonator:, metadata:, cascade:, seen:, mode:)
-      return recording if recording.nil?
-
-      key = [recording.class.name, recording.id || recording.object_id]
-      return recording if seen.include?(key)
-
-      seen.add(key)
-
-      if cascade
-        children = recording.child_recordings.including_trashed
-        children.each do |child|
-          delete_with_cascade(
-            child,
-            actor: actor,
-            impersonator: impersonator,
-            metadata: metadata,
-            cascade: true,
-            seen: seen,
-            mode: mode
-          )
-        end
-      end
-
-      action = mode == :hard ? "deleted" : "trashed"
-      event = RecordingStudio.record!(
-        action: action,
-        recordable: recording.recordable,
-        recording: recording,
-        root_recording: root_recording || self,
-        actor: actor,
-        impersonator: impersonator,
-        metadata: metadata
-      )
-
-      if mode == :hard
-        recording.destroy!
-      else
-        recording.update!(trashed_at: Time.current)
-      end
-
-      event.recording
-    end
-
-    def restore_with_cascade(recording, actor:, impersonator:, metadata:, cascade:, seen:)
-      return recording if recording.nil?
-
-      key = [recording.class.name, recording.id || recording.object_id]
-      return recording if seen.include?(key)
-
-      seen.add(key)
-
-      if cascade
-        children = recording.child_recordings.including_trashed
-        children.each do |child|
-          restore_with_cascade(
-            child,
-            actor: actor,
-            impersonator: impersonator,
-            metadata: metadata,
-            cascade: true,
-            seen: seen
-          )
-        end
-      end
-
-      if recording.trashed_at
-        RecordingStudio.record!(
-          action: "restored",
-          recordable: recording.recordable,
-          recording: recording,
-          root_recording: root_recording || self,
-          actor: actor,
-          impersonator: impersonator,
-          metadata: metadata
-        )
-
-        recording.update!(trashed_at: nil)
-      end
-
-      recording
     end
 
     def build_recordable_instance(recordable_or_class)
@@ -394,6 +280,12 @@ module RecordingStudio
       end
     end
 
+    def enforce_recordings_scope(scope, root_id:, include_children:)
+      constrained = scope.where(root_recording_id: root_id)
+      constrained = constrained.where(parent_recording_id: root_id) unless include_children
+      constrained
+    end
+
     def assert_recording_belongs_to_root!(recording)
       return if recording.nil?
 
@@ -401,53 +293,6 @@ module RecordingStudio
       return if recording.root_recording_id == root_id
 
       raise ArgumentError, "recording must belong to this root recording"
-    end
-
-    def enforce_recordings_scope(scope, root_id:, include_children:)
-      constrained = scope.where(root_recording_id: root_id, trashed_at: nil)
-      constrained = constrained.where(parent_recording_id: root_id) unless include_children
-      constrained
-    end
-
-    def increment_recordable_recordings_count
-      return if trashed_at.present?
-
-      update_recordable_counter(recordable_type, recordable_id, :recordings_count, 1)
-    end
-
-    def decrement_recordable_recordings_count
-      return if trashed_at.present?
-
-      update_recordable_counter(recordable_type, recordable_id, :recordings_count, -1)
-    end
-
-    def adjust_recordable_recordings_count
-      if saved_change_to_trashed_at?
-        if trashed_at_previously_was.nil? && trashed_at.present?
-          update_recordable_counter(recordable_type, recordable_id, :recordings_count, -1)
-        elsif trashed_at_previously_was.present? && trashed_at.nil?
-          update_recordable_counter(recordable_type, recordable_id, :recordings_count, 1)
-        end
-      end
-
-      return unless saved_change_to_recordable_id? || saved_change_to_recordable_type?
-      return if trashed_at.present?
-
-      previous_type = recordable_type_before_last_save
-      previous_id = recordable_id_before_last_save
-
-      update_recordable_counter(previous_type, previous_id, :recordings_count, -1) if previous_type && previous_id
-
-      update_recordable_counter(recordable_type, recordable_id, :recordings_count, 1)
-    end
-
-    def update_recordable_counter(recordable_type, recordable_id, column, delta)
-      return unless recordable_type && recordable_id
-
-      recordable_class = recordable_type.safe_constantize
-      return unless recordable_class&.column_names&.include?(column.to_s)
-
-      recordable_class.update_counters(recordable_id, column => delta)
     end
 
     def parent_recording_root_consistency

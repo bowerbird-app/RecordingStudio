@@ -1,6 +1,8 @@
 class RecordingStudioFolder < ApplicationRecord
   validates :name, presence: true
 
+  include RecordingStudio::Capabilities::Trashable.with
+
   def self.recordable_type_label
     "Folder"
   end

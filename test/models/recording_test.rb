@@ -13,13 +13,7 @@ class RecordingTest < ActiveSupport::TestCase
     ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
-    RecordingStudio::Event.delete_all
-    RecordingStudio::Recording.delete_all
-    RecordingStudioFolder.delete_all
-    RecordingStudioPage.delete_all
-    RecordingStudioComment.delete_all
-    Workspace.delete_all
-    User.delete_all
+    reset_recording_studio_tables!(RecordingStudioFolder, RecordingStudioPage, RecordingStudioComment)
   end
 
   def teardown

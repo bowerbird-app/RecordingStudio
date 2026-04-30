@@ -6,10 +6,10 @@ module RecordingStudio
 
     private
 
-    def assert_capability!(name)
-      return if RecordingStudio.configuration.capability_enabled?(name, for_type: recordable_type)
+    def assert_capability!(name, for_type: recordable_type)
+      return if RecordingStudio.configuration.capability_enabled?(name, for_type: for_type)
 
-      raise RecordingStudio::CapabilityDisabled, "Capability :#{name} is not enabled for #{recordable_type}"
+      raise RecordingStudio::CapabilityDisabled, "Capability :#{name} is not enabled for #{for_type}"
     end
   end
 end

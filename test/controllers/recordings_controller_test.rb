@@ -23,6 +23,16 @@ class RecordingsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "Recordables"
   end
 
+  test "show renders restore as a post form for trashed pages" do
+    @root_recording.trash(@recording, actor: @user, include_children: true)
+
+    get recording_path(@recording), headers: modern_headers
+
+    assert_response :success
+    assert_select "form[action='#{restore_page_path(@recording)}'][method='post']"
+    assert_select "form button", text: "Restore"
+  end
+
   test "log_event appends a new event" do
     assert_difference("RecordingStudio::Event.count", 1) do
       post log_event_recording_path(@recording), headers: modern_headers
