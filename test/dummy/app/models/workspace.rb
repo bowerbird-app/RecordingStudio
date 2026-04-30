@@ -1,6 +1,8 @@
 class Workspace < ApplicationRecord
   self.table_name = "recording_studio_workspaces"
 
+  include RecordingStudio::Capabilities::Trashable.with
+
   validates :name, presence: true
 
   def self.recordable_type_label

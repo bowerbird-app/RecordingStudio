@@ -8,11 +8,7 @@ class EventTest < ActiveSupport::TestCase
     RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioPage]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
-    RecordingStudio::Event.delete_all
-    RecordingStudio::Recording.delete_all
-    RecordingStudioPage.delete_all
-    Workspace.delete_all
-    User.delete_all
+    reset_recording_studio_tables!(RecordingStudioPage)
   end
 
   def teardown

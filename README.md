@@ -127,8 +127,10 @@ recording = root_recording.record(Page) do |page|
 end
 ```
 
-At this point, you can use `root_recording.revise`, `root_recording.trash`, `root_recording.restore`, and
-`root_recording.log_event!` for history-aware workflows.
+At this point, you can use `root_recording.revise` and `root_recording.log_event!` for history-aware workflows.
+Trash is not part of the default recording API. Load the trash addon and opt recordable types into
+`RecordingStudio::Capabilities::Trashable.with` before using `root_recording.trash` or
+`root_recording.restore`.
 
 ## Identity vs State vs History
 
@@ -293,7 +295,22 @@ end
 
 ### Trash
 
-Soft-delete a recording (similar to destroying, but for recordings).
+Trash is an opt-in addon. Load it explicitly before enabling it on recordable types that should support
+soft delete:
+
+```ruby
+require "recording_studio/addons/trashable"
+```
+
+Then enable it on each recordable type that should support soft delete:
+
+```ruby
+class Page < ApplicationRecord
+  include RecordingStudio::Capabilities::Trashable.with
+end
+```
+
+Then soft-delete a recording (similar to destroying, but for recordings).
 
 ```ruby
 root_recording.trash(recording, actor: current_user)
@@ -306,6 +323,8 @@ recording.trash(actor: current_user)
 ```
 
 Trashing appends a terminal `trashed` event and soft-deletes the recording by setting `trashed_at`.
+Calling `trash`, `restore`, or `hard_delete` for a recordable type that has not opted in raises
+`RecordingStudio::CapabilityDisabled`.
 
 To hard delete (writes a `deleted` event), use `hard_delete`:
 

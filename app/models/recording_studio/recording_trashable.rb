@@ -4,7 +4,6 @@ module RecordingStudio
   module RecordingTrashable
     extend ActiveSupport::Concern
 
-    # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/ParameterLists, Metrics/PerceivedComplexity
     def trash(recording = self, actor: nil, impersonator: nil, metadata: {}, include_children: false)
       assert_recording_belongs_to_root!(recording)
 
@@ -28,7 +27,6 @@ module RecordingStudio
       restore_with_cascade(recording, actor: actor, impersonator: impersonator, metadata: metadata,
                                       cascade: include_children, seen: Set.new)
     end
-    # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/ParameterLists, Metrics/PerceivedComplexity
 
     private
 

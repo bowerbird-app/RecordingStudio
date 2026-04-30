@@ -5,10 +5,6 @@ module RecordingStudio
   class Recording < ApplicationRecord
     self.table_name = "recording_studio_recordings"
 
-    include RecordingStudio::RecordingTrashable
-    include RecordingStudio::RecordingTrashableScopes
-    include RecordingStudio::RecordingTrashableCounters
-
     belongs_to :root_recording, class_name: "RecordingStudio::Recording", optional: true
     belongs_to :parent_recording, class_name: "RecordingStudio::Recording", optional: true,
                                   inverse_of: :child_recordings
@@ -22,7 +18,7 @@ module RecordingStudio
     before_create :assign_root_recording_id
     after_create :set_self_root_recording_id, if: -> { parent_recording_id.nil? && root_recording_id.nil? }
 
-    default_scope { where(trashed_at: nil).order(updated_at: :desc) }
+    default_scope { order(updated_at: :desc) }
     scope :recent, -> { order(updated_at: :desc) }
     scope :for_root, ->(root_id) { where(root_recording_id: root_id) }
     scope :of_type, ->(klass) { where(recordable_type: klass.to_s) }
@@ -138,6 +134,7 @@ module RecordingStudio
         end
       end
       scope = enforce_recordings_scope(scope, root_id: root_id, include_children: include_children)
+      scope = apply_recordings_query_extensions(scope) if respond_to?(:apply_recordings_query_extensions, true)
       safe_recording_order = sanitize_order_for_model(order, RecordingStudio::Recording)
       scope = scope.reorder(safe_recording_order) if safe_recording_order.present?
       scope = scope.limit(limit) if limit.present?
@@ -284,7 +281,7 @@ module RecordingStudio
     end
 
     def enforce_recordings_scope(scope, root_id:, include_children:)
-      constrained = scope.where(root_recording_id: root_id, trashed_at: nil)
+      constrained = scope.where(root_recording_id: root_id)
       constrained = constrained.where(parent_recording_id: root_id) unless include_children
       constrained
     end

@@ -19,13 +19,13 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">
           <% if @recording.trashed_at %>
-            <%= render FlatPack::Button::Component.new(
-              text: "Restore",
-              style: :success,
-              url: restore_page_path(@recording),
+            <%= button_to "Restore",
+              restore_page_path(@recording),
               method: :post,
-              data: { turbo_confirm: "Restore this page and its children?" }
-            ) %>
+              data: { turbo_confirm: "Restore this page and its children?" },
+              form: { class: "inline" },
+              class: "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-medium transition-colors duration-[var(--transition-base)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 px-4 py-2 text-sm bg-[var(--color-success)] hover:bg-[var(--color-success-hover)] text-[var(--color-success-text)]"
+            %>
           <% else %>
             <%= render FlatPack::Button::Component.new(
               text: "Edit",

@@ -31,6 +31,18 @@ $LOAD_PATH.unshift File.expand_path("../app/models", __dir__)
 require "minitest/autorun"
 require "rails"
 
+module RecordingStudioTestDataHelpers
+  def reset_recording_studio_tables!(*recordable_classes)
+    RecordingStudio::Event.delete_all
+    RecordingStudio::Recording.unscoped.update_all(parent_recording_id: nil, root_recording_id: nil)
+    RecordingStudio::Recording.unscoped.delete_all
+
+    recordable_classes.compact.uniq.each(&:delete_all)
+    Workspace.delete_all if defined?(Workspace)
+    User.delete_all if defined?(User)
+  end
+end
+
 module FlatPack
   class Engine < ::Rails::Engine; end
 
@@ -264,6 +276,8 @@ require "recording_studio"
 require "devise/test/integration_helpers"
 
 ActiveSupport::TestCase.class_eval do
+  include RecordingStudioTestDataHelpers
+
   def assert_not(value, message = nil)
     assert_equal false, !!value, message
   end

@@ -14,13 +14,7 @@ class CapabilitiesTest < ActiveSupport::TestCase
     RecordingStudio::DelegatedTypeRegistrar.apply!
     RecordingStudio.apply_capabilities!
 
-    RecordingStudio::Event.delete_all
-    RecordingStudio::Recording.delete_all
-    RecordingStudioPage.delete_all
-    RecordingStudioFolder.delete_all
-    RecordingStudioComment.delete_all
-    Workspace.delete_all
-    User.delete_all
+    reset_recording_studio_tables!(RecordingStudioPage, RecordingStudioFolder, RecordingStudioComment)
   end
 
   def teardown
@@ -63,6 +57,26 @@ class CapabilitiesTest < ActiveSupport::TestCase
 
     assert page_recording.respond_to?(:comment!)
     refute page_recording.recordable.respond_to?(:comment!)
+  end
+
+  def test_trashable_is_opt_in_for_target_recording_type
+    _, root = create_workspace_root
+    actor = create_user("trash-capability@example.com")
+    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: root) do |page|
+      page.title = "Trashed"
+    end
+    comment_recording = root.record(RecordingStudioComment, actor: actor, parent_recording: root) do |comment|
+      comment.body = "Not trashable"
+    end
+
+    root.trash(page_recording, impersonator: nil)
+
+    assert page_recording.reload.trashed_at
+
+    error = assert_raises(RecordingStudio::CapabilityDisabled) do
+      root.trash(comment_recording, impersonator: nil)
+    end
+    assert_match(/Capability :trashable is not enabled/, error.message)
   end
 
   private
