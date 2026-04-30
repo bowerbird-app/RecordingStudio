@@ -1,4 +1,4 @@
-name: Pull Request Checks
+name: CI
 
 on:
   pull_request:
@@ -7,10 +7,16 @@ on:
       - synchronize
       - reopened
       - ready_for_review
+  push:
+    branches:
+      - main
 
 concurrency:
   group: pull-request-checks-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+env:
+  BUNDLE_GITHUB__COM: x-access-token:${{ secrets.BOWERBIRD_ORG_CI_TOKEN }}
 
 permissions:
   contents: read
@@ -27,11 +33,29 @@ jobs:
         with:
           ruby-version: "3.3"
           bundler-cache: true
-        env:
-          BUNDLE_GITHUB__COM: x-access-token:${{ secrets.BOWERBIRD_ORG_CI_TOKEN }}
 
       - name: Run RuboCop
         run: bundle exec rubocop
+
+  flatpack-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Ruby 3.3
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Install dummy app dependencies
+        run: bundle install
+        working-directory: test/dummy
+
+      - name: Run FlatPack check
+        run: bundle exec rake flat_pack:verify_install
+        working-directory: test/dummy
 
   test:
     runs-on: ubuntu-latest
@@ -69,14 +93,10 @@ jobs:
         with:
           ruby-version: "3.3"
           bundler-cache: true
-        env:
-          BUNDLE_GITHUB__COM: x-access-token:${{ secrets.BOWERBIRD_ORG_CI_TOKEN }}
 
       - name: Install dummy app dependencies
         run: bundle install
         working-directory: test/dummy
-        env:
-          BUNDLE_GITHUB__COM: x-access-token:${{ secrets.BOWERBIRD_ORG_CI_TOKEN }}
 
       - name: Run database migrations
         run: bundle exec rake db:migrate RAILS_ENV=test
