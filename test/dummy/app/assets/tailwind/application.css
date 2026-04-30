@@ -17,3 +17,42 @@
 
 /* Flatpack theme variables - required for component styling */
 @import "../../../config/flatpack/ui_theme.css";
+
+@theme {
+	--color-fp-primary: oklch(0.52 0.26 250);
+	--color-fp-primary-hover: oklch(0.42 0.24 250);
+	--color-fp-primary-text: oklch(1 0 0);
+	--color-fp-secondary: oklch(0.95 0.01 250);
+	--color-fp-secondary-hover: oklch(0.90 0.02 250);
+	--color-fp-secondary-text: oklch(0.25 0.02 250);
+	--color-fp-ghost: transparent;
+	--color-fp-ghost-hover: oklch(0.96 0.01 250);
+	--color-fp-ghost-text: oklch(0.35 0.02 250);
+	--color-fp-border: oklch(0.89 0.01 250);
+	--shadow-fp-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+
+	--color-primary: var(--color-fp-primary);
+	--color-primary-hover: var(--color-fp-primary-hover);
+	--color-primary-text: var(--color-fp-primary-text);
+	--color-secondary: var(--color-fp-secondary);
+	--color-secondary-hover: var(--color-fp-secondary-hover);
+	--color-secondary-text: var(--color-fp-secondary-text);
+	--color-ghost: var(--color-fp-ghost);
+	--color-ghost-hover: var(--color-fp-ghost-hover);
+	--color-ghost-text: var(--color-fp-ghost-text);
+	--color-border: var(--color-fp-border);
+}
+
+:root {
+	--color-primary: var(--color-fp-primary);
+	--color-primary-hover: var(--color-fp-primary-hover);
+	--color-primary-text: var(--color-fp-primary-text);
+	--color-secondary: var(--color-fp-secondary);
+	--color-secondary-hover: var(--color-fp-secondary-hover);
+	--color-secondary-text: var(--color-fp-secondary-text);
+	--color-ghost: var(--color-fp-ghost);
+	--color-ghost-hover: var(--color-fp-ghost-hover);
+	--color-ghost-text: var(--color-fp-ghost-text);
+	--color-border: var(--color-fp-border);
+	--shadow-sm: var(--shadow-fp-sm);
+}
