@@ -287,11 +287,6 @@ recording = root_recording.revise(recording, actor: current_user) do |page|
 end
 ```
 
-### Trash
-
-Trash behavior now lives in the **RecordingStudio_trashable** addon gem and is no longer part of the core API.
-Install the addon and follow its documentation if your app needs trashing, restoring, or delete-style recording flows.
-
 ### Idempotency Keys (Avoid duplicates)
 
 Use `idempotency_key` to safely retry the *same* request without creating duplicates. Think of it as a dedupe key you

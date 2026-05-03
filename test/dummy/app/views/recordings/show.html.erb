@@ -23,6 +23,11 @@
             style: :secondary,
             url: edit_page_path(@recording)
           ) %>
+          <%= button_to "Delete",
+                        page_path(@recording),
+                        method: :delete,
+                        form: { data: { turbo_confirm: "Delete this page permanently?" } },
+                        class: "inline-flex items-center" %>
         </div>
       </div>
     <% end %>

@@ -6,11 +6,9 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
     @original_dup_strategy = RecordingStudio.configuration.recordable_dup_strategy
-    @original_include_children = RecordingStudio.configuration.include_children
 
     RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioPage]
     RecordingStudio.configuration.recordable_dup_strategy = :dup
-    RecordingStudio.configuration.include_children = false
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     reset_recording_studio_tables!(RecordingStudioPage)
@@ -19,7 +17,6 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
   def teardown
     RecordingStudio.configuration.recordable_types = @original_types
     RecordingStudio.configuration.recordable_dup_strategy = @original_dup_strategy
-    RecordingStudio.configuration.include_children = @original_include_children
   end
 
   def test_record_creates_recording_and_event

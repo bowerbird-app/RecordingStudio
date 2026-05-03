@@ -28,5 +28,4 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to workspaces_path
     assert_equal created_workspace, created_root.recordable
   end
-
 end

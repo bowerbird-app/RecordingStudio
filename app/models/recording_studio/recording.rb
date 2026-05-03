@@ -17,6 +17,9 @@ module RecordingStudio
 
     before_create :assign_root_recording_id
     after_create :set_self_root_recording_id, if: -> { parent_recording_id.nil? && root_recording_id.nil? }
+    after_commit :increment_recordable_recordings_count, on: :create
+    after_commit :decrement_recordable_recordings_count, on: :destroy
+    after_commit :refresh_recordable_recordings_count, on: :update
 
     default_scope { order(updated_at: :desc) }
     scope :recent, -> { order(updated_at: :desc) }
@@ -205,6 +208,33 @@ module RecordingStudio
       duplicated.recordings_count = 0 if duplicated.respond_to?(:recordings_count=)
       duplicated.events_count = 0 if duplicated.respond_to?(:events_count=)
       duplicated
+    end
+
+    def increment_recordable_recordings_count
+      update_recordable_counter(recordable_type, recordable_id, 1)
+    end
+
+    def decrement_recordable_recordings_count
+      update_recordable_counter(recordable_type, recordable_id, -1)
+    end
+
+    def refresh_recordable_recordings_count
+      return unless previous_changes.key?("recordable_type") || previous_changes.key?("recordable_id")
+
+      previous_type = attribute_before_last_save("recordable_type")
+      previous_id = attribute_before_last_save("recordable_id")
+
+      update_recordable_counter(previous_type, previous_id, -1)
+      update_recordable_counter(recordable_type, recordable_id, 1)
+    end
+
+    def update_recordable_counter(recordable_type, recordable_id, delta)
+      return unless recordable_type && recordable_id
+
+      recordable_class = recordable_type.safe_constantize
+      return unless recordable_class&.column_names&.include?("recordings_count")
+
+      recordable_class.update_counters(recordable_id, recordings_count: delta)
     end
 
     def sanitize_order_for_model(order, model_class)

@@ -59,7 +59,6 @@ class CapabilitiesTest < ActiveSupport::TestCase
     refute page_recording.recordable.respond_to?(:comment!)
   end
 
-
   private
 
   def create_workspace_root(name: "Workspace")

@@ -23,7 +23,6 @@ class RecordingsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "Recordables"
   end
 
-
   test "log_event appends a new event" do
     assert_difference("RecordingStudio::Event.count", 1) do
       post log_event_recording_path(@recording), headers: modern_headers
@@ -43,5 +42,22 @@ class RecordingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to recording_path(revised_recording)
     assert_equal previous_recordable.id, revised_recording.reload.recordable_id
+  end
+
+  test "delete removes the page and its snapshots permanently" do
+    current_recordable_id = @recording.recordable_id
+    revised_recording = @root_recording.revise(@recording, actor: @user) do |page|
+      page.title = "Updated Plan"
+    end
+
+    delete_recording_id = revised_recording.id
+
+    delete page_path(revised_recording), headers: modern_headers
+
+    assert_redirected_to pages_path
+    assert_nil RecordingStudio::Recording.find_by(id: delete_recording_id)
+    assert_empty RecordingStudio::Event.where(recording_id: delete_recording_id)
+    assert_nil RecordingStudioPage.find_by(id: current_recordable_id)
+    assert_nil RecordingStudioPage.find_by(id: revised_recording.recordable_id)
   end
 end
