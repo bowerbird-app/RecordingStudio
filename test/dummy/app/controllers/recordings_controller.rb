@@ -3,7 +3,6 @@ class RecordingsController < ApplicationController
 
   def index
     @recordings = RecordingStudio::Recording
-      .including_trashed
       .includes(:recordable, :root_recording, :events)
       .recent
   end
@@ -51,6 +50,6 @@ class RecordingsController < ApplicationController
 
   def load_recording
     recording_id = params[:id] || params[:recording_id]
-    @recording = RecordingStudio::Recording.including_trashed.find(recording_id)
+    @recording = RecordingStudio::Recording.find(recording_id)
   end
 end

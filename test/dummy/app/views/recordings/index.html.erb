@@ -30,15 +30,6 @@
       ) %>
 
       <% table.column(
-        title: "Status",
-        html: ->(recording) {
-          status_text = recording.trashed_at ? "Trashed" : "Active"
-          status_style = recording.trashed_at ? :warning : :success
-          render FlatPack::Badge::Component.new(text: status_text, style: status_style, size: :sm)
-        }
-      ) %>
-
-      <% table.column(
         title: "Last updated by",
         html: ->(recording) {
           last_event = recording.events.recent.first

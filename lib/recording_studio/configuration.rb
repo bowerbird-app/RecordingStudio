@@ -11,8 +11,7 @@ module RecordingStudio
       :impersonator,
       :event_notifications_enabled,
       :idempotency_mode,
-      :recordable_dup_strategy,
-      :include_children
+      :recordable_dup_strategy
     )
     attr_reader :recordable_types, :hooks
 
@@ -25,7 +24,6 @@ module RecordingStudio
       @event_notifications_enabled = true
       @idempotency_mode = :return_existing
       @recordable_dup_strategy = :dup
-      @include_children = false
       @hooks = Hooks.new
     end
 
@@ -67,7 +65,6 @@ module RecordingStudio
         recordable_types: recordable_types,
         event_notifications_enabled: event_notifications_enabled,
         idempotency_mode: idempotency_mode,
-        include_children: include_children,
         recordable_dup_strategy: recordable_dup_strategy,
         hooks_registered: hooks.instance_variable_get(:@registry).transform_values(&:size)
       }

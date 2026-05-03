@@ -4,7 +4,6 @@ class AddIndexesForAccessContainerLookup < ActiveRecord::Migration[7.1]
   ROOT_ACCESS_WHERE = <<~SQL.squish.freeze
     recordable_type = 'RecordingStudio::Access'
     AND parent_recording_id IS NULL
-    AND trashed_at IS NULL
   SQL
 
   def up
@@ -15,8 +14,8 @@ class AddIndexesForAccessContainerLookup < ActiveRecord::Migration[7.1]
               if_not_exists: true
 
     # Speeds filtering on access recordings scoped to container-level grants.
-    add_index :recording_studio_recordings, %i[recordable_type recordable_id parent_recording_id trashed_at],
-              name: "index_recording_studio_recordings_on_recordable_parent_trashed",
+    add_index :recording_studio_recordings, %i[recordable_type recordable_id parent_recording_id],
+              name: "index_recording_studio_recordings_on_recordable_parent",
               if_not_exists: true
 
     # Best-case index for the exact query shape (root + active + access recordable).
@@ -34,7 +33,7 @@ class AddIndexesForAccessContainerLookup < ActiveRecord::Migration[7.1]
                  if_exists: true
 
     remove_index :recording_studio_recordings,
-                 name: "index_recording_studio_recordings_on_recordable_parent_trashed",
+                 name: "index_recording_studio_recordings_on_recordable_parent",
                  if_exists: true
 
     remove_index :recording_studio_accesses,

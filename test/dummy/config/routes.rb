@@ -4,9 +4,7 @@ Rails.application.routes.draw do
   mount FlatPack::Engine => "/flatpack", as: "flatpack"
   mount RecordingStudio::Engine, at: "/recording_studio"
 
-  resources :pages, param: :recording_id do
-    post :restore, on: :member
-  end
+  resources :pages, param: :recording_id
   resources :folders, param: :recording_id, only: [ :index, :show ]
   resources :workspaces, only: [ :index, :show, :new, :create, :destroy ]
   resources :events, only: [ :index ]

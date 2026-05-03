@@ -24,11 +24,11 @@
         html: ->(event) {
           action = event.action.to_s
           style = case action
-                  when "created", "restored"
+                  when "created"
                     :success
                   when "updated"
                     :info
-                  when "deleted", "trashed"
+                  when "deleted"
                     :warning
                   else
                     :default

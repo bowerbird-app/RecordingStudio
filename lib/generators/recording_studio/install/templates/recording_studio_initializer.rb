@@ -13,9 +13,6 @@ RecordingStudio.configure do |config|
   # Idempotency behavior for log_event!
   config.idempotency_mode = :return_existing # or :raise
 
-  # Include child recordings by default when trashing/restoring
-  config.include_children = false
-
   # Recordable duplication strategy for revisions
   config.recordable_dup_strategy = :dup
 end

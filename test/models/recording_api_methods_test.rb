@@ -163,8 +163,6 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
 
     root = root_recording.record(RecordingStudioPage) { |page| page.title = "Root" }
     root_recording.record(RecordingStudioPage, parent_recording: root) { |page| page.title = "Child" }
-    trashed = root_recording.record(RecordingStudioPage) { |page| page.title = "Trashed" }
-    trashed.update!(trashed_at: Time.current)
 
     other_root.record(RecordingStudioPage) { |page| page.title = "Foreign" }
 
@@ -172,7 +170,7 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
       include_children: false,
       type: RecordingStudioPage,
       recordable_scope: lambda do |scope|
-        scope.unscope(where: %i[root_recording_id parent_recording_id trashed_at])
+        scope.unscope(where: %i[root_recording_id parent_recording_id])
       end
     )
 

@@ -14,11 +14,6 @@
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <%= render FlatPack::Button::Component.new(text: "New Page", style: :primary, url: new_page_path) %>
-        <% if params[:trashed].to_s == "true" %>
-          <%= render FlatPack::Button::Component.new(text: "Show active", style: :secondary, url: pages_path) %>
-        <% else %>
-          <%= render FlatPack::Button::Component.new(text: "Show trashed", style: :secondary, url: pages_path(trashed: true)) %>
-        <% end %>
       </div>
     </div>
   <% end %>
@@ -34,22 +29,7 @@
 
       <% table.column(
         title: "Children",
-        html: ->(recording) {
-          if params[:trashed].to_s == "true"
-            recording.child_recordings.including_trashed.count
-          else
-            recording.child_recordings.count
-          end
-        }
-      ) %>
-
-      <% table.column(
-        title: "Status",
-        html: ->(recording) {
-          status_text = recording.trashed_at ? "Trashed" : "Active"
-          status_style = recording.trashed_at ? :warning : :success
-          render FlatPack::Badge::Component.new(text: status_text, style: status_style, size: :sm)
-        }
+        html: ->(recording) { recording.child_recordings.count }
       ) %>
 
       <% table.column(
@@ -64,12 +44,6 @@
 
       <% table.with_action(text: "View", url: ->(recording) { recording_path(recording) }) %>
       <% table.with_action(text: "Edit", url: ->(recording) { edit_page_path(recording) }) %>
-      <% table.with_action(
-        text: "Delete",
-        url: ->(recording) { page_path(recording) },
-        method: :delete,
-        data: { turbo_confirm: "Archive this page?" }
-      ) %>
     <% end %>
   <% else %>
     <div class="px-6 py-10 text-center text-sm text-slate-500">

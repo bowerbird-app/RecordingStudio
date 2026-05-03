@@ -128,9 +128,14 @@ end
 ```
 
 At this point, you can use `root_recording.revise` and `root_recording.log_event!` for history-aware workflows.
-Trash is not part of the default recording API. Load the trash addon and opt recordable types into
-`RecordingStudio::Capabilities::Trashable.with` before using `root_recording.trash` or
-`root_recording.restore`.
+
+### Trash (Soft Delete)
+
+Trash functionality has been extracted to the **RecordingStudio_trashable** addon gem. If you need soft-delete behavior,
+install the addon gem and follow its documentation to enable trashing/restoring recordings.
+
+The core RecordingStudio gem focuses on immutable snapshots, events, and recording hierarchy. Trash is an optional
+extension.
 
 ## Identity vs State vs History
 
@@ -223,8 +228,6 @@ RecordingStudio.configure do |config|
   config.actor = -> { Current.actor }
   config.event_notifications_enabled = true
   config.idempotency_mode = :return_existing # or :raise (avoids duplicates when using idempotency keys; see below)
-  # Include child recordings by default when trashing/restoring
-  config.include_children = true
   config.recordable_dup_strategy = :dup
 end
 ```
@@ -234,7 +237,6 @@ end
 - `idempotency_mode`: Controls how duplicate `idempotency_key` values are handled. `:return_existing` returns the
   original event when the key matches, so retries are safe and do not create duplicates. `:raise` raises an error when
   the key matches, so callers must handle duplicates explicitly.
-- `include_children`: When `true`, `trash` and `restore` will include child recordings by default.
 - `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
 
 ## Root Recording API
@@ -543,7 +545,7 @@ both identities.
 
 | Query | Description |
 | --- | --- |
-| `root_recording.recordings_query` | Direct recordings for a root recording (excludes trashed items, newest first). |
+| `root_recording.recordings_query` | Direct recordings for a root recording (newest first). |
 | `root_recording.recordings_query(type: "Page")` | Recordings filtered by recordable type. |
 | `root_recording.recordings_query(id: page.id)` | Recordings filtered by recordable ID. |
 | `root_recording.recordings_query(parent_id: recording.id)` | Recordings filtered by parent recording. |
@@ -555,12 +557,7 @@ both identities.
 | `root_recording.recordings_query(type: "Page", recordable_scope: ->(scope) { scope.where("topic ILIKE ?", "%Plans%") })` | Recordings filtered by a custom recordable scope. |
 | `root_recording.recordings_query(limit: 50, offset: 100)` | Paginated recordings. |
 | `root_recording.recordings_query(include_children: true)` | Recordings for a root recording (includes nested children). |
-| `root_recording.recordings_query.trashed` | Trashed recordings for a root recording. |
-| `root_recording.recordings_query.include_trashed` | Direct recordings for a root recording including trashed items. |
-| `RecordingStudio::Recording.for_root(root_recording.id).trashed` | Trashed recordings for a root recording (scope-based). |
-| `RecordingStudio::Recording.all` | Latest recordings first; excludes trashed recordings by default. |
-| `RecordingStudio::Recording.including_trashed` | Includes both active and trashed recordings. |
-| `RecordingStudio::Recording.trashed` | Trashed recordings only. |
+| `RecordingStudio::Recording.all` | Latest recordings first. |
 | `RecordingStudio::Recording.for_root(root_recording.id)` | All recordings belonging to a root recording. |
 | `RecordingStudio::Recording.of_type(Page)` | Recordings whose current recordable is a given type. |
 

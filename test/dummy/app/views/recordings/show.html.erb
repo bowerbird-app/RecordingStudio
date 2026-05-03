@@ -54,7 +54,6 @@
       <% if child_recordings.any? %>
         <%= render FlatPack::Table::Component.new(data: child_recordings) do |table| %>
           <% table.column(title: "Recordable", html: ->(child) { link_to(child.name, recording_path(child), class: "hover:underline") }) %>
-          <% table.column(title: "Status", html: ->(child) { child.trashed_at ? "Trashed" : "Active" }) %>
           <% table.column(title: "Recording ID", html: ->(child) { child.id }) %>
           <% table.column(title: "Parent ID", html: ->(child) { child.parent_recording_id }) %>
           <% table.column(title: "Details", html: ->(child) {
@@ -78,8 +77,7 @@
     { label: "Recordable ID", value: @recording.recordable.id },
     { label: "Last updated", value: "#{time_ago_in_words(@recording.updated_at)} ago" },
     { label: "Root Recording ID", value: @recording.root_recording_id },
-    { label: "Root Recordable", value: @recording.root_recording&.name || "—" },
-    { label: "Status", value: @recording.trashed_at ? "Trashed" : "Active" }
+    { label: "Root Recordable", value: @recording.root_recording&.name || "—" }
   ] %>
   <%= render FlatPack::Card::Component.new do |card| %>
     <% card.header do %>
@@ -103,7 +101,7 @@
           Each entry captures what changed for this page at a point in time, including actor and recordable context.
         </p>
         <% current_recordable_id = @recording.recordable.id %>
-        <% current_event_id = @events.find { |entry| entry.recordable&.id == current_recordable_id && !%w[trashed deleted restored].include?(entry.action) }&.id %>
+        <% current_event_id = @events.find { |entry| entry.recordable&.id == current_recordable_id }&.id %>
         <div class="mt-4 space-y-4">
           <% if @events.any? %>
             <% @events.each do |event| %>

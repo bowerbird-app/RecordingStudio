@@ -10,7 +10,7 @@ class AddUniqueActiveAccessBoundaryPerParent < ActiveRecord::Migration[8.1]
               :parent_recording_id,
               unique: true,
               name: INDEX_NAME,
-              where: "recordable_type = 'RecordingStudio::AccessBoundary' AND trashed_at IS NULL",
+              where: "recordable_type = 'RecordingStudio::AccessBoundary'",
               if_not_exists: true
   end
 

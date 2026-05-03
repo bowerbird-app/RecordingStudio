@@ -1,15 +1,10 @@
 class PagesController < ApplicationController
   before_action :load_workspace
   before_action :load_root_recording
-  before_action :load_recording, only: %i[show edit update destroy restore]
+  before_action :load_recording, only: %i[show edit update destroy]
 
   def index
-    scope = @root_recording.recordings_of(RecordingStudioPage)
-    @recordings = if params[:trashed].to_s == "true"
-      scope.including_trashed.trashed.recent
-    else
-      scope.recent
-    end
+    @recordings = @root_recording.recordings_of(RecordingStudioPage).recent
   end
 
   def show
@@ -41,13 +36,8 @@ class PagesController < ApplicationController
   end
 
   def destroy
-    @root_recording.trash(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }, include_children: true)
-    redirect_to pages_path
-  end
-
-  def restore
-    @root_recording.restore(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }, include_children: true)
-    redirect_to recording_path(@recording)
+    # Trash functionality removed - now handled by RecordingStudio_trashable addon
+    redirect_to pages_path, alert: "Delete functionality requires RecordingStudio_trashable addon"
   end
 
   private
@@ -64,7 +54,7 @@ class PagesController < ApplicationController
   end
 
   def load_recording
-    @recording = RecordingStudio::Recording.for_root(@root_recording.id).including_trashed.find(params[:recording_id])
+    @recording = RecordingStudio::Recording.for_root(@root_recording.id).find(params[:recording_id])
   end
 
   def page_params
