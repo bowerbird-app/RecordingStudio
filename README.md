@@ -129,14 +129,6 @@ end
 
 At this point, you can use `root_recording.revise` and `root_recording.log_event!` for history-aware workflows.
 
-### Trash (Soft Delete)
-
-Trash functionality has been extracted to the **RecordingStudio_trashable** addon gem. If you need soft-delete behavior,
-install the addon gem and follow its documentation to enable trashing/restoring recordings.
-
-The core RecordingStudio gem focuses on immutable snapshots, events, and recording hierarchy. Trash is an optional
-extension.
-
 ## Identity vs State vs History
 
 | Layer | Model | Responsibility |
@@ -297,74 +289,8 @@ end
 
 ### Trash
 
-Trash is an opt-in addon. Load it explicitly before enabling it on recordable types that should support
-soft delete:
-
-```ruby
-require "recording_studio/addons/trashable"
-```
-
-Then enable it on each recordable type that should support soft delete:
-
-```ruby
-class Page < ApplicationRecord
-  include RecordingStudio::Capabilities::Trashable.with
-end
-```
-
-Then soft-delete a recording (similar to destroying, but for recordings).
-
-```ruby
-root_recording.trash(recording, actor: current_user)
-```
-
-You can also call `trash` on a recording instance:
-
-```ruby
-recording.trash(actor: current_user)
-```
-
-Trashing appends a terminal `trashed` event and soft-deletes the recording by setting `trashed_at`.
-Calling `trash`, `restore`, or `hard_delete` for a recordable type that has not opted in raises
-`RecordingStudio::CapabilityDisabled`.
-
-To hard delete (writes a `deleted` event), use `hard_delete`:
-
-```ruby
-root_recording.hard_delete(recording, actor: current_user)
-```
-
-To include child recordings, pass `include_children: true` or set `include_children = true`:
-
-```ruby
-RecordingStudio.configure do |config|
-  config.include_children = true
-end
-
-root_recording.trash(recording, actor: current_user)
-```
-
-### Trash & Restore
-
-Trash (soft delete) a recording and its children:
-
-```ruby
-root_recording.trash(recording, actor: current_user, include_children: true)
-```
-
-Or using the recording instance:
-
-```ruby
-recording.trash(actor: current_user, include_children: true)
-```
-
-Restore (un-trash) a recording and its children:
-
-```ruby
-root_recording.restore(recording, actor: current_user, include_children: true)
-```
-
-Trash writes a `trashed` event and sets `trashed_at`. Restore writes a `restored` event and clears `trashed_at`.
+Trash behavior now lives in the **RecordingStudio_trashable** addon gem and is no longer part of the core API.
+Install the addon and follow its documentation if your app needs trashing, restoring, or delete-style recording flows.
 
 ### Idempotency Keys (Avoid duplicates)
 
@@ -614,7 +540,7 @@ end
 The dummy app in `test/dummy` showcases the architecture with `Workspace` root recordings, `Page` recordables, folders,
 comments, and event history. It demonstrates:
 
-- Recording creation, revisions, restore/trash flows, and nested content via the root recording API
+- Recording creation, revisions, and nested content via the root recording API
 - Event timeline with actors, recordables, and metadata
 - Mixin-style event logging with `recording.log_event!`
 - Simple browsing of workspaces, recordings, folders, and page history without built-in access management or workspace switching

@@ -29,11 +29,6 @@ class WorkspacesController < ApplicationController
     end
   end
 
-  def destroy
-    # Trash functionality removed - now handled by RecordingStudio_trashable addon
-    redirect_to workspaces_path, alert: "Delete functionality requires RecordingStudio_trashable addon"
-  end
-
   private
 
   def workspace_params

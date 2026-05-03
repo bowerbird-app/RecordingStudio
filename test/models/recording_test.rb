@@ -85,18 +85,6 @@ class RecordingTest < ActiveSupport::TestCase
     assert_in_delta occurred_at.to_f, logged.occurred_at.to_f, 1
   end
 
-  def test_trash_delegates_to_root
-    _, root = create_workspace_root
-    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
-                                    root_recording: root, parent_recording: root)
-    recording = event.recording
-
-    recording.trash
-
-    assert recording.reload.trashed_at
-  end
-
-
   def test_recordings_count_updates_when_recordable_changes
     _, root = create_workspace_root
     first_recordable = RecordingStudioPage.create!(title: "First")

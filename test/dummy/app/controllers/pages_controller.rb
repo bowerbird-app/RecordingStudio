@@ -1,7 +1,7 @@
 class PagesController < ApplicationController
   before_action :load_workspace
   before_action :load_root_recording
-  before_action :load_recording, only: %i[show edit update destroy]
+  before_action :load_recording, only: %i[show edit update]
 
   def index
     @recordings = @root_recording.recordings_of(RecordingStudioPage).recent
@@ -33,11 +33,6 @@ class PagesController < ApplicationController
     end
 
     redirect_to recording_path(updated_recording)
-  end
-
-  def destroy
-    # Trash functionality removed - now handled by RecordingStudio_trashable addon
-    redirect_to pages_path, alert: "Delete functionality requires RecordingStudio_trashable addon"
   end
 
   private
