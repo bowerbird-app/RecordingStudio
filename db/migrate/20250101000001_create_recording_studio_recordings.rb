@@ -7,7 +7,6 @@ class CreateRecordingStudioRecordings < ActiveRecord::Migration[7.1]
       t.uuid :recordable_id, null: false
       t.string :container_type, null: false
       t.uuid :container_id, null: false
-      t.datetime :trashed_at
 
       t.timestamps
     end

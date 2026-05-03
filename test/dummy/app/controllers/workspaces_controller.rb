@@ -7,7 +7,6 @@ class WorkspacesController < ApplicationController
     @workspace = Workspace.find(params[:id])
     @root_recording = root_recording_for(@workspace)
     @recordings = @root_recording.recordings_query(include_children: true)
-      .including_trashed
       .includes(:recordable)
       .order(created_at: :asc)
 
@@ -28,21 +27,6 @@ class WorkspacesController < ApplicationController
       flash.now[:alert] = @workspace.errors.full_messages.to_sentence
       render :new, status: :unprocessable_entity
     end
-  end
-
-  def destroy
-    workspace = Workspace.find(params[:id])
-    root_recording = root_recording_for(workspace)
-
-    root_recording&.trash(
-      root_recording,
-      actor: current_actor,
-      impersonator: Current.impersonator,
-      metadata: { source: "ui" },
-      include_children: true
-    )
-
-    redirect_to workspaces_path, notice: "Workspace deleted."
   end
 
   private

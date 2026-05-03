@@ -59,26 +59,6 @@ class CapabilitiesTest < ActiveSupport::TestCase
     refute page_recording.recordable.respond_to?(:comment!)
   end
 
-  def test_trashable_is_opt_in_for_target_recording_type
-    _, root = create_workspace_root
-    actor = create_user("trash-capability@example.com")
-    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: root) do |page|
-      page.title = "Trashed"
-    end
-    comment_recording = root.record(RecordingStudioComment, actor: actor, parent_recording: root) do |comment|
-      comment.body = "Not trashable"
-    end
-
-    root.trash(page_recording, impersonator: nil)
-
-    assert page_recording.reload.trashed_at
-
-    error = assert_raises(RecordingStudio::CapabilityDisabled) do
-      root.trash(comment_recording, impersonator: nil)
-    end
-    assert_match(/Capability :trashable is not enabled/, error.message)
-  end
-
   private
 
   def create_workspace_root(name: "Workspace")

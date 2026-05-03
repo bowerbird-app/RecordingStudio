@@ -1,5 +1,3 @@
-require "recording_studio/addons/trashable"
-
 RecordingStudio.configure do |config|
   config.recordable_types = []
   config.actor = -> { Current.actor }

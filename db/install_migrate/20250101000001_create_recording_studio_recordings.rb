@@ -9,7 +9,6 @@ class CreateRecordingStudioRecordings < ActiveRecord::Migration[8.1]
       t.uuid :recordable_id, null: false
       t.uuid :parent_recording_id
       t.uuid :root_recording_id
-      t.datetime :trashed_at
 
       t.timestamps
     end
@@ -17,8 +16,6 @@ class CreateRecordingStudioRecordings < ActiveRecord::Migration[8.1]
     add_index :recording_studio_recordings, :parent_recording_id
     add_index :recording_studio_recordings, %i[recordable_type recordable_id],
               name: "index_recording_studio_recordings_on_recordable"
-    add_index :recording_studio_recordings, %i[recordable_type recordable_id parent_recording_id trashed_at],
-              name: "index_recording_studio_recordings_on_recordable_parent_trashed"
     add_index :recording_studio_recordings, :root_recording_id,
               name: "index_rs_recordings_on_root_recording"
 

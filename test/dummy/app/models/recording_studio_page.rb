@@ -1,7 +1,6 @@
 class RecordingStudioPage < ApplicationRecord
   validates :title, presence: true
 
-  include RecordingStudio::Capabilities::Trashable.with
   include Capabilities::Commentable.with(comment_class: "RecordingStudioComment")
 
   def self.recordable_type_label

@@ -128,9 +128,6 @@ end
 ```
 
 At this point, you can use `root_recording.revise` and `root_recording.log_event!` for history-aware workflows.
-Trash is not part of the default recording API. Load the trash addon and opt recordable types into
-`RecordingStudio::Capabilities::Trashable.with` before using `root_recording.trash` or
-`root_recording.restore`.
 
 ## Identity vs State vs History
 
@@ -223,8 +220,6 @@ RecordingStudio.configure do |config|
   config.actor = -> { Current.actor }
   config.event_notifications_enabled = true
   config.idempotency_mode = :return_existing # or :raise (avoids duplicates when using idempotency keys; see below)
-  # Include child recordings by default when trashing/restoring
-  config.include_children = true
   config.recordable_dup_strategy = :dup
 end
 ```
@@ -234,7 +229,6 @@ end
 - `idempotency_mode`: Controls how duplicate `idempotency_key` values are handled. `:return_existing` returns the
   original event when the key matches, so retries are safe and do not create duplicates. `:raise` raises an error when
   the key matches, so callers must handle duplicates explicitly.
-- `include_children`: When `true`, `trash` and `restore` will include child recordings by default.
 - `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
 
 ## Root Recording API
@@ -292,77 +286,6 @@ recording = root_recording.revise(recording, actor: current_user) do |page|
   page.title = "Updated title"
 end
 ```
-
-### Trash
-
-Trash is an opt-in addon. Load it explicitly before enabling it on recordable types that should support
-soft delete:
-
-```ruby
-require "recording_studio/addons/trashable"
-```
-
-Then enable it on each recordable type that should support soft delete:
-
-```ruby
-class Page < ApplicationRecord
-  include RecordingStudio::Capabilities::Trashable.with
-end
-```
-
-Then soft-delete a recording (similar to destroying, but for recordings).
-
-```ruby
-root_recording.trash(recording, actor: current_user)
-```
-
-You can also call `trash` on a recording instance:
-
-```ruby
-recording.trash(actor: current_user)
-```
-
-Trashing appends a terminal `trashed` event and soft-deletes the recording by setting `trashed_at`.
-Calling `trash`, `restore`, or `hard_delete` for a recordable type that has not opted in raises
-`RecordingStudio::CapabilityDisabled`.
-
-To hard delete (writes a `deleted` event), use `hard_delete`:
-
-```ruby
-root_recording.hard_delete(recording, actor: current_user)
-```
-
-To include child recordings, pass `include_children: true` or set `include_children = true`:
-
-```ruby
-RecordingStudio.configure do |config|
-  config.include_children = true
-end
-
-root_recording.trash(recording, actor: current_user)
-```
-
-### Trash & Restore
-
-Trash (soft delete) a recording and its children:
-
-```ruby
-root_recording.trash(recording, actor: current_user, include_children: true)
-```
-
-Or using the recording instance:
-
-```ruby
-recording.trash(actor: current_user, include_children: true)
-```
-
-Restore (un-trash) a recording and its children:
-
-```ruby
-root_recording.restore(recording, actor: current_user, include_children: true)
-```
-
-Trash writes a `trashed` event and sets `trashed_at`. Restore writes a `restored` event and clears `trashed_at`.
 
 ### Idempotency Keys (Avoid duplicates)
 
@@ -543,7 +466,7 @@ both identities.
 
 | Query | Description |
 | --- | --- |
-| `root_recording.recordings_query` | Direct recordings for a root recording (excludes trashed items, newest first). |
+| `root_recording.recordings_query` | Direct recordings for a root recording (newest first). |
 | `root_recording.recordings_query(type: "Page")` | Recordings filtered by recordable type. |
 | `root_recording.recordings_query(id: page.id)` | Recordings filtered by recordable ID. |
 | `root_recording.recordings_query(parent_id: recording.id)` | Recordings filtered by parent recording. |
@@ -555,12 +478,7 @@ both identities.
 | `root_recording.recordings_query(type: "Page", recordable_scope: ->(scope) { scope.where("topic ILIKE ?", "%Plans%") })` | Recordings filtered by a custom recordable scope. |
 | `root_recording.recordings_query(limit: 50, offset: 100)` | Paginated recordings. |
 | `root_recording.recordings_query(include_children: true)` | Recordings for a root recording (includes nested children). |
-| `root_recording.recordings_query.trashed` | Trashed recordings for a root recording. |
-| `root_recording.recordings_query.include_trashed` | Direct recordings for a root recording including trashed items. |
-| `RecordingStudio::Recording.for_root(root_recording.id).trashed` | Trashed recordings for a root recording (scope-based). |
-| `RecordingStudio::Recording.all` | Latest recordings first; excludes trashed recordings by default. |
-| `RecordingStudio::Recording.including_trashed` | Includes both active and trashed recordings. |
-| `RecordingStudio::Recording.trashed` | Trashed recordings only. |
+| `RecordingStudio::Recording.all` | Latest recordings first. |
 | `RecordingStudio::Recording.for_root(root_recording.id)` | All recordings belonging to a root recording. |
 | `RecordingStudio::Recording.of_type(Page)` | Recordings whose current recordable is a given type. |
 
@@ -617,7 +535,7 @@ end
 The dummy app in `test/dummy` showcases the architecture with `Workspace` root recordings, `Page` recordables, folders,
 comments, and event history. It demonstrates:
 
-- Recording creation, revisions, restore/trash flows, and nested content via the root recording API
+- Recording creation, revisions, and nested content via the root recording API
 - Event timeline with actors, recordables, and metadata
 - Mixin-style event logging with `recording.log_event!`
 - Simple browsing of workspaces, recordings, folders, and page history without built-in access management or workspace switching

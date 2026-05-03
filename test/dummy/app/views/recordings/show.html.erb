@@ -18,34 +18,22 @@
           <% end %>
         </div>
         <div class="flex flex-wrap items-center gap-2">
-          <% if @recording.trashed_at %>
-            <%= button_to "Restore",
-              restore_page_path(@recording),
-              method: :post,
-              data: { turbo_confirm: "Restore this page and its children?" },
-              form: { class: "inline" },
-              class: "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-medium transition-colors duration-[var(--transition-base)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 px-4 py-2 text-sm bg-[var(--color-success)] hover:bg-[var(--color-success-hover)] text-[var(--color-success-text)]"
-            %>
-          <% else %>
-            <%= render FlatPack::Button::Component.new(
-              text: "Edit",
-              style: :secondary,
-              url: edit_page_path(@recording)
-            ) %>
-            <%= button_to "Trash",
-              page_path(@recording),
-              method: :delete,
-              data: { turbo_confirm: "Trash this page and its children?" },
-              form: { class: "inline" },
-              class: "inline-flex items-center justify-center gap-2 rounded-[var(--radius-md)] font-medium transition-colors duration-[var(--transition-base)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] focus-visible:ring-offset-2 px-4 py-2 text-sm bg-[var(--color-warning)] hover:bg-[var(--color-warning-hover)] text-[var(--color-warning-text)]"
-            %>
-          <% end %>
+          <%= render FlatPack::Button::Component.new(
+            text: "Edit",
+            style: :secondary,
+            url: edit_page_path(@recording)
+          ) %>
+          <%= button_to "Delete",
+                        page_path(@recording),
+                        method: :delete,
+                        form: { data: { turbo_confirm: "Delete this page permanently?" } },
+                        class: "inline-flex items-center" %>
         </div>
       </div>
     <% end %>
   <% end %>
 
-  <% child_recordings = @recording.child_recordings.including_trashed.recent %>
+  <% child_recordings = @recording.child_recordings.recent %>
   <%= render FlatPack::Card::Component.new do |card| %>
     <% card.header do %>
       <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Child recordings</h3>
@@ -54,7 +42,6 @@
       <% if child_recordings.any? %>
         <%= render FlatPack::Table::Component.new(data: child_recordings) do |table| %>
           <% table.column(title: "Recordable", html: ->(child) { link_to(child.name, recording_path(child), class: "hover:underline") }) %>
-          <% table.column(title: "Status", html: ->(child) { child.trashed_at ? "Trashed" : "Active" }) %>
           <% table.column(title: "Recording ID", html: ->(child) { child.id }) %>
           <% table.column(title: "Parent ID", html: ->(child) { child.parent_recording_id }) %>
           <% table.column(title: "Details", html: ->(child) {
@@ -78,8 +65,7 @@
     { label: "Recordable ID", value: @recording.recordable.id },
     { label: "Last updated", value: "#{time_ago_in_words(@recording.updated_at)} ago" },
     { label: "Root Recording ID", value: @recording.root_recording_id },
-    { label: "Root Recordable", value: @recording.root_recording&.name || "—" },
-    { label: "Status", value: @recording.trashed_at ? "Trashed" : "Active" }
+    { label: "Root Recordable", value: @recording.root_recording&.name || "—" }
   ] %>
   <%= render FlatPack::Card::Component.new do |card| %>
     <% card.header do %>
@@ -103,7 +89,7 @@
           Each entry captures what changed for this page at a point in time, including actor and recordable context.
         </p>
         <% current_recordable_id = @recording.recordable.id %>
-        <% current_event_id = @events.find { |entry| entry.recordable&.id == current_recordable_id && !%w[trashed deleted restored].include?(entry.action) }&.id %>
+        <% current_event_id = @events.find { |entry| entry.recordable&.id == current_recordable_id }&.id %>
         <div class="mt-4 space-y-4">
           <% if @events.any? %>
             <% @events.each do |event| %>

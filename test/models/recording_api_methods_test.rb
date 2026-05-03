@@ -6,11 +6,9 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
     @original_dup_strategy = RecordingStudio.configuration.recordable_dup_strategy
-    @original_include_children = RecordingStudio.configuration.include_children
 
     RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioPage]
     RecordingStudio.configuration.recordable_dup_strategy = :dup
-    RecordingStudio.configuration.include_children = false
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     reset_recording_studio_tables!(RecordingStudioPage)
@@ -19,7 +17,6 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
   def teardown
     RecordingStudio.configuration.recordable_types = @original_types
     RecordingStudio.configuration.recordable_dup_strategy = @original_dup_strategy
-    RecordingStudio.configuration.include_children = @original_include_children
   end
 
   def test_record_creates_recording_and_event
@@ -163,8 +160,6 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
 
     root = root_recording.record(RecordingStudioPage) { |page| page.title = "Root" }
     root_recording.record(RecordingStudioPage, parent_recording: root) { |page| page.title = "Child" }
-    trashed = root_recording.record(RecordingStudioPage) { |page| page.title = "Trashed" }
-    trashed.update!(trashed_at: Time.current)
 
     other_root.record(RecordingStudioPage) { |page| page.title = "Foreign" }
 
@@ -172,7 +167,7 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
       include_children: false,
       type: RecordingStudioPage,
       recordable_scope: lambda do |scope|
-        scope.unscope(where: %i[root_recording_id parent_recording_id trashed_at])
+        scope.unscope(where: %i[root_recording_id parent_recording_id])
       end
     )
 

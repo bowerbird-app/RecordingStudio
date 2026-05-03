@@ -36,8 +36,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_000000) do
     t.uuid "recordable_id", null: false
     t.string "recordable_type", null: false
     t.uuid "recording_id", null: false
-    t.index ["recording_id", "idempotency_key"], name: "index_recording_studio_events_on_recording_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
-    t.index ["recording_id"], name: "index_recording_studio_events_on_recording_id"
+    t.index [ "recording_id", "idempotency_key" ], name: "index_recording_studio_events_on_recording_and_idempotency_key", unique: true, where: "(idempotency_key IS NOT NULL)"
+    t.index [ "recording_id" ], name: "index_recording_studio_events_on_recording_id"
   end
 
   create_table "recording_studio_folders", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -59,12 +59,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_000000) do
     t.uuid "recordable_id", null: false
     t.string "recordable_type", null: false
     t.uuid "root_recording_id"
-    t.datetime "trashed_at"
     t.datetime "updated_at", null: false
-    t.index ["parent_recording_id"], name: "index_recording_studio_recordings_on_parent_recording_id"
-    t.index ["recordable_type", "recordable_id", "parent_recording_id", "trashed_at"], name: "index_recording_studio_recordings_on_recordable_parent_trashed"
-    t.index ["recordable_type", "recordable_id"], name: "index_recording_studio_recordings_on_recordable"
-    t.index ["root_recording_id"], name: "index_rs_recordings_on_root_recording"
+    t.index [ "parent_recording_id" ], name: "index_recording_studio_recordings_on_parent_recording_id"
+    t.index [ "recordable_type", "recordable_id" ], name: "index_recording_studio_recordings_on_recordable"
+    t.index [ "root_recording_id" ], name: "index_rs_recordings_on_root_recording"
   end
 
   create_table "recording_studio_workspaces", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -88,8 +86,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_04_21_000000) do
     t.datetime "reset_password_sent_at"
     t.string "reset_password_token"
     t.datetime "updated_at", null: false
-    t.index ["email"], name: "index_users_on_email", unique: true
-    t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+    t.index [ "email" ], name: "index_users_on_email", unique: true
+    t.index [ "reset_password_token" ], name: "index_users_on_reset_password_token", unique: true
   end
 
   add_foreign_key "recording_studio_events", "recording_studio_recordings", column: "recording_id"

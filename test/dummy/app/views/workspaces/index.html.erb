@@ -25,12 +25,6 @@
       <% table.column(title: "Name", html: ->(workspace) { link_to(workspace.name, workspace_path(workspace), class: "hover:underline") }) %>
       <% table.column(title: "Created", html: ->(workspace) { "#{time_ago_in_words(workspace.created_at)} ago" }) %>
 
-      <% table.with_action(
-        text: "Delete",
-        url: ->(workspace) { workspace_path(workspace) },
-        method: :delete,
-        data: { turbo_confirm: "Delete this workspace? This will also delete its recordings." }
-      ) %>
     <% end %>
   <% else %>
     <div class="px-6 py-10 text-center text-sm text-slate-500">

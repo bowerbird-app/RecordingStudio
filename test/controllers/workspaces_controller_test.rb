@@ -28,11 +28,4 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to workspaces_path
     assert_equal created_workspace, created_root.recordable
   end
-
-  test "destroy trashes the workspace root recording" do
-    delete workspace_path(@workspace), headers: modern_headers
-
-    assert_redirected_to workspaces_path
-    assert_not_nil @root_recording.reload.trashed_at
-  end
 end

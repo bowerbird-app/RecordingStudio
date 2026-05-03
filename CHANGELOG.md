@@ -8,11 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Removed
+- **BREAKING**: Removed all trash-related functionality from core gem (moved to RecordingStudio_trashable addon).
+  - Removed `RecordingStudio::RecordingTrashable` module and related concerns.
+  - Removed `RecordingStudio::Capabilities::Trashable` capability.
+  - Removed `RecordingStudio::Addons::Trashable` addon loader.
+  - Removed `trashed_at` column from recordings table in fresh migrations.
+  - Removed `include_children` configuration option (now handled by addon).
+  - Removed `trash`, `restore`, and `hard_delete` methods from Recording model.
+  - Removed `trashed`, `including_trashed`, and `include_trashed` scopes from Recording model.
+  - Removed trash-related counter cache adjustments.
+  - Updated dummy app to remove trash functionality references.
 - Removed built-in access-control recordables, access services, device-session persistence, legacy feature flags,
   related dummy app flows, and their documentation from core.
 
 ### Changed
 - Changed `recording_studio:migrations` to install the current core schema by default for fresh apps, with `--full_history` available for older apps that need the historical engine migration chain.
+- Updated documentation to note that trash behavior lives in RecordingStudio_trashable addon gem.
 
 ## [0.2.0] - 2026-04-09
 

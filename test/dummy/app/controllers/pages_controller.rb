@@ -1,15 +1,10 @@
 class PagesController < ApplicationController
   before_action :load_workspace
   before_action :load_root_recording
-  before_action :load_recording, only: %i[show edit update destroy restore]
+  before_action :load_recording, only: %i[show edit update destroy]
 
   def index
-    scope = @root_recording.recordings_of(RecordingStudioPage)
-    @recordings = if params[:trashed].to_s == "true"
-      scope.including_trashed.trashed.recent
-    else
-      scope.recent
-    end
+    @recordings = @root_recording.recordings_of(RecordingStudioPage).recent
   end
 
   def show
@@ -41,19 +36,17 @@ class PagesController < ApplicationController
   end
 
   def destroy
-    @root_recording.trash(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }, include_children: true)
-    redirect_to pages_path
-  end
+    ActiveRecord::Base.transaction do
+      destroy_recording_tree(@recording)
+    end
 
-  def restore
-    @root_recording.restore(@recording, actor: current_actor, impersonator: Current.impersonator, metadata: { source: "ui" }, include_children: true)
-    redirect_to recording_path(@recording)
+    redirect_to pages_path, status: :see_other
   end
 
   private
 
   def load_workspace
-    @workspace = Workspace.order(:created_at).first_or_create!(name: "Studio Workspace")
+    @workspace = workspace_from_recording || Workspace.order(:created_at).first_or_create!(name: "Studio Workspace")
   end
 
   def load_root_recording
@@ -64,7 +57,44 @@ class PagesController < ApplicationController
   end
 
   def load_recording
-    @recording = RecordingStudio::Recording.for_root(@root_recording.id).including_trashed.find(params[:recording_id])
+    @recording = RecordingStudio::Recording.for_root(@root_recording.id).find(params[:recording_id])
+  end
+
+  def workspace_from_recording
+    return if params[:recording_id].blank?
+
+    recording = RecordingStudio::Recording.unscoped.find_by(id: params[:recording_id])
+    workspace = recording&.root_recording&.recordable
+    workspace if workspace.is_a?(Workspace)
+  end
+
+  def destroy_recording_tree(recording)
+    recording.child_recordings.find_each do |child_recording|
+      destroy_recording_tree(child_recording)
+    end
+
+    delete_recordable_snapshots(recording)
+    recording.destroy!
+  end
+
+  def delete_recordable_snapshots(recording)
+    snapshot_ids_by_type = Hash.new { |hash, key| hash[key] = [] }
+
+    collect_recordable_snapshot(snapshot_ids_by_type, recording.recordable_type, recording.recordable_id)
+    recording.events.each do |event|
+      collect_recordable_snapshot(snapshot_ids_by_type, event.recordable_type, event.recordable_id)
+      collect_recordable_snapshot(snapshot_ids_by_type, event.previous_recordable_type, event.previous_recordable_id)
+    end
+
+    snapshot_ids_by_type.each do |recordable_type, ids|
+      recordable_type.constantize.where(id: ids.uniq).delete_all
+    end
+  end
+
+  def collect_recordable_snapshot(snapshot_ids_by_type, recordable_type, recordable_id)
+    return if recordable_type.blank? || recordable_id.blank?
+
+    snapshot_ids_by_type[recordable_type] << recordable_id
   end
 
   def page_params

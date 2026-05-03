@@ -27,14 +27,9 @@ class RecordingTest < ActiveSupport::TestCase
     second = RecordingStudio.record!(action: "created", recordable: RecordingStudioComment.new(body: "Two"),
                                      root_recording: root, parent_recording: root).recording
 
-    second.update!(trashed_at: Time.current)
-
     assert_includes RecordingStudio::Recording.for_root(root.id), first
-    assert_not_includes RecordingStudio::Recording.all, second
-    assert_includes RecordingStudio::Recording.including_trashed, second
-    assert_includes RecordingStudio::Recording.trashed, second
+    assert_includes RecordingStudio::Recording.all, second
     assert_includes RecordingStudio::Recording.of_type(RecordingStudioPage), first
-    assert_includes RecordingStudio::Recording.include_trashed, second
   end
 
   def test_events_filtering
@@ -90,35 +85,6 @@ class RecordingTest < ActiveSupport::TestCase
     assert_in_delta occurred_at.to_f, logged.occurred_at.to_f, 1
   end
 
-  def test_trash_delegates_to_root
-    _, root = create_workspace_root
-    event = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
-                                    root_recording: root, parent_recording: root)
-    recording = event.recording
-
-    recording.trash
-
-    assert recording.reload.trashed_at
-  end
-
-  def test_recordings_count_updates_on_trash_and_restore
-    _, root = create_workspace_root
-    page = RecordingStudioPage.new(title: "Test Page")
-    event = RecordingStudio.record!(action: "created", recordable: page, root_recording: root, parent_recording: root)
-    recording = event.recording
-
-    page.reload
-    assert_equal 1, page.recordings_count
-
-    recording.update!(trashed_at: Time.current)
-    page.reload
-    assert_equal 0, page.recordings_count
-
-    recording.update!(trashed_at: nil)
-    page.reload
-    assert_equal 1, page.recordings_count
-  end
-
   def test_recordings_count_updates_when_recordable_changes
     _, root = create_workspace_root
     first_recordable = RecordingStudioPage.create!(title: "First")
@@ -150,9 +116,6 @@ class RecordingTest < ActiveSupport::TestCase
 
     assert recording.persisted?
     assert_not_includes SystemActor.column_names, "recordings_count"
-
-    recording.update!(trashed_at: Time.current)
-    assert recording.reload.trashed_at
   end
 
   def test_parent_recording_must_belong_to_same_root
