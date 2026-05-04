@@ -50,4 +50,28 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
       get edit_workspace_page_path(@workspace, @other_page_recording), headers: modern_headers
     end
   end
+
+  test "show rejects a page recording from another workspace" do
+    assert_raises(ActiveRecord::RecordNotFound) do
+      get workspace_page_path(@workspace, @other_page_recording), headers: modern_headers
+    end
+  end
+
+  test "update rejects a page recording from another workspace" do
+    assert_no_difference("RecordingStudio::Event.count") do
+      assert_raises(ActiveRecord::RecordNotFound) do
+        patch workspace_page_path(@workspace, @other_page_recording),
+          params: { page: { title: "Cross Workspace Update" } },
+          headers: modern_headers
+      end
+    end
+  end
+
+  test "destroy rejects a page recording from another workspace" do
+    assert_no_difference([ "RecordingStudio::Recording.count", "RecordingStudioPage.count" ]) do
+      assert_raises(ActiveRecord::RecordNotFound) do
+        delete workspace_page_path(@workspace, @other_page_recording), headers: modern_headers
+      end
+    end
+  end
 end

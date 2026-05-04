@@ -17,21 +17,6 @@
             <p class="mt-2 text-sm text-slate-600"><%= summary %></p>
           <% end %>
         </div>
-        <% workspace = workspace_for_recording(@recording) if @recording.recordable_type == "RecordingStudioPage" %>
-        <div class="flex flex-wrap items-center gap-2">
-          <% if workspace %>
-            <%= render FlatPack::Button::Component.new(
-              text: "Edit",
-              style: :secondary,
-              url: edit_workspace_page_path(workspace, @recording)
-            ) %>
-            <%= button_to "Delete",
-                          workspace_page_path(workspace, @recording),
-                          method: :delete,
-                          form: { data: { turbo_confirm: "Delete this page permanently?" } },
-                          class: "inline-flex items-center" %>
-          <% end %>
-        </div>
       </div>
     <% end %>
   <% end %>
