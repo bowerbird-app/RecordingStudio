@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-05-04
+
 ### Removed
 - **BREAKING**: Removed all trash-related functionality from core gem (moved to RecordingStudio_trashable addon).
   - Removed `RecordingStudio::RecordingTrashable` module and related concerns.
@@ -51,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/recording_studio/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/bowerbird-app/recording_studio/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/bowerbird-app/recording_studio/releases/tag/v1.0.1
 [0.2.0]: https://github.com/bowerbird-app/recording_studio/releases/tag/v0.2.0
 [0.1.0]: https://github.com/bowerbird-app/recording_studio/releases/tag/v0.1.0
