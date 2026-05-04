@@ -6,8 +6,8 @@ class RecordingsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user = create_user(name: "User")
     sign_in_as(@user)
-    workspace = Workspace.create!(name: "Workspace")
-    @root_recording = RecordingStudio::Recording.create!(recordable: workspace)
+    @workspace = Workspace.create!(name: "Workspace")
+    @root_recording = RecordingStudio::Recording.create!(recordable: @workspace)
     @recording = @root_recording.record(RecordingStudioPage, actor: @user, parent_recording: @root_recording) do |page|
       page.title = "Plan"
       page.summary = "Initial draft"
@@ -52,9 +52,9 @@ class RecordingsControllerTest < ActionDispatch::IntegrationTest
 
     delete_recording_id = revised_recording.id
 
-    delete page_path(revised_recording), headers: modern_headers
+    delete workspace_page_path(@workspace, revised_recording), headers: modern_headers
 
-    assert_redirected_to pages_path
+    assert_redirected_to workspace_pages_path(@workspace)
     assert_nil RecordingStudio::Recording.find_by(id: delete_recording_id)
     assert_empty RecordingStudio::Event.where(recording_id: delete_recording_id)
     assert_nil RecordingStudioPage.find_by(id: current_recordable_id)

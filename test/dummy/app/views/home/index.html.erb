@@ -2,14 +2,13 @@
   <% card.header(divider: false) do %>
     <div class="space-y-2">
       <h2 class="text-2xl font-semibold">Recording Studio Demo</h2>
-      <p class="text-sm text-slate-500">Track recording creation, revisions, history, folders, comments, and events in a simple workspace demo.</p>
+      <p class="text-sm text-slate-500">Explore explicit workspace-root recordings, revisions, folders, comments, and events in a demo app with no hidden current workspace.</p>
     </div>
   <% end %>
 
   <% card.body do %>
     <div class="flex flex-wrap gap-3">
       <%= render FlatPack::Button::Component.new(text: "Workspaces", style: :secondary, url: workspaces_path) %>
-      <%= render FlatPack::Button::Component.new(text: "Pages", style: :secondary, url: pages_path) %>
       <%= render FlatPack::Button::Component.new(text: "Folders", style: :secondary, url: folders_path) %>
       <%= render FlatPack::Button::Component.new(text: "Events", style: :secondary, url: events_path) %>
       <%= render FlatPack::Button::Component.new(text: "Recordings", style: :secondary, url: recordings_path) %>

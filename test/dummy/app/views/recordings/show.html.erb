@@ -17,18 +17,6 @@
             <p class="mt-2 text-sm text-slate-600"><%= summary %></p>
           <% end %>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <%= render FlatPack::Button::Component.new(
-            text: "Edit",
-            style: :secondary,
-            url: edit_page_path(@recording)
-          ) %>
-          <%= button_to "Delete",
-                        page_path(@recording),
-                        method: :delete,
-                        form: { data: { turbo_confirm: "Delete this page permanently?" } },
-                        class: "inline-flex items-center" %>
-        </div>
       </div>
     <% end %>
   <% end %>
