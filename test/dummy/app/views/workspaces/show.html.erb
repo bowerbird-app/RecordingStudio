@@ -11,10 +11,12 @@
     <div class="space-y-3">
       <div>
         <h2 class="text-2xl font-semibold"><%= @workspace.name %></h2>
-        <p class="text-sm text-slate-500">A workspace root recording with its full recording tree.</p>
+        <p class="text-sm text-slate-500">A workspace root recording with explicit page routes and its full recording tree.</p>
       </div>
       <div class="flex flex-wrap items-center gap-2">
         <%= render FlatPack::Button::Component.new(text: "Back to Workspaces", style: :secondary, url: workspaces_path) %>
+        <%= render FlatPack::Button::Component.new(text: "Browse Pages", style: :secondary, url: workspace_pages_path(@workspace)) %>
+        <%= render FlatPack::Button::Component.new(text: "New Page", style: :primary, url: new_workspace_page_path(@workspace)) %>
         <%= render FlatPack::Button::Component.new(text: "Browse Recordings", style: :secondary, url: recordings_path) %>
       </div>
     </div>

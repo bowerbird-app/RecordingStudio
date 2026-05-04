@@ -538,7 +538,8 @@ comments, and event history. It demonstrates:
 - Recording creation, revisions, and nested content via the root recording API
 - Event timeline with actors, recordables, and metadata
 - Mixin-style event logging with `recording.log_event!`
-- Simple browsing of workspaces, recordings, folders, and page history without built-in access management or workspace switching
+- Explicit workspace-root page routes in the demo app, while RecordingStudio core stays focused on root recording primitives
+- Simple browsing of workspaces, recordings, folders, and page history without built-in access management or hidden workspace switching
 
 Run the sandbox:
 

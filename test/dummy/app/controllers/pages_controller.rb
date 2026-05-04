@@ -4,7 +4,9 @@ class PagesController < ApplicationController
   before_action :load_recording, only: %i[show edit update destroy]
 
   def index
-    @recordings = @root_recording.recordings_of(RecordingStudioPage).recent
+    @recordings = @root_recording.recordings_of(RecordingStudioPage)
+      .includes(:recordable, :events)
+      .recent
   end
 
   def show
@@ -40,32 +42,21 @@ class PagesController < ApplicationController
       destroy_recording_tree(@recording)
     end
 
-    redirect_to pages_path, status: :see_other
+    redirect_to workspace_pages_path(@workspace), status: :see_other
   end
 
   private
 
   def load_workspace
-    @workspace = workspace_from_recording || Workspace.order(:created_at).first_or_create!(name: "Studio Workspace")
+    @workspace = Workspace.find(params[:workspace_id])
   end
 
   def load_root_recording
-    @root_recording = RecordingStudio::Recording.unscoped.find_or_create_by!(
-      recordable: @workspace,
-      parent_recording_id: nil
-    )
+    @root_recording = root_recording_for(@workspace)
   end
 
   def load_recording
     @recording = RecordingStudio::Recording.for_root(@root_recording.id).find(params[:recording_id])
-  end
-
-  def workspace_from_recording
-    return if params[:recording_id].blank?
-
-    recording = RecordingStudio::Recording.unscoped.find_by(id: params[:recording_id])
-    workspace = recording&.root_recording&.recordable
-    workspace if workspace.is_a?(Workspace)
   end
 
   def destroy_recording_tree(recording)

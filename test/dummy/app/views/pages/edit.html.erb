@@ -2,8 +2,10 @@
 
 <%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
   <% breadcrumb.item(text: "Home", href: root_path) %>
-  <% breadcrumb.item(text: "Recordings", href: recordings_path) %>
-  <% breadcrumb.item(text: @recording.name, href: page_path(@recording)) %>
+  <% breadcrumb.item(text: "Workspaces", href: workspaces_path) %>
+  <% breadcrumb.item(text: @workspace.name, href: workspace_path(@workspace)) %>
+  <% breadcrumb.item(text: "Pages", href: workspace_pages_path(@workspace)) %>
+  <% breadcrumb.item(text: @recording.name, href: workspace_page_path(@workspace, @recording)) %>
   <% breadcrumb.item(text: "Edit") %>
 <% end %>
 
@@ -11,11 +13,11 @@
   <%= render FlatPack::Card::Component.new do |card| %>
     <% card.body do %>
       <h2 class="text-2xl font-semibold">Edit Page</h2>
-      <p class="mt-1 text-sm text-slate-500">Create a new snapshot. The current recording will repoint to it.</p>
+      <p class="mt-1 text-sm text-slate-500">Create a new snapshot for a page inside <%= @workspace.name %>.</p>
     <% end %>
   <% end %>
 
   <div class="rounded-lg border border-slate-200 bg-white p-6">
-    <%= render "form", recordable: @recordable, form_url: page_path(@recording), form_method: :patch, submit_label: "Save Revision" %>
+    <%= render "form", recordable: @recordable, form_url: workspace_page_path(@workspace, @recording), form_method: :patch, submit_label: "Save Revision", cancel_url: workspace_page_path(@workspace, @recording) %>
   </div>
 </div>

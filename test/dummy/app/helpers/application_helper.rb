@@ -30,4 +30,19 @@ module ApplicationHelper
   def recordable_summary(recordable)
     RecordingStudio::Labels.summary_for(recordable)
   end
+
+  def workspace_for_recording(recording)
+    workspace = recording.root_recording&.recordable
+    workspace if workspace.is_a?(Workspace)
+  end
+
+  def workspace_page_path_for(recording)
+    workspace_page_path(page_workspace(recording), recording)
+  end
+
+  private
+
+  def page_workspace(recording)
+    workspace_for_recording(recording) || raise(ArgumentError, "recording must belong to a workspace root")
+  end
 end

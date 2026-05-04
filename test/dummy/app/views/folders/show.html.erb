@@ -28,7 +28,7 @@
         when "RecordingStudioFolder"
           link_to(recording.name, folder_path(recording), class: "hover:underline")
         when "RecordingStudioPage"
-          link_to(recording.name, page_path(recording), class: "hover:underline")
+          link_to(recording.name, workspace_page_path_for(recording), class: "hover:underline")
         else
           link_to(recording.name, recording_path(recording), class: "hover:underline")
         end
