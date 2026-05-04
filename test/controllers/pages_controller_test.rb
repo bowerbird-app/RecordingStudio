@@ -32,10 +32,13 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create records a page under the selected workspace root" do
-    assert_difference([ "RecordingStudio::Recording.count", "RecordingStudio::Event.count", "RecordingStudioPage.count" ], 1) do
+    assert_difference(
+      ["RecordingStudio::Recording.count", "RecordingStudio::Event.count", "RecordingStudioPage.count"],
+      1
+    ) do
       post workspace_pages_path(@workspace),
-        params: { page: { title: "New Workspace Page", summary: "Created from nested route" } },
-        headers: modern_headers
+           params: { page: { title: "New Workspace Page", summary: "Created from nested route" } },
+           headers: modern_headers
     end
 
     created_recording = @workspace_root.reload.recordings_of(RecordingStudioPage).recent.first
@@ -46,32 +49,32 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "edit rejects a page recording from another workspace" do
-    assert_raises(ActiveRecord::RecordNotFound) do
-      get edit_workspace_page_path(@workspace, @other_page_recording), headers: modern_headers
-    end
+    get edit_workspace_page_path(@workspace, @other_page_recording), headers: modern_headers
+
+    assert_response :not_found
   end
 
   test "show rejects a page recording from another workspace" do
-    assert_raises(ActiveRecord::RecordNotFound) do
-      get workspace_page_path(@workspace, @other_page_recording), headers: modern_headers
-    end
+    get workspace_page_path(@workspace, @other_page_recording), headers: modern_headers
+
+    assert_response :not_found
   end
 
   test "update rejects a page recording from another workspace" do
     assert_no_difference("RecordingStudio::Event.count") do
-      assert_raises(ActiveRecord::RecordNotFound) do
-        patch workspace_page_path(@workspace, @other_page_recording),
-          params: { page: { title: "Cross Workspace Update" } },
-          headers: modern_headers
-      end
+      patch workspace_page_path(@workspace, @other_page_recording),
+            params: { page: { title: "Cross Workspace Update" } },
+            headers: modern_headers
     end
+
+    assert_response :not_found
   end
 
   test "destroy rejects a page recording from another workspace" do
-    assert_no_difference([ "RecordingStudio::Recording.count", "RecordingStudioPage.count" ]) do
-      assert_raises(ActiveRecord::RecordNotFound) do
-        delete workspace_page_path(@workspace, @other_page_recording), headers: modern_headers
-      end
+    assert_no_difference(["RecordingStudio::Recording.count", "RecordingStudioPage.count"]) do
+      delete workspace_page_path(@workspace, @other_page_recording), headers: modern_headers
     end
+
+    assert_response :not_found
   end
 end
