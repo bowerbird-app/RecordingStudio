@@ -3,10 +3,14 @@
 require "recording_studio/version"
 require "recording_studio/engine"
 require "recording_studio/configuration"
+require "recording_studio/counter_caches"
 require "recording_studio/delegated_type_registrar"
+require "recording_studio/duplication"
 require "recording_studio/errors"
+require "recording_studio/identity"
 require "recording_studio/labels"
 require "recording_studio/recordable"
+require "recording_studio/relationships"
 require "recording_studio/services/base_service"
 require "recording_studio/services/example_service"
 
@@ -45,9 +49,67 @@ module RecordingStudio
     end
 
     def register_recordable_type(name)
-      type_name = name.is_a?(Class) ? name.name : name.to_s
+      type_name = recordable_type_name(name)
+      raise ArgumentError, "recordable type is required" if type_name.blank?
+
       configuration.recordable_types = (configuration.recordable_types + [type_name]).uniq
       RecordingStudio::DelegatedTypeRegistrar.apply!
+    end
+
+    def recordable_type_name(recordable_or_type)
+      RecordingStudio::Identity.type_name_for(recordable_or_type)
+    end
+
+    def resolve_recordable_type(recordable_or_type)
+      RecordingStudio::Identity.resolve_type(recordable_or_type)
+    end
+
+    def recordable_identifier(recordable)
+      RecordingStudio::Identity.identifier_for(recordable)
+    end
+
+    def recordable_global_id(recordable)
+      RecordingStudio::Identity.global_id_for(recordable)
+    end
+
+    def root_recording_or_self(recording)
+      RecordingStudio::Relationships.root_recording_or_self(recording)
+    end
+
+    def root_recording_id_for(recording)
+      RecordingStudio::Relationships.root_recording_id_for(recording)
+    end
+
+    def root_recording?(recording)
+      RecordingStudio::Relationships.root_recording?(recording)
+    end
+
+    def assert_recording_belongs_to_root!(root_recording, recording, **)
+      RecordingStudio::Relationships.assert_recording_belongs_to_root!(root_recording, recording, **)
+    end
+
+    def assert_root_recording!(recording, **)
+      RecordingStudio::Relationships.assert_root_recording!(recording, **)
+    end
+
+    def assert_parent_recording_belongs_to_root!(parent_recording, root_recording, **)
+      RecordingStudio::Relationships.assert_parent_recording_belongs_to_root!(
+        parent_recording,
+        root_recording,
+        **
+      )
+    end
+
+    def update_polymorphic_counter(recordable_or_type, recordable_id, column, delta)
+      RecordingStudio::CounterCaches.change_polymorphic_counter(recordable_or_type, recordable_id, column, delta)
+    end
+
+    def dup_strategy_for(recordable_or_type)
+      configuration.recordable_dup_strategy_for(recordable_or_type)
+    end
+
+    def duplicate_recordable(recordable)
+      RecordingStudio::Duplication.duplicate_recordable(recordable)
     end
 
     def enable_capability(capability, on:)
@@ -65,13 +127,17 @@ module RecordingStudio
     def record!(action:, recordable:, recording: nil, root_recording: nil, actor: nil, impersonator: nil,
                 metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)
       RecordingStudio::DelegatedTypeRegistrar.apply!
-      root_recording ||= recording&.root_recording
+      root_recording ||= root_recording_or_self(recording)
       raise ArgumentError, "root_recording is required" if root_recording.nil?
-      if recording && recording.root_recording_id != root_recording.id
-        raise ArgumentError, "recording must belong to the provided root_recording"
-      end
+      assert_root_recording!(root_recording)
 
-      assert_parent_recording_root!(parent_recording, root_recording)
+      assert_recording_belongs_to_root!(
+        root_recording,
+        recording,
+        message: "recording must belong to the provided root_recording"
+      )
+
+      assert_parent_recording_belongs_to_root!(parent_recording, root_recording)
 
       resolved_actor = actor || configuration.actor&.call
       resolved_impersonator = impersonator || configuration.impersonator&.call
@@ -160,13 +226,6 @@ module RecordingStudio
         impersonator_id: event.impersonator_id,
         occurred_at: event.occurred_at
       )
-    end
-
-    def assert_parent_recording_root!(parent_recording, root_recording)
-      return unless parent_recording
-      return if parent_recording.root_recording_id == root_recording.id
-
-      raise ArgumentError, "parent_recording must belong to the provided root_recording"
     end
   end
 end

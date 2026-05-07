@@ -15,7 +15,13 @@ RecordingStudio.configure do |config|
 
   # Recordable duplication strategy for revisions
   config.recordable_dup_strategy = :dup
+
+  # Optional per-type duplication overrides for trusted addon code
+  # config.register_recordable_dup_strategy("Page") { |recordable| Page.new(title: recordable.title) }
 end
 
 # Example recordable registration
 RecordingStudio.register_recordable_type("Page")
+
+# Optional label/presentation overrides for trusted addon code
+# RecordingStudio::Labels.register_formatter("Page", name: ->(page) { page.title })

@@ -2,6 +2,8 @@
 
 module RecordingStudio
   class Event < ApplicationRecord
+    include RecordingStudio::Concerns::RecordableCounterCaches
+
     self.table_name = "recording_studio_events"
 
     belongs_to :recording, class_name: "RecordingStudio::Recording", inverse_of: :events
@@ -30,15 +32,6 @@ module RecordingStudio
 
     def decrement_recordable_events_count
       update_recordable_counter(recordable_type, recordable_id, :events_count, -1)
-    end
-
-    def update_recordable_counter(recordable_type, recordable_id, column, delta)
-      return unless recordable_type && recordable_id
-
-      recordable_class = recordable_type.safe_constantize
-      return unless recordable_class&.column_names&.include?(column.to_s)
-
-      recordable_class.update_counters(recordable_id, column => delta)
     end
   end
 end

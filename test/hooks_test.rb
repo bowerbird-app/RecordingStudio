@@ -258,6 +258,14 @@ class HooksTest < Minitest::Test
     assert @hooks.registered?(:before_service)
   end
 
+  def test_registered_counts_reports_hook_totals
+    @hooks.after_initialize {}
+    @hooks.after_initialize {}
+    @hooks.before_service {}
+
+    assert_equal({ after_initialize: 2, before_service: 1 }, @hooks.registered_counts)
+  end
+
   # === Class Method Tests ===
 
   def test_class_run_delegates_to_configuration

@@ -18,6 +18,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Data Model](#data-model)
 - [Recording Hierarchy](#recording-hierarchy)
 - [Delegated Type Registration](#delegated-type-registration)
+- [Addon Author API Surface](#addon-author-api-surface)
 - [Configuration](#configuration)
 - [Root Recording API](#root-recording-api)
 - [Access Control and Root Selection](#access-control-and-root-selection)
@@ -212,6 +213,73 @@ Resolution order for `RecordingStudio::Labels.name_for(recordable)` and `recordi
 the model's human name, or a humanized class name.
 Root recordings use the same APIs as any other recording because their names come from the root recordable.
 
+## Addon Author API Surface
+
+RecordingStudio core is now explicitly addon-first. Addons should prefer these public helpers instead of reimplementing
+low-level type, root, duplication, or counter-cache logic.
+
+### Public identity helpers
+
+```ruby
+RecordingStudio.recordable_type_name(recordable_or_type)
+RecordingStudio.resolve_recordable_type(recordable_or_type)
+RecordingStudio.recordable_identifier(recordable)
+RecordingStudio.recordable_global_id(recordable)
+```
+
+`RecordingStudio::Recording` also exposes:
+
+```ruby
+recording.recordable_type_name
+recording.recordable_identifier
+recording.recordable_global_id
+```
+
+### Public root/relationship helpers
+
+```ruby
+RecordingStudio.root_recording_or_self(recording)
+RecordingStudio.root_recording_id_for(recording)
+RecordingStudio.assert_recording_belongs_to_root!(root_recording, recording)
+RecordingStudio.assert_parent_recording_belongs_to_root!(parent_recording, root_recording)
+```
+
+`RecordingStudio::Recording#root_recording_or_self` is the instance-level compatibility helper for addons that
+previously used `root_recording || self`.
+
+### Public duplication/counter helpers
+
+```ruby
+RecordingStudio.duplicate_recordable(recordable)
+RecordingStudio.update_polymorphic_counter("Page", page.id, :recordings_count, 1)
+```
+
+For trusted addon code, prefer explicit registration over monkey-patching:
+
+```ruby
+RecordingStudio.configure do |config|
+  config.register_recordable_dup_strategy("Page") do |recordable|
+    Page.new(title: recordable.title)
+  end
+end
+
+RecordingStudio::Labels.register_formatter(
+  "Page",
+  name: ->(page) { page.title },
+  type_label: ->(_page) { "Page" }
+)
+```
+
+### Public vs internal boundaries
+
+- **Public/stable for addons:** `RecordingStudio` helper methods above, `RecordingStudio::Labels`, and
+  `RecordingStudio::Recording` identity/presentation helpers.
+- **Trusted extension points only:** `config.register_recordable_dup_strategy`, `RecordingStudio::Labels.register_formatter`,
+  `recordable_scope`, and the private `extend_recordings_query` hook. These should only be wired with code-defined
+  callables, never user input.
+- **Internal/private:** delegated type registrar internals, callback ordering, concern module layout, and direct mutation
+  of counter caches outside the helper API.
+
 ## Configuration
 
 ```ruby
@@ -221,6 +289,7 @@ RecordingStudio.configure do |config|
   config.event_notifications_enabled = true
   config.idempotency_mode = :return_existing # or :raise (avoids duplicates when using idempotency keys; see below)
   config.recordable_dup_strategy = :dup
+  config.register_recordable_dup_strategy("Page") { |recordable| Page.new(title: recordable.title) }
 end
 ```
 
@@ -230,6 +299,8 @@ end
   original event when the key matches, so retries are safe and do not create duplicates. `:raise` raises an error when
   the key matches, so callers must handle duplicates explicitly.
 - `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
+- `register_recordable_dup_strategy`: lets trusted addon code override duplication for one recordable type without
+  changing the global fallback.
 
 ## Root Recording API
 
@@ -259,6 +330,9 @@ root_recording.recordings_query(order: "updated_at desc")
 For advanced cases, pass a Relation/Arel node as `recordable_filters`.
 `recordable_scope` should only be used with trusted, code-defined callables (never user-provided),
 since it can inject arbitrary query logic.
+
+If an addon extends `recordings_query`, prefer the private `extend_recordings_query(scope)` hook. The older
+`apply_recordings_query_extensions(scope)` name is still honored as a compatibility fallback.
 
 ### Record
 
@@ -524,7 +598,7 @@ When `event_notifications_enabled` is `true`, the engine emits ActiveSupport not
 Subscribe with:
 
 ```ruby
-ActiveSupport::Notifications.subscribe("recording_studio.record") do |*args|
+ActiveSupport::Notifications.subscribe("recordings.event_created") do |*args|
   event = ActiveSupport::Notifications::Event.new(*args)
   Rails.logger.info("RecordingStudio: #{event.payload.inspect}")
 end

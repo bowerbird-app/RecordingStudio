@@ -4,13 +4,33 @@ module RecordingStudio
   module Labels
     EMPTY_LABEL = "—"
     COMMENT_TYPE_NAMES = %w[RecordingStudioComment RecordingStudio::Comment].freeze
+    FORMATTER_TYPES = %i[name type_label title summary].freeze
+
+    @formatters = FORMATTER_TYPES.index_with { {} }
 
     module_function
+
+    def register_formatter(type, name: nil, type_label: nil, title: nil, summary: nil)
+      type_name = RecordingStudio::Identity.type_name_for(type)
+      raise ArgumentError, "recordable type is required" if type_name.blank?
+
+      { name: name, type_label: type_label, title: title, summary: summary }.each do |kind, formatter|
+        next if formatter.nil?
+        raise ArgumentError, "#{kind} formatter must respond to call" unless formatter.respond_to?(:call)
+
+        formatters.fetch(kind)[type_name] = formatter
+      end
+    end
+
+    def formatters
+      @formatters
+    end
 
     def name_for(recordable)
       return EMPTY_LABEL unless recordable
 
-      explicit_name_for(recordable) ||
+      formatter_value(:name, recordable) ||
+        explicit_name_for(recordable) ||
         heuristic_name_for(recordable) ||
         explicit_type_label_for(recordable.class)
     end
@@ -25,7 +45,8 @@ module RecordingStudio
 
       klass = type_name.safe_constantize
 
-      explicit_type_label_for(klass) ||
+      formatter_value(:type_label, recordable_or_type) ||
+        explicit_type_label_for(klass) ||
         model_type_label_for(klass, type_name) ||
         fallback_type_label_for(type_name)
     end
@@ -33,7 +54,8 @@ module RecordingStudio
     def title_for(recordable)
       return EMPTY_LABEL unless recordable
 
-      squished_value(recordable, :title) ||
+      formatter_value(:title, recordable) ||
+        squished_value(recordable, :title) ||
         squished_value(recordable, :name) ||
         name_for(recordable)
     end
@@ -41,7 +63,8 @@ module RecordingStudio
     def summary_for(recordable)
       return if recordable.nil?
 
-      squished_value(recordable, :summary) ||
+      formatter_value(:summary, recordable) ||
+        squished_value(recordable, :summary) ||
         squished_value(recordable, :body)&.truncate(160)
     end
 
@@ -108,16 +131,20 @@ module RecordingStudio
     private_class_method :fallback_type_label_for
 
     def type_name_for(recordable_or_type)
-      case recordable_or_type
-      when String
-        recordable_or_type
-      when Class
-        recordable_or_type.name
-      else
-        recordable_or_type.class.name
-      end
+      RecordingStudio::Identity.type_name_for(recordable_or_type)
     end
     private_class_method :type_name_for
+
+    def formatter_value(kind, recordable_or_type)
+      type_name = type_name_for(recordable_or_type)
+      return if type_name.blank?
+
+      formatter = formatters.fetch(kind).fetch(type_name, nil)
+      return unless formatter
+
+      normalize_label(formatter.call(recordable_or_type))
+    end
+    private_class_method :formatter_value
 
     def squished_value(recordable, method_name)
       return unless recordable.respond_to?(method_name)

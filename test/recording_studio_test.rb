@@ -39,4 +39,12 @@ class RecordingStudioTest < Minitest::Test
   def test_configuration_to_h_excludes_removed_feature_flags
     refute_includes RecordingStudio.configuration.to_h.keys, :features
   end
+
+  def test_configuration_to_h_reports_registered_hook_counts
+    RecordingStudio.configuration.hooks.after_initialize {}
+
+    assert_equal 1, RecordingStudio.configuration.to_h.fetch(:hooks_registered).fetch(:after_initialize)
+  ensure
+    RecordingStudio.configuration.hooks.clear!
+  end
 end

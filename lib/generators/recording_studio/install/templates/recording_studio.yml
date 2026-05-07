@@ -4,9 +4,13 @@ development:
   instrumentation_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
+  # Per-type duplication overrides belong in the Ruby initializer:
+  # config.register_recordable_dup_strategy("Page") { |recordable| ... }
 
 production:
   recordable_types: []
   instrumentation_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
+  # Per-type duplication overrides belong in the Ruby initializer:
+  # config.register_recordable_dup_strategy("Page") { |recordable| ... }
