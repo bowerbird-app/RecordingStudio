@@ -6,20 +6,15 @@
   <% breadcrumb.item(text: @recording.name) %>
 <% end %>
 
+<% summary = @recording.summary %>
+
 <div class="space-y-6">
-  <%= render FlatPack::Card::Component.new do |card| %>
-    <% card.header(divider: false) do %>
-      <div class="space-y-3">
-        <div>
-          <h1 class="text-2xl font-semibold"><%= @recording.title %></h1>
-          <% summary = @recording.summary %>
-          <% if summary.present? %>
-            <p class="mt-2 text-sm text-slate-600"><%= summary %></p>
-          <% end %>
-        </div>
-      </div>
-    <% end %>
-  <% end %>
+  <%= render FlatPack::PageHeader::Component.new(
+    title: @recording.title,
+    subtitle: summary.presence,
+    class: "mb-0",
+    title_tag: :h1
+  ) %>
 
   <% child_recordings = @recording.child_recordings.recent %>
   <%= render FlatPack::Card::Component.new do |card| %>

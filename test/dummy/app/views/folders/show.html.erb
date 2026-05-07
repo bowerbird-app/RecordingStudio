@@ -6,23 +6,20 @@
   <% breadcrumb.item(text: @recording.title) %>
 <% end %>
 
-<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
-  <% card.header(divider: false) do %>
-    <div class="space-y-3">
-      <div>
-        <h2 class="text-2xl font-semibold"><%= @recording.title %></h2>
-        <p class="text-sm text-slate-500">Folder recording details and children.</p>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <%= render FlatPack::Button::Component.new(text: "Back to Folders", style: :secondary, url: folders_path) %>
-      </div>
-    </div>
-  <% end %>
+<%= render FlatPack::PageHeader::Component.new(
+  title: @recording.title,
+  subtitle: "Folder recording details and children.",
+  class: "mb-6"
+) do %>
+  <div class="flex flex-wrap items-center gap-2">
+    <%= render FlatPack::Button::Component.new(text: "Back to Folders", style: :secondary, url: folders_path) %>
+  </div>
 <% end %>
 
-<div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
-  <% if @children.any? %>
-    <%= render FlatPack::Table::Component.new(data: @children) do |table| %>
+<%= render FlatPack::Card::Component.new(class: "mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white") do |card| %>
+  <% card.body do %>
+    <% if @children.any? %>
+      <%= render FlatPack::Table::Component.new(data: @children) do |table| %>
       <% table.column(title: "Recordable", html: ->(recording) {
         case recording.recordable_type
         when "RecordingStudioFolder"
@@ -33,9 +30,10 @@
           link_to(recording.name, recording_path(recording), class: "hover:underline")
         end
       }) %>
-      <% table.column(title: "Type", html: ->(recording) { recording.type_label }) %>
+        <% table.column(title: "Type", html: ->(recording) { recording.type_label }) %>
+      <% end %>
+    <% else %>
+      <div class="px-6 py-10 text-center text-sm text-slate-500">No child recordings.</div>
     <% end %>
-  <% else %>
-    <div class="px-6 py-10 text-center text-sm text-slate-500">No child recordings.</div>
   <% end %>
-</div>
+<% end %>

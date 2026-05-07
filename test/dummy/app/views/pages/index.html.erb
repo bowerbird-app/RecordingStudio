@@ -7,24 +7,21 @@
   <% breadcrumb.item(text: "Pages") %>
 <% end %>
 
-<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
-  <% card.header(divider: false) do %>
-    <div class="space-y-3">
-      <div>
-        <h2 class="text-2xl font-semibold"><%= @workspace.name %> Pages</h2>
-        <p class="text-sm text-slate-500">Workspace-rooted page recordings for this demo workspace.</p>
-      </div>
-      <div class="flex flex-wrap items-center gap-2">
-        <%= render FlatPack::Button::Component.new(text: "Back to Workspace", style: :secondary, url: workspace_path(@workspace)) %>
-        <%= render FlatPack::Button::Component.new(text: "New Page", style: :primary, url: new_workspace_page_path(@workspace)) %>
-      </div>
-    </div>
-  <% end %>
+<%= render FlatPack::PageHeader::Component.new(
+  title: "#{@workspace.name} Pages",
+  subtitle: "Workspace-rooted page recordings for this demo workspace.",
+  class: "mb-6"
+) do %>
+  <div class="flex flex-wrap items-center gap-2">
+    <%= render FlatPack::Button::Component.new(text: "Back to Workspace", style: :secondary, url: workspace_path(@workspace)) %>
+    <%= render FlatPack::Button::Component.new(text: "New Page", style: :primary, url: new_workspace_page_path(@workspace)) %>
+  </div>
 <% end %>
 
-<div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
-  <% if @recordings.any? %>
-    <%= render FlatPack::Table::Component.new(data: @recordings) do |table| %>
+<%= render FlatPack::Card::Component.new(class: "mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white") do |card| %>
+  <% card.body do %>
+    <% if @recordings.any? %>
+      <%= render FlatPack::Table::Component.new(data: @recordings) do |table| %>
       <% table.column(
         title: "Title",
         html: ->(recording) { link_to(recording.recordable.title, recording_path(recording), class: "hover:underline") }
@@ -45,12 +42,13 @@
 
       <% table.column(title: "Updated", html: ->(recording) { "#{time_ago_in_words(recording.updated_at)} ago" }) %>
 
-      <% table.with_action(text: "View", url: ->(recording) { recording_path(recording) }) %>
-      <% table.with_action(text: "Edit", url: ->(recording) { edit_workspace_page_path(@workspace, recording) }) %>
+        <% table.with_action(text: "View", url: ->(recording) { recording_path(recording) }) %>
+        <% table.with_action(text: "Edit", url: ->(recording) { edit_workspace_page_path(@workspace, recording) }) %>
+      <% end %>
+    <% else %>
+      <div class="px-6 py-10 text-center text-sm text-slate-500">
+        No pages yet. Create one to see recordings in action.
+      </div>
     <% end %>
-  <% else %>
-    <div class="px-6 py-10 text-center text-sm text-slate-500">
-      No pages yet. Create one to see recordings in action.
-    </div>
   <% end %>
-</div>
+<% end %>

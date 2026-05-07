@@ -5,20 +5,16 @@
   <% breadcrumb.item(text: "Events") %>
 <% end %>
 
-<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
-  <% card.header(divider: false) do %>
-    <div class="space-y-2">
-      <div>
-        <h2 class="text-2xl font-semibold text-slate-900">Events</h2>
-        <p class="text-sm text-slate-500">Recent changes across recordings and recordables.</p>
-      </div>
-    </div>
-  <% end %>
-<% end %>
+<%= render FlatPack::PageHeader::Component.new(
+  title: "Events",
+  subtitle: "Recent changes across recordings and recordables.",
+  class: "mb-6"
+) %>
 
-<div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
-  <% if @events.any? %>
-    <%= render FlatPack::Table::Component.new(data: @events) do |table| %>
+<%= render FlatPack::Card::Component.new(class: "mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white") do |card| %>
+  <% card.body do %>
+    <% if @events.any? %>
+      <%= render FlatPack::Table::Component.new(data: @events) do |table| %>
       <% table.column(
         title: "Action",
         html: ->(event) {
@@ -68,14 +64,15 @@
           end
         }
       ) %>
-      <% table.column(
-        title: "Event ID",
-        html: ->(event) { event.id }
-      ) %>
+        <% table.column(
+          title: "Event ID",
+          html: ->(event) { event.id }
+        ) %>
+      <% end %>
+    <% else %>
+      <div class="px-6 py-10 text-center text-sm text-slate-500">
+        No events yet.
+      </div>
     <% end %>
-  <% else %>
-    <div class="px-6 py-10 text-center text-sm text-slate-500">
-      No events yet.
-    </div>
   <% end %>
-</div>
+<% end %>

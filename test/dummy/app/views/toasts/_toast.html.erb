@@ -48,6 +48,6 @@
         </dl>
       <% end %>
     </div>
-    <button type="button" class="text-slate-400 hover:text-slate-600" data-action="toast#dismiss">✕</button>
+    <%= render FlatPack::Button::Component.new(text: "✕", type: "button", class: "text-slate-400 hover:text-slate-600", data: { action: "toast#dismiss" }, aria_label: "Dismiss notification") %>
   </div>
 </div>

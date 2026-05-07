@@ -37,7 +37,7 @@
             ) %>
           <% end %>
 
-          <%= f.submit "Log in", class: "inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500" %>
+          <%= render FlatPack::Button::Component.new(text: "Log in", type: "submit", class: "rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500") %>
         </div>
       <% end %>
     <% end %>

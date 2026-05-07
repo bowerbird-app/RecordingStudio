@@ -1,4 +1,4 @@
-<%= form_with model: workspace, class: "space-y-6" do |form| %>
+<%= form_with model: workspace, class: "space-y-6" do |_form| %>
   <%= render FlatPack::TextInput::Component.new(
     name: "workspace[name]",
     label: "Name",
@@ -6,7 +6,7 @@
   ) %>
 
   <div class="flex items-center gap-3">
-    <%= form.submit "Create Workspace", class: "rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white" %>
-    <%= link_to "Cancel", workspaces_path, class: "text-sm font-medium text-slate-500" %>
+    <%= render FlatPack::Button::Component.new(text: "Create Workspace", type: "submit", class: "rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white") %>
+    <%= render FlatPack::Button::Component.new(text: "Cancel", url: workspaces_path, class: "text-sm font-medium text-slate-500") %>
   </div>
 <% end %>

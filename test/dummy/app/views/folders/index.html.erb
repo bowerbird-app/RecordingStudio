@@ -5,25 +5,24 @@
   <% breadcrumb.item(text: "Folders") %>
 <% end %>
 
-<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
-  <% card.header(divider: false) do %>
-    <div>
-      <h2 class="text-2xl font-semibold">Folders</h2>
-      <p class="text-sm text-slate-500">Folder recordings in the workspace tree.</p>
-    </div>
-  <% end %>
-<% end %>
+<%= render FlatPack::PageHeader::Component.new(
+  title: "Folders",
+  subtitle: "Folder recordings in the workspace tree.",
+  class: "mb-6"
+) %>
 
-<div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
-  <% if @folders.any? %>
-    <%= render FlatPack::Table::Component.new(data: @folders) do |table| %>
+<%= render FlatPack::Card::Component.new(class: "mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white") do |card| %>
+  <% card.body do %>
+    <% if @folders.any? %>
+      <%= render FlatPack::Table::Component.new(data: @folders) do |table| %>
       <% table.column(title: "Name", html: ->(recording) { link_to(recording.name, folder_path(recording), class: "hover:underline") }) %>
       <% table.column(title: "Parent", html: ->(recording) { recording.parent_recording&.name || "—" }) %>
       <% table.column(title: "Root", html: ->(recording) { recording.root_recording&.name || "—" }) %>
+      <% end %>
+    <% else %>
+      <div class="px-6 py-10 text-center text-sm text-slate-500">
+        No folders found.
+      </div>
     <% end %>
-  <% else %>
-    <div class="px-6 py-10 text-center text-sm text-slate-500">
-      No folders found.
-    </div>
   <% end %>
-</div>
+<% end %>

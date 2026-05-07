@@ -5,18 +5,16 @@
   <% breadcrumb.item(text: "Recordings") %>
 <% end %>
 
-<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
-  <% card.header(divider: false) do %>
-    <div>
-      <h2 class="text-2xl font-semibold">Recordings</h2>
-      <p class="text-sm text-slate-500">A complete history of activity across your workspace.</p>
-    </div>
-  <% end %>
-<% end %>
+<%= render FlatPack::PageHeader::Component.new(
+  title: "Recordings",
+  subtitle: "A complete history of activity across your workspace.",
+  class: "mb-6"
+) %>
 
-<div class="mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white">
-  <% if @recordings.any? %>
-    <%= render FlatPack::Table::Component.new(data: @recordings) do |table| %>
+<%= render FlatPack::Card::Component.new(class: "mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white") do |card| %>
+  <% card.body do %>
+    <% if @recordings.any? %>
+      <%= render FlatPack::Table::Component.new(data: @recordings) do |table| %>
       <% table.column(
         title: "Recordable",
         html: ->(recording) { link_to(recording.name, recording_path(recording), class: "hover:underline") }
@@ -37,13 +35,14 @@
         }
       ) %>
 
-      <% table.column(title: "Updated", html: ->(recording) { "#{time_ago_in_words(recording.updated_at)} ago" }) %>
+        <% table.column(title: "Updated", html: ->(recording) { "#{time_ago_in_words(recording.updated_at)} ago" }) %>
 
-      <% table.with_action(text: "View", url: ->(recording) { recording_path(recording) }) %>
+        <% table.with_action(text: "View", url: ->(recording) { recording_path(recording) }) %>
+      <% end %>
+    <% else %>
+      <div class="px-6 py-10 text-center text-sm text-slate-500">
+        No recordings yet.
+      </div>
     <% end %>
-  <% else %>
-    <div class="px-6 py-10 text-center text-sm text-slate-500">
-      No recordings yet.
-    </div>
   <% end %>
-</div>
+<% end %>
