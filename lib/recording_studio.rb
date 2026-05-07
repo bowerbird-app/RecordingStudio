@@ -129,6 +129,7 @@ module RecordingStudio
       RecordingStudio::DelegatedTypeRegistrar.apply!
       root_recording ||= root_recording_or_self(recording)
       raise ArgumentError, "root_recording is required" if root_recording.nil?
+
       assert_root_recording!(root_recording)
 
       assert_recording_belongs_to_root!(
