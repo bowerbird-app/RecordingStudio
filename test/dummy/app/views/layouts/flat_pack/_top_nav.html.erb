@@ -1,0 +1,30 @@
+<%= render FlatPack::TopNav::Component.new do |nav| %>
+  <% nav.left do %>
+    <%= render FlatPack::Button::Component.new(
+      icon: "menu",
+      icon_only: true,
+      style: :ghost,
+      size: :md,
+      aria: { label: "Toggle sidebar" },
+      data: {
+        "flat-pack--sidebar-layout-target": "mobileToggle",
+        action: "click->flat-pack--sidebar-layout#toggleMobile"
+      },
+      class: "md:hidden"
+    ) %>
+
+    <span class="text-sm font-medium text-(--surface-muted-content-color)">RecordingStudio</span>
+  <% end %>
+
+  <% nav.right do %>
+    <div class="ml-auto flex items-center gap-2">
+      <% if current_actor %>
+        <%= render FlatPack::Chip::Component.new(text: current_actor.name, style: :info, size: :sm) do |chip| %>
+          <% chip.leading do %>
+            <%= render FlatPack::Avatar::Component.new(name: current_actor.name, size: :xs, show_tooltip: false) %>
+          <% end %>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

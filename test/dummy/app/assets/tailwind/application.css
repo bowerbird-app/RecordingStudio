@@ -1,4 +1,8 @@
 @import "tailwindcss";
+@import "../../../../../../usr/local/bundle/ruby/3.3.0/bundler/gems/flatpack-241db041f43d/app/assets/stylesheets/flat_pack/variables.css";
+
+/* Tailwind CSS - Scan FlatPack components for classes */
+@source "../../../../../../usr/local/bundle/ruby/3.3.0/bundler/gems/flatpack-241db041f43d/app/components";
 
 /* Include RecordingStudio engine views for Tailwind CSS */
 @source "../../vendor/bundle/**/recording_studio/app/views/**/*.erb";
@@ -8,12 +12,3 @@
 
 /* Include the engine's views in the Tailwind build */
 @source "../../../../../app/views/**/*.erb";
-
-/* Flatpack gem views - auto-added by generator */
-@source "/usr/local/bundle/ruby/3.3.0/bundler/gems/flatpack-*/app/views/**/*.erb";
-
-/* Flatpack components (Ruby + templates) */
-@source "/usr/local/bundle/ruby/3.3.0/bundler/gems/flatpack-*/app/components/**/*.{rb,erb,haml,html,slim}";
-
-/* Flatpack theme variables - required for component styling */
-@import "../../../config/flatpack/ui_theme.css";

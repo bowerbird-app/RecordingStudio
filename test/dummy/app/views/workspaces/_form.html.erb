@@ -5,8 +5,8 @@
     value: workspace.name
   ) %>
 
-  <div class="flex items-center gap-3">
-    <%= render FlatPack::Button::Component.new(text: "Create Workspace", type: "submit", class: "rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white") %>
-    <%= render FlatPack::Button::Component.new(text: "Cancel", url: workspaces_path, class: "text-sm font-medium text-slate-500") %>
-  </div>
+  <%= render FlatPack::Grid::Component.new(cols: 2, gap: :md, align: :center) do %>
+    <%= render FlatPack::Button::Component.new(text: "Create Workspace", type: "submit", style: :primary) %>
+    <%= render FlatPack::Button::Component.new(text: "Cancel", url: workspaces_path, style: :ghost) %>
+  <% end %>
 <% end %>

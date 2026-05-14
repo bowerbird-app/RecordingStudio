@@ -1,23 +1,33 @@
 module WorkspacesHelper
   def recordings_hierarchy_list(recordings_by_parent, parent_id: nil)
-    children = recordings_by_parent[parent_id] || []
+    children = Array(recordings_by_parent[parent_id])
     return "".html_safe if children.empty?
 
-    content_tag :ul, class: "list-disc pl-6 space-y-1" do
-      safe_join(
-        children.map do |recording|
-          content_tag :li do
-            link = link_to(
-              recordable_name(recording.recordable),
-              recording_path(recording),
-              class: "hover:underline"
-            )
+    render FlatPack::Tree::Component.new(compact: true, class: "w-full") do |tree|
+      recordings_hierarchy_nodes(tree, recordings_by_parent, parent_id: parent_id)
+    end
+  end
 
-            nested = recordings_hierarchy_list(recordings_by_parent, parent_id: recording.id)
-            safe_join([ link, nested ])
-          end
+  private
+
+  def recordings_hierarchy_nodes(tree, recordings_by_parent, parent_id:)
+    Array(recordings_by_parent[parent_id]).each do |recording|
+      children = Array(recordings_by_parent[recording.id])
+      options = {
+        label: recordable_name(recording.recordable),
+        href: recording_path(recording),
+        expanded: children.any?,
+        active: current_page?(recording_path(recording)),
+        meta: recordable_type_label(recording.recordable)
+      }
+
+      if children.any?
+        tree.node(**options) do |branch|
+          recordings_hierarchy_nodes(branch, recordings_by_parent, parent_id: recording.id)
         end
-      )
+      else
+        tree.node(**options)
+      end
     end
   end
 end

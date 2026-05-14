@@ -1,0 +1,25 @@
+<%= render FlatPack::Sidebar::Component.new do |sidebar| %>
+  <% sidebar.header do %>
+    <%= render FlatPack::Sidebar::Header::Component.new(
+      brand_abbr: "RS",
+      title: "RecordingStudio"
+    ) %>
+  <% end %>
+
+  <% sidebar.items do %>
+    <%= render FlatPack::Sidebar::Item::Component.new(label: "Home", href: root_path, icon: "home", active: current_page?(root_path)) %>
+    <%= render FlatPack::Sidebar::Item::Component.new(label: "Events", href: events_path, icon: "calendar", active: current_page?(events_path)) %>
+    <%= render FlatPack::Sidebar::Item::Component.new(label: "Recordings", href: recordings_path, icon: "list-bullet", active: current_page?(recordings_path)) %>
+    <%= render FlatPack::Sidebar::Item::Component.new(label: "Workspaces & Pages", href: workspaces_path, icon: "folder", active: current_page?(workspaces_path)) %>
+    <%= render FlatPack::Sidebar::Item::Component.new(label: "Folders", href: folders_path, icon: "folder", active: current_page?(folders_path)) %>
+    <%= render FlatPack::Sidebar::Item::Component.new(label: "Tree", href: tree_path, icon: "folder", active: current_page?(tree_path)) %>
+    <%= render FlatPack::Sidebar::Item::Component.new(label: "Config", href: recording_studio_config_path, icon: "document", active: current_page?(recording_studio_config_path)) %>
+    <%= render FlatPack::Sidebar::Item::Component.new(label: "Methods", href: methods_path, icon: "document", active: current_page?(methods_path)) %>
+  <% end %>
+
+  <% sidebar.footer do %>
+    <%= render FlatPack::Sidebar::Footer::Component.new do %>
+      <%= render FlatPack::Button::Component.new(url: destroy_user_session_path, method: :delete, style: :ghost, text: "Log out", icon: "logout") %>
+    <% end %>
+  <% end %>
+<% end %>

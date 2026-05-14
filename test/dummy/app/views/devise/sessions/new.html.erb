@@ -1,13 +1,22 @@
-<div class="mx-auto w-full max-w-md px-4 py-12">
-  <%= render FlatPack::Card::Component.new(style: :elevated) do |card| %>
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg, class: "mx-auto w-full max-w-md px-4 py-12") do %>
+  <%= render FlatPack::Card::Component.new(style: :elevated, padding: :none) do |card| %>
     <% card.header do %>
-      <h1 class="text-xl font-semibold text-slate-900">Log in</h1>
+      <%= render FlatPack::SectionTitle::Component.new(title: "Log in", class: "my-0") %>
     <% end %>
 
     <% card.body do %>
       <% prefill_credentials = Rails.env.development? || Rails.env.test? %>
       <% prefill_email = prefill_credentials ? ENV.fetch("DUMMY_SIGN_IN_EMAIL", "admin@example.com") : nil %>
       <% prefill_password = prefill_credentials ? ENV.fetch("DUMMY_SEED_PASSWORD", "change-me-please") : nil %>
+      <% seed_account_ready = prefill_email.present? && User.exists?(email: prefill_email) %>
+
+      <% if prefill_credentials %>
+        <%= render FlatPack::Alert::Component.new(
+          message: "#{seed_account_ready ? 'Seed account ready' : 'Seed account not found'} Use #{prefill_email} with password #{prefill_password}.",
+          style: seed_account_ready ? :success : :warning,
+          class: "mb-4"
+        ) %>
+      <% end %>
 
       <%= form_with(model: resource, as: resource_name, url: session_path(resource_name), data: { turbo: false }, class: "space-y-4") do |f| %>
         <%= render FlatPack::EmailInput::Component.new(
@@ -27,7 +36,7 @@
           autocomplete: "current-password"
         ) %>
 
-        <div class="flex items-center justify-between">
+        <%= render FlatPack::Grid::Component.new(cols: 2, gap: :md, align: :center) do %>
           <% if devise_mapping.rememberable? %>
             <%= render FlatPack::Checkbox::Component.new(
               name: "#{resource_name}[remember_me]",
@@ -37,10 +46,9 @@
             ) %>
           <% end %>
 
-          <%= render FlatPack::Button::Component.new(text: "Log in", type: "submit", class: "rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500") %>
-        </div>
+          <%= render FlatPack::Button::Component.new(text: "Log in", type: "submit", style: :primary) %>
+        <% end %>
       <% end %>
     <% end %>
   <% end %>
-
-</div>
+<% end %>

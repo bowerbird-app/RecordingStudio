@@ -183,6 +183,31 @@ class RecordingTest < ActiveSupport::TestCase
     assert_equal root.name, folder_recording.root_recording.name
   end
 
+  def test_name_accessors_fall_back_to_typed_recordable_for_preloaded_root_recordings
+    workspace, root = create_workspace_root(name: "Studio Workspace")
+
+    RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioFolder.new(name: "Projects"),
+      root_recording: root,
+      parent_recording: root
+    )
+
+    folder_recording = RecordingStudio::Recording.includes(:recordable, :root_recording).find_by(
+      recordable_type: "RecordingStudioFolder"
+    )
+
+    assert_equal workspace.recordable_name, folder_recording.root_recording.name
+  end
+
+  def test_name_falls_back_to_type_label_when_recordable_is_missing
+    workspace, root = create_workspace_root(name: "Studio Workspace")
+
+    Workspace.where(id: workspace.id).delete_all
+
+    assert_equal "Workspace", root.reload.name
+  end
+
   def test_label_remains_an_alias_for_name
     _workspace, root = create_workspace_root(name: "Studio Workspace")
 

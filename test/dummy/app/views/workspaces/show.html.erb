@@ -6,32 +6,32 @@
   <% breadcrumb.item(text: @workspace.name) %>
 <% end %>
 
-<%= render FlatPack::PageHeader::Component.new(
+<%= render FlatPack::PageTitle::Component.new(
   title: @workspace.name,
-  subtitle: "A workspace root recording with explicit page routes and its full recording tree.",
-  class: "mb-6"
-) do %>
-  <div class="flex flex-wrap items-center gap-2">
+  subtitle: "A workspace root recording with explicit page routes and its full recording tree."
+) do |page_title| %>
+  <% page_title.actions do %>
     <%= render FlatPack::Button::Component.new(text: "Back to Workspaces", style: :secondary, url: workspaces_path) %>
     <%= render FlatPack::Button::Component.new(text: "Browse Pages", style: :secondary, url: workspace_pages_path(@workspace)) %>
     <%= render FlatPack::Button::Component.new(text: "New Page", style: :primary, url: new_workspace_page_path(@workspace)) %>
     <%= render FlatPack::Button::Component.new(text: "Browse Recordings", style: :secondary, url: recordings_path) %>
-  </div>
+  <% end %>
 <% end %>
 
-<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
+<%= render FlatPack::Card::Component.new(class: "mb-6", padding: :none) do |card| %>
   <% card.header(divider: false) do %>
-    <div>
-      <h3 class="text-lg font-semibold">Recording hierarchy</h3>
-      <p class="text-sm text-slate-500">Child recordings nested under their parents.</p>
-    </div>
+    <%= render FlatPack::SectionTitle::Component.new(
+      title: "Recording hierarchy",
+      subtitle: "Child recordings nested under their parents.",
+      class: "my-0"
+    ) %>
   <% end %>
 
   <% card.body do %>
     <% if @recordings.any? %>
       <%= recordings_hierarchy_list(@recordings_by_parent, parent_id: @root_recording.id) %>
     <% else %>
-      <div class="text-sm text-slate-500">No recordings yet.</div>
+      <%= render FlatPack::Alert::Component.new(message: "No recordings yet.", style: :info) %>
     <% end %>
   <% end %>
 <% end %>

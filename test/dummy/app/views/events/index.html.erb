@@ -5,74 +5,70 @@
   <% breadcrumb.item(text: "Events") %>
 <% end %>
 
-<%= render FlatPack::PageHeader::Component.new(
+<%= render FlatPack::PageTitle::Component.new(
   title: "Events",
   subtitle: "Recent changes across recordings and recordables.",
   class: "mb-6"
 ) %>
 
-<%= render FlatPack::Card::Component.new(class: "mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white") do |card| %>
-  <% card.body do %>
-    <% if @events.any? %>
-      <%= render FlatPack::Table::Component.new(data: @events) do |table| %>
-      <% table.column(
-        title: "Action",
-        html: ->(event) {
-          action = event.action.to_s
-          style = case action
-                  when "created"
-                    :success
-                  when "updated"
-                    :info
-                  when "deleted"
-                    :warning
-                  else
-                    :default
-                  end
+<div class="mt-8">
+  <% if @events.any? %>
+    <%= render FlatPack::Table::Component.new(data: @events) do |table| %>
+    <% table.column(
+      title: "Action",
+      html: ->(event) {
+        action = event.action.to_s
+        style = case action
+                when "created"
+                  :success
+                when "updated"
+                  :info
+                when "deleted"
+                  :warning
+                else
+                  :default
+                end
 
-          render FlatPack::Badge::Component.new(text: action, style: style, size: :sm)
-        }
-      ) %>
+        render FlatPack::Badge::Component.new(text: action, style: style, size: :sm)
+      }
+    ) %>
+    <% table.column(
+      title: "Occurred",
+      html: ->(event) { tag.span("#{time_ago_in_words(event.occurred_at)} ago", title: l(event.occurred_at, format: :long)) }
+    ) %>
+    <% table.column(
+      title: "Actor",
+      html: ->(event) { actor_with_impersonator_label(event.actor, event.impersonator) }
+    ) %>
+    <% table.column(
+      title: "Impersonator",
+      html: ->(event) { event.impersonator ? actor_label(event.impersonator) : "—" }
+    ) %>
+    <% table.column(
+      title: "Recordable",
+      html: ->(event) {
+        safe_join([
+          recordable_name(event.recordable),
+          ("Previous: #{recordable_name(event.previous_recordable)}" if event.previous_recordable)
+        ].compact.map { |entry| tag.div(entry, class: entry.start_with?("Previous:") ? "text-xs text-(--surface-muted-content-color)" : nil) })
+      }
+    ) %>
+    <% table.column(
+      title: "Recording",
+      html: ->(event) {
+        if event.recording
+          render(FlatPack::Link::Component.new(href: recording_path(event.recording))) { "Recording ##{event.recording.id}" }
+        else
+          "—"
+        end
+      }
+    ) %>
       <% table.column(
-        title: "Occurred",
-        html: ->(event) { tag.span("#{time_ago_in_words(event.occurred_at)} ago", title: l(event.occurred_at, format: :long)) }
+        title: "Event ID",
+        html: ->(event) { event.id }
       ) %>
-      <% table.column(
-        title: "Actor",
-        html: ->(event) { actor_with_impersonator_label(event.actor, event.impersonator) }
-      ) %>
-      <% table.column(
-        title: "Impersonator",
-        html: ->(event) { event.impersonator ? actor_label(event.impersonator) : "—" }
-      ) %>
-      <% table.column(
-        title: "Recordable",
-        html: ->(event) {
-          safe_join([
-            recordable_name(event.recordable),
-            ("Previous: #{recordable_name(event.previous_recordable)}" if event.previous_recordable)
-          ].compact.map { |entry| tag.div(entry, class: entry.start_with?("Previous:") ? "text-xs text-slate-500" : nil) })
-        }
-      ) %>
-      <% table.column(
-        title: "Recording",
-        html: ->(event) {
-          if event.recording
-            link_to("Recording ##{event.recording.id}", recording_path(event.recording), class: "hover:underline")
-          else
-            "—"
-          end
-        }
-      ) %>
-        <% table.column(
-          title: "Event ID",
-          html: ->(event) { event.id }
-        ) %>
-      <% end %>
-    <% else %>
-      <div class="px-6 py-10 text-center text-sm text-slate-500">
-        No events yet.
-      </div>
     <% end %>
+  <% else %>
+    <%= render FlatPack::Alert::Component.new(message: "No events yet.", style: :info) %>
   <% end %>
-<% end %>
+</div>

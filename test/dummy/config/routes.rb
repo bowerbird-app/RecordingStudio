@@ -8,7 +8,10 @@ Rails.application.routes.draw do
   resources :workspaces, only: [ :index, :show, :new, :create ] do
     resources :pages, controller: :pages, param: :recording_id, only: [ :index, :show, :new, :create, :edit, :update, :destroy ]
   end
+  get "config", to: "config#index", as: :recording_studio_config
+  get :tree, to: "tree#index"
   resources :events, only: [ :index ]
+  get :methods, to: "methods#index"
   resources :recordings, only: [ :index, :show ] do
     post :log_event, on: :member
     post :revert, on: :member

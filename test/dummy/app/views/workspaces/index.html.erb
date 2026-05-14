@@ -5,28 +5,23 @@
   <% breadcrumb.item(text: "Workspaces") %>
 <% end %>
 
-<%= render FlatPack::PageHeader::Component.new(
+<%= render FlatPack::PageTitle::Component.new(
   title: "Workspaces",
-  subtitle: "Choose a workspace explicitly before browsing or creating workspace-rooted pages.",
-  class: "mb-6"
-) do %>
-  <div class="flex flex-wrap items-center gap-2">
+  subtitle: "Choose a workspace explicitly before browsing or creating workspace-rooted pages."
+) do |page_title| %>
+  <% page_title.actions do %>
     <%= render FlatPack::Button::Component.new(text: "New Workspace", style: :primary, url: new_workspace_path) %>
-  </div>
-<% end %>
-
-<%= render FlatPack::Card::Component.new(class: "mt-8 overflow-hidden rounded-lg border border-slate-200 bg-white") do |card| %>
-  <% card.body do %>
-    <% if @workspaces.any? %>
-      <%= render FlatPack::Table::Component.new(data: @workspaces) do |table| %>
-      <% table.column(title: "Name", html: ->(workspace) { link_to(workspace.name, workspace_path(workspace), class: "hover:underline") }) %>
-      <% table.column(title: "Created", html: ->(workspace) { "#{time_ago_in_words(workspace.created_at)} ago" }) %>
-
-      <% end %>
-    <% else %>
-      <div class="px-6 py-10 text-center text-sm text-slate-500">
-        No workspaces yet. Create one to start recording.
-      </div>
-    <% end %>
   <% end %>
 <% end %>
+
+<div class="mt-8">
+  <% if @workspaces&.any? %>
+    <%= render FlatPack::Table::Component.new(data: @workspaces) do |table| %>
+    <% table.column(title: "Name", html: ->(workspace) { render(FlatPack::Link::Component.new(href: workspace_path(workspace))) { workspace.name } }) %>
+    <% table.column(title: "Created", html: ->(workspace) { "#{time_ago_in_words(workspace.created_at)} ago" }) %>
+
+    <% end %>
+  <% else %>
+    <%= render FlatPack::Alert::Component.new(message: "No workspaces yet. Create one to start recording.", style: :info) %>
+  <% end %>
+</div>

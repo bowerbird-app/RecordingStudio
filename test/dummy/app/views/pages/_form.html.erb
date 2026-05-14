@@ -12,8 +12,8 @@
     rows: 5
   ) %>
 
-  <div class="flex items-center gap-3">
-    <%= render FlatPack::Button::Component.new(text: submit_label, type: "submit", class: "rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white") %>
-    <%= render FlatPack::Button::Component.new(text: "Cancel", url: cancel_url, class: "text-sm font-medium text-slate-500") %>
-  </div>
+  <%= render FlatPack::Grid::Component.new(cols: 2, gap: :md, align: :center) do %>
+    <%= render FlatPack::Button::Component.new(text: submit_label, type: "submit", style: :primary) %>
+    <%= render FlatPack::Button::Component.new(text: "Cancel", url: cancel_url, style: :ghost) %>
+  <% end %>
 <% end %>
