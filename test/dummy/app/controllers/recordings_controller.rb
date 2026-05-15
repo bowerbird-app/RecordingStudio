@@ -9,9 +9,7 @@ class RecordingsController < ApplicationController
 
   def show
     @events = @recording.events
-    @recordables = ([ @recording.recordable ] + @events.flat_map { |event| [ event.recordable, event.previous_recordable ] })
-      .compact
-      .uniq { |recordable| recordable.id }
+    @recordables = @recording.recordables
   end
 
   def log_event

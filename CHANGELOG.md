@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-05-15
+
+### Added
+- Added cohesive top-level recordable display helpers: `RecordingStudio.recordable_name`,
+  `RecordingStudio.recordable_type_label`.
+
+### Changed
+- Updated the addon-first docs and dummy method catalog to present identity and display-label helpers as one cohesive
+  public API spanning both `RecordingStudio` and `RecordingStudio::Recording`, while keeping older label/title helpers
+  available as compatibility aliases.
+- Expanded the documentation with an agent-focused API reference that lists public methods, parameters, return values,
+  and the intent behind each supported write, query, capability, label, and hook helper.
+
+## [1.1.0] - 2026-05-06
+
+### Added
+- Added stable addon-facing helper APIs in core for recordable identity, root-recording relationships, duplication, and
+  polymorphic counter cache updates.
+- Added explicit addon extension points for per-type recordable duplication strategies and label/presentation formatters.
+
+### Changed
+- Refactored `RecordingStudio::Recording` into smaller concerns so hierarchy, query, duplication, counter, identity, and
+  presentation responsibilities are easier to extend and audit.
+- Separated identity helpers from presentation helpers so addons can resolve types and roots without depending on UI
+  label heuristics.
+- Documented the addon-first public API surface, trusted extension points, and migration guidance for addon authors.
+
+### Migration Notes
+- Prefer `RecordingStudio.recordable_type_name`, `RecordingStudio.resolve_recordable_type`,
+  `RecordingStudio.root_recording_or_self`, and `RecordingStudio.assert_recording_belongs_to_root!` in addons instead of
+  reimplementing `safe_constantize` or `root_recording || self` patterns.
+- Prefer `config.register_recordable_dup_strategy(...)` and `RecordingStudio::Labels.register_formatter(...)` over
+  monkey-patching core internals.
+
 ## [1.0.1] - 2026-05-04
 
 ### Removed
@@ -53,7 +87,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/recording_studio/compare/v1.0.1...HEAD
-[1.0.1]: https://github.com/bowerbird-app/recording_studio/releases/tag/v1.0.1
-[0.2.0]: https://github.com/bowerbird-app/recording_studio/releases/tag/v0.2.0
-[0.1.0]: https://github.com/bowerbird-app/recording_studio/releases/tag/v0.1.0
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v1.2.0
+[1.1.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v1.1.0
+[1.0.1]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v1.0.1
+[0.2.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v0.2.0
+[0.1.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v0.1.0

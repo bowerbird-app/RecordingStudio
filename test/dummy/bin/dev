@@ -12,5 +12,6 @@ export PORT="${PORT:-3000}"
 # but avoid loading until `debugger` is called
 export RUBY_DEBUG_OPEN="true"
 export RUBY_DEBUG_LAZY="true"
+export BUNDLE_PATH="vendor/bundle"
 
 exec foreman start -f Procfile.dev "$@"

@@ -19,25 +19,27 @@ else
 end
 
 class InitializersTest < Minitest::Test
-  def test_assets_initializer_adds_flat_pack_javascript_path_when_gem_is_present
-    expected_path = "/tmp/fake_flat_pack/app/javascript"
-    fake_spec = Struct.new(:gem_dir).new("/tmp/fake_flat_pack")
+  def test_assets_initializer_adds_dummy_builds_path
+    expected_path = Rails.root.join("app/assets/builds").to_s
 
-    Gem::Specification.stub(:find_by_name, ->(_name) { fake_spec }) do
-      load initializer_path("assets")
-    end
+    load initializer_path("assets")
 
     assert_includes Rails.application.config.assets.paths.map(&:to_s), expected_path
   ensure
     Rails.application.config.assets.paths.delete(expected_path)
   end
 
-  def test_assets_initializer_handles_missing_flat_pack_gem
-    Gem::Specification.stub(:find_by_name, ->(_name) { raise Gem::LoadError }) do
-      load initializer_path("assets")
-    end
+  def test_assets_initializer_is_idempotent_for_dummy_builds_path
+    expected_path = Rails.root.join("app/assets/builds")
 
-    assert true
+    Rails.application.config.assets.paths.delete(expected_path)
+    2.times { load initializer_path("assets") }
+
+    matching_paths = Rails.application.config.assets.paths.count { |path| path == expected_path }
+
+    assert_equal 1, matching_paths
+  ensure
+    Rails.application.config.assets.paths.delete(expected_path)
   end
 
   def test_flatpack_initializer_calls_configure_when_available

@@ -1,0 +1,11 @@
+<%= render FlatPack::TopNav::Component.new do |nav| %>
+  <% nav.right do %>
+      <% if current_actor %>
+        <%= render FlatPack::Chip::Component.new(text: current_actor.name, style: :info, size: :sm) do |chip| %>
+          <% chip.leading do %>
+            <%= render FlatPack::Avatar::Component.new(name: current_actor.name, size: :xs, show_tooltip: false) %>
+          <% end %>
+        <% end %>
+      <% end %>
+  <% end %>
+<% end %>

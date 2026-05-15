@@ -2,6 +2,7 @@
 require "fileutils"
 
 APP_ROOT = File.expand_path("..", __dir__)
+ENV["BUNDLE_PATH"] = "vendor/bundle"
 
 def system!(*args)
   system(*args, exception: true)

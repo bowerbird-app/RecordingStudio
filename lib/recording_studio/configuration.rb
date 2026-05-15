@@ -13,7 +13,7 @@ module RecordingStudio
       :idempotency_mode,
       :recordable_dup_strategy
     )
-    attr_reader :recordable_types, :hooks
+    attr_reader :recordable_types, :hooks, :recordable_dup_strategies
 
     def initialize
       @recordable_types = []
@@ -24,6 +24,7 @@ module RecordingStudio
       @event_notifications_enabled = true
       @idempotency_mode = :return_existing
       @recordable_dup_strategy = :dup
+      @recordable_dup_strategies = {}
       @hooks = Hooks.new
     end
 
@@ -50,6 +51,11 @@ module RecordingStudio
       @capabilities[type_name]&.include?(capability.to_sym) || false
     end
 
+    def capabilities_for(recordable_or_type)
+      type_name = recordable_or_type.is_a?(Class) ? recordable_or_type.name : recordable_or_type.to_s
+      @capabilities.fetch(type_name, Set.new).to_a.sort
+    end
+
     def set_capability_options(capability, on:, **options)
       type_name = on.is_a?(Class) ? on.name : on.to_s
       @capability_options[[capability.to_sym, type_name]] = options
@@ -66,8 +72,26 @@ module RecordingStudio
         event_notifications_enabled: event_notifications_enabled,
         idempotency_mode: idempotency_mode,
         recordable_dup_strategy: recordable_dup_strategy,
-        hooks_registered: hooks.instance_variable_get(:@registry).transform_values(&:size)
+        recordable_dup_strategies: recordable_dup_strategies.keys.sort,
+        hooks_registered: hooks.registered_counts
       }
+    end
+
+    def register_recordable_dup_strategy(type, callable = nil, &block)
+      strategy = callable || block
+      raise ArgumentError, "duplication strategy must respond to call" unless strategy.respond_to?(:call)
+
+      type_name = RecordingStudio::Identity.type_name_for(type)
+      raise ArgumentError, "recordable type is required" if type_name.blank?
+
+      @recordable_dup_strategies[type_name] = strategy
+    end
+
+    def recordable_dup_strategy_for(recordable_or_type)
+      type_name = RecordingStudio::Identity.type_name_for(recordable_or_type)
+      return recordable_dup_strategy if type_name.blank?
+
+      @recordable_dup_strategies[type_name] || recordable_dup_strategy
     end
 
     def merge!(hash)

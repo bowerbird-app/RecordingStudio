@@ -3,6 +3,14 @@
 module RecordingStudio
   # rubocop:disable Metrics/ClassLength
   class Recording < ApplicationRecord
+    include RecordingStudio::Capability
+    include RecordingStudio::Concerns::RecordableIdentity
+    include RecordingStudio::Concerns::RecordingHierarchy
+    include RecordingStudio::Concerns::RecordableCounterCaches
+    include RecordingStudio::Concerns::RecordableDuplication
+    include RecordingStudio::Concerns::RecordingPresentation
+    include RecordingStudio::Concerns::RecordingsQuery
+
     self.table_name = "recording_studio_recordings"
 
     belongs_to :root_recording, class_name: "RecordingStudio::Recording", optional: true
@@ -26,17 +34,70 @@ module RecordingStudio
     scope :for_root, ->(root_id) { where(root_recording_id: root_id) }
     scope :of_type, ->(klass) { where(recordable_type: klass.to_s) }
 
+    class << self
+      def lock_ids!(ids)
+        normalized_ids = Array(ids).filter_map do |value|
+          next if value.blank?
+
+          value.to_s
+        end.uniq.sort
+
+        unscoped.where(id: normalized_ids).reorder(id: :asc).lock
+      end
+    end
+
     def events(actions: nil, actor: nil, actor_type: nil, actor_id: nil, from: nil, to: nil, limit: nil, offset: nil)
-      scope = association(:events).scope
-      scope = scope.with_action(actions) if actions.present?
-      scope = scope.by_actor(actor) if actor.present?
-      scope = scope.where(actor_type: actor_type) if actor_type.present?
-      scope = scope.where(actor_id: actor_id) if actor_id.present?
-      scope = scope.where(occurred_at: from..) if from.present?
-      scope = scope.where(occurred_at: ..to) if to.present?
-      scope = scope.limit(limit) if limit.present?
-      scope = scope.offset(offset) if offset.present?
-      scope
+      apply_event_filters(
+        association(:events).scope,
+        actions: actions,
+        actor: actor,
+        actor_type: actor_type,
+        actor_id: actor_id,
+        from: from,
+        to: to,
+        limit: limit,
+        offset: offset
+      )
+    end
+
+    def subtree_events(include_self: true, descendant_scope: nil, actions: nil, actor: nil, actor_type: nil,
+                       actor_id: nil, from: nil, to: nil, limit: nil, offset: nil)
+      descendant_recordings = subtree_recordings(include_self: false, scope: descendant_scope).select(:id)
+      scope = RecordingStudio::Event.where(recording_id: descendant_recordings)
+      scope = scope.or(RecordingStudio::Event.where(recording_id: id)) if include_self && id.present?
+      apply_event_filters(
+        scope.recent,
+        actions: actions,
+        actor: actor,
+        actor_type: actor_type,
+        actor_id: actor_id,
+        from: from,
+        to: to,
+        limit: limit,
+        offset: offset
+      )
+    end
+
+    def latest_event
+      association(:events).scope.first
+    end
+
+    def first_event
+      association(:events).scope.reorder(occurred_at: :asc, created_at: :asc).first
+    end
+
+    def event_by_idempotency_key(idempotency_key)
+      return if idempotency_key.blank?
+
+      association(:events).scope.find_by(idempotency_key: idempotency_key)
+    end
+
+    def recordables
+      ([recordable] + association(:events).scope.preload(:recordable, :previous_recordable).flat_map do |event|
+        [event.recordable, event.previous_recordable]
+      end).compact.uniq do |snapshot|
+        [snapshot.class.base_class.name, snapshot.id]
+      end
     end
 
     def record(recordable_or_class, actor: nil, impersonator: nil, metadata: {}, parent_recording: nil)
@@ -44,7 +105,7 @@ module RecordingStudio
       yield(recordable) if block_given?
       recordable.save!
 
-      root = root_recording || self
+      root = root_recording_or_self
       resolved_parent = parent_recording || root
 
       RecordingStudio.record!(
@@ -69,7 +130,7 @@ module RecordingStudio
         action: "updated",
         recordable: recordable,
         recording: recording,
-        root_recording: root_recording || self,
+        root_recording: root_recording_or_self,
         actor: actor,
         impersonator: impersonator,
         metadata: metadata
@@ -97,74 +158,225 @@ module RecordingStudio
         action: "reverted",
         recordable: to_recordable,
         recording: recording,
-        root_recording: root_recording || self,
+        root_recording: root_recording_or_self,
         actor: actor,
         impersonator: impersonator,
         metadata: metadata
       ).recording
     end
 
-    def recordings_query(include_children: false, type: nil, id: nil, parent_id: nil,
-                         created_after: nil, created_before: nil, updated_after: nil, updated_before: nil,
-                         order: nil, recordable_order: nil, recordable_filters: nil, recordable_scope: nil,
-                         limit: nil, offset: nil)
-      root_id = root_recording_id || self.id
-      base_scope = RecordingStudio::Recording.for_root(root_id)
-      scope = include_children ? base_scope : base_scope.where(parent_recording_id: root_id)
-      scope = scope.of_type(type) if type.present?
-      scope = scope.where(recordable_id: id) if id.present?
-      scope = scope.where(parent_recording_id: parent_id) if parent_id.present?
-      scope = scope.where(created_at: created_after..) if created_after.present?
-      scope = scope.where(created_at: ..created_before) if created_before.present?
-      scope = scope.where(updated_at: updated_after..) if updated_after.present?
-      scope = scope.where(updated_at: ..updated_before) if updated_before.present?
-      if type.present? &&
-         (recordable_order.present? || recordable_filters.present? || recordable_scope.respond_to?(:call))
-        recordable_class = type.is_a?(Class) ? type : type.to_s.safe_constantize
-        if recordable_class
-          recordable_table = recordable_class.connection.quote_table_name(recordable_class.table_name)
-          scope = scope.where(recordable_type: recordable_class.name)
-          scope = scope.joins(
-            "INNER JOIN #{recordable_table} ON #{recordable_table}.id = recording_studio_recordings.recordable_id"
-          )
-          scope = apply_recordable_filters(scope, recordable_filters, recordable_class)
-          if recordable_scope.respond_to?(:call)
-            custom_scope = recordable_scope.call(scope)
-            scope = custom_scope if custom_scope.is_a?(ActiveRecord::Relation)
-          end
-          safe_recordable_order = sanitize_order_for_model(recordable_order, recordable_class)
-          scope = scope.reorder(safe_recordable_order) if safe_recordable_order.present?
+    def recordings_of(recordable_class)
+      recordings_query.of_type(recordable_class)
+    end
+
+    def recording_for(recordable)
+      recordings_for([recordable]).first
+    end
+
+    def recordings_for(recordables)
+      ordered_recordables = Array(recordables).compact.select do |recordable|
+        recordable.respond_to?(:id) && recordable.id.present?
+      end
+      return [] if ordered_recordables.empty?
+
+      recordings_by_key = {}
+      ordered_recordables.group_by { |recordable| recordable.class.name }.each do |recordable_type, typed_recordables|
+        recordings = RecordingStudio::Recording.unscoped.where(
+          root_recording_id: root_query_root_id,
+          recordable_type: recordable_type,
+          recordable_id: typed_recordables.map(&:id).uniq
+        )
+
+        recordings.each do |recording|
+          key = [recording.recordable_type, recording.recordable_id]
+          recordings_by_key[key] = recording
         end
       end
-      scope = enforce_recordings_scope(scope, root_id: root_id, include_children: include_children)
-      scope = apply_recordings_query_extensions(scope) if respond_to?(:apply_recordings_query_extensions, true)
-      safe_recording_order = sanitize_order_for_model(order, RecordingStudio::Recording)
-      scope = scope.reorder(safe_recording_order) if safe_recording_order.present?
+
+      ordered_recordables.filter_map do |recordable|
+        recordings_by_key[[recordable.class.name, recordable.id]]
+      end
+    end
+
+    def recordables_of(recordable_class, **)
+      recordings_query(type: recordable_class, **).includes(:recordable).map(&:recordable)
+    end
+
+    def child_recordings_of(parent_recording, **)
+      return self.class.none if parent_recording.nil?
+
+      assert_recording_belongs_to_root!(parent_recording)
+      recordings_query(include_children: true, parent_id: parent_recording.id, **)
+    end
+
+    def events_query(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil,
+                     recordable_filters: nil, recordable_scope: nil, actions: nil, actor: nil,
+                     actor_type: nil, actor_id: nil, impersonator: nil, impersonator_type: nil,
+                     impersonator_id: nil, from: nil, to: nil, limit: nil, offset: nil)
+      scope = RecordingStudio::Event.where(
+        recording_id: filtered_root_recordings_query(
+          include_children: include_children,
+          type: type,
+          id: id,
+          recording_id: recording_id,
+          parent_id: parent_id,
+          recordable_filters: recordable_filters,
+          recordable_scope: recordable_scope
+        ).select(:id)
+      ).recent
+
+      apply_event_filters(
+        scope,
+        actions: actions,
+        actor: actor,
+        actor_type: actor_type,
+        actor_id: actor_id,
+        impersonator: impersonator,
+        impersonator_type: impersonator_type,
+        impersonator_id: impersonator_id,
+        from: from,
+        to: to,
+        limit: limit,
+        offset: offset
+      )
+    end
+
+    def recordings_with_events(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil,
+                               recordable_filters: nil, recordable_scope: nil, actions: nil, actor: nil,
+                               actor_type: nil, actor_id: nil, impersonator: nil, impersonator_type: nil,
+                               impersonator_id: nil, from: nil, to: nil, order: nil, limit: nil, offset: nil)
+      scope = filtered_root_recordings_query(
+        include_children: include_children,
+        type: type,
+        id: id,
+        recording_id: recording_id,
+        parent_id: parent_id,
+        recordable_filters: recordable_filters,
+        recordable_scope: recordable_scope
+      )
+
+      matching_events = apply_event_filters(
+        RecordingStudio::Event.where(recording_id: scope.select(:id)),
+        actions: actions,
+        actor: actor,
+        actor_type: actor_type,
+        actor_id: actor_id,
+        impersonator: impersonator,
+        impersonator_type: impersonator_type,
+        impersonator_id: impersonator_id,
+        from: from,
+        to: to,
+        limit: nil,
+        offset: nil
+      )
+
+      scope = scope.where(id: matching_events.select(:recording_id)).distinct
+
+      safe_order = sanitize_order_for_model(order, RecordingStudio::Recording)
+      scope = scope.reorder(safe_order) if safe_order.present?
       scope = scope.limit(limit) if limit.present?
       scope = scope.offset(offset) if offset.present?
       scope
     end
 
-    def recordings_of(recordable_class)
-      recordings_query.of_type(recordable_class)
+    def recordings_with_children(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil,
+                                 recordable_filters: nil, recordable_scope: nil, child_type: nil, child_id: nil,
+                                 child_recording_id: nil, child_recordable_filters: nil,
+                                 child_recordable_scope: nil, order: nil, limit: nil, offset: nil)
+      parent_scope = filtered_root_recordings_query(
+        include_children: include_children,
+        type: type,
+        id: id,
+        recording_id: recording_id,
+        parent_id: parent_id,
+        recordable_filters: recordable_filters,
+        recordable_scope: recordable_scope
+      )
+
+      matching_children = filtered_root_recordings_query(
+        include_children: true,
+        type: child_type,
+        id: child_id,
+        recording_id: child_recording_id,
+        parent_id: parent_scope.select(:id),
+        recordable_filters: child_recordable_filters,
+        recordable_scope: child_recordable_scope
+      )
+
+      scope = parent_scope.where(id: matching_children.select(:parent_recording_id)).distinct
+
+      safe_order = sanitize_order_for_model(order, RecordingStudio::Recording)
+      scope = scope.reorder(safe_order) if safe_order.present?
+      scope = scope.limit(limit) if limit.present?
+      scope = scope.offset(offset) if offset.present?
+      scope
     end
 
-    def name
-      RecordingStudio::Labels.name_for(recordable)
+    def recordings_with_descendants(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil,
+                                    recordable_filters: nil, recordable_scope: nil, descendant_type: nil,
+                                    descendant_id: nil, descendant_recording_id: nil,
+                                    descendant_recordable_filters: nil, descendant_recordable_scope: nil,
+                                    order: nil, limit: nil, offset: nil)
+      parent_scope = filtered_root_recordings_query(
+        include_children: include_children,
+        type: type,
+        id: id,
+        recording_id: recording_id,
+        parent_id: parent_id,
+        recordable_filters: recordable_filters,
+        recordable_scope: recordable_scope
+      )
+
+      matching_descendants = filtered_root_recordings_query(
+        include_children: true,
+        type: descendant_type,
+        id: descendant_id,
+        recording_id: descendant_recording_id,
+        parent_id: nil,
+        recordable_filters: descendant_recordable_filters,
+        recordable_scope: descendant_recordable_scope
+      )
+
+      scope = parent_scope.where(id: descendant_ancestor_ids_for(parent_scope, matching_descendants))
+
+      safe_order = sanitize_order_for_model(order, RecordingStudio::Recording)
+      scope = scope.reorder(safe_order) if safe_order.present?
+      scope = scope.limit(limit) if limit.present?
+      scope = scope.offset(offset) if offset.present?
+      scope
     end
 
-    alias label name
+    def recordings_without_children(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil,
+                                    recordable_filters: nil, recordable_scope: nil, child_type: nil,
+                                    child_id: nil, child_recording_id: nil, child_recordable_filters: nil,
+                                    child_recordable_scope: nil, order: nil, limit: nil, offset: nil)
+      parent_scope = filtered_root_recordings_query(
+        include_children: include_children,
+        type: type,
+        id: id,
+        recording_id: recording_id,
+        parent_id: parent_id,
+        recordable_filters: recordable_filters,
+        recordable_scope: recordable_scope
+      )
 
-    def type_label
-      RecordingStudio::Labels.type_label_for(recordable || recordable_type)
-    end
+      matching_children = filtered_root_recordings_query(
+        include_children: true,
+        type: child_type,
+        id: child_id,
+        recording_id: child_recording_id,
+        parent_id: parent_scope.select(:id),
+        recordable_filters: child_recordable_filters,
+        recordable_scope: child_recordable_scope
+      )
 
-    def title
-      RecordingStudio::Labels.title_for(recordable)
-    end
+      scope = parent_scope.where.not(id: matching_children.select(:parent_recording_id)).distinct
 
-    def summary
-      RecordingStudio::Labels.summary_for(recordable)
+      safe_order = sanitize_order_for_model(order, RecordingStudio::Recording)
+      scope = scope.reorder(safe_order) if safe_order.present?
+      scope = scope.limit(limit) if limit.present?
+      scope = scope.offset(offset) if offset.present?
+      scope
     end
 
     def log_event!(action:, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current,
@@ -173,7 +385,7 @@ module RecordingStudio
         action: action,
         recordable: recordable,
         recording: self,
-        root_recording: root_recording || self,
+        root_recording: root_recording_or_self,
         actor: actor,
         impersonator: impersonator,
         metadata: metadata,
@@ -184,38 +396,86 @@ module RecordingStudio
 
     private
 
-    def assign_root_recording_id
-      return if parent_recording_id.nil?
-
-      parent_root_id = parent_recording&.root_recording_id ||
-                       self.class.unscoped.where(id: parent_recording_id).pick(:root_recording_id)
-      self.root_recording_id = parent_root_id || parent_recording_id
+    def apply_event_filters(
+      scope,
+      actions:,
+      actor:,
+      actor_type:,
+      actor_id:,
+      from:,
+      to:,
+      limit:,
+      offset:,
+      impersonator: nil,
+      impersonator_type: nil,
+      impersonator_id: nil
+    )
+      scope = scope.with_action(actions) if actions.present?
+      scope = scope.by_actor(actor) if actor.present?
+      scope = scope.where(actor_type: actor_type) if actor_type.present?
+      scope = scope.where(actor_id: actor_id) if actor_id.present?
+      scope = scope.by_impersonator(impersonator) if impersonator.present?
+      scope = scope.where(impersonator_type: impersonator_type) if impersonator_type.present?
+      scope = scope.where(impersonator_id: impersonator_id) if impersonator_id.present?
+      scope = scope.between(from, to)
+      scope = scope.limit(limit) if limit.present?
+      scope = scope.offset(offset) if offset.present?
+      scope
     end
 
-    def set_self_root_recording_id
-      update!(root_recording_id: id)
+    def filtered_root_recordings_query(include_children:, type:, id:, recording_id:, parent_id:, recordable_filters:,
+                                       recordable_scope:)
+      scope = recordings_query(
+        include_children: include_children,
+        type: type,
+        id: id,
+        parent_id: parent_id,
+        recordable_filters: recordable_filters,
+        recordable_scope: recordable_scope
+      )
+      scope = scope.where(id: recording_id) if recording_id.present?
+      scope
+    end
+
+    def descendant_ancestor_ids_for(parent_scope, matching_descendants)
+      parent_ids = parent_scope.pluck(:id).to_set
+      return [] if parent_ids.empty?
+
+      parent_links =
+        RecordingStudio::Recording
+        .unscoped
+        .where(root_recording_id: root_query_root_id)
+        .pluck(:id, :parent_recording_id)
+        .to_h
+
+      matching_descendants.pluck(:id, :parent_recording_id)
+                          .each_with_object(Set.new) do |(descendant_id, parent_id), acc|
+        current_parent_id = parent_id
+
+        while current_parent_id.present?
+          acc << current_parent_id if parent_ids.include?(current_parent_id)
+
+          break if current_parent_id == descendant_id
+
+          current_parent_id = parent_links[current_parent_id]
+        end
+      end.to_a
+    end
+
+    def root_query_root_id
+      RecordingStudio.root_recording_id_for(root_recording_or_self)
     end
 
     def build_recordable_instance(recordable_or_class)
       recordable_or_class.is_a?(Class) ? recordable_or_class.new : recordable_or_class
     end
 
-    def duplicate_recordable(recordable)
-      strategy = RecordingStudio.configuration.recordable_dup_strategy
-      return strategy.call(recordable) if strategy.respond_to?(:call)
-
-      duplicated = recordable.dup
-      duplicated.recordings_count = 0 if duplicated.respond_to?(:recordings_count=)
-      duplicated.events_count = 0 if duplicated.respond_to?(:events_count=)
-      duplicated
-    end
-
     def increment_recordable_recordings_count
-      update_recordable_counter(recordable_type, recordable_id, 1)
+      update_recordable_counter(recordable_type, recordable_id, :recordings_count, 1)
     end
 
     def decrement_recordable_recordings_count
-      update_recordable_counter(recordable_type, recordable_id, -1)
+      update_recordable_counter(recordable_type, recordable_id, :recordings_count, -1)
     end
 
     def refresh_recordable_recordings_count
@@ -224,140 +484,8 @@ module RecordingStudio
       previous_type = attribute_before_last_save("recordable_type")
       previous_id = attribute_before_last_save("recordable_id")
 
-      update_recordable_counter(previous_type, previous_id, -1)
-      update_recordable_counter(recordable_type, recordable_id, 1)
-    end
-
-    def update_recordable_counter(recordable_type, recordable_id, delta)
-      return unless recordable_type && recordable_id
-
-      recordable_class = recordable_type.safe_constantize
-      return unless recordable_class&.column_names&.include?("recordings_count")
-
-      recordable_class.update_counters(recordable_id, recordings_count: delta)
-    end
-
-    def sanitize_order_for_model(order, model_class)
-      return if order.blank? || model_class.nil?
-
-      case order
-      when Hash
-        sanitize_order_hash(order, model_class)
-      when String, Symbol
-        sanitize_order_string(order.to_s, model_class)
-      end
-    end
-
-    def sanitize_order_hash(order_hash, model_class)
-      allowed_columns = model_class.column_names
-      sanitized = order_hash.each_with_object({}) do |(column, direction), acc|
-        column_name = column.to_s
-        next unless allowed_columns.include?(column_name)
-
-        dir = direction.to_s.downcase == "desc" ? :desc : :asc
-        acc[column_name] = dir
-      end
-
-      sanitized.presence
-    end
-
-    def sanitize_order_string(order_string, model_class)
-      allowed_columns = model_class.column_names
-      table_name = model_class.table_name
-      quoted_table = model_class.connection.quote_table_name(table_name)
-
-      fragments = order_string.split(",").filter_map do |segment|
-        cleaned = segment.strip
-        next if cleaned.blank?
-
-        match = cleaned.match(/\A(?:(?<table>[a-zA-Z0-9_"`]+)\.)?(?<column>[a-zA-Z0-9_"`]+)(?:\s+(?<dir>asc|desc))?\z/i)
-        next unless match
-
-        table = match[:table]&.gsub(/["`]/, "")
-        column = match[:column]&.gsub(/["`]/, "")
-        next unless allowed_columns.include?(column)
-        next if table.present? && table != table_name
-
-        direction = match[:dir].to_s.downcase == "desc" ? "DESC" : "ASC"
-        quoted_column = model_class.connection.quote_column_name(column)
-        "#{quoted_table}.#{quoted_column} #{direction}"
-      end
-
-      fragments.presence&.map { |fragment| Arel.sql(fragment) }
-    end
-
-    def apply_recordable_filters(scope, recordable_filters, recordable_class = nil)
-      return scope if recordable_filters.blank?
-
-      if recordable_filters.is_a?(Hash)
-        return scope.where(recordable_filters) unless recordable_class
-
-        allowed_columns = recordable_class.column_names.to_set
-        sanitized = recordable_filters.each_with_object({}) do |(column, value), acc|
-          column_name = column.to_s
-          next unless allowed_columns.include?(column_name)
-
-          acc[column_name] = value
-        end
-
-        sanitized.present? ? scope.where(recordable_class.table_name => sanitized) : scope
-      elsif recordable_filters.is_a?(ActiveRecord::Relation)
-        scope.merge(recordable_filters)
-      elsif defined?(Arel::Nodes::Node) && recordable_filters.is_a?(Arel::Nodes::Node)
-        scope.where(recordable_filters)
-      else
-        scope
-      end
-    end
-
-    def enforce_recordings_scope(scope, root_id:, include_children:)
-      constrained = scope.where(root_recording_id: root_id)
-      constrained = constrained.where(parent_recording_id: root_id) unless include_children
-      constrained
-    end
-
-    def assert_recording_belongs_to_root!(recording)
-      return if recording.nil?
-
-      root_id = root_recording_id || id
-      return if recording.root_recording_id == root_id
-
-      raise ArgumentError, "recording must belong to this root recording"
-    end
-
-    def parent_recording_root_consistency
-      return unless parent_recording
-
-      my_root = root_recording_id || parent_recording&.root_recording_id
-      return if my_root == parent_recording.root_recording_id
-
-      errors.add(:parent_recording_id, "must belong to the same root recording")
-    end
-
-    def parent_recording_must_not_create_cycle
-      return if parent_recording_id.nil?
-
-      if id.present? && parent_recording_id == id
-        errors.add(:parent_recording_id, "cannot be itself or a descendant recording")
-        return
-      end
-
-      return if id.blank?
-
-      visited_ids = Set.new
-      current_parent_id = parent_recording_id
-
-      while current_parent_id.present?
-        return if visited_ids.include?(current_parent_id)
-
-        if current_parent_id == id
-          errors.add(:parent_recording_id, "cannot be itself or a descendant recording")
-          return
-        end
-
-        visited_ids << current_parent_id
-        current_parent_id = self.class.unscoped.where(id: current_parent_id).pick(:parent_recording_id)
-      end
+      update_recordable_counter(previous_type, previous_id, :recordings_count, -1)
+      update_recordable_counter(recordable_type, recordable_id, :recordings_count, 1)
     end
   end
   # rubocop:enable Metrics/ClassLength

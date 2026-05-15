@@ -21,7 +21,7 @@ class WorkspacesController < ApplicationController
     @workspace = Workspace.new(workspace_params)
 
     if @workspace.save
-      RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: @workspace, parent_recording_id: nil)
+      RecordingStudio.root_recording_for(@workspace)
       redirect_to workspaces_path, notice: "Workspace created."
     else
       flash.now[:alert] = @workspace.errors.full_messages.to_sentence

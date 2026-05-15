@@ -183,6 +183,10 @@ module RecordingStudio
       @registry[event_name].any?
     end
 
+    def registered_counts
+      @registry.transform_values(&:size)
+    end
+
     # Clear all hooks (useful for testing)
     def clear!
       @mutex.synchronize do

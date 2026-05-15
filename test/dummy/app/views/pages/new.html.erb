@@ -8,15 +8,16 @@
   <% breadcrumb.item(text: "New") %>
 <% end %>
 
-<%= render FlatPack::Card::Component.new(class: "max-w-2xl") do |card| %>
-  <% card.header(divider: false) do %>
-      <div class="space-y-2">
-        <h2 class="text-2xl font-semibold">New Page</h2>
-        <p class="text-sm text-slate-500">Create a new page recording inside <%= @workspace.name %>.</p>
-      </div>
-    <% end %>
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg, class: "max-w-2xl") do %>
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "New Page",
+    subtitle: "Create a new page recording inside #{@workspace.name}.",
+    class: "mb-0"
+  ) %>
 
-  <% card.body do %>
-    <%= render "form", recordable: @recordable, form_url: workspace_pages_path(@workspace), form_method: :post, submit_label: "Create Page", cancel_url: workspace_pages_path(@workspace) %>
+  <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+    <% card.body do %>
+      <%= render "form", recordable: @recordable, form_url: workspace_pages_path(@workspace), form_method: :post, submit_label: "Create Page", cancel_url: workspace_pages_path(@workspace) %>
+    <% end %>
   <% end %>
 <% end %>

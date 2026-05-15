@@ -78,16 +78,20 @@ jobs:
         run: bundle install
         working-directory: test/dummy
         env:
+          BUNDLE_PATH: vendor/bundle
           BUNDLE_GITHUB__COM: x-access-token:${{ secrets.BOWERBIRD_ORG_CI_TOKEN }}
 
       - name: Run database migrations
         run: bundle exec rake db:migrate RAILS_ENV=test
         working-directory: test/dummy
+        env:
+          BUNDLE_PATH: vendor/bundle
 
       - name: Build Tailwind assets
         run: bundle exec rails tailwindcss:build
         working-directory: test/dummy
         env:
+          BUNDLE_PATH: vendor/bundle
           RAILS_ENV: test
 
       - name: Run gem tests
@@ -99,4 +103,5 @@ jobs:
         run: bundle exec rails test
         working-directory: test/dummy
         env:
+          BUNDLE_PATH: vendor/bundle
           RAILS_ENV: test

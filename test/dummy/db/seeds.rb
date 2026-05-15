@@ -22,8 +22,8 @@ quinn.password = default_password
 quinn.password_confirmation = default_password
 quinn.save!
 
-studio_root = RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: workspace, parent_recording_id: nil)
-quinn_root = RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: quinn_workspace, parent_recording_id: nil)
+studio_root = RecordingStudio.root_recording_for(workspace)
+quinn_root = RecordingStudio.root_recording_for(quinn_workspace)
 actors = [
   User.find_by!(email: "avery@example.com"),
   User.find_by!(email: "quinn@example.com")

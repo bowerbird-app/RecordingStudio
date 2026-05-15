@@ -7,12 +7,5 @@ Rails.application.config.assets.version = "1.0"
 # Rails.application.config.assets.paths << Emoji.images_path
 
 # Include Tailwind build output for Propshaft.
-Rails.application.config.assets.paths << Rails.root.join("app/assets/builds")
-
-# Add Flatpack gem JavaScript path for Propshaft (Rails 8+)
-begin
-  flat_pack_dir = Gem::Specification.find_by_name("flat_pack").gem_dir
-  Rails.application.config.assets.paths << "#{flat_pack_dir}/app/javascript"
-rescue Gem::LoadError
-  # Skip when the gem is not available (test environment)
-end
+builds_path = Rails.root.join("app/assets/builds")
+Rails.application.config.assets.paths << builds_path unless Rails.application.config.assets.paths.include?(builds_path)

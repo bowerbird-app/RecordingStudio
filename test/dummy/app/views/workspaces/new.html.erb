@@ -6,15 +6,16 @@
   <% breadcrumb.item(text: "New") %>
 <% end %>
 
-<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
-  <% card.header(divider: false) do %>
-    <div>
-      <h2 class="text-2xl font-semibold">New Workspace</h2>
-      <p class="text-sm text-slate-500">Create a container for recordings.</p>
-    </div>
-  <% end %>
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg, class: "max-w-2xl") do %>
+  <%= render FlatPack::PageTitle::Component.new(
+    title: "New Workspace",
+    subtitle: "Create a container for recordings.",
+    class: "mb-0"
+  ) %>
 
-  <% card.body do %>
-    <%= render "form", workspace: @workspace %>
+  <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+    <% card.body do %>
+      <%= render "form", workspace: @workspace %>
+    <% end %>
   <% end %>
 <% end %>

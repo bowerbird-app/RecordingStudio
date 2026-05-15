@@ -23,10 +23,6 @@ ENV["PGUSER"] ||= db_user
 ENV["PGPASSWORD"] ||= db_password
 ENV["DATABASE_URL"] ||= "postgres://#{db_user}:#{db_password}@#{db_host}:#{db_port}/#{db_name_test}"
 
-module FlatPack
-  class Engine < ::Rails::Engine; end
-end
-
 require_relative "../config/environment"
 require "minitest/autorun"
 require "rails/test_help"
