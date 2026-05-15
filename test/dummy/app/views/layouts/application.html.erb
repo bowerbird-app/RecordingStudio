@@ -20,10 +20,11 @@
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
-    <%= stylesheet_link_tag "flat_pack/rich_text", "data-turbo-track": "reload" %>
-    <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
+      <%= stylesheet_link_tag "flat_pack/variables", "data-turbo-track": "reload" %>
+      <%= stylesheet_link_tag "flat_pack/rich_text", "data-turbo-track": "reload" %>
+      <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
 
-  </head>
+    </head>
 
   <body data-theme="rounded" class="bg-(--surface-page-background-color) text-(--surface-content-color)">
     <%= turbo_stream_from "recording_studio_toasts" if respond_to?(:turbo_stream_from) %>

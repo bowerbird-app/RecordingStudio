@@ -1279,9 +1279,9 @@
           1,
           null,
           1,
-          0,
-          null,
           1,
+          null,
+          0,
           null,
           null,
           1,
@@ -1564,7 +1564,7 @@
           1,
           3,
           null,
-          19,
+          20,
           null,
           1,
           null,
@@ -1585,37 +1585,6 @@
           1,
           null,
           1,
-          null,
-          1,
-          null,
-          null,
-          1,
-          1,
-          null,
-          3,
-          1,
-          null,
-          1,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          null,
-          1,
-          1,
-          1,
-          null,
-          1,
-          null,
-          null,
-          null,
-          null,
-          null,
           null,
           1,
           null,
@@ -1624,6 +1593,37 @@
           1,
           null,
           4,
+          1,
+          null,
+          1,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          1,
+          1,
+          1,
+          null,
+          1,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null,
+          1,
+          null,
+          null,
+          1,
+          1,
+          null,
+          3,
           1,
           1,
           null,
@@ -1671,6 +1671,15 @@
           1,
           1,
           null,
+          null
+        ]
+      },
+      "/workspace/test/dummy/app/models/user.rb": {
+        "lines": [
+          1,
+          1,
+          null,
+          1,
           null
         ]
       },
@@ -1816,22 +1825,6 @@
           null
         ]
       },
-      "/workspace/test/dummy/app/models/system_actor.rb": {
-        "lines": [
-          1,
-          1,
-          null
-        ]
-      },
-      "/workspace/test/dummy/app/models/user.rb": {
-        "lines": [
-          1,
-          1,
-          null,
-          1,
-          null
-        ]
-      },
       "/workspace/test/dummy/app/models/current.rb": {
         "lines": [
           1,
@@ -1843,8 +1836,15 @@
           null,
           null
         ]
+      },
+      "/workspace/test/dummy/app/models/system_actor.rb": {
+        "lines": [
+          1,
+          1,
+          null
+        ]
       }
     },
-    "timestamp": 1778825546
+    "timestamp": 1778828316
   }
 }

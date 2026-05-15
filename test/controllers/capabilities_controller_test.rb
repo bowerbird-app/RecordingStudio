@@ -13,6 +13,7 @@ class CapabilitiesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes @response.body, "Capabilties"
+    assert_includes @response.body, "RecordingStudio.registered_capabilities"
     assert_includes @response.body, "RecordingStudio.register_capability"
     assert_includes @response.body, "RecordingStudio.capability_enabled?"
     assert_includes @response.body, "RecordingStudio.capabilities_for"

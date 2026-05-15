@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-05-15
+
 ### Added
 - Added cohesive top-level recordable display helpers: `RecordingStudio.recordable_name`,
   `RecordingStudio.recordable_type_label`.
@@ -85,7 +87,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v1.2.0
 [1.1.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v1.1.0
 [1.0.1]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v1.0.1
 [0.2.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v0.2.0

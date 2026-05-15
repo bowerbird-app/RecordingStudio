@@ -114,6 +114,20 @@ class RecordingTest < ActiveSupport::TestCase
     assert_equal created.id, recording.first_event.id
   end
 
+  def test_recordables_returns_distinct_snapshots_for_a_recording
+    _, root = create_workspace_root
+    recording = root.record(RecordingStudioPage) { |page| page.title = "Draft" }
+    original_snapshot = recording.recordable
+
+    root.revise(recording) { |page| page.title = "Reviewed" }
+    revised_snapshot = recording.reload.recordable
+    recording.log_event!(action: "published")
+    root.revert(recording, to_recordable: original_snapshot)
+
+    assert_equal [original_snapshot.id, revised_snapshot.id], recording.recordables.map(&:id)
+    assert_equal %w[Draft Reviewed], recording.recordables.map(&:title)
+  end
+
   def test_event_by_idempotency_key_returns_matching_event
     _, root = create_workspace_root
     recording = root.record(RecordingStudioPage) { |page| page.title = "One" }

@@ -92,6 +92,14 @@ module RecordingStudio
       association(:events).scope.find_by(idempotency_key: idempotency_key)
     end
 
+    def recordables
+      ([recordable] + association(:events).scope.preload(:recordable, :previous_recordable).flat_map do |event|
+        [event.recordable, event.previous_recordable]
+      end).compact.uniq do |snapshot|
+        [snapshot.class.base_class.name, snapshot.id]
+      end
+    end
+
     def record(recordable_or_class, actor: nil, impersonator: nil, metadata: {}, parent_recording: nil)
       recordable = build_recordable_instance(recordable_or_class)
       yield(recordable) if block_given?
@@ -271,6 +279,106 @@ module RecordingStudio
       scope
     end
 
+    def recordings_with_children(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil,
+                                 recordable_filters: nil, recordable_scope: nil, child_type: nil, child_id: nil,
+                                 child_recording_id: nil, child_recordable_filters: nil,
+                                 child_recordable_scope: nil, order: nil, limit: nil, offset: nil)
+      parent_scope = filtered_root_recordings_query(
+        include_children: include_children,
+        type: type,
+        id: id,
+        recording_id: recording_id,
+        parent_id: parent_id,
+        recordable_filters: recordable_filters,
+        recordable_scope: recordable_scope
+      )
+
+      matching_children = filtered_root_recordings_query(
+        include_children: true,
+        type: child_type,
+        id: child_id,
+        recording_id: child_recording_id,
+        parent_id: parent_scope.select(:id),
+        recordable_filters: child_recordable_filters,
+        recordable_scope: child_recordable_scope
+      )
+
+      scope = parent_scope.where(id: matching_children.select(:parent_recording_id)).distinct
+
+      safe_order = sanitize_order_for_model(order, RecordingStudio::Recording)
+      scope = scope.reorder(safe_order) if safe_order.present?
+      scope = scope.limit(limit) if limit.present?
+      scope = scope.offset(offset) if offset.present?
+      scope
+    end
+
+    def recordings_with_descendants(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil,
+                                    recordable_filters: nil, recordable_scope: nil, descendant_type: nil,
+                                    descendant_id: nil, descendant_recording_id: nil,
+                                    descendant_recordable_filters: nil, descendant_recordable_scope: nil,
+                                    order: nil, limit: nil, offset: nil)
+      parent_scope = filtered_root_recordings_query(
+        include_children: include_children,
+        type: type,
+        id: id,
+        recording_id: recording_id,
+        parent_id: parent_id,
+        recordable_filters: recordable_filters,
+        recordable_scope: recordable_scope
+      )
+
+      matching_descendants = filtered_root_recordings_query(
+        include_children: true,
+        type: descendant_type,
+        id: descendant_id,
+        recording_id: descendant_recording_id,
+        parent_id: nil,
+        recordable_filters: descendant_recordable_filters,
+        recordable_scope: descendant_recordable_scope
+      )
+
+      scope = parent_scope.where(id: descendant_ancestor_ids_for(parent_scope, matching_descendants))
+
+      safe_order = sanitize_order_for_model(order, RecordingStudio::Recording)
+      scope = scope.reorder(safe_order) if safe_order.present?
+      scope = scope.limit(limit) if limit.present?
+      scope = scope.offset(offset) if offset.present?
+      scope
+    end
+
+    def recordings_without_children(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil,
+                                    recordable_filters: nil, recordable_scope: nil, child_type: nil,
+                                    child_id: nil, child_recording_id: nil, child_recordable_filters: nil,
+                                    child_recordable_scope: nil, order: nil, limit: nil, offset: nil)
+      parent_scope = filtered_root_recordings_query(
+        include_children: include_children,
+        type: type,
+        id: id,
+        recording_id: recording_id,
+        parent_id: parent_id,
+        recordable_filters: recordable_filters,
+        recordable_scope: recordable_scope
+      )
+
+      matching_children = filtered_root_recordings_query(
+        include_children: true,
+        type: child_type,
+        id: child_id,
+        recording_id: child_recording_id,
+        parent_id: parent_scope.select(:id),
+        recordable_filters: child_recordable_filters,
+        recordable_scope: child_recordable_scope
+      )
+
+      scope = parent_scope.where.not(id: matching_children.select(:parent_recording_id)).distinct
+
+      safe_order = sanitize_order_for_model(order, RecordingStudio::Recording)
+      scope = scope.reorder(safe_order) if safe_order.present?
+      scope = scope.limit(limit) if limit.present?
+      scope = scope.offset(offset) if offset.present?
+      scope
+    end
+
     def log_event!(action:, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current,
                    idempotency_key: nil)
       RecordingStudio.record!(
@@ -327,6 +435,31 @@ module RecordingStudio
       )
       scope = scope.where(id: recording_id) if recording_id.present?
       scope
+    end
+
+    def descendant_ancestor_ids_for(parent_scope, matching_descendants)
+      parent_ids = parent_scope.pluck(:id).to_set
+      return [] if parent_ids.empty?
+
+      parent_links =
+        RecordingStudio::Recording
+        .unscoped
+        .where(root_recording_id: root_query_root_id)
+        .pluck(:id, :parent_recording_id)
+        .to_h
+
+      matching_descendants.pluck(:id, :parent_recording_id)
+                          .each_with_object(Set.new) do |(descendant_id, parent_id), acc|
+        current_parent_id = parent_id
+
+        while current_parent_id.present?
+          acc << current_parent_id if parent_ids.include?(current_parent_id)
+
+          break if current_parent_id == descendant_id
+
+          current_parent_id = parent_links[current_parent_id]
+        end
+      end.to_a
     end
 
     def root_query_root_id

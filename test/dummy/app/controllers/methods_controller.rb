@@ -12,12 +12,199 @@ class MethodsController < ApplicationController
       RUBY
     },
     {
+      title: "Read the Shared Configuration Object",
+      subtitle: "RecordingStudio.configuration",
+      code: <<~'RUBY'
+        config = RecordingStudio.configuration
+
+        # Use this when you need to inspect current RecordingStudio setup.
+        config.to_h
+      RUBY
+    },
+    {
       title: "Register a Recordable Type",
       subtitle: "RecordingStudio.register_recordable_type",
       code: <<~'RUBY'
         # Call this during boot or from addon setup.
         RecordingStudio.register_recordable_type("Page")
         RecordingStudio.register_recordable_type("Workspace")
+      RUBY
+    },
+    {
+      title: "Register Label Formatters for a Type",
+      subtitle: "RecordingStudio::Labels.register_formatter",
+      code: <<~'RUBY'
+        RecordingStudio::Labels.register_formatter(
+          "Page",
+          name: ->(page) { "Docs: #{page.title}" },
+          type_label: ->(_page) { "Document" },
+          summary: ->(page) { page.body.to_s.truncate(80) }
+        )
+      RUBY
+    },
+    {
+      title: "Inspect Registered Label Formatters",
+      subtitle: "RecordingStudio::Labels.formatters",
+      code: <<~'RUBY'
+        formatters = RecordingStudio::Labels.formatters
+
+        # Hash keyed by formatter kind, then by recordable type name.
+        formatters.fetch(:name).keys
+      RUBY
+    },
+    {
+      title: "Register a Before Initialize Hook",
+      subtitle: "RecordingStudio.configuration.hooks.before_initialize",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.before_initialize do
+          Rails.logger.info("RecordingStudio is about to initialize")
+        end
+      RUBY
+    },
+    {
+      title: "Register an After Initialize Hook",
+      subtitle: "RecordingStudio.configuration.hooks.after_initialize",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.after_initialize do
+          Rails.logger.info("RecordingStudio finished initializing")
+        end
+      RUBY
+    },
+    {
+      title: "Register a Configuration Hook",
+      subtitle: "RecordingStudio.configuration.hooks.on_configuration",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.on_configuration do |config|
+          Rails.logger.info(config.to_h.inspect)
+        end
+      RUBY
+    },
+    {
+      title: "Register a Before Service Hook",
+      subtitle: "RecordingStudio.configuration.hooks.before_service",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.before_service do |service_class, args|
+          Rails.logger.info("About to run #{service_class} with #{args.inspect}")
+        end
+      RUBY
+    },
+    {
+      title: "Register an After Service Hook",
+      subtitle: "RecordingStudio.configuration.hooks.after_service",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.after_service do |service_class, result|
+          Rails.logger.info("#{service_class} returned #{result.inspect}")
+        end
+      RUBY
+    },
+    {
+      title: "Wrap a Service Hook Around Execution",
+      subtitle: "RecordingStudio.configuration.hooks.around_service",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.around_service do |service, run|
+          Rails.logger.info("Start #{service.class.name}")
+          result = run.call
+          Rails.logger.info("Done #{service.class.name}")
+          result
+        end
+      RUBY
+    },
+    {
+      title: "Register a Custom Hook Event",
+      subtitle: "RecordingStudio.configuration.hooks.on",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.on(:recording_published) do |recording|
+          Rails.logger.info("Published #{recording.id}")
+        end
+      RUBY
+    },
+    {
+      title: "Register a Model Extension Hook",
+      subtitle: "RecordingStudio.configuration.hooks.extend_model",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.extend_model(:recording) do
+          def published?
+            latest_event&.action == "published"
+          end
+        end
+      RUBY
+    },
+    {
+      title: "Register a Controller Extension Hook",
+      subtitle: "RecordingStudio.configuration.hooks.extend_controller",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.extend_controller(:recordings) do
+          def api_request?
+            request.format.json?
+          end
+        end
+      RUBY
+    },
+    {
+      title: "Read Model Extension Hooks",
+      subtitle: "RecordingStudio.configuration.hooks.model_extensions_for",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.model_extensions_for(:recording)
+      RUBY
+    },
+    {
+      title: "Read Controller Extension Hooks",
+      subtitle: "RecordingStudio.configuration.hooks.controller_extensions_for",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.controller_extensions_for(:recordings)
+      RUBY
+    },
+    {
+      title: "Run Registered Hooks",
+      subtitle: "RecordingStudio::Hooks.run",
+      code: <<~'RUBY'
+        RecordingStudio::Hooks.run(:recording_published, page_recording)
+      RUBY
+    },
+    {
+      title: "Run Around Hooks",
+      subtitle: "RecordingStudio::Hooks.run_around",
+      code: <<~'RUBY'
+        RecordingStudio::Hooks.run_around(:around_service, page_recording) do
+          :ok
+        end
+      RUBY
+    },
+    {
+      title: "Trigger a Hook Event",
+      subtitle: "RecordingStudio::Hooks.trigger",
+      code: <<~'RUBY'
+        RecordingStudio::Hooks.trigger(:recording_published, page_recording)
+      RUBY
+    },
+    {
+      title: "Check Whether Hooks Are Registered",
+      subtitle: "RecordingStudio.configuration.hooks.registered?",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.registered?(:before_initialize)
+        # => true or false
+      RUBY
+    },
+    {
+      title: "Count Registered Hooks",
+      subtitle: "RecordingStudio.configuration.hooks.registered_counts",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.registered_counts
+        # => { before_initialize: 1, after_initialize: 1 }
+      RUBY
+    },
+    {
+      title: "Clear One Hook Event",
+      subtitle: "RecordingStudio.configuration.hooks.clear",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.clear(:recording_published)
+      RUBY
+    },
+    {
+      title: "Clear All Hooks",
+      subtitle: "RecordingStudio.configuration.hooks.clear!",
+      code: <<~'RUBY'
+        RecordingStudio.configuration.hooks.clear!
       RUBY
     },
     {
@@ -82,10 +269,65 @@ class MethodsController < ApplicationController
       RUBY
     },
     {
+      title: "Read a Label via the Labels API",
+      subtitle: "RecordingStudio::Labels.name_for",
+      code: <<~'RUBY'
+        page = Page.new(title: "Report blue")
+
+        RecordingStudio::Labels.name_for(page)
+        # => "Report blue"
+      RUBY
+    },
+    {
+      title: "Read the Compatibility Label Alias",
+      subtitle: "RecordingStudio::Labels.label_for",
+      code: <<~'RUBY'
+        page = Page.new(title: "Report blue")
+
+        RecordingStudio::Labels.label_for(page)
+        # => "Report blue"
+      RUBY
+    },
+    {
+      title: "Read a Type Label via the Labels API",
+      subtitle: "RecordingStudio::Labels.type_label_for",
+      code: <<~'RUBY'
+        RecordingStudio::Labels.type_label_for("Page")
+        # => "Page"
+      RUBY
+    },
+    {
+      title: "Read a Presentation Title via the Labels API",
+      subtitle: "RecordingStudio::Labels.title_for",
+      code: <<~'RUBY'
+        page = Page.new(title: "Report blue")
+
+        RecordingStudio::Labels.title_for(page)
+        # => "Report blue"
+      RUBY
+    },
+    {
+      title: "Read a Presentation Summary via the Labels API",
+      subtitle: "RecordingStudio::Labels.summary_for",
+      code: <<~'RUBY'
+        comment = Comment.new(body: "A concise update for the activity feed.")
+
+        RecordingStudio::Labels.summary_for(comment)
+      RUBY
+    },
+    {
       title: "Read a Recording Display Name",
       subtitle: "recording.name",
       code: <<~'RUBY'
         page_recording.name
+        # => "Report blue"
+      RUBY
+    },
+    {
+      title: "Read the Recording Label Alias",
+      subtitle: "recording.label",
+      code: <<~'RUBY'
+        page_recording.label
         # => "Report blue"
       RUBY
     },
@@ -135,12 +377,86 @@ class MethodsController < ApplicationController
       RUBY
     },
     {
+      title: "Reset Counter Caches on a Duplicate",
+      subtitle: "RecordingStudio::Duplication.reset_counter_caches",
+      code: <<~'RUBY'
+        page = Page.new(title: "Draft", recordings_count: 3, events_count: 7)
+
+        duplicated = RecordingStudio::Duplication.reset_counter_caches(page.dup)
+
+        duplicated.recordings_count
+        duplicated.events_count
+      RUBY
+    },
+    {
+      title: "Update a Polymorphic Counter Cache",
+      subtitle: "RecordingStudio.update_polymorphic_counter",
+      code: <<~'RUBY'
+        RecordingStudio.update_polymorphic_counter(
+          "Page",
+          page.id,
+          :recordings_count,
+          1
+        )
+      RUBY
+    },
+    {
       title: "Create or Find a Root Recording",
       subtitle: "RecordingStudio.root_recording_for",
       code: <<~'RUBY'
         workspace = Workspace.find("9d1a4d5b-5f6a-4f0b-a7d4-2b4a4d0d12ef")
 
         root_recording = RecordingStudio.root_recording_for(workspace)
+      RUBY
+    },
+    {
+      title: "Resolve the Root Recording Boundary",
+      subtitle: "RecordingStudio.root_recording_or_self",
+      code: <<~'RUBY'
+        recording = RecordingStudio::Recording.find(params[:id])
+
+        RecordingStudio.root_recording_or_self(recording)
+      RUBY
+    },
+    {
+      title: "Read the Root Recording ID",
+      subtitle: "RecordingStudio.root_recording_id_for",
+      code: <<~'RUBY'
+        recording = RecordingStudio::Recording.find(params[:id])
+
+        RecordingStudio.root_recording_id_for(recording)
+      RUBY
+    },
+    {
+      title: "Check Whether a Recording Is a Root",
+      subtitle: "RecordingStudio.root_recording?",
+      code: <<~'RUBY'
+        RecordingStudio.root_recording?(root_recording)
+        # => true
+      RUBY
+    },
+    {
+      title: "Assert That a Recording Is a Root",
+      subtitle: "RecordingStudio.assert_root_recording!",
+      code: <<~'RUBY'
+        RecordingStudio.assert_root_recording!(root_recording)
+        # => nil or raises ArgumentError
+      RUBY
+    },
+    {
+      title: "Assert That a Recording Belongs to a Root",
+      subtitle: "RecordingStudio.assert_recording_belongs_to_root!",
+      code: <<~'RUBY'
+        RecordingStudio.assert_recording_belongs_to_root!(root_recording, page_recording)
+        # => nil or raises ArgumentError
+      RUBY
+    },
+    {
+      title: "Assert That a Parent Recording Matches the Root",
+      subtitle: "RecordingStudio.assert_parent_recording_belongs_to_root!",
+      code: <<~'RUBY'
+        RecordingStudio.assert_parent_recording_belongs_to_root!(folder_recording, root_recording)
+        # => nil or raises ArgumentError
       RUBY
     },
     {
@@ -266,6 +582,39 @@ class MethodsController < ApplicationController
       RUBY
     },
     {
+      title: "Find Parent Recordings with Matching Children",
+      subtitle: "root_recording.recordings_with_children",
+      code: <<~'RUBY'
+        root_recording.recordings_with_children(
+          type: Page,
+          child_type: Comment,
+          child_recordable_filters: { body: "Published" }
+        )
+      RUBY
+    },
+    {
+      title: "Find Parent Recordings with Matching Descendants",
+      subtitle: "root_recording.recordings_with_descendants",
+      code: <<~'RUBY'
+        root_recording.recordings_with_descendants(
+          type: Page,
+          descendant_type: Comment,
+          descendant_recordable_filters: { body: "Published" }
+        )
+      RUBY
+    },
+    {
+      title: "Find Parent Recordings Without Matching Children",
+      subtitle: "root_recording.recordings_without_children",
+      code: <<~'RUBY'
+        root_recording.recordings_without_children(
+          type: Page,
+          child_type: Comment,
+          child_recordable_filters: { body: "Published" }
+        )
+      RUBY
+    },
+    {
       title: "Read Direct Children for a Parent",
       subtitle: "root_recording.child_recordings_of",
       code: <<~'RUBY'
@@ -321,6 +670,19 @@ class MethodsController < ApplicationController
       RUBY
     },
     {
+      title: "Lock Recording IDs in Deterministic Order",
+      subtitle: "RecordingStudio::Recording.lock_ids!",
+      code: <<~'RUBY'
+        RecordingStudio::Recording.transaction do
+          RecordingStudio::Recording.lock_ids!([
+            child_recording.id,
+            root_recording.id,
+            child_recording.id
+          ])
+        end
+      RUBY
+    },
+    {
       title: "Read Filtered Events",
       subtitle: "recording.events",
       code: <<~'RUBY'
@@ -329,6 +691,14 @@ class MethodsController < ApplicationController
           actor: current_user,
           limit: 20
         )
+      RUBY
+    },
+    {
+      title: "Read Recordables for One Recording",
+      subtitle: "recording.recordables",
+      code: <<~'RUBY'
+        page_recording.recordables
+        # => [#<Page id: ...>, #<Page id: ...>]
       RUBY
     },
     {
@@ -432,6 +802,14 @@ class MethodsController < ApplicationController
         # => :dup
       TEXT
     },
+    "RecordingStudio.configuration" => {
+      returns_kind: "Configuration",
+      returns: "RecordingStudio::Configuration",
+      notes: "Returns the shared configuration object used by the engine and addons.",
+      example_response: <<~'TEXT'
+        #<RecordingStudio::Configuration ...>
+      TEXT
+    },
     "RecordingStudio.register_recordable_type" => {
       returns_kind: "Side effect",
       returns: "No stable return contract; registers the type and reapplies delegated-type wiring.",
@@ -439,6 +817,183 @@ class MethodsController < ApplicationController
       example_response: <<~'TEXT'
         RecordingStudio.configuration.recordable_types
         # => ["Page", "Workspace"]
+      TEXT
+    },
+    "RecordingStudio::Labels.register_formatter" => {
+      returns_kind: "Side effect",
+      returns: "No stable return contract; stores one or more formatter callables for the recordable type.",
+      notes: "Use this in trusted addon or host-app code when the default label heuristics are not enough.",
+      example_response: <<~'TEXT'
+        RecordingStudio::Labels.formatters.fetch(:name).keys
+        # => ["Page"]
+      TEXT
+    },
+    "RecordingStudio::Labels.formatters" => {
+      returns_kind: "Hash",
+      returns: "Hash<Symbol, Hash<String, Proc>>",
+      notes: "The outer hash is keyed by formatter kind such as :name or :type_label.",
+      example_response: <<~'TEXT'
+        {
+          name: { "Page" => #<Proc:...> },
+          type_label: { "Page" => #<Proc:...> }
+        }
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.before_initialize" => {
+      returns_kind: "Side effect",
+      returns: "Registered hook entry",
+      notes: "Registers a hook that runs before RecordingStudio initialization work.",
+      example_response: <<~'TEXT'
+        RecordingStudio.configuration.hooks.registered?(:before_initialize)
+        # => true
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.after_initialize" => {
+      returns_kind: "Side effect",
+      returns: "Registered hook entry",
+      notes: "Registers a hook that runs after initialization work completes.",
+      example_response: <<~'TEXT'
+        RecordingStudio.configuration.hooks.registered?(:after_initialize)
+        # => true
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.on_configuration" => {
+      returns_kind: "Side effect",
+      returns: "Registered hook entry",
+      notes: "Registers a hook that reacts to configuration application or inspection.",
+      example_response: <<~'TEXT'
+        RecordingStudio.configuration.hooks.registered?(:on_configuration)
+        # => true
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.before_service" => {
+      returns_kind: "Side effect",
+      returns: "Registered hook entry",
+      notes: "Registers a hook that runs before a service executes.",
+      example_response: <<~'TEXT'
+        RecordingStudio.configuration.hooks.registered?(:before_service)
+        # => true
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.after_service" => {
+      returns_kind: "Side effect",
+      returns: "Registered hook entry",
+      notes: "Registers a hook that runs after a service returns a result.",
+      example_response: <<~'TEXT'
+        RecordingStudio.configuration.hooks.registered?(:after_service)
+        # => true
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.around_service" => {
+      returns_kind: "Side effect",
+      returns: "Registered hook entry",
+      notes: "Registers a wrapper hook around service execution.",
+      example_response: <<~'TEXT'
+        RecordingStudio.configuration.hooks.registered?(:around_service)
+        # => true
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.on" => {
+      returns_kind: "Side effect",
+      returns: "Registered hook entry",
+      notes: "Registers a callable for any custom hook name.",
+      example_response: <<~'TEXT'
+        RecordingStudio.configuration.hooks.registered?(:recording_published)
+        # => true
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.extend_model" => {
+      returns_kind: "Side effect",
+      returns: "Stored extension block",
+      notes: "Stores a model extension block to be applied by host code.",
+      example_response: <<~'TEXT'
+        RecordingStudio.configuration.hooks.model_extensions_for(:recording).length
+        # => 1
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.extend_controller" => {
+      returns_kind: "Side effect",
+      returns: "Stored extension block",
+      notes: "Stores a controller extension block to be applied by host code.",
+      example_response: <<~'TEXT'
+        RecordingStudio.configuration.hooks.controller_extensions_for(:recordings).length
+        # => 1
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.model_extensions_for" => {
+      returns_kind: "Array",
+      returns: "Array<Proc>",
+      items: "Proc",
+      notes: "Returns model extension blocks registered for the given model name.",
+      example_response: <<~'TEXT'
+        [#<Proc:...>]
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.controller_extensions_for" => {
+      returns_kind: "Array",
+      returns: "Array<Proc>",
+      items: "Proc",
+      notes: "Returns controller extension blocks registered for the given controller name.",
+      example_response: <<~'TEXT'
+        [#<Proc:...>]
+      TEXT
+    },
+    "RecordingStudio::Hooks.run" => {
+      returns_kind: "Array",
+      returns: "Array",
+      notes: "Runs the global hook registry for the event name and returns hook results in priority order.",
+      example_response: <<~'TEXT'
+        [nil]
+      TEXT
+    },
+    "RecordingStudio::Hooks.run_around" => {
+      returns_kind: "Any",
+      returns: "The wrapped block result",
+      notes: "Runs around hooks as a wrapper chain around the provided block.",
+      example_response: <<~'TEXT'
+        :ok
+      TEXT
+    },
+    "RecordingStudio::Hooks.trigger" => {
+      returns_kind: "Array",
+      returns: "Array",
+      notes: "Alias-style convenience method for running a custom hook event.",
+      example_response: <<~'TEXT'
+        [nil]
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.registered?" => {
+      returns_kind: "Boolean",
+      returns: "true or false",
+      notes: "Checks whether any hooks are registered for the event name.",
+      example_response: <<~'TEXT'
+        true
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.registered_counts" => {
+      returns_kind: "Hash",
+      returns: "Hash<Symbol, Integer>",
+      notes: "Useful for debugging or tests that need to inspect the hook registry shape.",
+      example_response: <<~'TEXT'
+        { before_initialize: 1, after_initialize: 1 }
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.clear" => {
+      returns_kind: "Side effect",
+      returns: "No stable return contract; removes hooks for one event name.",
+      notes: "Primarily useful in tests or temporary setup teardown.",
+      example_response: <<~'TEXT'
+        RecordingStudio.configuration.hooks.registered?(:recording_published)
+        # => false
+      TEXT
+    },
+    "RecordingStudio.configuration.hooks.clear!" => {
+      returns_kind: "Side effect",
+      returns: "No stable return contract; clears the whole hook registry.",
+      notes: "Primarily useful in tests.",
+      example_response: <<~'TEXT'
+        RecordingStudio.configuration.hooks.registered_counts
+        # => {}
       TEXT
     },
     "RecordingStudio.recordable_type_name" => {
@@ -489,10 +1044,58 @@ class MethodsController < ApplicationController
         "Page"
       TEXT
     },
+    "RecordingStudio::Labels.name_for" => {
+      returns_kind: "String",
+      returns: "String",
+      notes: "Returns the preferred display name for the recordable using the formatter and fallback pipeline.",
+      example_response: <<~'TEXT'
+        "Report blue"
+      TEXT
+    },
+    "RecordingStudio::Labels.label_for" => {
+      returns_kind: "String",
+      returns: "String",
+      notes: "Compatibility alias for RecordingStudio::Labels.name_for.",
+      example_response: <<~'TEXT'
+        "Report blue"
+      TEXT
+    },
+    "RecordingStudio::Labels.type_label_for" => {
+      returns_kind: "String",
+      returns: "String",
+      notes: "Returns the human-facing type label for a recordable instance, class, or type string.",
+      example_response: <<~'TEXT'
+        "Page"
+      TEXT
+    },
+    "RecordingStudio::Labels.title_for" => {
+      returns_kind: "String",
+      returns: "String",
+      notes: "Returns optional presentation title metadata for the recordable.",
+      example_response: <<~'TEXT'
+        "Report blue"
+      TEXT
+    },
+    "RecordingStudio::Labels.summary_for" => {
+      returns_kind: "String",
+      returns: "String or nil",
+      notes: "Returns a short summary or truncated body snippet when available.",
+      example_response: <<~'TEXT'
+        "A concise update for the activity feed."
+      TEXT
+    },
     "recording.name" => {
       returns_kind: "String",
       returns: "String",
       notes: "Returns the canonical display label for the recording's current recordable, falling back to the type label when necessary.",
+      example_response: <<~'TEXT'
+        "Report blue"
+      TEXT
+    },
+    "recording.label" => {
+      returns_kind: "String",
+      returns: "String",
+      notes: "Compatibility alias for recording.name.",
       example_response: <<~'TEXT'
         "Report blue"
       TEXT
@@ -537,12 +1140,76 @@ class MethodsController < ApplicationController
         #<Page id: nil, title: "Quarterly Plan", persisted?: false>
       TEXT
     },
+    "RecordingStudio::Duplication.reset_counter_caches" => {
+      returns_kind: "Recordable",
+      returns: "The same recordable object after counter cache fields are reset",
+      notes: "Resets known counter cache attributes like recordings_count and events_count on a duplicate.",
+      example_response: <<~'TEXT'
+        #<Page id: nil, recordings_count: 0, events_count: 0>
+      TEXT
+    },
+    "RecordingStudio.update_polymorphic_counter" => {
+      returns_kind: "Boolean",
+      returns: "true or false",
+      notes: "Returns false when the target type, id, column, or delta is not valid for a safe counter update.",
+      example_response: <<~'TEXT'
+        true
+      TEXT
+    },
     "RecordingStudio.root_recording_for" => {
       returns_kind: "Recording",
       returns: "RecordingStudio::Recording",
       notes: "Finds or creates the top-level recording wrapper for the persisted root recordable.",
       example_response: <<~'TEXT'
         #<RecordingStudio::Recording id: "0d8e4d5a-d869-4cfe-bf13-f784b77d7f35", recordable_type: "Workspace", recordable_id: "46ce6659-3670-4f7e-9f17-d5ec4ff983d8">
+      TEXT
+    },
+    "RecordingStudio.root_recording_or_self" => {
+      returns_kind: "Recording",
+      returns: "RecordingStudio::Recording or nil",
+      notes: "Returns the root recording for descendants, or the same recording when already at the root.",
+      example_response: <<~'TEXT'
+        #<RecordingStudio::Recording id: "0d8e4d5a-d869-4cfe-bf13-f784b77d7f35", recordable_type: "Workspace", recordable_id: "46ce6659-3670-4f7e-9f17-d5ec4ff983d8">
+      TEXT
+    },
+    "RecordingStudio.root_recording_id_for" => {
+      returns_kind: "Scalar",
+      returns: "Root recording id or nil",
+      notes: "Returns the tree boundary id used by root-scoped queries and guards.",
+      example_response: <<~'TEXT'
+        "0d8e4d5a-d869-4cfe-bf13-f784b77d7f35"
+      TEXT
+    },
+    "RecordingStudio.root_recording?" => {
+      returns_kind: "Boolean",
+      returns: "true or false",
+      notes: "Checks whether the given recording is the root of its tree.",
+      example_response: <<~'TEXT'
+        true
+      TEXT
+    },
+    "RecordingStudio.assert_root_recording!" => {
+      returns_kind: "Guard",
+      returns: "nil on success, or raises ArgumentError",
+      notes: "Use when an API must reject non-root recordings early.",
+      example_response: <<~'TEXT'
+        nil
+      TEXT
+    },
+    "RecordingStudio.assert_recording_belongs_to_root!" => {
+      returns_kind: "Guard",
+      returns: "nil on success, or raises ArgumentError",
+      notes: "Use to keep writes and queries inside the expected root tree.",
+      example_response: <<~'TEXT'
+        nil
+      TEXT
+    },
+    "RecordingStudio.assert_parent_recording_belongs_to_root!" => {
+      returns_kind: "Guard",
+      returns: "nil on success, or raises ArgumentError",
+      notes: "Validates that a proposed parent recording belongs to the same root tree.",
+      example_response: <<~'TEXT'
+        nil
       TEXT
     },
     "RecordingStudio.record!" => {
@@ -650,6 +1317,40 @@ class MethodsController < ApplicationController
         ]
       TEXT
     },
+    "root_recording.recordings_with_children" => {
+      returns_kind: "Relation",
+      returns: "ActiveRecord::Relation<RecordingStudio::Recording>",
+      items: "RecordingStudio::Recording",
+      notes: "Returns distinct parent recordings whose direct children match the child-side type or recordable filters.",
+      example_response: <<~'TEXT'
+        #<ActiveRecord::Relation [
+          #<RecordingStudio::Recording id: "7d8d6e1d-3d4f-4f6c-9b72-5c1bb0d6a2c9", recordable_type: "Page">
+        ]>
+      TEXT
+    },
+    "root_recording.recordings_with_descendants" => {
+      returns_kind: "Relation",
+      returns: "ActiveRecord::Relation<RecordingStudio::Recording>",
+      items: "RecordingStudio::Recording",
+      notes: "Returns distinct parent recordings whose descendants match the descendant-side type or recordable filters.",
+      example_response: <<~'TEXT'
+        #<ActiveRecord::Relation [
+          #<RecordingStudio::Recording id: "7d8d6e1d-3d4f-4f6c-9b72-5c1bb0d6a2c9", recordable_type: "Page">,
+          #<RecordingStudio::Recording id: "41b7d1f8-8c17-47cc-951f-1f10d0f38ec4", recordable_type: "Page">
+        ]>
+      TEXT
+    },
+    "root_recording.recordings_without_children" => {
+      returns_kind: "Relation",
+      returns: "ActiveRecord::Relation<RecordingStudio::Recording>",
+      items: "RecordingStudio::Recording",
+      notes: "Returns parent recordings that do not have any direct children matching the child-side type or recordable filters.",
+      example_response: <<~'TEXT'
+        #<ActiveRecord::Relation [
+          #<RecordingStudio::Recording id: "8f21e57c-a6c4-4650-b7f9-451f64f2958f", recordable_type: "Page">
+        ]>
+      TEXT
+    },
     "root_recording.child_recordings_of" => {
       returns_kind: "Relation",
       returns: "ActiveRecord::Relation<RecordingStudio::Recording>",
@@ -720,6 +1421,18 @@ class MethodsController < ApplicationController
         ]>
       TEXT
     },
+    "RecordingStudio::Recording.lock_ids!" => {
+      returns_kind: "Relation",
+      returns: "ActiveRecord::Relation<RecordingStudio::Recording>",
+      items: "RecordingStudio::Recording",
+      notes: "Deduplicates and sorts ids before locking to reduce deadlock risk in write-heavy workflows.",
+      example_response: <<~'TEXT'
+        #<ActiveRecord::Relation [
+          #<RecordingStudio::Recording id: "0d8e4d5a-d869-4cfe-bf13-f784b77d7f35", recordable_type: "Workspace">,
+          #<RecordingStudio::Recording id: "7d8d6e1d-3d4f-4f6c-9b72-5c1bb0d6a2c9", recordable_type: "Page">
+        ]>
+      TEXT
+    },
     "recording.events" => {
       returns_kind: "Relation",
       returns: "ActiveRecord::Relation<RecordingStudio::Event>",
@@ -730,6 +1443,18 @@ class MethodsController < ApplicationController
           #<RecordingStudio::Event id: "6e3e3b42-f0f7-4046-a20a-c3d8b69d1a6c", action: "published">,
           #<RecordingStudio::Event id: "2a7c59e6-73bc-4884-b4f0-93ee3d4b6ef2", action: "reviewed">
         ]>
+      TEXT
+    },
+    "recording.recordables" => {
+      returns_kind: "Array",
+      returns: "Array<ActiveRecord::Base>",
+      items: "recordable snapshots",
+      notes: "Returns distinct current and historical recordable snapshots referenced by this recording's events.",
+      example_response: <<~'TEXT'
+        [
+          #<RecordingStudioPage id: "9d1a4d5b-5f6a-4f0b-a7d4-2b4a4d0d12ef", title: "Draft">,
+          #<RecordingStudioPage id: "c14b6f72-4c7f-4b6d-9d96-8f8d3e2c1b91", title: "Reviewed">
+        ]
       TEXT
     },
     "recording.latest_event" => {
@@ -993,19 +1718,28 @@ class MethodsController < ApplicationController
     "RecordingStudio.recordable_global_id",
     "RecordingStudio.recordable_name",
     "RecordingStudio.recordable_type_label",
+    "RecordingStudio::Labels.name_for",
+    "RecordingStudio::Labels.label_for",
+    "RecordingStudio::Labels.type_label_for",
+    "RecordingStudio::Labels.title_for",
+    "RecordingStudio::Labels.summary_for",
     "recording.name",
+    "recording.label",
     "recording.type_label"
   ].freeze
 
   CRUD_METHOD_SUBTITLES = [
     "RecordingStudio.record!",
     "RecordingStudio.dup_strategy_for",
-    "RecordingStudio.duplicate_recordable"
+    "RecordingStudio.duplicate_recordable",
+    "RecordingStudio::Duplication.reset_counter_caches",
+    "RecordingStudio.update_polymorphic_counter"
   ].freeze
 
   EVENT_METHOD_SUBTITLES = [
     "recording.log_event!",
     "recording.events",
+    "recording.recordables",
     "recording.latest_event",
     "recording.first_event",
     "recording.event_by_idempotency_key",
@@ -1021,12 +1755,16 @@ class MethodsController < ApplicationController
   QUERY_METHOD_SUBTITLES = [
     "RecordingStudio::Recording.all",
     "RecordingStudio::Recording.of_type",
+    "RecordingStudio::Recording.lock_ids!",
     "RecordingStudio::Recording.for_root",
     "root_recording.recordings_query",
     "root_recording.recordings_of",
     "root_recording.recording_for",
     "root_recording.recordings_for",
     "root_recording.recordables_of",
+    "root_recording.recordings_with_children",
+    "root_recording.recordings_with_descendants",
+    "root_recording.recordings_without_children",
     "root_recording.child_recordings_of",
     "root_recording.events_query",
     "root_recording.recordings_with_events",
@@ -1043,6 +1781,12 @@ class MethodsController < ApplicationController
 
   ROOT_METHOD_SUBTITLES = [
     "RecordingStudio.root_recording_for",
+    "RecordingStudio.root_recording_or_self",
+    "RecordingStudio.root_recording_id_for",
+    "RecordingStudio.root_recording?",
+    "RecordingStudio.assert_root_recording!",
+    "RecordingStudio.assert_recording_belongs_to_root!",
+    "RecordingStudio.assert_parent_recording_belongs_to_root!",
     "root_recording.record",
     "root_recording.revise",
     "root_recording.log_event",
@@ -1052,6 +1796,9 @@ class MethodsController < ApplicationController
     "root_recording.recording_for",
     "root_recording.recordings_for",
     "root_recording.recordables_of",
+    "root_recording.recordings_with_children",
+    "root_recording.recordings_with_descendants",
+    "root_recording.recordings_without_children",
     "root_recording.child_recordings_of",
     "root_recording.events_query",
     "root_recording.recordings_with_events",

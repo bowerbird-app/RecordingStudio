@@ -227,6 +227,7 @@ This is the main object addons and host apps work with after they resolve a root
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
 | `events(actions: nil, actor: nil, actor_type: nil, actor_id: nil, from: nil, to: nil, limit: nil, offset: nil)` | event filters | `ActiveRecord::Relation<RecordingStudio::Event>` | Reads history for one recording. |
+| `recordables` | nothing | `Array<ActiveRecord::Base>` | Returns distinct recordable snapshots referenced by this recording's event history. |
 | `subtree_events(include_self: true, descendant_scope: nil, actions: nil, actor: nil, actor_type: nil, actor_id: nil, from: nil, to: nil, limit: nil, offset: nil)` | subtree and event filters | `ActiveRecord::Relation<RecordingStudio::Event>` | Reads history for this recording plus its descendants. |
 | `latest_event` | nothing | `RecordingStudio::Event` or `nil` | Returns the newest event for this recording. |
 | `first_event` | nothing | `RecordingStudio::Event` or `nil` | Returns the oldest event for this recording. |

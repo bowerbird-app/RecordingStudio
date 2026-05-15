@@ -1,6 +1,14 @@
 class CapabilitiesController < ApplicationController
   CAPABILITY_CATALOG = [
     {
+      title: "Inspect Registered Capabilities",
+      subtitle: "RecordingStudio.registered_capabilities",
+      code: <<~'RUBY'
+        RecordingStudio.registered_capabilities.keys
+        # => [:reviewable]
+      RUBY
+    },
+    {
       title: "Register Capability Methods",
       subtitle: "RecordingStudio.register_capability",
       code: <<~'RUBY'
@@ -118,6 +126,15 @@ class CapabilitiesController < ApplicationController
   ].freeze
 
   CAPABILITY_RESPONSE_DETAILS = {
+    "RecordingStudio.registered_capabilities" => {
+      returns_kind: "Hash",
+      returns: "Hash<Symbol, Hash>",
+      items: "Capability registration metadata",
+      notes: "Useful for inspecting which recording-level capability modules have been registered.",
+      example_response: <<~'TEXT'
+        { reviewable: { mod: Capabilities::Reviewable::RecordingMethods } }
+      TEXT
+    },
     "RecordingStudio.register_capability" => {
       returns_kind: "Side effect",
       returns: "No stable return contract; registers the capability and may apply it to RecordingStudio::Recording.",
