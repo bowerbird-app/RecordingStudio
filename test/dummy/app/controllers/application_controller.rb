@@ -11,7 +11,7 @@ class ApplicationController < ActionController::Base
   private
 
   def root_recording_for(workspace)
-    RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: workspace, parent_recording_id: nil)
+    RecordingStudio.root_recording_for(workspace)
   end
 
   def current_actor

@@ -18,7 +18,7 @@
         <% render_recording_tree_nodes(tree, @recordings_by_parent) %>
       <% end %>
     <% else %>
-      <%= render FlatPack::Alert::Component.new(message: "No recordings yet.", style: :info) %>
+      <%= render FlatPack::Alert::Component.new(description: "No recordings yet.", style: :info) %>
     <% end %>
   <% end %>
 <% end %>

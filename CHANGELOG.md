@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added cohesive top-level recordable display helpers: `RecordingStudio.recordable_name`,
+  `RecordingStudio.recordable_type_label`.
+
+### Changed
+- Updated the addon-first docs and dummy method catalog to present identity and display-label helpers as one cohesive
+  public API spanning both `RecordingStudio` and `RecordingStudio::Recording`, while keeping older label/title helpers
+  available as compatibility aliases.
+- Expanded the documentation with an agent-focused API reference that lists public methods, parameters, return values,
+  and the intent behind each supported write, query, capability, label, and hook helper.
+
 ## [1.1.0] - 2026-05-06
 
 ### Added

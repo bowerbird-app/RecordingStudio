@@ -6,16 +6,16 @@ module RecordingStudio
       extend ActiveSupport::Concern
 
       def name
-        label = RecordingStudio::Labels.name_for(presented_recordable)
+        label = RecordingStudio.recordable_name(presented_recordable)
         return label unless label == RecordingStudio::Labels::EMPTY_LABEL && recordable_type.present?
 
-        RecordingStudio::Labels.type_label_for(recordable_type)
+        RecordingStudio.recordable_type_label(recordable_type)
       end
 
       alias label name
 
       def type_label
-        RecordingStudio::Labels.type_label_for(presented_recordable || recordable_type)
+        RecordingStudio.recordable_type_label(presented_recordable || recordable_type)
       end
 
       def title

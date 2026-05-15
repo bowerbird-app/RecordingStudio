@@ -31,7 +31,7 @@
     <% if @recordings.any? %>
       <%= recordings_hierarchy_list(@recordings_by_parent, parent_id: @root_recording.id) %>
     <% else %>
-      <%= render FlatPack::Alert::Component.new(message: "No recordings yet.", style: :info) %>
+      <%= render FlatPack::Alert::Component.new(description: "No recordings yet.", style: :info) %>
     <% end %>
   <% end %>
 <% end %>

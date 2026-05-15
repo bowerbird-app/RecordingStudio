@@ -57,7 +57,7 @@ class HelpersLogicTest < ActiveSupport::TestCase
 
     assert_equal "Workspace", helpers.recording_tree_label(root)
     assert_equal "home", helpers.recording_tree_icon(root)
-    assert_equal "Folder", helpers.recording_tree_label(folder)
+    assert_equal "📁 Folder", helpers.recording_tree_label(folder)
     assert_equal "folder", helpers.recording_tree_icon(folder)
     assert_equal "Page", helpers.recording_tree_label(page)
     assert_equal "document-text", helpers.recording_tree_icon(page)

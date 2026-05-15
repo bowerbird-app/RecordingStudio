@@ -12,7 +12,7 @@
 
       <% if prefill_credentials %>
         <%= render FlatPack::Alert::Component.new(
-          message: "#{seed_account_ready ? 'Seed account ready' : 'Seed account not found'} Use #{prefill_email} with password #{prefill_password}.",
+          description: "#{seed_account_ready ? 'Seed account ready' : 'Seed account not found'} Use #{prefill_email} with password #{prefill_password}.",
           style: seed_account_ready ? :success : :warning,
           class: "mb-4"
         ) %>

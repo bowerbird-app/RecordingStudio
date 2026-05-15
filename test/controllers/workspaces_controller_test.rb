@@ -15,6 +15,7 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes @response.body, @workspace.name
+    assert_includes @response.body, "bg-[var(--button-primary-background-color)]"
   end
 
   test "create also creates a root recording" do

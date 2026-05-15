@@ -77,6 +77,65 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
                                                  recordable_order: "recording_studio_pages.title desc").first.id
   end
 
+  def test_root_lookup_helpers_find_recordings_and_recordables
+    _, root_recording = create_workspace_root
+    first = root_recording.record(RecordingStudioPage) { |page| page.title = "Alpha" }
+    second = root_recording.record(RecordingStudioPage) { |page| page.title = "Beta" }
+
+    assert_equal first.id, root_recording.recording_for(first.recordable)&.id
+    assert_equal [second.id, first.id], root_recording.recordings_for([second.recordable, first.recordable]).map(&:id)
+    assert_equal [second.recordable.id],
+                 root_recording.recordables_of(RecordingStudioPage, recordable_filters: { title: "Beta" }).map(&:id)
+  end
+
+  def test_child_recordings_of_filters_direct_children_for_parent
+    _, root_recording = create_workspace_root
+    parent = root_recording.record(RecordingStudioPage) { |page| page.title = "Parent" }
+    child = root_recording.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child" }
+    root_recording.record(RecordingStudioPage) { |page| page.title = "Sibling" }
+
+    assert_equal [child.id], root_recording.child_recordings_of(parent).map(&:id)
+  end
+
+  def test_events_query_filters_root_timeline_by_recording_scope_and_action
+    _, root_recording = create_workspace_root
+    actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
+    parent = root_recording.record(RecordingStudioPage) { |page| page.title = "Parent" }
+    child = root_recording.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child" }
+
+    parent.log_event!(action: "reviewed", actor: actor, occurred_at: 2.days.ago)
+    child.log_event!(action: "published", actor: actor, occurred_at: 1.day.ago)
+
+    events = root_recording.events_query(
+      parent_id: parent.id,
+      actions: "published",
+      actor: actor,
+      recordable_filters: { title: "Child" }
+    )
+
+    assert_equal [child.id], events.map(&:recording_id)
+    assert_equal ["published"], events.map(&:action)
+  end
+
+  def test_recordings_with_events_returns_distinct_recordings_matching_event_filters
+    _, root_recording = create_workspace_root
+    actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
+    first = root_recording.record(RecordingStudioPage) { |page| page.title = "First" }
+    second = root_recording.record(RecordingStudioPage) { |page| page.title = "Second" }
+
+    first.log_event!(action: "published", actor: actor, occurred_at: 2.days.ago)
+    first.log_event!(action: "reviewed", actor: actor, occurred_at: 1.day.ago)
+    second.log_event!(action: "reviewed", actor: actor, occurred_at: 12.hours.ago)
+
+    recordings = root_recording.recordings_with_events(
+      actions: "reviewed",
+      actor: actor,
+      order: { updated_at: :asc }
+    )
+
+    assert_equal [first.id, second.id], recordings.map(&:id)
+  end
+
   def test_recordings_sanitizes_recordable_order
     _, root_recording = create_workspace_root
     first = root_recording.record(RecordingStudioPage) { |page| page.title = "A" }

@@ -14,13 +14,13 @@ module ApplicationHelper
   end
 
   def recordable_name(recordable)
-    RecordingStudio::Labels.name_for(recordable)
+    RecordingStudio.recordable_name(recordable)
   end
 
   alias_method :recordable_label, :recordable_name
 
   def recordable_type_label(recordable_or_type)
-    RecordingStudio::Labels.type_label_for(recordable_or_type)
+    RecordingStudio.recordable_type_label(recordable_or_type)
   end
 
   def recordable_title(recordable)

@@ -59,6 +59,49 @@ class CapabilitiesTest < ActiveSupport::TestCase
     refute page_recording.recordable.respond_to?(:comment!)
   end
 
+  def test_capability_helpers_expose_enabled_state_and_options
+    _, root = create_workspace_root
+    actor = create_user("capability-helpers@example.com")
+    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: root) do |page|
+      page.title = "Discuss"
+    end
+    folder_recording = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Folder"
+    end
+
+    assert RecordingStudio.capability_enabled?(:commentable, for: RecordingStudioPage)
+    refute RecordingStudio.capability_enabled?(:commentable, for: RecordingStudioFolder)
+    assert_equal [:commentable], RecordingStudio.capabilities_for(RecordingStudioPage)
+    assert_equal [], RecordingStudio.capabilities_for(RecordingStudioFolder)
+
+    assert page_recording.capability_enabled?(:commentable)
+    refute folder_recording.capability_enabled?(:commentable)
+    assert_equal [:commentable], page_recording.capabilities
+    assert_equal [], folder_recording.capabilities
+
+    expected_options = { comment_class: "RecordingStudioComment" }
+    assert_equal expected_options, RecordingStudio.capability_options(:commentable, for: RecordingStudioPage)
+    assert_equal expected_options, page_recording.capability_options(:commentable)
+  end
+
+  def test_recording_assert_capability_helper_is_public
+    _, root = create_workspace_root
+    actor = create_user("assert-capability@example.com")
+    page_recording = root.record(RecordingStudioPage, actor: actor, parent_recording: root) do |page|
+      page.title = "Discuss"
+    end
+    folder_recording = root.record(RecordingStudioFolder, actor: actor, parent_recording: root) do |folder|
+      folder.name = "Folder"
+    end
+
+    assert_nil page_recording.assert_capability!(:commentable)
+
+    error = assert_raises(RecordingStudio::CapabilityDisabled) do
+      folder_recording.assert_capability!(:commentable)
+    end
+    assert_match(/Capability :commentable is not enabled/, error.message)
+  end
+
   private
 
   def create_workspace_root(name: "Workspace")

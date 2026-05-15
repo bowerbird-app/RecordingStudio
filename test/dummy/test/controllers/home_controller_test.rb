@@ -8,7 +8,7 @@ class HomeControllerTest < ActiveSupport::TestCase
       inline: <<~ERB
         <%= render FlatPack::PageHeader::Component.new(
           title: "Recording Studio Demo",
-          subtitle: "Explore explicit workspace-root recordings, revisions, folders, comments, and events in a demo app with no hidden current workspace.",
+          subtitle: "Explore explicit workspace-root recordings, revisions, folders, capability hooks, and events in a demo app with no hidden current workspace.",
           class: "mb-6"
         ) %>
       ERB

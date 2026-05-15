@@ -41,6 +41,6 @@
     ) %>
     <% end %>
   <% else %>
-    <%= render FlatPack::Alert::Component.new(message: "No recordings yet.", style: :info) %>
+    <%= render FlatPack::Alert::Component.new(description: "No recordings yet.", style: :info) %>
   <% end %>
 </div>

@@ -19,6 +19,7 @@ class EventTest < ActiveSupport::TestCase
     workspace = Workspace.create!(name: "Workspace")
     root_recording = RecordingStudio::Recording.create!(recordable: workspace)
     actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
+    impersonator = User.create!(name: "Admin", email: "admin@example.com", password: "password123")
     recording = RecordingStudio.record!(
       action: "created",
       recordable: RecordingStudioPage.new(title: "One"),
@@ -27,14 +28,33 @@ class EventTest < ActiveSupport::TestCase
       occurred_at: 3.days.ago
     ).recording
 
-    created = recording.log_event!(action: "created", actor: actor, occurred_at: 2.days.ago)
-    updated = recording.log_event!(action: "updated", actor: actor, occurred_at: 1.day.ago)
+    created = recording.log_event!(action: "created", actor: actor, impersonator: impersonator, occurred_at: 2.days.ago,
+                                   idempotency_key: "created-1")
+    updated = recording.log_event!(action: "updated", actor: actor, impersonator: impersonator, occurred_at: 1.day.ago)
+
+    other_root = RecordingStudio::Recording.create!(recordable: Workspace.create!(name: "Other Workspace"))
+    other_recording = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Other"),
+      root_recording: other_root,
+      parent_recording: other_root,
+      occurred_at: 12.hours.ago
+    ).recording
+    other_recording.log_event!(action: "updated", occurred_at: 6.hours.ago)
 
     assert_includes RecordingStudio::Event.for_recording(recording), created
+    assert_equal 3, RecordingStudio::Event.for_root(root_recording).count
+    refute_includes RecordingStudio::Event.for_root(root_recording), other_recording.events.first
     assert_includes RecordingStudio::Event.with_action("updated"), updated
     assert_equal 0, RecordingStudio::Event.by_actor(nil).count
     assert_equal 2, RecordingStudio::Event.by_actor(actor).count
-    assert_equal updated.id, RecordingStudio::Event.recent.first.id
+    assert_equal 2, RecordingStudio::Event.by_impersonator(impersonator).count
+    assert_equal 0, RecordingStudio::Event.by_impersonator(nil).count
+    assert_equal [updated.id],
+                 RecordingStudio::Event.for_root(root_recording)
+                                       .between(36.hours.ago, 12.hours.ago)
+                                       .pluck(:id)
+    assert_equal updated.id, RecordingStudio::Event.for_root(root_recording).recent.first.id
   end
 
   def test_events_count_updates_on_create_and_destroy

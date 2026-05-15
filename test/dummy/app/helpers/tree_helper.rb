@@ -6,7 +6,7 @@ module TreeHelper
         label: recording_tree_label(recording),
         icon: recording_tree_icon(recording),
         expanded: children.any?,
-        meta: recordable_type_label(recording.recordable)
+        meta: recording.type_label
       }
 
       if children.any?
@@ -31,6 +31,6 @@ module TreeHelper
   end
 
   def recording_tree_label(recording)
-    recordable_title(recording.recordable).presence || recordable_name(recording.recordable)
+    recording.name
   end
 end

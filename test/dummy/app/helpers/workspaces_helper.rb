@@ -14,11 +14,11 @@ module WorkspacesHelper
     Array(recordings_by_parent[parent_id]).each do |recording|
       children = Array(recordings_by_parent[recording.id])
       options = {
-        label: recordable_name(recording.recordable),
+        label: recording.name,
         href: recording_path(recording),
         expanded: children.any?,
         active: current_page?(recording_path(recording)),
-        meta: recordable_type_label(recording.recordable)
+        meta: recording.type_label
       }
 
       if children.any?

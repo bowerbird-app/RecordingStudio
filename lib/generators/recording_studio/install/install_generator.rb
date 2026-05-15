@@ -20,9 +20,7 @@ module RecordingStudio
       end
 
       def add_yaml_config
-        unless yes?("Would you like to add `config/recording_studio.yml` for environment-specific settings? [y/N]")
-          return
-        end
+        return unless add_yaml_config?
 
         template "recording_studio.yml", "config/recording_studio.yml"
       end
@@ -61,6 +59,12 @@ module RecordingStudio
 
       def show_readme
         readme "INSTALL.md" if behavior == :invoke
+      end
+
+      private
+
+      def add_yaml_config?
+        yes?("Would you like to add `config/recording_studio.yml` for environment-specific settings? [y/N]")
       end
     end
   end

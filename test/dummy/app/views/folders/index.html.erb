@@ -19,6 +19,6 @@
     <% table.column(title: "Root", html: ->(recording) { recording.root_recording&.name || "—" }) %>
     <% end %>
   <% else %>
-    <%= render FlatPack::Alert::Component.new(message: "No folders found.", style: :info) %>
+    <%= render FlatPack::Alert::Component.new(description: "No folders found.", style: :info) %>
   <% end %>
 </div>

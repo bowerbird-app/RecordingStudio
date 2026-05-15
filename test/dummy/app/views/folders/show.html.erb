@@ -33,7 +33,7 @@
         <% table.column(title: "Type", html: ->(recording) { recording.type_label }) %>
       <% end %>
     <% else %>
-      <%= render FlatPack::Alert::Component.new(message: "No child recordings.", style: :info) %>
+      <%= render FlatPack::Alert::Component.new(description: "No child recordings.", style: :info) %>
     <% end %>
   <% end %>
 <% end %>

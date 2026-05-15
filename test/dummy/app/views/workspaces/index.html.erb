@@ -22,6 +22,6 @@
 
     <% end %>
   <% else %>
-    <%= render FlatPack::Alert::Component.new(message: "No workspaces yet. Create one to start recording.", style: :info) %>
+    <%= render FlatPack::Alert::Component.new(description: "No workspaces yet. Create one to start recording.", style: :info) %>
   <% end %>
 </div>

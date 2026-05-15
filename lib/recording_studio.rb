@@ -72,6 +72,23 @@ module RecordingStudio
       RecordingStudio::Identity.global_id_for(recordable)
     end
 
+    def recordable_name(recordable)
+      RecordingStudio::Labels.name_for(recordable)
+    end
+
+    def recordable_type_label(recordable_or_type)
+      RecordingStudio::Labels.type_label_for(recordable_or_type)
+    end
+
+    def root_recording_for(recordable)
+      raise ArgumentError, "recordable is required" if recordable.nil?
+      unless recordable.respond_to?(:persisted?) && recordable.persisted?
+        raise ArgumentError, "recordable must be persisted"
+      end
+
+      RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: recordable, parent_recording_id: nil)
+    end
+
     def root_recording_or_self(recording)
       RecordingStudio::Relationships.root_recording_or_self(recording)
     end
@@ -116,12 +133,22 @@ module RecordingStudio
       configuration.enable_capability(capability, on: on)
     end
 
+    def capability_enabled?(capability, **kwargs)
+      resolved_type = kwargs.fetch(:for)
+      configuration.capability_enabled?(capability, for_type: resolved_type)
+    end
+
+    def capabilities_for(recordable_or_type)
+      configuration.capabilities_for(recordable_or_type)
+    end
+
     def set_capability_options(capability, on:, **)
       configuration.set_capability_options(capability, on: on, **)
     end
 
-    def capability_options(capability, for_type:)
-      configuration.capability_options(capability, for_type: for_type)
+    def capability_options(capability, **kwargs)
+      resolved_type = kwargs[:for] || kwargs[:for_type]
+      configuration.capability_options(capability, for_type: resolved_type)
     end
 
     def record!(action:, recordable:, recording: nil, root_recording: nil, actor: nil, impersonator: nil,

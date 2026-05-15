@@ -1,0 +1,19 @@
+<div class="space-y-6">
+  <% method_catalog.each do |entry| %>
+    <section class="space-y-3">
+      <%= render FlatPack::SectionTitle::Component.new(
+        title: entry[:subtitle],
+        subtitle: entry[:title],
+        anchor_link: true,
+        anchor_id: entry[:subtitle].to_s.parameterize(separator: "-").tr("_", "-"),
+        class: "my-0"
+      ) %>
+      <%= render FlatPack::CodeBlock::Component.new(
+        code: entry[:code],
+        language: :ruby,
+        title: entry[:subtitle],
+        separated: false
+      ) %>
+    </section>
+  <% end %>
+</div>

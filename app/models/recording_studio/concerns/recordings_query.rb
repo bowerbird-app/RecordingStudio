@@ -6,6 +6,18 @@ module RecordingStudio
     module RecordingsQuery
       extend ActiveSupport::Concern
 
+      def descendant_ids(include_self: false)
+        subtree_ids(include_self: include_self)
+      end
+
+      def subtree_recordings(include_self: true, order: nil, scope: nil)
+        ids = subtree_ids(include_self: include_self)
+        return self.class.unscoped.none if ids.empty?
+
+        relation = scoped_subtree_relation(ids, scope)
+        reorder_subtree_relation(relation, ids, order)
+      end
+
       # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/ParameterLists, Metrics/PerceivedComplexity
       def recordings_query(include_children: false, type: nil, id: nil, parent_id: nil,
                            created_after: nil, created_before: nil, updated_after: nil, updated_before: nil,
@@ -39,6 +51,49 @@ module RecordingStudio
       # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/ParameterLists, Metrics/PerceivedComplexity
 
       private
+
+      def scoped_subtree_relation(ids, scope)
+        relation = self.class.unscoped.where(id: ids)
+        apply_subtree_scope(relation, scope).where(id: ids)
+      end
+
+      def reorder_subtree_relation(relation, ids, order)
+        safe_order = sanitize_order_for_model(order, self.class)
+        return relation.reorder(safe_order) if safe_order.present?
+
+        relation.reorder(*stable_subtree_order(ids))
+      end
+
+      def subtree_ids(include_self:)
+        return [] if id.blank?
+
+        ids = descendants.map(&:id)
+        include_self ? [id] + ids : ids
+      end
+
+      def apply_subtree_scope(relation, scope)
+        return relation if scope.blank?
+
+        scoped_relation = if scope.respond_to?(:call)
+                            scope.call(relation)
+                          elsif scope.is_a?(ActiveRecord::Relation)
+                            relation.merge(scope)
+                          else
+                            relation
+                          end
+
+        scoped_relation.is_a?(ActiveRecord::Relation) ? scoped_relation : relation
+      end
+
+      def stable_subtree_order(ids)
+        connection = self.class.connection
+        table_name = connection.quote_table_name(self.class.table_name)
+        case_sql = ids.each_with_index.map do |recording_id, index|
+          "WHEN #{connection.quote(recording_id)} THEN #{index}"
+        end.join(" ")
+
+        [Arel.sql("CASE #{table_name}.id #{case_sql} END ASC")]
+      end
 
       # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
       def apply_recordable_query_options(scope, type:, recordable_order:, recordable_filters:, recordable_scope:)

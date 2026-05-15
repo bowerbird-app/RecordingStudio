@@ -50,6 +50,6 @@
     ) %>
     <% end %>
   <% else %>
-    <%= render FlatPack::Alert::Component.new(message: "No pages yet. Create one to see recordings in action.", style: :info) %>
+    <%= render FlatPack::Alert::Component.new(description: "No pages yet. Create one to see recordings in action.", style: :info) %>
   <% end %>
 </div>

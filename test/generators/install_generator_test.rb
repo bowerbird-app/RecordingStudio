@@ -18,14 +18,14 @@ class InstallGeneratorTest < Rails::Generators::TestCase
 
   def test_installs_routes_and_initializer
     generator_class = RecordingStudio::Generators::InstallGenerator
-    original_yes = generator_class.instance_method(:yes?)
+    original_prompt = generator_class.instance_method(:add_yaml_config?)
 
-    generator_class.define_method(:yes?) { |_message| false }
+    generator_class.define_method(:add_yaml_config?) { false }
     run_generator
 
     assert_file "config/routes.rb", /mount RecordingStudio::Engine/
     assert_file "config/initializers/recording_studio.rb"
   ensure
-    generator_class.define_method(:yes?, original_yes)
+    generator_class.define_method(:add_yaml_config?, original_prompt)
   end
 end

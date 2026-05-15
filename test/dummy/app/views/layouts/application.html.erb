@@ -39,10 +39,10 @@
       <% layout.main do %>
         <main class="mx-auto w-full max-w-6xl p-6">
           <% if flash[:notice].present? %>
-            <%= render FlatPack::Alert::Component.new(message: flash[:notice], style: :success, class: "mb-6") %>
+            <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-6") %>
           <% end %>
           <% if flash[:alert].present? %>
-            <%= render FlatPack::Alert::Component.new(message: flash[:alert], style: :danger, class: "mb-6") %>
+            <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-6") %>
           <% end %>
           <%= yield %>
         </main>

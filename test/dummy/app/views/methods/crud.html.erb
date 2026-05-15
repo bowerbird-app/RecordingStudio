@@ -1,13 +1,14 @@
-<% content_for :title, "Config" %>
+<% content_for :title, "CRUD Methods" %>
 
 <%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
   <% breadcrumb.item(text: "Home", href: root_path) %>
-  <% breadcrumb.item(text: "Config") %>
+  <% breadcrumb.item(text: "Methods", href: methods_path) %>
+  <% breadcrumb.item(text: "CRUD") %>
 <% end %>
 
 <%= render FlatPack::PageTitle::Component.new(
-  title: "Config",
-  subtitle: "Reference examples for the RecordingStudio core public API used in this demo.",
+  title: "CRUD",
+  subtitle: "Reference examples for creating, revising, duplicating, and reverting recordings in the RecordingStudio core API.",
   class: "mb-6"
 ) %>
 

@@ -35,6 +35,42 @@ class AddonFirstApiTest < ActiveSupport::TestCase
     assert_equal recording.recordable.to_global_id.to_s, recording.recordable_global_id
   end
 
+  def test_recording_exposes_tree_helpers
+    _workspace, root_recording = create_workspace_root
+    parent = root_recording.record(RecordingStudioPage) { |page| page.title = "Parent" }
+    child = root_recording.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child" }
+
+    assert_respond_to child, :root?
+    assert_respond_to child, :leaf?
+    assert_respond_to child, :depth
+    assert_respond_to child, :level
+    assert_respond_to child, :ancestors
+    assert_respond_to child, :self_and_ancestors
+    assert_respond_to parent, :descendants
+    assert_respond_to parent, :self_and_descendants
+    assert_respond_to parent, :descendant_ids
+    assert_respond_to parent, :subtree_recordings
+
+    assert_equal [root_recording, parent], child.ancestors
+    assert_equal [child], parent.descendants
+    assert_equal [child.id], parent.descendant_ids
+    assert_equal [parent.id, child.id], parent.subtree_recordings.map(&:id)
+    assert_equal 2, child.depth
+    assert child.leaf?
+  end
+
+  def test_recording_class_exposes_deterministic_locking_helper
+    _workspace, root_recording = create_workspace_root
+    first = root_recording.record(RecordingStudioPage) { |page| page.title = "First" }
+    second = root_recording.record(RecordingStudioPage) { |page| page.title = "Second" }
+
+    RecordingStudio::Recording.transaction do
+      locked = RecordingStudio::Recording.lock_ids!([second.id, first.id, second.id])
+
+      assert_equal [first.id, second.id].sort, locked.map(&:id)
+    end
+  end
+
   def test_core_helpers_cover_identity_and_root_relationships
     _workspace, root_recording = create_workspace_root
     local_recording = root_recording.record(RecordingStudioPage) { |page| page.title = "Local" }
@@ -44,6 +80,8 @@ class AddonFirstApiTest < ActiveSupport::TestCase
     assert_equal "Workspace", RecordingStudio.recordable_type_name(Workspace)
     assert_equal Workspace, RecordingStudio.resolve_recordable_type("Workspace")
     assert_equal local_recording.recordable_id, RecordingStudio.recordable_identifier(local_recording.recordable)
+    assert_equal "Local", RecordingStudio.recordable_name(local_recording.recordable)
+    assert_equal "Page", RecordingStudio.recordable_type_label(local_recording.recordable)
     assert_equal root_recording, RecordingStudio.root_recording_or_self(local_recording)
     assert_equal root_recording.id, RecordingStudio.root_recording_id_for(local_recording)
 
@@ -54,6 +92,17 @@ class AddonFirstApiTest < ActiveSupport::TestCase
     assert_raises(ArgumentError) do
       RecordingStudio.assert_recording_belongs_to_root!(root_recording, foreign_recording)
     end
+  end
+
+  def test_root_recording_for_finds_or_creates_root_recording
+    workspace = Workspace.create!(name: "Workspace")
+
+    root_recording = RecordingStudio.root_recording_for(workspace)
+
+    assert_predicate root_recording, :persisted?
+    assert_equal workspace, root_recording.recordable
+    assert RecordingStudio.root_recording?(root_recording)
+    assert_equal root_recording, RecordingStudio.root_recording_for(workspace)
   end
 
   def test_record_bang_infers_root_recording_from_recording

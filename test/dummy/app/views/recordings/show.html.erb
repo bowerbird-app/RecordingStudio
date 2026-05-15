@@ -41,7 +41,7 @@
           }) %>
         <% end %>
       <% else %>
-        <%= render FlatPack::Alert::Component.new(message: "No child recordings yet.", style: :info) %>
+        <%= render FlatPack::Alert::Component.new(description: "No child recordings yet.", style: :info) %>
       <% end %>
     <% end %>
   <% end %>
@@ -136,7 +136,7 @@
             <%= safe_join(timeline_items) %>
           <% end %>
         <% else %>
-          <%= render FlatPack::Alert::Component.new(message: "No history yet.", style: :info) %>
+          <%= render FlatPack::Alert::Component.new(description: "No history yet.", style: :info) %>
         <% end %>
       <% end %>
     <% end %>
@@ -176,7 +176,7 @@
             <% table.column(title: "ID", html: ->(recordable) { recordable.id }) %>
           <% end %>
         <% else %>
-          <%= render FlatPack::Alert::Component.new(message: "No recordables yet.", style: :info) %>
+          <%= render FlatPack::Alert::Component.new(description: "No recordables yet.", style: :info) %>
         <% end %>
       <% end %>
     <% end %>

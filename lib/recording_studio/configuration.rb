@@ -51,6 +51,11 @@ module RecordingStudio
       @capabilities[type_name]&.include?(capability.to_sym) || false
     end
 
+    def capabilities_for(recordable_or_type)
+      type_name = recordable_or_type.is_a?(Class) ? recordable_or_type.name : recordable_or_type.to_s
+      @capabilities.fetch(type_name, Set.new).to_a.sort
+    end
+
     def set_capability_options(capability, on:, **options)
       type_name = on.is_a?(Class) ? on.name : on.to_s
       @capability_options[[capability.to_sym, type_name]] = options
