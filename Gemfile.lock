@@ -11,7 +11,7 @@ GIT
 PATH
   remote: .
   specs:
-    recording_studio (1.2.0)
+    recording_studio (2.0.0)
       rails (>= 8.1.0)
 
 GEM
