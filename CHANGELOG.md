@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0](https://github.com/bowerbird-app/RecordingStudio/compare/recording_studio-v1.0.1...recording_studio/v2.0.0) (2026-05-15)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove built-in access control from core
+
+### Features
+
+* add capability framework and release automation ([bc1bc5f](https://github.com/bowerbird-app/RecordingStudio/commit/bc1bc5fb182f0dd23bfe7ed0d992647ec06e6526))
+* add feature toggles for legacy move/copyable/device sessions ([7a8f02f](https://github.com/bowerbird-app/RecordingStudio/commit/7a8f02f5c09a30f27c318ec93133b99dae98dba9))
+* formalize addon capability contract in docs and registration lifecycle ([b47e733](https://github.com/bowerbird-app/RecordingStudio/commit/b47e733358784018f169ae8eb4d7bbcc6cc74e37))
+* remove built-in access control from core ([c6d7f00](https://github.com/bowerbird-app/RecordingStudio/commit/c6d7f0038fb44bb6928e1831545f18c9cf7f2242))
+* remove legacy moveable support ([7383c5e](https://github.com/bowerbird-app/RecordingStudio/commit/7383c5ef0c92358368710b27771b6b512cbdd004))
+
+
+### Bug Fixes
+
+* **ci:** force postgres user in health check ([1b6dbad](https://github.com/bowerbird-app/RecordingStudio/commit/1b6dbad50c83ae383f5e180cfd59e1191eeba4d8))
+* **test:** stabilize device session cleanup and ordering assertion ([1ef35d1](https://github.com/bowerbird-app/RecordingStudio/commit/1ef35d1bd4c0055b17eae24ca2acb0b039fc06d8))
+
 ## [Unreleased]
 
 ## [1.2.0] - 2026-05-15
