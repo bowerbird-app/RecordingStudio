@@ -240,6 +240,9 @@ module RecordingStudio
         unless recording
           if parent_recording.nil?
             assert_root_allowed!(recordable.class.name)
+            raise RecordingStudio::OrphanRecording,
+                  "#{recordable.class.name} cannot be recorded under an existing root without a parent; " \
+                  "use root_recording_for to create root recordings"
           else
             assert_parent_allowed!(child_type: recordable.class.name, parent_recording: parent_recording)
           end

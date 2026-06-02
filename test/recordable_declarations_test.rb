@@ -81,19 +81,13 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
 
   def test_record_rejects_new_recording_under_invalid_parent_type
     _, root = create_workspace_root
-    page = RecordingStudio.record!(
-      action: "created",
-      recordable: RecordingStudioPage.new(title: "Page"),
-      root_recording: root,
-      parent_recording: root
-    ).recording
 
     assert_raises(RecordingStudio::InvalidParent) do
       RecordingStudio.record!(
         action: "created",
-        recordable: RecordingStudioPage.new(title: "Nested page"),
+        recordable: RecordingStudioComment.new(body: "Comment"),
         root_recording: root,
-        parent_recording: page
+        parent_recording: root
       )
     end
   end
@@ -202,22 +196,39 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
     end
   end
 
+  def test_record_bang_rejects_root_recordable_without_parent_under_existing_root
+    _, root = create_workspace_root
+
+    assert_raises(RecordingStudio::OrphanRecording) do
+      RecordingStudio.record!(
+        action: "created",
+        recordable: Workspace.new(name: "Other root"),
+        root_recording: root
+      )
+    end
+  end
+
+  def test_direct_write_rejects_parentless_recording_under_existing_root
+    _, root = create_workspace_root
+    recording = RecordingStudio::Recording.new(
+      root_recording: root,
+      recordable: Workspace.create!(name: "Other root")
+    )
+
+    assert_not recording.valid?
+    assert_includes recording.errors[:parent_recording_id].join, "cannot be blank"
+  end
+
   def test_invalid_parent_record_does_not_persist_recordable
     _, root = create_workspace_root
-    page = RecordingStudio.record!(
-      action: "created",
-      recordable: RecordingStudioPage.new(title: "Page"),
-      root_recording: root,
-      parent_recording: root
-    ).recording
 
-    assert_no_difference -> { RecordingStudioPage.count } do
+    assert_no_difference -> { RecordingStudioComment.count } do
       assert_raises(RecordingStudio::InvalidParent) do
         RecordingStudio.record!(
           action: "created",
-          recordable: RecordingStudioPage.new(title: "Nested page"),
+          recordable: RecordingStudioComment.new(body: "Comment"),
           root_recording: root,
-          parent_recording: page
+          parent_recording: root
         )
       end
     end
@@ -225,17 +236,11 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
 
   def test_invalid_convenience_record_does_not_persist_recordable
     _, root = create_workspace_root
-    page = RecordingStudio.record!(
-      action: "created",
-      recordable: RecordingStudioPage.new(title: "Page"),
-      root_recording: root,
-      parent_recording: root
-    ).recording
 
-    assert_no_difference -> { RecordingStudioPage.count } do
+    assert_no_difference -> { RecordingStudioComment.count } do
       assert_raises(RecordingStudio::InvalidParent) do
-        root.record(RecordingStudioPage, parent_recording: page) do |recordable|
-          recordable.title = "Nested page"
+        root.record(RecordingStudioComment) do |recordable|
+          recordable.body = "Comment"
         end
       end
     end

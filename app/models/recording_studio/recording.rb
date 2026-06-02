@@ -511,6 +511,11 @@ module RecordingStudio
     end
 
     def validate_parentless_allowed
+      if parentless_child_under_existing_root?
+        errors.add(:parent_recording_id, "cannot be blank when root_recording_id points to an existing root")
+        return
+      end
+
       return validate_root_allowed if RecordingStudio.root_allowed?(recordable_type)
 
       errors.add(
@@ -523,6 +528,10 @@ module RecordingStudio
 
     def resolved_parent_recording
       parent_recording || self.class.unscoped.find_by(id: parent_recording_id)
+    end
+
+    def parentless_child_under_existing_root?
+      root_recording_id.present? && root_recording_id != id
     end
   end
   # rubocop:enable Metrics/ClassLength

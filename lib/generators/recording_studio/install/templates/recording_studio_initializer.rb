@@ -24,8 +24,8 @@ RecordingStudio.configure do |config|
   # config.register_recordable_dup_strategy("Page") { |recordable| Page.new(title: recordable.title) }
 end
 
-# Example recordable registration
-RecordingStudio.register_recordable_type("Page")
+# Example recordable registration, after the model declaration below exists:
+# RecordingStudio.register_recordable_type("Page")
 
 # In app/models/page.rb:
 # class Page < ApplicationRecord

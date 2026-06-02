@@ -211,7 +211,7 @@ class Workspace < ApplicationRecord
 end
 
 class Page < ApplicationRecord
-  recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace"]
+  recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
 end
 ```
 
