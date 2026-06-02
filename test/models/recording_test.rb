@@ -27,7 +27,7 @@ class RecordingTest < ActiveSupport::TestCase
     first = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
                                     root_recording: root, parent_recording: root).recording
     second = RecordingStudio.record!(action: "created", recordable: RecordingStudioComment.new(body: "Two"),
-                                     root_recording: root, parent_recording: root).recording
+                                     root_recording: root, parent_recording: first).recording
 
     assert_includes RecordingStudio::Recording.for_root(root.id), first
     assert_includes RecordingStudio::Recording.all, second
@@ -63,9 +63,9 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_subtree_events_include_self_and_filtered_descendants
     _, root = create_workspace_root
-    parent = root.record(RecordingStudioPage) { |page| page.title = "Parent" }
+    parent = root.record(RecordingStudioFolder) { |folder| folder.name = "Parent" }
     publishable_child = root.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child Page" }
-    comment_child = root.record(RecordingStudioComment, parent_recording: parent) do |comment|
+    comment_child = root.record(RecordingStudioComment, parent_recording: publishable_child) do |comment|
       comment.body = "Child Comment"
     end
 
@@ -84,7 +84,7 @@ class RecordingTest < ActiveSupport::TestCase
   def test_subtree_events_support_filters_without_self
     _, root = create_workspace_root
     actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
-    parent = root.record(RecordingStudioPage) { |page| page.title = "Parent" }
+    parent = root.record(RecordingStudioFolder) { |folder| folder.name = "Parent" }
     child = root.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child" }
 
     child.log_event!(action: "published", actor: actor, occurred_at: 2.days.ago)
@@ -240,7 +240,7 @@ class RecordingTest < ActiveSupport::TestCase
     ).recording
     child = RecordingStudio.record!(
       action: "created",
-      recordable: RecordingStudioPage.new(title: "Child"),
+      recordable: RecordingStudioComment.new(body: "Child"),
       root_recording: root,
       parent_recording: parent
     ).recording

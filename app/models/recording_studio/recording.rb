@@ -104,7 +104,6 @@ module RecordingStudio
     def record(recordable_or_class, actor: nil, impersonator: nil, metadata: {}, parent_recording: nil)
       recordable = build_recordable_instance(recordable_or_class)
       yield(recordable) if block_given?
-      recordable.save!
 
       root = root_recording_or_self
       resolved_parent = parent_recording || root

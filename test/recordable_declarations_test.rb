@@ -157,9 +157,49 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
       parent_recording: root
     ).recording
 
-    assert_raises(ActiveRecord::DeleteRestrictionError) { root.destroy! }
+    assert_raises(ActiveRecord::RecordNotDestroyed) { root.destroy! }
     assert_not child.reload.orphan?
     assert_equal root.id, child.parent_recording_id
+  end
+
+  def test_root_recording_for_rejects_non_root_recordable
+    page = RecordingStudioPage.create!(title: "Root page")
+
+    assert_raises(RecordingStudio::RootNotAllowed) do
+      RecordingStudio.root_recording_for(page)
+    end
+  end
+
+  def test_comment_can_be_recorded_under_page
+    _, root = create_workspace_root
+    page = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Page"),
+      root_recording: root,
+      parent_recording: root
+    ).recording
+
+    comment = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioComment.new(body: "Comment"),
+      root_recording: root,
+      parent_recording: page
+    ).recording
+
+    assert_equal page, comment.parent_recording
+  end
+
+  def test_comment_cannot_be_recorded_under_root
+    _, root = create_workspace_root
+
+    assert_raises(RecordingStudio::InvalidParent) do
+      RecordingStudio.record!(
+        action: "created",
+        recordable: RecordingStudioComment.new(body: "Comment"),
+        root_recording: root,
+        parent_recording: root
+      )
+    end
   end
 
   def test_invalid_parent_record_does_not_persist_recordable
@@ -179,6 +219,24 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
           root_recording: root,
           parent_recording: page
         )
+      end
+    end
+  end
+
+  def test_invalid_convenience_record_does_not_persist_recordable
+    _, root = create_workspace_root
+    page = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Page"),
+      root_recording: root,
+      parent_recording: root
+    ).recording
+
+    assert_no_difference -> { RecordingStudioPage.count } do
+      assert_raises(RecordingStudio::InvalidParent) do
+        root.record(RecordingStudioPage, parent_recording: page) do |recordable|
+          recordable.title = "Nested page"
+        end
       end
     end
   end
