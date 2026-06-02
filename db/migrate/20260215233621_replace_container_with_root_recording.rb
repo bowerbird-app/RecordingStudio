@@ -20,6 +20,17 @@ class ReplaceContainerWithRootRecording < ActiveRecord::Migration[8.1]
       WHERE root.container_type = recording.container_type
         AND root.container_id = recording.container_id
     SQL
+
+    missing_root_count = select_value(<<~SQL.squish).to_i
+      SELECT COUNT(*)
+      FROM recording_studio_recordings
+      WHERE root_recording_id IS NULL
+    SQL
+    if missing_root_count.positive?
+      raise ActiveRecord::MigrationError,
+            "cannot replace container columns because #{missing_root_count} recording(s) do not have a root recording"
+    end
+
     add_index :recording_studio_recordings, :root_recording_id, name: "index_rs_recordings_on_root_recording"
     add_foreign_key :recording_studio_recordings, :recording_studio_recordings, column: :root_recording_id
 
