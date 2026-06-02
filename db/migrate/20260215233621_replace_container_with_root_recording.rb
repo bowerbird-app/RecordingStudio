@@ -3,6 +3,23 @@
 class ReplaceContainerWithRootRecording < ActiveRecord::Migration[8.1]
   def up
     add_column :recording_studio_recordings, :root_recording_id, :uuid
+    execute <<~SQL.squish
+      WITH roots AS (
+        SELECT container_type,
+               container_id,
+               MIN(id::text)::uuid AS id
+        FROM recording_studio_recordings
+        WHERE parent_recording_id IS NULL
+          AND recordable_type = container_type
+          AND recordable_id = container_id
+        GROUP BY container_type, container_id
+      )
+      UPDATE recording_studio_recordings AS recording
+      SET root_recording_id = root.id
+      FROM roots AS root
+      WHERE root.container_type = recording.container_type
+        AND root.container_id = recording.container_id
+    SQL
     add_index :recording_studio_recordings, :root_recording_id, name: "index_rs_recordings_on_root_recording"
     add_foreign_key :recording_studio_recordings, :recording_studio_recordings, column: :root_recording_id
 

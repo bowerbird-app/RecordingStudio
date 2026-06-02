@@ -1,6 +1,8 @@
 development:
   recordable_types:
     - Page
+  roots:
+    - Page
   instrumentation_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
@@ -9,6 +11,7 @@ development:
 
 production:
   recordable_types: []
+  roots: []
   instrumentation_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup

@@ -29,8 +29,10 @@ class EngineInitializersTest < ActiveSupport::TestCase
 
   def test_on_configuration_merges_config_x
     original = RecordingStudio.configuration.recordable_types
+    original_roots = RecordingStudio.configuration.roots
     config = ActiveSupport::OrderedOptions.new
     config.recordable_types = ["RecordingStudioPage"]
+    config.roots = ["Workspace"]
 
     previous = Rails.application.config.x.recording_studio
     Rails.application.config.x.recording_studio = config
@@ -39,8 +41,10 @@ class EngineInitializersTest < ActiveSupport::TestCase
     initializer.run(Rails.application)
 
     assert_equal ["RecordingStudioPage"], RecordingStudio.configuration.recordable_types
+    assert_equal ["Workspace"], RecordingStudio.configuration.roots
   ensure
     RecordingStudio.configuration.recordable_types = original
+    RecordingStudio.configuration.roots = original_roots
     Rails.application.config.x.recording_studio = previous
   end
 

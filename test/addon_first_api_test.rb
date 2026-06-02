@@ -5,11 +5,13 @@ require "test_helper"
 class AddonFirstApiTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
+    @original_roots = RecordingStudio.configuration.roots
     @original_dup_strategy = RecordingStudio.configuration.recordable_dup_strategy
     @original_dup_strategies = RecordingStudio.configuration.recordable_dup_strategies.dup
     @original_label_formatters = RecordingStudio::Labels.formatters.transform_values(&:dup)
 
     RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioPage]
+    RecordingStudio.configuration.roots = %w[Workspace]
     RecordingStudio.configuration.recordable_dup_strategy = :dup
     RecordingStudio.configuration.recordable_dup_strategies.clear
     reset_label_formatters!
@@ -20,6 +22,7 @@ class AddonFirstApiTest < ActiveSupport::TestCase
 
   def teardown
     RecordingStudio.configuration.recordable_types = @original_types
+    RecordingStudio.configuration.roots = @original_roots
     RecordingStudio.configuration.recordable_dup_strategy = @original_dup_strategy
     RecordingStudio.configuration.recordable_dup_strategies.clear
     RecordingStudio.configuration.recordable_dup_strategies.merge!(@original_dup_strategies)
@@ -101,8 +104,31 @@ class AddonFirstApiTest < ActiveSupport::TestCase
 
     assert_predicate root_recording, :persisted?
     assert_equal workspace, root_recording.recordable
+    assert_equal root_recording.id, root_recording.root_recording_id
     assert RecordingStudio.root_recording?(root_recording)
+    assert RecordingStudio.root_type?(workspace)
     assert_equal root_recording, RecordingStudio.root_recording_for(workspace)
+  end
+
+  def test_root_recording_for_rejects_unconfigured_root_types
+    page = RecordingStudioPage.create!(title: "Not a root")
+
+    error = assert_raises(ArgumentError) do
+      RecordingStudio.root_recording_for(page)
+    end
+
+    assert_equal "recordable type must be configured as a RecordingStudio root", error.message
+  end
+
+  def test_root_recording_predicate_requires_configured_self_rooted_recording
+    workspace, root_recording = create_workspace_root
+    child_recording = root_recording.record(RecordingStudioPage) { |page| page.title = "Child" }
+    unsaved_root = RecordingStudio::Recording.new(recordable: workspace)
+
+    assert RecordingStudio.root_recording?(root_recording)
+    refute RecordingStudio.root_recording?(child_recording)
+    refute RecordingStudio.root_recording?(unsaved_root)
+    refute RecordingStudio.root_recording_id_for(unsaved_root)
   end
 
   def test_record_bang_infers_root_recording_from_recording

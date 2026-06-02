@@ -1,5 +1,6 @@
 RecordingStudio.configure do |config|
   config.recordable_types = []
+  config.roots = ["Workspace"]
   config.actor = -> { Current.actor }
   config.impersonator = -> { Current.impersonator }
   config.event_notifications_enabled = true

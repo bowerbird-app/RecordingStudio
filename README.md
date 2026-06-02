@@ -185,14 +185,17 @@ RecordingStudio uses `delegated_type` but cannot know your recordable classes ah
 
 ```ruby
 RecordingStudio.configure do |config|
-  config.recordable_types = ["Page"]
+  config.recordable_types = ["Workspace", "Page"]
+  config.roots = ["Workspace"]
 end
 
+RecordingStudio.register_recordable_type("Workspace")
 RecordingStudio.register_recordable_type("Page")
 ```
 
-Each entry is an ActiveRecord model class name (as a String). RecordingStudio constantizes these names and registers them
-with `delegated_type`, so the class must be loadable in your app.
+Each entry is an ActiveRecord model class name (as a String). RecordingStudio constantizes `recordable_types` and
+registers them with `delegated_type`, so the class must be loadable in your app. Configure `roots` with the subset of
+recordable types that may create persisted, self-rooted root recordings.
 
 The engine applies `delegated_type` on boot and reload via a Railtie, and registration is idempotent.
 
@@ -347,6 +350,7 @@ That reference is the best starting point for AI agents and addon authors becaus
 ```ruby
 RecordingStudio.configure do |config|
   config.recordable_types = []
+  config.roots = []
   config.actor = -> { Current.actor }
   config.impersonator = -> { Current.impersonator }
   config.event_notifications_enabled = true
@@ -359,6 +363,7 @@ end
 ### Configuration Notes
 
 - `recordable_types`: Array of delegated recordable class names. Use `register_recordable_type` for incremental runtime registration.
+- `roots`: Array of recordable class names allowed to create self-rooted root recordings, such as `Workspace`.
 - `actor`: Callable used when callers omit `actor:` from write APIs.
 - `impersonator`: Callable used when callers omit `impersonator:` from write APIs.
 - `idempotency_mode`: Controls how duplicate `idempotency_key` values are handled. `:return_existing` returns the
@@ -836,6 +841,7 @@ automatically enable optional capability behavior.
 ```ruby
 RecordingStudio.configure do |config|
   config.recordable_types = ["Workspace", "Page", "Folder"]
+  config.roots = ["Workspace"]
 end
 
 RecordingStudio.register_recordable_type("Workspace")

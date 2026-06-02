@@ -60,6 +60,10 @@ module RecordingStudio
       RecordingStudio::Identity.type_name_for(recordable_or_type)
     end
 
+    def root_type?(recordable_or_type)
+      configuration.root_type?(recordable_or_type)
+    end
+
     def resolve_recordable_type(recordable_or_type)
       RecordingStudio::Identity.resolve_type(recordable_or_type)
     end
@@ -85,8 +89,14 @@ module RecordingStudio
       unless recordable.respond_to?(:persisted?) && recordable.persisted?
         raise ArgumentError, "recordable must be persisted"
       end
+      unless root_type?(recordable)
+        raise ArgumentError, "recordable type must be configured as a RecordingStudio root"
+      end
 
-      RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: recordable, parent_recording_id: nil)
+      recording = RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: recordable, parent_recording_id: nil)
+      recording.reload if recording.root_recording_id.blank?
+      assert_root_recording!(recording)
+      recording
     end
 
     def root_recording_or_self(recording)

@@ -13,10 +13,11 @@ module RecordingStudio
       :idempotency_mode,
       :recordable_dup_strategy
     )
-    attr_reader :recordable_types, :hooks, :recordable_dup_strategies
+    attr_reader :recordable_types, :roots, :hooks, :recordable_dup_strategies
 
     def initialize
       @recordable_types = []
+      @roots = []
       @capabilities = {}
       @capability_options = {}
       @actor = -> { defined?(Current) ? Current.actor : nil }
@@ -38,6 +39,14 @@ module RecordingStudio
 
     def recordable_types=(types)
       @recordable_types = Array(types).map { |type| type.is_a?(Class) ? type.name : type.to_s }.uniq
+    end
+
+    def roots=(types)
+      @roots = Array(types).map { |type| type.is_a?(Class) ? type.name : type.to_s }.uniq
+    end
+
+    def root_type?(recordable_or_type)
+      roots.include?(RecordingStudio::Identity.type_name_for(recordable_or_type))
     end
 
     def enable_capability(capability, on:)
@@ -69,6 +78,7 @@ module RecordingStudio
     def to_h
       {
         recordable_types: recordable_types,
+        roots: roots,
         event_notifications_enabled: event_notifications_enabled,
         idempotency_mode: idempotency_mode,
         recordable_dup_strategy: recordable_dup_strategy,

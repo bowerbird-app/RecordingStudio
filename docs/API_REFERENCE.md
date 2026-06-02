@@ -16,7 +16,7 @@ reverse-engineering the engine internals.
 
 Use this decision guide before calling methods:
 
-- You have a top-level persisted model like `Workspace` and need its root recording:
+- You have a configured root type with a persisted top-level model like `Workspace` and need its root recording:
   `RecordingStudio.root_recording_for(workspace)`
 - You need to create a new snapshot under a root:
   `root_recording.record(Page) { |page| ... }`
@@ -46,13 +46,14 @@ These methods are the main addon-facing API.
 | `apply_capabilities!` | nothing | `Hash` of registrations iterated | Re-applies registered recording modules after reloads or boot order changes. |
 | `register_recordable_type(name)` | class or class name | updated `recordable_types` and delegated-type registration side effect | Makes a recordable type available to delegated type resolution. |
 | `recordable_type_name(recordable_or_type)` | instance, class, or class name | `String` or `nil` | Normalizes a recordable type to its class name. |
+| `root_type?(recordable_or_type)` | instance, class, or class name | `true` or `false` | Checks whether a type is explicitly configured as a root type. |
 | `resolve_recordable_type(recordable_or_type)` | instance, class, or class name | class constant or `nil` | Safely resolves a recordable type for queries and addon wiring. |
 | `recordable_identifier(recordable)` | recordable instance | record ID or global ID string or `nil` | Gives a stable identifier even when only a GlobalID is available. |
 | `recordable_global_id(recordable)` | recordable instance | GlobalID string or `nil` | Produces a GlobalID string when the recordable supports it. |
 | `recordable_name(recordable)` | recordable instance | `String` | Returns the display name used by recordings and UIs. |
 | `recordable_type_label(recordable_or_type)` | instance, class, or class name | `String` | Returns a human-facing type label like `Page`. |
-| `root_recording_for(recordable)` | persisted top-level recordable | `RecordingStudio::Recording` | Finds or creates the root recording for a top-level object. |
-| `root_recording_or_self(recording)` | recording or root recording | `RecordingStudio::Recording` or `nil` | Collapses `root_recording || self` into one public helper. |
+| `root_recording_for(recordable)` | persisted configured root recordable | `RecordingStudio::Recording` | Finds or creates the self-rooted root recording for a top-level object. |
+| `root_recording_or_self(recording)` | recording or root recording | `RecordingStudio::Recording` or `nil` | Returns the configured self-rooted root boundary for a recording. |
 | `root_recording_id_for(recording)` | recording or root recording | root recording ID or `nil` | Returns the root boundary ID used by tree queries. |
 | `root_recording?(recording)` | recording | `true` or `false` | Validates that a recording is the root of its tree. |
 | `assert_recording_belongs_to_root!(root_recording, recording, message: ...)` | root recording, recording, optional message | `nil` or raises `ArgumentError` | Guards writes and queries from crossing root boundaries. |
@@ -101,6 +102,9 @@ Use `RecordingStudio.configure` to access these settings.
 | --- | --- | --- | --- |
 | `recordable_types` | nothing | `Array<String>` | Lists delegated recordable types currently registered. |
 | `recordable_types=(types)` | array of classes or names | normalized array | Declares which recordable classes the engine should treat as delegated types. |
+| `roots` | nothing | `Array<String>` | Lists recordable types allowed to create root recordings. |
+| `roots=(types)` | array of classes or names | normalized array | Declares which recordable classes may be persisted as self-rooted root recordings. |
+| `root_type?(recordable_or_type)` | instance, class, or class name | `true` or `false` | Checks the configured root type allow-list. |
 | `actor` | callable | callable | Supplies the default actor for writes when callers omit `actor:`. |
 | `impersonator` | callable | callable | Supplies the default impersonator for writes when callers omit `impersonator:`. |
 | `event_notifications_enabled` | boolean | boolean | Enables ActiveSupport event instrumentation. |
@@ -121,6 +125,8 @@ Use `RecordingStudio.configure` to access these settings.
 
 Important behavior:
 
+- `roots` must include top-level boundary types such as `Workspace` before `root_recording_for(workspace)` will create
+  a root recording.
 - `actor` defaults to `-> { Current.actor }` when `Current` exists.
 - `impersonator` defaults to `-> { Current.impersonator }` when `Current` exists.
 - `idempotency_mode = :return_existing` is retry-friendly and usually correct for HTTP or job retries.

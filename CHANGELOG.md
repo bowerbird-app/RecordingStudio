@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added `config.roots` and `RecordingStudio.root_type?` to explicitly configure which recordable types may create root
+  recordings.
+
+### Changed
+- Tightened root-recording helpers so roots must be persisted, self-rooted recordings for configured root types.
+
 ## [1.2.0] - 2026-05-15
 
 ### Added

@@ -7,26 +7,35 @@ module RecordingStudio
     def root_recording_or_self(recording)
       return if recording.nil?
 
-      recording.root_recording || recording
+      return recording if root_recording?(recording)
+
+      root_recording = recording.root_recording
+      return root_recording if root_recording?(root_recording)
     end
 
     def root_recording_id_for(recording)
-      return if recording.nil?
+      root_recording = root_recording_or_self(recording)
+      return if root_recording.nil?
 
-      recording.root_recording_id.presence || recording.id
+      root_recording.id
     end
 
     def root_recording?(recording)
-      return false if recording.nil? || recording.id.blank?
+      return false if recording.nil? || !recording.persisted?
+      return false if recording.parent_recording_id.present?
+      return false if recording.root_recording_id.blank?
 
-      root_recording_id_for(recording) == recording.id
+      recording.root_recording_id == recording.id && RecordingStudio.root_type?(recording.recordable_type)
     end
 
     def same_root?(left_recording, right_recording)
       return true if left_recording.nil? && right_recording.nil?
       return false if left_recording.nil? || right_recording.nil?
 
-      root_recording_id_for(left_recording) == root_recording_id_for(right_recording)
+      left_root_id = root_recording_id_for(left_recording)
+      right_root_id = root_recording_id_for(right_recording)
+
+      left_root_id.present? && left_root_id == right_root_id
     end
 
     def assert_root_recording!(recording, message: "root_recording must be a root recording")
