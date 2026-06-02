@@ -28,26 +28,42 @@
 
   <body data-theme="rounded" class="bg-(--surface-page-background-color) text-(--surface-content-color)">
     <%= turbo_stream_from "recording_studio_toasts" if respond_to?(:turbo_stream_from) %>
-    <%= render FlatPack::SidebarLayout::Component.new do |layout| %>
-      <% if user_signed_in? %>
+    <% if user_signed_in? %>
+      <%= render FlatPack::SidebarLayout::Component.new do |layout| %>
         <% layout.sidebar do %>
           <%= render "layouts/flat_pack/sidebar" %>
         <% end %>
+
+        <% layout.top_nav do %>
+          <%= render "layouts/flat_pack/top_nav" %>
+        <% end %>
+
+        <% layout.main do %>
+          <main class="mx-auto w-full max-w-6xl p-6">
+            <% if flash[:notice].present? %>
+              <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-6") %>
+            <% end %>
+            <% if flash[:alert].present? %>
+              <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-6") %>
+            <% end %>
+            <%= yield %>
+          </main>
+        <% end %>
       <% end %>
-      <% layout.top_nav do %>
-        <%= render "layouts/flat_pack/top_nav" %>
-      <% end %>
-      <% layout.main do %>
-        <main class="mx-auto w-full max-w-6xl p-6">
-          <% if flash[:notice].present? %>
-            <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-6") %>
-          <% end %>
-          <% if flash[:alert].present? %>
-            <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-6") %>
-          <% end %>
-          <%= yield %>
+    <% else %>
+      <div class="h-screen overflow-y-auto overscroll-y-contain">
+        <main class="mx-auto flex min-h-full w-full max-w-6xl items-center justify-center p-6">
+          <div class="w-full">
+            <% if flash[:notice].present? %>
+              <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-6") %>
+            <% end %>
+            <% if flash[:alert].present? %>
+              <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-6") %>
+            <% end %>
+            <%= yield %>
+          </div>
         </main>
-      <% end %>
+      </div>
     <% end %>
     <%= render FlatPack::Toasts::Region::Component.new(id: "toast-container", data: { turbo_permanent: true }) %>
   </body>

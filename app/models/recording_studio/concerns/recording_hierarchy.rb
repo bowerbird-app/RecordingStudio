@@ -88,8 +88,7 @@ module RecordingStudio
       def assign_root_recording_id
         return if parent_recording_id.nil?
 
-        parent_root_id = parent_recording&.root_recording_id ||
-                         self.class.unscoped.where(id: parent_recording_id).pick(:root_recording_id)
+        parent_root_id = self.class.unscoped.where(id: parent_recording_id).pick(:root_recording_id)
         self.root_recording_id = parent_root_id || parent_recording_id
       end
 
@@ -108,7 +107,8 @@ module RecordingStudio
       end
 
       def parent_recording_root_consistency
-        return if RecordingStudio::Relationships.parent_root_consistent?(self)
+        persisted_parent = parent_recording_id.present? ? self.class.unscoped.find_by(id: parent_recording_id) : nil
+        return if RecordingStudio::Relationships.parent_root_consistent?(self, persisted_parent)
 
         errors.add(:parent_recording_id, "must belong to the same root recording")
       end

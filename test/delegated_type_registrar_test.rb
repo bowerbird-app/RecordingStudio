@@ -70,4 +70,22 @@ class DelegatedTypeRegistrarTest < ActiveSupport::TestCase
 
     assert_not String.included_modules.include?(RecordingStudio::Recordable)
   end
+
+  def test_apply_defers_missing_declaration_validation_until_app_finishes_initializing
+    RecordingStudio.configuration.recordable_types = ["BootOnlyType"]
+
+    app = Rails.application
+    original_initialized = app.method(:initialized?)
+    app.singleton_class.send(:define_method, :initialized?) { false }
+
+    RecordingStudio::DelegatedTypeRegistrar.apply!
+
+    app.singleton_class.send(:define_method, :initialized?) { true }
+
+    assert_raises(RecordingStudio::MissingRecordableDeclaration) do
+      RecordingStudio::DelegatedTypeRegistrar.apply!
+    end
+  ensure
+    app.singleton_class.send(:define_method, :initialized?, original_initialized)
+  end
 end

@@ -117,6 +117,11 @@ module RecordingStudio
       @warned_legacy_label_keys.add(key)
       message = "[RecordingStudio] #{type_name}.#{method_name} is deprecated; " \
                 "use recording_studio_recordable label: instead"
+      warn_deprecation(message)
+    end
+    private_class_method :warn_legacy_label!
+
+    def warn_deprecation(message)
       if defined?(ActiveSupport::Deprecation)
         ActiveSupport::Deprecation.new("2.0", "RecordingStudio").warn(message)
       elsif defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
@@ -125,7 +130,7 @@ module RecordingStudio
         warn(message)
       end
     end
-    private_class_method :warn_legacy_label!
+    private_class_method :warn_deprecation
 
     def heuristic_name_for(recordable)
       squished_value(recordable, :title) ||

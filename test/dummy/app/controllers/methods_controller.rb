@@ -5,9 +5,24 @@ class MethodsController < ApplicationController
       subtitle: "RecordingStudio.configure",
       code: <<~'RUBY'
         RecordingStudio.configure do |config|
-          # Register the recordables your app exposes to the engine.
-          config.recordable_types = ["Workspace", "Page", "Folder"]
+          config.recordable_types = []
+
+          # Leave this on by default.
+          # It forces recordables to declare security important information like allowed parents.
+          # Only turn off for dev use with legacy version of recording studio
+          config.require_recordable_declarations = true
+
+          config.actor = -> { Current.actor }
+          config.impersonator = -> { Current.impersonator }
+
+          config.event_notifications_enabled = true
+          config.idempotency_mode = :return_existing
           config.recordable_dup_strategy = :dup
+
+          # Optional per-type duplication override for trusted addon code.
+          # config.register_recordable_dup_strategy("Page") do |recordable|
+          #   Page.new(title: recordable.title)
+          # end
         end
       RUBY
     },
@@ -404,9 +419,10 @@ class MethodsController < ApplicationController
       title: "Create or Find a Root Recording",
       subtitle: "RecordingStudio.root_recording_for",
       code: <<~'RUBY'
-        workspace = Workspace.find("9d1a4d5b-5f6a-4f0b-a7d4-2b4a4d0d12ef")
+        # Workspace declares recording_studio_recordable(root: true).
+        root_recordable = Workspace.find("9d1a4d5b-5f6a-4f0b-a7d4-2b4a4d0d12ef")
 
-        root_recording = RecordingStudio.root_recording_for(workspace)
+        root_recording = RecordingStudio.root_recording_for(root_recordable)
       RUBY
     },
     {
@@ -463,10 +479,14 @@ class MethodsController < ApplicationController
       title: "Append an Event Directly",
       subtitle: "RecordingStudio.record!",
       code: <<~'RUBY'
+        workspace = Workspace.find("46ce6659-3670-4f7e-9f17-d5ec4ff983d8")
+        root_recording = RecordingStudio.root_recording_for(workspace)
+
         event = RecordingStudio.record!(
           action: "created",
-          recordable: Workspace.create!(name: "Docs"),
-          root_recording: RecordingStudio::Recording.create!(recordable: Workspace.create!(name: "Root")),
+          recordable: Page.new(title: "Docs"),
+          root_recording: root_recording,
+          parent_recording: root_recording,
           metadata: { source: "seed" }
         )
 
@@ -1159,7 +1179,7 @@ class MethodsController < ApplicationController
     "RecordingStudio.root_recording_for" => {
       returns_kind: "Recording",
       returns: "RecordingStudio::Recording",
-      notes: "Finds or creates the top-level recording wrapper for the persisted root recordable.",
+      notes: "Finds or creates the top-level recording wrapper for a persisted recordable declared with root: true.",
       example_response: <<~'TEXT'
         #<RecordingStudio::Recording id: "0d8e4d5a-d869-4cfe-bf13-f784b77d7f35", recordable_type: "Workspace", recordable_id: "46ce6659-3670-4f7e-9f17-d5ec4ff983d8">
       TEXT
@@ -1806,6 +1826,105 @@ class MethodsController < ApplicationController
     "RecordingStudio::Event.for_root"
   ].freeze
 
+  RECORDABLE_METHOD_CATALOG = [
+    {
+      title: "Declare Recordable Classes",
+      subtitle: "recording_studio_recordable",
+      code: <<~'RUBY'
+        class Workspace < ApplicationRecord
+          recording_studio_recordable(
+            label: "Workspace",
+            plural_label: "Workspaces",
+            root: true,
+            allowed_parent_types: []
+          )
+        end
+
+        class RecordingStudioFolder < ApplicationRecord
+          recording_studio_recordable(
+            label: "Folder",
+            root: false,
+            allowed_parent_types: ["Workspace", "RecordingStudioFolder"]
+          )
+        end
+      RUBY
+    }
+  ].freeze
+
+  DEPRECATED_METHOD_CATALOG = [
+    {
+      title: "Deprecated instance label hook. Keep only while migrating to recordable_name and recording_studio_recordable labels.",
+      subtitle: "recordable.recording_studio_label",
+      code: <<~'RUBY'
+        class Workspace < ApplicationRecord
+          recording_studio_recordable label: "Workspace", root: true
+
+          # Deprecated: RecordingStudio warns when this legacy hook is used.
+          def recording_studio_label
+            name.to_s.squish.presence || "Workspace"
+          end
+        end
+
+        workspace = Workspace.first
+        RecordingStudio.recordable_name(workspace)
+        # Falls back to workspace.recording_studio_label only for legacy apps.
+
+        # Preferred replacement:
+        class Workspace < ApplicationRecord
+          recording_studio_recordable label: "Workspace", root: true
+
+          def recordable_name
+            name.to_s.squish.presence || "Workspace"
+          end
+        end
+      RUBY
+    },
+    {
+      title: "Deprecated class type label hook. Move the type label into the recordable declaration.",
+      subtitle: "recordable.class.recordable_type_label",
+      code: <<~'RUBY'
+        class Workspace < ApplicationRecord
+          # Deprecated: RecordingStudio warns when this legacy hook is used as the label source.
+          def self.recordable_type_label
+            "Workspace"
+          end
+        end
+
+        RecordingStudio.recordable_type_label(Workspace)
+        # Falls back to Workspace.recordable_type_label only for legacy apps.
+
+        # Preferred replacement:
+        class Workspace < ApplicationRecord
+          recording_studio_recordable(
+            label: "Workspace",
+            plural_label: "Workspaces",
+            root: true
+          )
+        end
+      RUBY
+    },
+    {
+      title: "Deprecated legacy type label alias. Replace it with the recordable declaration label.",
+      subtitle: "recordable.class.recording_studio_type_label",
+      code: <<~'RUBY'
+        class Workspace < ApplicationRecord
+          # Deprecated: RecordingStudio warns when this compatibility alias is used.
+          def self.recording_studio_type_label
+            "Workspace"
+          end
+        end
+
+        RecordingStudio.recordable_type_label(Workspace)
+        # Falls back to Workspace.recording_studio_type_label only for legacy apps.
+
+        # Preferred replacement:
+        class Workspace < ApplicationRecord
+          recording_studio_recordable label: "Workspace", root: true
+        end
+      RUBY
+    }
+  ].freeze
+
   TREE_METHOD_CATALOG = [
     {
       title: "Read the Direct Parent",
@@ -1941,18 +2060,11 @@ class MethodsController < ApplicationController
   ].freeze
 
   def index
-    specialized_method_subtitles = TREE_METHOD_CATALOG
-      .map { |entry| entry.fetch(:subtitle) }
-      .concat(CapabilitiesController::CAPABILITY_CATALOG.map { |entry| entry.fetch(:subtitle) })
-      .concat(IDENTITY_METHOD_SUBTITLES)
-      .concat(CRUD_METHOD_SUBTITLES)
-      .concat(EVENT_METHOD_SUBTITLES)
-      .concat(ROOT_METHOD_SUBTITLES)
-      .concat(QUERY_METHOD_SUBTITLES)
+    @method_catalog = catalog_for([ "RecordingStudio.configure" ])
+  end
 
-    @method_catalog = decorate_catalog(METHOD_CATALOG.reject do |entry|
-      specialized_method_subtitles.include?(entry.fetch(:subtitle))
-    end)
+  def recordables
+    @method_catalog = RECORDABLE_METHOD_CATALOG
   end
 
   def identity
@@ -1977,6 +2089,10 @@ class MethodsController < ApplicationController
 
   def tree
     @method_catalog = decorate_catalog(TREE_METHOD_CATALOG)
+  end
+
+  def depreciated
+    @method_catalog = DEPRECATED_METHOD_CATALOG
   end
 
   private

@@ -1,6 +1,6 @@
 class RecordingStudioPage < ApplicationRecord
   recording_studio_recordable label: "Page", root: false,
-                              allowed_parent_types: ["Workspace", "RecordingStudioFolder", "RecordingStudioPage"]
+                              allowed_parent_types: [ "Workspace", "RecordingStudioFolder", "RecordingStudioPage" ]
 
   validates :title, presence: true
 

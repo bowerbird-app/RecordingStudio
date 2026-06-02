@@ -24,12 +24,18 @@ RecordingStudio.configure do |config|
   # config.register_recordable_dup_strategy("Page") { |recordable| Page.new(title: recordable.title) }
 end
 
-# Example recordable registration, after the model declaration below exists:
+# Example recordable registration, after the model declarations below exist:
+# RecordingStudio.register_recordable_type("Workspace")
 # RecordingStudio.register_recordable_type("Page")
+
+# In app/models/workspace.rb:
+# class Workspace < ApplicationRecord
+#   recording_studio_recordable label: "Workspace", root: true
+# end
 
 # In app/models/page.rb:
 # class Page < ApplicationRecord
-#   recording_studio_recordable label: "Page", root: true
+#   recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
 # end
 
 # Optional label/presentation overrides for trusted addon code

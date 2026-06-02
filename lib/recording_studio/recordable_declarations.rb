@@ -17,7 +17,8 @@ module RecordingStudio
       end
     end
 
-    @declarations = {}
+    @declaration_registry = {}
+    @loaded_configured_type_names = Set.new
 
     module ModelMacro
       def recording_studio_recordable(label:, root:, plural_label: nil, **options)
@@ -34,35 +35,49 @@ module RecordingStudio
     module_function
 
     def register(recordable_class, label:, plural_label:, root:, options:)
-      allowed_parent_types_provided = options.key?(:allowed_parent_types)
-      allowed_parent_types = options[:allowed_parent_types]
-      validate_declaration_arguments!(
-        recordable_class,
+      attributes = declaration_attributes(label: label, plural_label: plural_label, root: root, options: options)
+      validate_declaration_arguments!(recordable_class, attributes)
+      type_name = RecordingStudio::Identity.type_name_for(recordable_class)
+      declaration_registry[type_name] = build_declaration(type_name, attributes).freeze
+    end
+
+    def declaration_attributes(label:, plural_label:, root:, options:)
+      {
         label: label,
         plural_label: plural_label,
         root: root,
-        allowed_parent_types: allowed_parent_types,
-        allowed_parent_types_provided: allowed_parent_types_provided
-      )
+        allowed_parent_types: options[:allowed_parent_types],
+        allowed_parent_types_provided: options.key?(:allowed_parent_types)
+      }
+    end
 
-      type_name = RecordingStudio::Identity.type_name_for(recordable_class)
-      declarations[type_name] = Declaration.new(
+    def build_declaration(type_name, attributes)
+      label = normalize_label(attributes.fetch(:label))
+      Declaration.new(
         type: type_name,
-        label: normalize_label(label),
-        plural_label: normalize_label(plural_label) || normalize_label(label).pluralize,
-        root: root,
-        allowed_parent_types: normalize_types(allowed_parent_types).freeze,
-        allowed_parent_types_provided: allowed_parent_types_provided
-      ).freeze
+        label: label,
+        plural_label: normalize_label(attributes.fetch(:plural_label)) || label.pluralize,
+        root: attributes.fetch(:root),
+        allowed_parent_types: normalize_types(attributes.fetch(:allowed_parent_types)).freeze,
+        allowed_parent_types_provided: attributes.fetch(:allowed_parent_types_provided)
+      )
     end
 
     def declarations
-      @declarations
+      declaration_registry.dup.freeze
+    end
+
+    def replace_declarations!(new_declarations)
+      @declaration_registry = new_declarations.dup
+      @loaded_configured_type_names = Set.new
     end
 
     def declaration_for(recordable_or_type)
-      ensure_loaded!
-      declarations[RecordingStudio::Identity.type_name_for(recordable_or_type)]
+      type_name = RecordingStudio::Identity.type_name_for(recordable_or_type)
+      return if type_name.blank?
+
+      load_configured_type!(type_name)
+      declaration_registry[type_name]
     end
 
     def declaration_defined?(recordable_or_type)
@@ -71,7 +86,7 @@ module RecordingStudio
 
     def declarations_for_configured_types
       ensure_loaded!
-      configured_type_names.filter_map { |type| declarations[type] }
+      configured_type_names.filter_map { |type| declaration_registry[type] }
     end
 
     def root_recordable_types
@@ -80,8 +95,11 @@ module RecordingStudio
     end
 
     def root_allowed?(recordable_or_type)
-      declaration = declaration_for(recordable_or_type)
-      return handle_missing_declaration(recordable_or_type, default: true) unless declaration
+      type_name = RecordingStudio::Identity.type_name_for(recordable_or_type)
+      return false unless configured_recordable_type?(type_name)
+
+      declaration = declaration_for(type_name)
+      return handle_missing_declaration(type_name, default: true) unless declaration
 
       declaration.root?
     end
@@ -96,17 +114,22 @@ module RecordingStudio
     def parent_allowed?(child_type:, parent_recording:)
       return false if parent_recording.nil?
 
-      declaration = declaration_for(child_type)
-      return handle_missing_declaration(child_type, default: true) unless declaration
+      child_type_name = RecordingStudio::Identity.type_name_for(child_type)
+      parent_type_name = RecordingStudio::Identity.type_name_for(parent_recording.recordable_type)
+      return false unless configured_recordable_type?(child_type_name)
+      return false unless configured_recordable_type?(parent_type_name)
 
-      declaration.allowed_parent_types.include?(parent_recording.recordable_type)
+      declaration = declaration_for(child_type_name)
+      return handle_missing_declaration(child_type_name, default: true) unless declaration
+
+      declaration.allowed_parent_types.include?(parent_type_name)
     end
 
     def assert_root_allowed!(recordable_or_type)
       return true if root_allowed?(recordable_or_type)
 
       raise RecordingStudio::RootNotAllowed,
-            "#{RecordingStudio::Identity.type_name_for(recordable_or_type)} cannot be recorded as a root"
+            "parent_recording_id is required for #{RecordingStudio::Identity.type_name_for(recordable_or_type)}"
     end
 
     def assert_parent_allowed!(child_type:, parent_recording:)
@@ -119,7 +142,7 @@ module RecordingStudio
             "#{parent_recording.recordable_type}"
     end
 
-    def validate!
+    def enforce_configuration!
       ensure_loaded!
       configured_type_names.each do |type|
         next if declaration_defined?(type)
@@ -128,13 +151,10 @@ module RecordingStudio
       end
       validate_declared_types_registered!
       validate_allowed_parent_types_registered!
-      true
     end
 
     def ensure_loaded!
-      Array(RecordingStudio.configuration.recordable_types).each do |type|
-        RecordingStudio::Identity.type_name_for(type)&.safe_constantize
-      end
+      configured_type_names.each { |type| load_configured_type!(type) }
     end
 
     def install_active_record_macro!
@@ -156,9 +176,14 @@ module RecordingStudio
       configured_type_names.to_set
     end
 
+    def configured_recordable_type?(recordable_or_type)
+      type_name = RecordingStudio::Identity.type_name_for(recordable_or_type)
+      type_name.present? && configured_type_names.include?(type_name)
+    end
+
     def validate_declared_types_registered!
       registered_types = registered_type_names
-      declarations.each_key do |type|
+      declaration_registry.each_key do |type|
         next if registered_types.include?(type)
 
         if RecordingStudio.configuration.require_recordable_declarations
@@ -172,7 +197,7 @@ module RecordingStudio
 
     def validate_allowed_parent_types_registered!
       registered_types = registered_type_names
-      declarations.each_value do |declaration|
+      declaration_registry.each_value do |declaration|
         next unless registered_types.include?(declaration.type)
 
         invalid_types = declaration.allowed_parent_types - registered_types.to_a
@@ -183,18 +208,33 @@ module RecordingStudio
       end
     end
 
-    def validate_declaration_arguments!(recordable_class, label:, plural_label:, root:, allowed_parent_types:,
-                                        allowed_parent_types_provided:)
-      raise_invalid!(recordable_class, "label is required") if normalize_label(label).blank?
-      raise_invalid!(recordable_class, "root must be true or false") unless [true, false].include?(root)
-      if plural_label && normalize_label(plural_label).blank?
-        raise_invalid!(recordable_class, "plural_label must be present when provided")
-      end
-      if root == false && !allowed_parent_types_provided
-        raise_invalid!(recordable_class, "allowed_parent_types is required when root is false")
-      end
+    def validate_declaration_arguments!(recordable_class, attributes)
+      validate_label!(recordable_class, attributes.fetch(:label))
+      validate_root!(recordable_class, attributes.fetch(:root))
+      validate_plural_label!(recordable_class, attributes.fetch(:plural_label))
+      validate_parent_types_presence!(recordable_class, attributes)
 
-      normalize_types(allowed_parent_types) if allowed_parent_types_provided
+      normalize_types(attributes.fetch(:allowed_parent_types)) if attributes.fetch(:allowed_parent_types_provided)
+    end
+
+    def validate_label!(recordable_class, label)
+      raise_invalid!(recordable_class, "label is required") if normalize_label(label).blank?
+    end
+
+    def validate_root!(recordable_class, root)
+      raise_invalid!(recordable_class, "root must be true or false") unless [true, false].include?(root)
+    end
+
+    def validate_plural_label!(recordable_class, plural_label)
+      return unless plural_label && normalize_label(plural_label).blank?
+
+      raise_invalid!(recordable_class, "plural_label must be present when provided")
+    end
+
+    def validate_parent_types_presence!(recordable_class, attributes)
+      return unless attributes.fetch(:root) == false && !attributes.fetch(:allowed_parent_types_provided)
+
+      raise_invalid!(recordable_class, "allowed_parent_types is required when root is false")
     end
 
     def normalize_types(types)
@@ -224,6 +264,26 @@ module RecordingStudio
 
       warn_missing_declaration(type_name)
       default
+    end
+
+    def declaration_registry
+      @declaration_registry ||= {}
+    end
+
+    def loaded_configured_type_names
+      @loaded_configured_type_names ||= Set.new
+    end
+
+    def load_configured_type!(type_name)
+      return unless configured_recordable_type?(type_name)
+      return if loaded_configured_type_names.include?(type_name)
+
+      resolved_type = type_name.safe_constantize
+      loaded_configured_type_names.add(type_name) if resolved_type || rails_application_initialized?
+    end
+
+    def rails_application_initialized?
+      defined?(Rails) && Rails.respond_to?(:application) && Rails.application&.initialized?
     end
 
     def warn_missing_declaration(type_name)

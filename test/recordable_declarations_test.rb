@@ -21,7 +21,7 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
   def teardown
     RecordingStudio.configuration.recordable_types = @original_types
     RecordingStudio.configuration.require_recordable_declarations = @original_require_declarations
-    RecordingStudio::RecordableDeclarations.declarations.replace(@original_declarations)
+    RecordingStudio::RecordableDeclarations.replace_declarations!(@original_declarations)
   end
 
   def test_recordable_declaration_api_exposes_labels_and_roots
@@ -34,7 +34,8 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
     assert RecordingStudio.root_recordable_type?("Workspace")
     assert_includes RecordingStudio.root_recordable_types, "Workspace"
     assert_includes RecordingStudio.root_recordable_declarations, declaration
-    assert_equal ["Workspace", "RecordingStudioFolder"], RecordingStudio.allowed_parent_types_for("RecordingStudioPage")
+    assert_equal %w[Workspace RecordingStudioFolder RecordingStudioPage],
+                 RecordingStudio.allowed_parent_types_for("RecordingStudioPage")
   end
 
   def test_missing_recordable_declarations_raise_by_default
@@ -51,6 +52,30 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
 
     assert RecordingStudio.validate_recordable_declarations!
     assert RecordingStudio.root_allowed?("User")
+  end
+
+  def test_legacy_missing_declaration_fallback_rejects_unregistered_types
+    _, root = create_workspace_root
+    RecordingStudio.configuration.require_recordable_declarations = false
+
+    assert_not RecordingStudio.root_allowed?("SystemActor")
+    assert_not RecordingStudio.parent_allowed?(child_type: "SystemActor", parent_recording: root)
+
+    assert_raises(RecordingStudio::RootNotAllowed) do
+      RecordingStudio.record!(
+        action: "created",
+        recordable: SystemActor.new(name: "Unregistered actor"),
+        root_recording: root
+      )
+    end
+  end
+
+  def test_declarations_accessor_returns_read_only_copy
+    declarations = RecordingStudio::RecordableDeclarations.declarations
+
+    assert declarations.frozen?
+    assert_raises(FrozenError) { declarations.delete("Workspace") }
+    assert RecordingStudio.recordable_declaration_defined?("Workspace")
   end
 
   def test_invalid_declarations_raise_even_when_requirement_disabled
@@ -70,13 +95,15 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
   def test_record_rejects_new_orphan_recording
     _, root = create_workspace_root
 
-    assert_raises(RecordingStudio::RootNotAllowed) do
+    error = assert_raises(RecordingStudio::RootNotAllowed) do
       RecordingStudio.record!(
         action: "created",
         recordable: RecordingStudioPage.new(title: "Orphan"),
         root_recording: root
       )
     end
+
+    assert_equal "parent_recording_id is required for RecordingStudioPage", error.message
   end
 
   def test_record_rejects_new_recording_under_invalid_parent_type
@@ -88,6 +115,27 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
         recordable: RecordingStudioComment.new(body: "Comment"),
         root_recording: root,
         parent_recording: root
+      )
+    end
+  end
+
+  def test_record_rechecks_persisted_parent_root_before_creating_child
+    _, root = create_workspace_root
+    _, other_root = create_workspace_root
+    foreign_parent = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Foreign parent"),
+      root_recording: other_root,
+      parent_recording: other_root
+    ).recording
+    foreign_parent.root_recording_id = root.id
+
+    assert_raises(ArgumentError) do
+      RecordingStudio.record!(
+        action: "created",
+        recordable: RecordingStudioPage.new(title: "Boundary bypass"),
+        root_recording: root,
+        parent_recording: foreign_parent
       )
     end
   end
@@ -117,14 +165,26 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
     recording = RecordingStudio::Recording.new(recordable: page)
 
     assert_not recording.valid?
-    assert_includes recording.errors[:parent_recording_id].join, "cannot be saved without a parent"
+    assert_includes recording.errors[:parent_recording_id], "is required for RecordingStudioPage"
+  end
+
+  def test_root_recording_predicate_rejects_structural_roots_without_root_declaration
+    page = RecordingStudioPage.create!(title: "Root page")
+    recording = RecordingStudio::Recording.new(recordable: page)
+    recording.id = SecureRandom.uuid
+    recording.root_recording_id = recording.id
+    recording.save!(validate: false)
+
+    assert_not RecordingStudio.root_recording?(recording)
+    assert_not recording.root?
+    assert_raises(ArgumentError) { RecordingStudio.assert_root_recording!(recording) }
   end
 
   def test_root_type_without_parent_rules_cannot_be_recorded_under_parent
     declare_system_actor_root_without_parent_rules!
     _, root = create_workspace_root
 
-    assert RecordingStudio::Recording.create!(recordable: SystemActor.create!(name: "Root actor")).root?
+    assert RecordingStudio.root_recording_for(SystemActor.create!(name: "Root actor")).root?
     assert_raises(RecordingStudio::InvalidParent) do
       RecordingStudio.record!(
         action: "created",
@@ -268,7 +328,7 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
 
   def create_workspace_root
     workspace = Workspace.create!(name: "Workspace")
-    root = RecordingStudio::Recording.create!(recordable: workspace)
+    root = RecordingStudio.root_recording_for(workspace)
     [workspace, root]
   end
 end

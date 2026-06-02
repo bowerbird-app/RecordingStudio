@@ -19,7 +19,7 @@ class RecordingTest < ActiveSupport::TestCase
 
   def teardown
     RecordingStudio.configuration.recordable_types = @original_types
-    RecordingStudio::RecordableDeclarations.declarations.replace(@original_declarations)
+    RecordingStudio::RecordableDeclarations.replace_declarations!(@original_declarations)
   end
 
   def test_scopes_filter_recordings
@@ -229,6 +229,28 @@ class RecordingTest < ActiveSupport::TestCase
     assert_includes child.errors[:parent_recording_id], "must belong to the same root recording"
   end
 
+  def test_parent_recording_validation_uses_persisted_parent_root
+    _, root = create_workspace_root
+    _, other_root = create_workspace_root(name: "Other Workspace")
+
+    parent = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Foreign parent"),
+      root_recording: other_root,
+      parent_recording: other_root
+    ).recording
+    parent.root_recording_id = root.id
+
+    child = RecordingStudio::Recording.new(
+      root_recording: root,
+      recordable: RecordingStudioPage.create!(title: "Child"),
+      parent_recording: parent
+    )
+
+    assert_not child.valid?
+    assert_includes child.errors[:parent_recording_id], "must belong to the same root recording"
+  end
+
   def test_parent_recording_rejects_cycles
     _, root = create_workspace_root
 
@@ -419,7 +441,7 @@ class RecordingTest < ActiveSupport::TestCase
 
   def create_workspace_root(name: "Workspace")
     workspace = Workspace.create!(name: name)
-    root = RecordingStudio::Recording.create!(recordable: workspace)
+    root = RecordingStudio.root_recording_for(workspace)
     [workspace, root]
   end
 end

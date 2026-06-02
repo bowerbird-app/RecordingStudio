@@ -42,9 +42,7 @@ module RecordingStudio
     end
 
     def require_recordable_declarations=(value)
-      unless [true, false].include?(value)
-        raise ArgumentError, "require_recordable_declarations must be true or false"
-      end
+      raise ArgumentError, "require_recordable_declarations must be true or false" unless [true, false].include?(value)
 
       @require_recordable_declarations = value
     end

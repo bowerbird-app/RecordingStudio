@@ -43,6 +43,14 @@ class DummyInitializersTest < ActiveSupport::TestCase
     flatpack_singleton.send(:remove_method, :configure) if FlatPack.respond_to?(:configure)
   end
 
+  def test_content_security_policy_allows_flatpack_inline_styles
+    assert_equal %w[script-src], Rails.application.config.content_security_policy_nonce_directives
+
+    style_sources = Rails.application.config.content_security_policy.directives.fetch("style-src")
+
+    assert_includes style_sources, "'unsafe-inline'"
+  end
+
   def test_notifications_initializer_broadcasts_impersonator_message
     calls = []
 

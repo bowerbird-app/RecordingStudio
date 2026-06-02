@@ -29,20 +29,45 @@ class MethodsControllerTest < ActionDispatch::IntegrationTest
     assert_equal MethodsController::ROOT_METHOD_SUBTITLES.uniq.length, MethodsController::ROOT_METHOD_SUBTITLES.length
   end
 
-  test "index renders method catalog" do
+  test "index renders config setup catalog" do
     get methods_path, headers: modern_headers
 
     assert_response :success
     assert_index_catalog_content
-    assert_response_details_present
-    assert_includes @response.body, CONFIGURE_RETURNS_TEXT
-    assert_includes @response.body, "RecordingStudio.configuration"
-    assert_includes @response.body, "RecordingStudio::Labels.register_formatter"
-    assert_includes @response.body, "RecordingStudio.configuration.hooks.before_initialize"
-    assert_includes @response.body, "RecordingStudio::Hooks.run"
+    assert_select "section.space-y-3", count: 1
+    assert_select "section.space-y-3 pre code.language-ruby", count: 1
     assert_includes @response.body, "config.recordable_types"
-    assert_includes @response.body, "RecordingStudio::Configuration"
+    assert_includes @response.body, "config.require_recordable_declarations"
+    assert_includes @response.body, "config.actor"
+    assert_includes @response.body, "config.impersonator"
+    assert_includes @response.body, "config.event_notifications_enabled"
+    assert_includes @response.body, "config.idempotency_mode"
+    assert_includes @response.body, "config.recordable_dup_strategy"
+    assert_includes @response.body, "config.register_recordable_dup_strategy"
+    refute_includes @response.body, CONFIGURE_RETURNS_TEXT
+    refute_includes @response.body, "# Response"
     assert_includes @response.body, "href=\"#recordingstudio-configure\""
+  end
+
+  test "recordables renders recordable declaration catalog" do
+    get recordable_methods_path, headers: modern_headers
+
+    assert_response :success
+    assert_includes @response.body, "Recordables"
+    assert_includes @response.body, "recording_studio_recordable"
+    assert_includes @response.body, "class Workspace &lt; ApplicationRecord"
+    assert_includes @response.body, "plural_label: &quot;Workspaces&quot;"
+    assert_includes @response.body, "root: true"
+    assert_includes @response.body, "root: false"
+    assert_includes @response.body, "allowed_parent_types: [&quot;Workspace&quot;, &quot;RecordingStudioFolder&quot;]"
+    refute_includes @response.body, "class RecordingStudioPage &lt; ApplicationRecord"
+    refute_includes @response.body, "class RecordingStudioComment &lt; ApplicationRecord"
+    refute_includes @response.body, "root: true classes can start a recording tree"
+    assert_includes @response.body, "href=\"#recording-studio-recordable\""
+    assert_catalog_sidebar
+    config_index = @response.body.index(">Config<")
+    recordables_index = @response.body.index(">Recordables<", config_index)
+    assert_operator config_index, :<, recordables_index
   end
 
   test "identity renders identity method catalog" do
@@ -75,6 +100,9 @@ class MethodsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes @response.body, "CRUD"
     assert_includes @response.body, "RecordingStudio.record!"
+    assert_includes @response.body, "root_recording = RecordingStudio.root_recording_for(workspace)"
+    assert_includes @response.body, "parent_recording: root_recording"
+    refute_includes @response.body, "root_recording: RecordingStudio::Recording.create!"
     assert_includes @response.body, CRUD_EVENT_HTML
     assert_includes @response.body, "RecordingStudio.dup_strategy_for"
     assert_includes @response.body, "RecordingStudio.duplicate_recordable"
@@ -165,16 +193,43 @@ class MethodsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "href=\"#recording-ancestors\""
   end
 
+  test "depreciated renders deprecated method catalog" do
+    get depreciated_methods_path, headers: modern_headers
+
+    assert_response :success
+    assert_includes @response.body, "Depreciated"
+    assert_includes @response.body, "Deprecated APIs that still work during migration windows"
+    refute_includes @response.body, "Legacy labeling hooks"
+    assert_select "section.space-y-3", count: 3
+    assert_select "section.space-y-3 pre code.language-ruby", count: 3
+    assert_includes @response.body, "recordable.recording_studio_label"
+    assert_includes @response.body, "recordable.class.recordable_type_label"
+    assert_includes @response.body, "recordable.class.recording_studio_type_label"
+    assert_includes @response.body, "def recording_studio_label"
+    assert_includes @response.body, "def self.recordable_type_label"
+    assert_includes @response.body, "def self.recording_studio_type_label"
+    assert_includes @response.body, "RecordingStudio.recordable_name(workspace)"
+    assert_includes @response.body, "RecordingStudio.recordable_type_label(Workspace)"
+    assert_includes @response.body, "recording_studio_recordable label: &quot;Workspace&quot;, root: true"
+    assert_includes @response.body, "recording_studio_recordable("
+    assert_includes @response.body, "def recordable_name"
+    assert_includes @response.body, "href=\"#recordable-recording-studio-label\""
+    assert_includes @response.body, "href=\"#recordable-class-recordable-type-label\""
+    assert_includes @response.body, "href=\"#recordable-class-recording-studio-type-label\""
+    refute_includes @response.body, "root_recording.record"
+    assert_catalog_sidebar
+  end
+
   private
 
   def assert_index_catalog_content
     assert_includes @response.body, "Config"
     assert_includes @response.body, "RecordingStudio.configure"
-    assert_includes @response.body, "RecordingStudio.configuration"
-    assert_includes @response.body, "RecordingStudio.register_recordable_type"
-    assert_includes @response.body, "RecordingStudio::Labels.register_formatter"
-    assert_includes @response.body, "RecordingStudio.configuration.hooks.before_initialize"
-    assert_includes @response.body, "RecordingStudio::Hooks.trigger"
+    refute_includes @response.body, "RecordingStudio.configuration"
+    refute_includes @response.body, "RecordingStudio.register_recordable_type"
+    refute_includes @response.body, "RecordingStudio::Labels.register_formatter"
+    refute_includes @response.body, "RecordingStudio.configuration.hooks.before_initialize"
+    refute_includes @response.body, "RecordingStudio::Hooks.trigger"
     refute_includes @response.body, "RecordingStudio.recordable_type_name"
     refute_includes @response.body, "root_recording.record"
     refute_includes @response.body, "RecordingStudio.record!"
@@ -188,13 +243,20 @@ class MethodsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "flat-pack--section-title-anchor"
     assert_includes @response.body, "flat-pack--sidebar-group"
     assert_includes @response.body, ">Config<"
+    assert_includes @response.body, ">Recordables<"
     assert_includes @response.body, ">Identity<"
     assert_includes @response.body, ">CRUD<"
     assert_includes @response.body, ">Events<"
     assert_includes @response.body, ">Root<"
     assert_includes @response.body, ">Queries<"
     assert_includes @response.body, ">Tree<"
+    assert_includes @response.body, ">Depreciated<"
     assert_includes @response.body, ">Capabilties<"
+
+    logout_form_selector = "form[action='#{destroy_user_session_path}'][method='post']"
+    assert_select "#{logout_form_selector} input[name='_method'][value='delete']", count: 1
+    assert_select "#{logout_form_selector} button[type='submit']", text: /Log out/, count: 1
+    assert_select "a[href='#{destroy_user_session_path}']", text: /Log out/, count: 0
   end
 
   def assert_response_details_present
@@ -245,6 +307,11 @@ class MethodsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "root_recording.recordings_with_events"
     assert_includes @response.body, "RecordingStudio::Recording.for_root"
     assert_includes @response.body, "RecordingStudio::Event.for_root"
+    assert_includes @response.body, "Set root recordable"
+    assert_includes @response.body, "Declare the root recordable class with recording_studio_recordable(root: true)"
+    assert_includes @response.body, "persisted recordable declared with root: true"
+    assert_includes @response.body, "root_recordable = Workspace.find"
+    assert_includes @response.body, "href=\"/methods/recordables\""
     assert_includes @response.body, "href=\"#recordingstudio-root-recording-for\""
     assert_includes @response.body, "href=\"#recordingstudio-recording-for-root\""
     assert_includes @response.body, "href=\"#recordingstudio-event-for-root\""

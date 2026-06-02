@@ -14,7 +14,13 @@ module RecordingStudio
 
     scope :for_recording, ->(recording) { where(recording: recording) }
     scope :for_root, lambda { |root_recording_or_id|
-      root_id = root_recording_or_id.respond_to?(:id) ? root_recording_or_id.id : root_recording_or_id
+      root_id = if root_recording_or_id.respond_to?(:root_recording_id)
+                  RecordingStudio.root_recording_id_for(root_recording_or_id)
+                elsif root_recording_or_id.respond_to?(:id)
+                  root_recording_or_id.id
+                else
+                  root_recording_or_id
+                end
       next none if root_id.blank?
 
       joins(:recording).where(recording_studio_recordings: { root_recording_id: root_id })

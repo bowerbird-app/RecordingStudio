@@ -1,0 +1,102 @@
+<% content_for :title, "Orphans" %>
+
+<%= render FlatPack::PageTitle::Component.new(
+  title: "Orphans",
+  subtitle: "How RecordingStudio handles records without a parent.",
+  class: "mb-6"
+) %>
+
+<div class="space-y-6 max-w-3xl">
+  <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+    <% card.body do %>
+      <%= render FlatPack::List::Component.new(spacing: :default, divider: true) do %>
+        <%= render FlatPack::List::Item.new do %>
+          Orphans are not allowed. All recordings except roots must have a parent.
+        <% end %>
+        <%= render FlatPack::List::Item.new do %>
+          Allowed parent types are defined in recordables using <code>recording_studio_recordable</code>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <section class="space-y-3">
+    <%= render FlatPack::SectionTitle::Component.new(
+      title: "recording.parentless?",
+      subtitle: "Checks whether a recording has no parent_recording_id.",
+      anchor_link: true,
+      class: "my-0"
+    ) %>
+
+    <%= render FlatPack::CodeBlock::Component.new(
+      code: <<~'RUBY',
+        recording.parentless?
+        # => true when parent_recording_id is blank
+      RUBY
+      language: :ruby,
+      title: "Parentless check",
+      separated: false
+    ) %>
+  </section>
+
+  <section class="space-y-3">
+    <%= render FlatPack::SectionTitle::Component.new(
+      title: "recording.orphan?",
+      subtitle: "Checks whether a recording is parentless and is not a valid root.",
+      anchor_link: true,
+      class: "my-0"
+    ) %>
+
+    <%= render FlatPack::CodeBlock::Component.new(
+      code: <<~'RUBY',
+        recording.orphan?
+        # Equivalent to:
+        recording.parentless? && !recording.root?
+      RUBY
+      language: :ruby,
+      title: "Orphan check",
+      separated: false
+    ) %>
+  </section>
+
+  <section class="space-y-3">
+    <%= render FlatPack::SectionTitle::Component.new(
+      title: "RecordingStudio::Recording.where(parent_recording_id: nil)",
+      subtitle: "Finds parentless recordings, including valid roots.",
+      anchor_link: true,
+      class: "my-0"
+    ) %>
+
+    <%= render FlatPack::CodeBlock::Component.new(
+      code: <<~'RUBY',
+        parentless_recordings = RecordingStudio::Recording.where(parent_recording_id: nil)
+
+        # This includes valid root recordings.
+        orphan_recordings = parentless_recordings.select(&:orphan?)
+      RUBY
+      language: :ruby,
+      title: "Parentless query",
+      separated: false
+    ) %>
+  </section>
+
+  <section class="space-y-3">
+    <%= render FlatPack::SectionTitle::Component.new(
+      title: "Error Messages",
+      subtitle: "Returned when trying to create a non-root recording without a parent.",
+      anchor_link: true,
+      class: "my-0"
+    ) %>
+
+    <%= render FlatPack::CodeBlock::Component.new(
+      code: <<~'TEXT',
+        RecordingStudio::RootNotAllowed: parent_recording_id is required for RecordingStudioPage
+
+        parent_recording_id: is required for RecordingStudioPage
+      TEXT
+      language: :text,
+      title: "Returned errors",
+      separated: false
+    ) %>
+  </section>
+</div>

@@ -98,8 +98,9 @@ module RecordingStudio
       RecordingStudio::RecordableDeclarations.declarations.dup
     end
 
-    def validate_recordable_declarations!
-      RecordingStudio::RecordableDeclarations.validate!
+    def validate_recordable_declarations! # rubocop:disable Naming/PredicateMethod
+      RecordingStudio::RecordableDeclarations.enforce_configuration!
+      true
     end
 
     def allowed_parent_types_for(recordable_or_type)
@@ -142,9 +143,11 @@ module RecordingStudio
 
     def root_recording_for(recordable)
       raise ArgumentError, "recordable is required" if recordable.nil?
+
       unless recordable.respond_to?(:persisted?) && recordable.persisted?
         raise ArgumentError, "recordable must be persisted"
       end
+
       assert_root_allowed!(recordable)
 
       RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: recordable, parent_recording_id: nil)
@@ -215,18 +218,7 @@ module RecordingStudio
     def record!(action:, recordable:, recording: nil, root_recording: nil, actor: nil, impersonator: nil,
                 metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)
       RecordingStudio::DelegatedTypeRegistrar.apply!
-      root_recording ||= root_recording_or_self(recording)
-      raise ArgumentError, "root_recording is required" if root_recording.nil?
-
-      assert_root_recording!(root_recording)
-
-      assert_recording_belongs_to_root!(
-        root_recording,
-        recording,
-        message: "recording must belong to the provided root_recording"
-      )
-
-      assert_parent_recording_belongs_to_root!(parent_recording, root_recording)
+      raise ArgumentError, "root_recording is required" if root_recording.nil? && recording.nil?
 
       resolved_actor = actor || configuration.actor&.call
       resolved_impersonator = impersonator || configuration.impersonator&.call
@@ -234,6 +226,23 @@ module RecordingStudio
       idempotency_key = idempotency_key.presence
 
       RecordingStudio::Recording.transaction do
+        recording = reload_recording_for_hierarchy!(recording, :recording) if recording
+        root_recording ||= root_recording_or_self(recording)
+        raise ArgumentError, "root_recording is required" if root_recording.nil?
+
+        root_recording = reload_recording_for_hierarchy!(root_recording, :root_recording)
+        parent_recording = reload_recording_for_hierarchy!(parent_recording, :parent_recording) if parent_recording
+
+        assert_root_recording!(root_recording)
+
+        assert_recording_belongs_to_root!(
+          root_recording,
+          recording,
+          message: "recording must belong to the provided root_recording"
+        )
+
+        assert_parent_recording_belongs_to_root!(parent_recording, root_recording)
+
         existing_event = find_idempotent_event(recording, idempotency_key)
         return handle_idempotency(existing_event) if existing_event
 
@@ -291,6 +300,14 @@ module RecordingStudio
       return unless recording&.persisted? && idempotency_key
 
       recording.events.find_by(idempotency_key: idempotency_key)
+    end
+
+    def reload_recording_for_hierarchy!(recording, name)
+      unless recording.respond_to?(:id) && recording.id.present?
+        raise ArgumentError, "#{name} must be a persisted recording"
+      end
+
+      RecordingStudio::Recording.unscoped.lock.find(recording.id)
     end
 
     def handle_idempotency(event)

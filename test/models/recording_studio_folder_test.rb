@@ -21,7 +21,7 @@ class RecordingStudioFolderTest < ActiveSupport::TestCase
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     workspace = Workspace.create!(name: "Folder Workspace")
-    root_recording = RecordingStudio::Recording.create!(recordable: workspace)
+    root_recording = RecordingStudio.root_recording_for(workspace)
 
     folder_recording = root_recording.record(RecordingStudioFolder) do |folder|
       folder.name = "Projects"

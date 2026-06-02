@@ -94,9 +94,12 @@ module RecordingStudio
     end
 
     def recordables
-      ([recordable] + association(:events).scope.preload(:recordable, :previous_recordable).flat_map do |event|
-        [event.recordable, event.previous_recordable]
-      end).compact.uniq do |snapshot|
+      events_scope = association(:events).scope.reorder(occurred_at: :asc, created_at: :asc)
+      event_snapshots = events_scope.preload(:recordable, :previous_recordable).flat_map do |event|
+        [event.previous_recordable, event.recordable]
+      end
+
+      (event_snapshots + [recordable]).compact.uniq do |snapshot|
         [snapshot.class.base_class.name, snapshot.id]
       end
     end
@@ -520,14 +523,14 @@ module RecordingStudio
 
       errors.add(
         :parent_recording_id,
-        "#{recordable_type} cannot be saved without a parent because it does not declare root: true"
+        "is required for #{recordable_type}"
       )
     rescue RecordingStudio::MissingRecordableDeclaration => e
       errors.add(:recordable_type, e.message)
     end
 
     def resolved_parent_recording
-      parent_recording || self.class.unscoped.find_by(id: parent_recording_id)
+      self.class.unscoped.find_by(id: parent_recording_id)
     end
 
     def parentless_child_under_existing_root?

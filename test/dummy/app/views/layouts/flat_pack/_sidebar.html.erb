@@ -13,30 +13,51 @@
       label: "Methods",
       icon: "document",
       default_open: current_page?(methods_path) ||
+        current_page?(recordable_methods_path) ||
         current_page?(identity_methods_path) ||
         current_page?(crud_methods_path) ||
         current_page?(event_methods_path) ||
         current_page?(root_methods_path) ||
         current_page?(query_methods_path) ||
         current_page?(tree_methods_path) ||
-        current_page?(capabilities_path)
+        current_page?(depreciated_methods_path) ||
+        current_page?(capabilities_path) ||
+        current_page?(orphans_path)
     ) do |group| %>
       <% group.items do %>
         <%= render FlatPack::Sidebar::Item::Component.new(label: "Config", href: methods_path, icon: "squares-2x2", active: current_page?(methods_path)) %>
+        <%= render FlatPack::Sidebar::Item::Component.new(label: "Recordables", href: recordable_methods_path, icon: "rectangle-stack", active: current_page?(recordable_methods_path)) %>
         <%= render FlatPack::Sidebar::Item::Component.new(label: "Identity", href: identity_methods_path, icon: "identification", active: current_page?(identity_methods_path)) %>
         <%= render FlatPack::Sidebar::Item::Component.new(label: "CRUD", href: crud_methods_path, icon: "wrench-screwdriver", active: current_page?(crud_methods_path)) %>
         <%= render FlatPack::Sidebar::Item::Component.new(label: "Events", href: event_methods_path, icon: "bolt", active: current_page?(event_methods_path)) %>
         <%= render FlatPack::Sidebar::Item::Component.new(label: "Root", href: root_methods_path, icon: "home-modern", active: current_page?(root_methods_path)) %>
         <%= render FlatPack::Sidebar::Item::Component.new(label: "Queries", href: query_methods_path, icon: "magnifying-glass", active: current_page?(query_methods_path)) %>
         <%= render FlatPack::Sidebar::Item::Component.new(label: "Tree", href: tree_methods_path, icon: "folder", active: current_page?(tree_methods_path)) %>
+        <%= render FlatPack::Sidebar::Item::Component.new(label: "Depreciated", href: depreciated_methods_path, icon: "exclamation-triangle", active: current_page?(depreciated_methods_path)) %>
         <%= render FlatPack::Sidebar::Item::Component.new(label: "Capabilties", href: capabilities_path, icon: "shield-check", active: current_page?(capabilities_path)) %>
+        <%= render FlatPack::Sidebar::Item::Component.new(label: "Orphans", href: orphans_path, icon: "shield-check", active: current_page?(orphans_path)) %>
       <% end %>
     <% end %>
   <% end %>
 
   <% sidebar.footer do %>
     <%= render FlatPack::Sidebar::Footer::Component.new do %>
-      <%= render FlatPack::Button::Component.new(url: destroy_user_session_path, method: :delete, style: :ghost, text: "Log out", icon: "arrow-left-on-rectangle") %>
+      <% logout_button_classes = [
+        "w-full inline-flex items-center justify-center gap-2",
+        "rounded-[var(--button-border-radius)] font-medium cursor-pointer transition-colors duration-base",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring-color)]",
+        "focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--button-focus-ring-offset-color)]",
+        "disabled:pointer-events-none disabled:opacity-[var(--button-disabled-opacity)]",
+        FlatPack::Button::Component::SIZES.fetch(:md),
+        FlatPack::Button::Component::SCHEMES.fetch(:ghost)
+      ].join(" ") %>
+      <%= button_to destroy_user_session_path,
+            method: :delete,
+            form: { class: "w-full", data: { turbo: false } },
+            class: logout_button_classes do %>
+        <%= render FlatPack::Shared::IconComponent.new(name: "arrow-left-on-rectangle", size: :md) %>
+        <span>Log out</span>
+      <% end %>
     <% end %>
   <% end %>
 <% end %>

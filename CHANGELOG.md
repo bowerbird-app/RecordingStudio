@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Updated README, API reference, and generated install docs for declaration-enforced hierarchy rules, label/plural-label
+  resolution, root/parent guard helpers, orphan helpers, and child/descendant query helpers.
+
+### Migration Notes
+- Added [docs/UPGRADING.md](docs/UPGRADING.md) with the upgrade path for recordable declarations, root eligibility,
+  allowed parent rules, staged migration with `config.require_recordable_declarations = false`, and common hierarchy
+  errors.
+
 ## [1.2.0] - 2026-05-15
 
 ### Added

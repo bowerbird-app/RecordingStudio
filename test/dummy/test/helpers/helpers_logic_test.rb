@@ -17,7 +17,7 @@ class HelpersLogicTest < ActiveSupport::TestCase
     skip "FlatPack tree components are validated through rails runner renders; the helper-only test harness does not autoload them reliably."
 
     workspace = Workspace.create!(name: "Workspace")
-    root = RecordingStudio::Recording.create!(recordable: workspace)
+    root = RecordingStudio.root_recording_for(workspace)
     child = RecordingStudio::Recording.create!(
       root_recording: root,
       parent_recording: root,
@@ -41,7 +41,7 @@ class HelpersLogicTest < ActiveSupport::TestCase
 
   test "recording tree helpers derive labels and icons from recording types" do
     workspace = Workspace.create!(name: "Workspace")
-    root = RecordingStudio::Recording.create!(recordable: workspace)
+    root = RecordingStudio.root_recording_for(workspace)
     folder = RecordingStudio::Recording.create!(
       root_recording: root,
       parent_recording: root,

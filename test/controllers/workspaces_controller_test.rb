@@ -6,7 +6,7 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user = create_user(name: "Workspace Author")
     @workspace = Workspace.create!(name: "Workspace")
-    @root_recording = RecordingStudio::Recording.create!(recordable: @workspace)
+    @root_recording = RecordingStudio.root_recording_for(@workspace)
     sign_in_as(@user)
   end
 

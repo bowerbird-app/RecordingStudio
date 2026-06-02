@@ -6,7 +6,7 @@ class FoldersControllerTest < ActionDispatch::IntegrationTest
   setup do
     @user = create_user(name: "Folder Author")
     @workspace = Workspace.create!(name: "Workspace")
-    @root_recording = RecordingStudio::Recording.create!(recordable: @workspace)
+    @root_recording = RecordingStudio.root_recording_for(@workspace)
     folder = RecordingStudioFolder.create!(name: "Projects")
     @folder_recording = RecordingStudio::Recording.create!(
       root_recording: @root_recording,
@@ -25,7 +25,8 @@ class FoldersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "index lists folders across workspaces" do
-    other_root = RecordingStudio::Recording.create!(recordable: Workspace.create!(name: "Other Workspace"))
+    other_workspace = Workspace.create!(name: "Other Workspace")
+    other_root = RecordingStudio.root_recording_for(other_workspace)
     RecordingStudio::Recording.create!(
       root_recording: other_root,
       parent_recording: other_root,

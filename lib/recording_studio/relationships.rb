@@ -18,8 +18,11 @@ module RecordingStudio
 
     def root_recording?(recording)
       return false if recording.nil? || recording.id.blank?
+      return false unless RecordingStudio.root_allowed?(recording.recordable_type)
 
       root_recording_id_for(recording) == recording.id
+    rescue RecordingStudio::MissingRecordableDeclaration
+      false
     end
 
     def same_root?(left_recording, right_recording)
