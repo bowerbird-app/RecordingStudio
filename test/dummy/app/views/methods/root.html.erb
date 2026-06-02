@@ -12,4 +12,18 @@
   class: "mb-6"
 ) %>
 
+<div class="mb-6 space-y-3">
+  <%= render FlatPack::SectionTitle::Component.new(
+    title: "Set root recordable",
+    subtitle: "Declare the root recordable class with recording_studio_recordable(root: true), then fetch or create its recording with RecordingStudio.root_recording_for(recordable).",
+    class: "my-0"
+  ) %>
+
+  <%= render FlatPack::Button::Component.new(
+    text: "Open recordables",
+    style: :primary,
+    url: recordable_methods_path
+  ) %>
+</div>
+
 <%= render "shared/method_catalog", method_catalog: @method_catalog %>

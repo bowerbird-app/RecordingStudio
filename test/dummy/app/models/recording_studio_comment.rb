@@ -1,4 +1,6 @@
 class RecordingStudioComment < ApplicationRecord
+  recording_studio_recordable label: "Comment", root: false, allowed_parent_types: [ "RecordingStudioPage" ]
+
   validates :body, presence: true
 
   def self.recordable_type_label

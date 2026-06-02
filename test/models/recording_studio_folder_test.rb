@@ -12,11 +12,16 @@ class RecordingStudioFolderTest < ActiveSupport::TestCase
 
   def test_folder_can_be_registered_and_recorded
     original_types = RecordingStudio.configuration.recordable_types
-    RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioFolder]
+    RecordingStudio.configuration.recordable_types = %w[
+      Workspace
+      RecordingStudioPage
+      RecordingStudioComment
+      RecordingStudioFolder
+    ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     workspace = Workspace.create!(name: "Folder Workspace")
-    root_recording = RecordingStudio::Recording.create!(recordable: workspace)
+    root_recording = RecordingStudio.root_recording_for(workspace)
 
     folder_recording = root_recording.record(RecordingStudioFolder) do |folder|
       folder.name = "Projects"

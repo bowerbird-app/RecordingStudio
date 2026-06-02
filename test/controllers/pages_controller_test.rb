@@ -8,14 +8,14 @@ class PagesControllerTest < ActionDispatch::IntegrationTest
     sign_in_as(@user)
 
     @workspace = Workspace.create!(name: "Alpha Workspace")
-    @workspace_root = RecordingStudio::Recording.create!(recordable: @workspace)
+    @workspace_root = RecordingStudio.root_recording_for(@workspace)
     @page_recording = @workspace_root.record(RecordingStudioPage, actor: @user) do |page|
       page.title = "Workspace Alpha Plan"
       page.summary = "Alpha summary"
     end
 
     @other_workspace = Workspace.create!(name: "Beta Workspace")
-    @other_root = RecordingStudio::Recording.create!(recordable: @other_workspace)
+    @other_root = RecordingStudio.root_recording_for(@other_workspace)
     @other_page_recording = @other_root.record(RecordingStudioPage, actor: @user) do |page|
       page.title = "Workspace Beta Plan"
       page.summary = "Beta summary"

@@ -17,11 +17,12 @@ module RecordingStudio
     belongs_to :parent_recording, class_name: "RecordingStudio::Recording", optional: true,
                                   inverse_of: :child_recordings
     has_many :child_recordings, class_name: "RecordingStudio::Recording", foreign_key: :parent_recording_id,
-                                inverse_of: :parent_recording, dependent: :nullify
+                                inverse_of: :parent_recording, dependent: :restrict_with_error
     has_many :events, -> { recent }, class_name: "RecordingStudio::Event", inverse_of: :recording, dependent: :destroy
 
     validate :parent_recording_root_consistency
     validate :parent_recording_must_not_create_cycle
+    validate :recordable_declaration_allows_hierarchy
 
     before_create :assign_root_recording_id
     after_create :set_self_root_recording_id, if: -> { parent_recording_id.nil? && root_recording_id.nil? }
@@ -93,9 +94,12 @@ module RecordingStudio
     end
 
     def recordables
-      ([recordable] + association(:events).scope.preload(:recordable, :previous_recordable).flat_map do |event|
-        [event.recordable, event.previous_recordable]
-      end).compact.uniq do |snapshot|
+      events_scope = association(:events).scope.reorder(occurred_at: :asc, created_at: :asc)
+      event_snapshots = events_scope.preload(:recordable, :previous_recordable).flat_map do |event|
+        [event.previous_recordable, event.recordable]
+      end
+
+      (event_snapshots + [recordable]).compact.uniq do |snapshot|
         [snapshot.class.base_class.name, snapshot.id]
       end
     end
@@ -103,7 +107,6 @@ module RecordingStudio
     def record(recordable_or_class, actor: nil, impersonator: nil, metadata: {}, parent_recording: nil)
       recordable = build_recordable_instance(recordable_or_class)
       yield(recordable) if block_given?
-      recordable.save!
 
       root = root_recording_or_self
       resolved_parent = parent_recording || root
@@ -486,6 +489,52 @@ module RecordingStudio
 
       update_recordable_counter(previous_type, previous_id, :recordings_count, -1)
       update_recordable_counter(recordable_type, recordable_id, :recordings_count, 1)
+    end
+
+    def recordable_declaration_allows_hierarchy
+      return if recordable_type.blank?
+
+      if parent_recording_id.present?
+        validate_parent_allowed
+      else
+        validate_parentless_allowed
+      end
+    end
+
+    def validate_parent_allowed
+      RecordingStudio.assert_parent_allowed!(child_type: recordable_type, parent_recording: resolved_parent_recording)
+    rescue RecordingStudio::InvalidParent, RecordingStudio::MissingRecordableDeclaration => e
+      errors.add(:parent_recording, e.message)
+    end
+
+    def validate_root_allowed
+      RecordingStudio.assert_root_allowed!(recordable_type)
+    rescue RecordingStudio::RootNotAllowed, RecordingStudio::MissingRecordableDeclaration => e
+      errors.add(:recordable_type, e.message)
+    end
+
+    def validate_parentless_allowed
+      if parentless_child_under_existing_root?
+        errors.add(:parent_recording_id, "cannot be blank when root_recording_id points to an existing root")
+        return
+      end
+
+      return validate_root_allowed if RecordingStudio.root_allowed?(recordable_type)
+
+      errors.add(
+        :parent_recording_id,
+        "is required for #{recordable_type}"
+      )
+    rescue RecordingStudio::MissingRecordableDeclaration => e
+      errors.add(:recordable_type, e.message)
+    end
+
+    def resolved_parent_recording
+      self.class.unscoped.find_by(id: parent_recording_id)
+    end
+
+    def parentless_child_under_existing_root?
+      root_recording_id.present? && root_recording_id != id
     end
   end
   # rubocop:enable Metrics/ClassLength

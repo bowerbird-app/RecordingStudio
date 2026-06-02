@@ -25,7 +25,7 @@ class ControllerLogicTest < ActiveSupport::TestCase
 
   test "application controller root_recording_for looks up the workspace root" do
     workspace = Workspace.create!(name: "Workspace")
-    root = RecordingStudio::Recording.create!(recordable: workspace)
+    root = RecordingStudio.root_recording_for(workspace)
     controller = ApplicationController.new
 
     assert_equal root, controller.send(:root_recording_for, workspace)

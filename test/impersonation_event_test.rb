@@ -9,7 +9,7 @@ class ImpersonationEventTest < ActiveSupport::TestCase
 
   def test_event_records_impersonator
     workspace = Workspace.create!(name: "Workspace")
-    root_recording = RecordingStudio::Recording.create!(recordable: workspace)
+    root_recording = RecordingStudio.root_recording_for(workspace)
     admin = User.create!(name: "Admin", email: "admin@example.com", password: "password123")
     actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
 

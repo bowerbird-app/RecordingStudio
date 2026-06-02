@@ -5,7 +5,9 @@ module RecordingStudio
     def self.apply!
       return unless defined?(ActiveRecord::Base)
 
+      RecordingStudio::RecordableDeclarations.install_active_record_macro!
       types = Array(RecordingStudio.configuration.recordable_types).map(&:to_s).uniq.sort
+      RecordingStudio.validate_recordable_declarations! unless defer_validation_during_boot?(types)
       return if types.empty?
 
       recording_class = if RecordingStudio.const_defined?(:Recording, false)
@@ -31,6 +33,14 @@ module RecordingStudio
           recordable_class.include(RecordingStudio::Recordable)
         end
       end
+    end
+
+    def self.defer_validation_during_boot?(types)
+      return false unless types.any?
+      return false unless defined?(Rails) && Rails.respond_to?(:application) && Rails.application
+      return false if Rails.application.initialized?
+
+      types.any? { |type_name| ActiveSupport::Inflector.safe_constantize(type_name).nil? }
     end
   end
 end

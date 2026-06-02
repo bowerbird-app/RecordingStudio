@@ -5,6 +5,7 @@ require "test_helper"
 class RecordingTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
+    @original_declarations = RecordingStudio::RecordableDeclarations.declarations.dup
     RecordingStudio.configuration.recordable_types = %w[
       Workspace
       RecordingStudioPage
@@ -18,6 +19,7 @@ class RecordingTest < ActiveSupport::TestCase
 
   def teardown
     RecordingStudio.configuration.recordable_types = @original_types
+    RecordingStudio::RecordableDeclarations.replace_declarations!(@original_declarations)
   end
 
   def test_scopes_filter_recordings
@@ -25,7 +27,7 @@ class RecordingTest < ActiveSupport::TestCase
     first = RecordingStudio.record!(action: "created", recordable: RecordingStudioPage.new(title: "One"),
                                     root_recording: root, parent_recording: root).recording
     second = RecordingStudio.record!(action: "created", recordable: RecordingStudioComment.new(body: "Two"),
-                                     root_recording: root, parent_recording: root).recording
+                                     root_recording: root, parent_recording: first).recording
 
     assert_includes RecordingStudio::Recording.for_root(root.id), first
     assert_includes RecordingStudio::Recording.all, second
@@ -61,9 +63,9 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_subtree_events_include_self_and_filtered_descendants
     _, root = create_workspace_root
-    parent = root.record(RecordingStudioPage) { |page| page.title = "Parent" }
+    parent = root.record(RecordingStudioFolder) { |folder| folder.name = "Parent" }
     publishable_child = root.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child Page" }
-    comment_child = root.record(RecordingStudioComment, parent_recording: parent) do |comment|
+    comment_child = root.record(RecordingStudioComment, parent_recording: publishable_child) do |comment|
       comment.body = "Child Comment"
     end
 
@@ -82,7 +84,7 @@ class RecordingTest < ActiveSupport::TestCase
   def test_subtree_events_support_filters_without_self
     _, root = create_workspace_root
     actor = User.create!(name: "Actor", email: "actor@example.com", password: "password123")
-    parent = root.record(RecordingStudioPage) { |page| page.title = "Parent" }
+    parent = root.record(RecordingStudioFolder) { |folder| folder.name = "Parent" }
     child = root.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child" }
 
     child.log_event!(action: "published", actor: actor, occurred_at: 2.days.ago)
@@ -188,6 +190,15 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_recordings_counter_skips_when_recordable_missing_column
     _, root = create_workspace_root
+    RecordingStudio::RecordableDeclarations.register(
+      SystemActor,
+      label: "System actor",
+      plural_label: nil,
+      root: false,
+      options: { allowed_parent_types: ["Workspace"] }
+    )
+    RecordingStudio.configuration.recordable_types += ["SystemActor"]
+    RecordingStudio::DelegatedTypeRegistrar.apply!
     system_actor = SystemActor.create!(name: "Background task")
 
     recording = RecordingStudio::Recording.create!(root_recording: root, parent_recording: root,
@@ -218,6 +229,28 @@ class RecordingTest < ActiveSupport::TestCase
     assert_includes child.errors[:parent_recording_id], "must belong to the same root recording"
   end
 
+  def test_parent_recording_validation_uses_persisted_parent_root
+    _, root = create_workspace_root
+    _, other_root = create_workspace_root(name: "Other Workspace")
+
+    parent = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Foreign parent"),
+      root_recording: other_root,
+      parent_recording: other_root
+    ).recording
+    parent.root_recording_id = root.id
+
+    child = RecordingStudio::Recording.new(
+      root_recording: root,
+      recordable: RecordingStudioPage.create!(title: "Child"),
+      parent_recording: parent
+    )
+
+    assert_not child.valid?
+    assert_includes child.errors[:parent_recording_id], "must belong to the same root recording"
+  end
+
   def test_parent_recording_rejects_cycles
     _, root = create_workspace_root
 
@@ -229,7 +262,7 @@ class RecordingTest < ActiveSupport::TestCase
     ).recording
     child = RecordingStudio.record!(
       action: "created",
-      recordable: RecordingStudioPage.new(title: "Child"),
+      recordable: RecordingStudioComment.new(body: "Child"),
       root_recording: root,
       parent_recording: parent
     ).recording
@@ -408,7 +441,7 @@ class RecordingTest < ActiveSupport::TestCase
 
   def create_workspace_root(name: "Workspace")
     workspace = Workspace.create!(name: name)
-    root = RecordingStudio::Recording.create!(recordable: workspace)
+    root = RecordingStudio.root_recording_for(workspace)
     [workspace, root]
   end
 end

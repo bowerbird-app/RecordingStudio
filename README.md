@@ -18,9 +18,11 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Data Model](#data-model)
 - [Recording Hierarchy](#recording-hierarchy)
 - [Delegated Type Registration](#delegated-type-registration)
+- [Labeling Recordables](#labeling-recordables)
 - [Addon Author API Surface](#addon-author-api-surface)
 - [Full API Reference for AI Agents](#full-api-reference-for-ai-agents)
 - [Configuration](#configuration)
+- [Upgrade Guide](#upgrade-guide)
 - [Root Recording API](#root-recording-api)
 - [Access Control and Root Selection](#access-control-and-root-selection)
 - [Actors](#actors)
@@ -89,14 +91,23 @@ The install generator creates an initializer and mounts the engine routes.
 
 If you want a fast path for host gems/apps to start using RecordingStudio, use this minimal flow.
 
-1. Define a top-level recordable (for example `Workspace`):
+1. Define a top-level recordable (for example `Workspace`) and declare that it can be a root:
 
 ```ruby
 class Workspace < ApplicationRecord
+  recording_studio_recordable label: "Workspace", root: true
 end
 ```
 
-2. Ensure your app sets `Current.actor` (so APIs can infer actor automatically):
+2. Define child recordables with their allowed parents:
+
+```ruby
+class Page < ApplicationRecord
+  recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
+end
+```
+
+3. Ensure your app sets `Current.actor` (so APIs can infer actor automatically):
 
 ```ruby
 class ApplicationController < ActionController::Base
@@ -110,7 +121,7 @@ class ApplicationController < ActionController::Base
 end
 ```
 
-3. Create/find the root recording for that top-level recordable:
+4. Create/find the root recording for that top-level recordable:
 
 ```ruby
 workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
@@ -118,7 +129,7 @@ workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
 root_recording = RecordingStudio.root_recording_for(workspace)
 ```
 
-4. Create your first recording under that root:
+5. Create your first recording under that root:
 
 ```ruby
 recording = root_recording.record(Page) do |page|
@@ -126,7 +137,8 @@ recording = root_recording.record(Page) do |page|
 end
 ```
 
-At this point, you can use `root_recording.revise` and `root_recording.log_event!` for history-aware workflows.
+At this point, you can use `root_recording.revise(...)`, `root_recording.log_event(...)`, and
+`recording.log_event!(...)` for history-aware workflows.
 
 ## Identity vs State vs History
 
@@ -159,6 +171,8 @@ recording.parent_recording
 recording.child_recordings
 recording.root_recording_or_self
 recording.root?
+recording.parentless?
+recording.orphan?
 recording.leaf?
 recording.depth
 recording.level
@@ -168,9 +182,10 @@ recording.descendants
 recording.self_and_descendants
 ```
 
-`ancestors` is ordered from the root recording down to the direct parent. `descendants` returns the full nested
-subtree in parent-before-child order. These traversal helpers return `RecordingStudio::Recording` objects, so callers
-can read `id`, `recordable_type`, `recordable_id`, `recordable_type_name`, or `name` from each returned node.
+`parentless?` checks for a blank `parent_recording_id`. `orphan?` is true when a recording is parentless but is not a
+valid declared root. `ancestors` is ordered from the root recording down to the direct parent. `descendants` returns the
+full nested subtree in parent-before-child order. These traversal helpers return `RecordingStudio::Recording` objects,
+so callers can read `id`, `recordable_type`, `recordable_id`, `recordable_type_name`, or `name` from each returned node.
 
 Example hierarchy:
 
@@ -179,35 +194,84 @@ Example hierarchy:
     - Comment (recording)
     - Comment (recording)
     - Comment (recording)
+
 ## Delegated Type Registration
 
 RecordingStudio uses `delegated_type` but cannot know your recordable classes ahead of time. Register types at runtime:
 
 ```ruby
 RecordingStudio.configure do |config|
-  config.recordable_types = ["Page"]
+  config.recordable_types = ["Workspace", "Page"]
 end
 
+RecordingStudio.register_recordable_type("Workspace")
 RecordingStudio.register_recordable_type("Page")
+
+class Workspace < ApplicationRecord
+  recording_studio_recordable label: "Workspace", root: true
+end
+
+class Page < ApplicationRecord
+  recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
+end
 ```
 
 Each entry is an ActiveRecord model class name (as a String). RecordingStudio constantizes these names and registers them
 with `delegated_type`, so the class must be loadable in your app.
 
-The engine applies `delegated_type` on boot and reload via a Railtie, and registration is idempotent.
+The engine applies `delegated_type` on boot and reload via a Railtie, and registration is idempotent. By default,
+configured ActiveRecord types must also declare their RecordingStudio hierarchy rules with
+`recording_studio_recordable`.
+
+`recording_studio_recordable` declares the hierarchy rules and display labels for a recordable type. `label:` is
+required, `plural_label:` is optional and defaults to the pluralized label, and `root:` must be `true` or `false`.
+Non-root recordables must provide `allowed_parent_types:`. Root recordables may also provide `allowed_parent_types: []`
+to make it explicit that they are roots only and cannot be nested under another recording.
+
+Root recordables can be top-level recordings. Non-root recordables must list allowed parents; an empty list is valid but
+means the type cannot currently be recorded under any parent. `RecordingStudio.root_recording_for(recordable)` only
+accepts recordables that declare `root: true`, and child creation checks `allowed_parent_types` before saving.
+
+```ruby
+class Workspace < ApplicationRecord
+  recording_studio_recordable label: "Workspace", root: true
+end
+
+class Page < ApplicationRecord
+  recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
+end
+```
+
+Useful declaration helpers:
+
+```ruby
+RecordingStudio.recordable_declaration_for("Page")
+RecordingStudio.recordable_declaration_defined?("Page")
+RecordingStudio.recordable_declarations
+RecordingStudio.validate_recordable_declarations!
+RecordingStudio.root_allowed?("Workspace")
+RecordingStudio.root_recordable_type?("Workspace")
+RecordingStudio.root_recordable_types
+RecordingStudio.root_recordable_declarations
+RecordingStudio.allowed_parent_types_for("Page")
+RecordingStudio.parent_allowed?(child_type: "Page", parent_recording: root_recording)
+RecordingStudio.assert_root_allowed!("Workspace")
+RecordingStudio.assert_parent_allowed!(child_type: "Page", parent_recording: root_recording)
+```
+
+Missing declarations raise `RecordingStudio::MissingRecordableDeclaration` by default. Invalid declarations or
+unregistered `allowed_parent_types` raise `RecordingStudio::InvalidRecordableDeclaration`.
 
 ## Labeling Recordables
 
 Recordable naming now lives in the engine, so callers can ask `RecordingStudio` or a `RecordingStudio::Recording`
 for the current display `name` and `type_label` without re-implementing UI helper logic.
 
-Host apps can opt into custom naming by defining:
+Host apps should put type labels in the declaration and can opt into custom instance names with `recordable_name`:
 
 ```ruby
 class Workspace < ApplicationRecord
-  def self.recordable_type_label
-    "Workspace"
-  end
+  recording_studio_recordable label: "Workspace", plural_label: "Workspaces", root: true
 
   def recordable_name
     name
@@ -220,6 +284,7 @@ Preferred caller-facing helpers are:
 ```ruby
 RecordingStudio.recordable_name(recordable)
 RecordingStudio.recordable_type_label(recordable_or_type)
+RecordingStudio.recordable_type_plural_label(recordable_or_type)
 
 recording.name
 recording.type_label
@@ -227,18 +292,19 @@ recording.type_label
 
 Resolution order for `RecordingStudio.recordable_name(recordable)` and `recording.name` is:
 
-1. `recordable.recordable_name`
-2. `recordable.recording_studio_label` (compatibility alias)
-3. Engine fallbacks: `title`, `name`, built-in comment formatting, then class-and-id
-4. `recordable.class.recordable_type_label`
-5. `recordable.class.recording_studio_type_label` (compatibility alias)
+1. Registered `RecordingStudio::Labels` `name` formatter
+2. `recordable.recordable_name`
+3. `recordable.recording_studio_label` (deprecated compatibility alias)
+4. Engine fallbacks: `title`, `name`, built-in comment formatting, then class-and-id
+5. The type label fallback
 
 `RecordingStudio::Labels.label_for(recordable)` and `recording.label` remain as compatibility aliases for
 `recordable_name` and `name`.
 
-`RecordingStudio.recordable_type_label(...)`, `RecordingStudio::Labels.type_label_for(...)`, and `recording.type_label` use
-`recordable.class.recordable_type_label` first, then fall back to the legacy `recording_studio_type_label`,
-the model's human name, or a humanized class name.
+`RecordingStudio.recordable_type_label(...)`, `RecordingStudio::Labels.type_label_for(...)`, and `recording.type_label`
+use a registered `type_label` formatter first, then the declaration `label:`, then legacy model methods, the model's
+human name, or a humanized class name. `RecordingStudio.recordable_type_plural_label(...)` uses the declaration
+`plural_label:` when present and otherwise pluralizes the resolved type label.
 `RecordingStudio::Labels.title_for(...)`, `RecordingStudio::Labels.summary_for(...)`, `recording.title`, and `recording.summary`
 remain available for optional presentation metadata, but they are not the preferred identity surface.
 Root recordings use the same APIs as any other recording because their names come from the root recordable.
@@ -257,6 +323,7 @@ RecordingStudio.recordable_identifier(recordable)
 RecordingStudio.recordable_global_id(recordable)
 RecordingStudio.recordable_name(recordable)
 RecordingStudio.recordable_type_label(recordable_or_type)
+RecordingStudio.recordable_type_plural_label(recordable_or_type)
 ```
 
 `RecordingStudio::Recording` also exposes:
@@ -272,8 +339,18 @@ recording.type_label
 RecordingStudio.root_recording_for(recordable)
 RecordingStudio.root_recording_or_self(recording)
 RecordingStudio.root_recording_id_for(recording)
+RecordingStudio.root_recording?(recording)
+RecordingStudio.root_allowed?(recordable_or_type)
+RecordingStudio.root_recordable_type?(recordable_or_type)
+RecordingStudio.root_recordable_types
+RecordingStudio.root_recordable_declarations
+RecordingStudio.allowed_parent_types_for(recordable_or_type)
+RecordingStudio.parent_allowed?(child_type: "Page", parent_recording: recording)
+RecordingStudio.assert_root_allowed!(recordable_or_type)
 RecordingStudio.assert_recording_belongs_to_root!(root_recording, recording)
+RecordingStudio.assert_root_recording!(recording)
 RecordingStudio.assert_parent_recording_belongs_to_root!(parent_recording, root_recording)
+RecordingStudio.assert_parent_allowed!(child_type: "Page", parent_recording: recording)
 ```
 
 `RecordingStudio::Recording#root_recording_or_self` is the instance-level compatibility helper for addons that
@@ -283,6 +360,8 @@ previously used `root_recording || self`.
 
 ```ruby
 recording.root?
+recording.parentless?
+recording.orphan?
 recording.leaf?
 recording.depth
 recording.level
@@ -295,6 +374,7 @@ recording.self_and_descendants
 `ancestors` returns `RecordingStudio::Recording` objects ordered from the root down to the direct parent.
 `self_and_ancestors` appends the current recording object. `descendants` returns all nested child recording objects in
 parent-before-child order, and `self_and_descendants` prepends the current recording.
+`orphan?` identifies parentless recordings that are not valid declared roots.
 
 ### Public duplication/counter helpers
 
@@ -347,6 +427,7 @@ That reference is the best starting point for AI agents and addon authors becaus
 ```ruby
 RecordingStudio.configure do |config|
   config.recordable_types = []
+  config.require_recordable_declarations = true
   config.actor = -> { Current.actor }
   config.impersonator = -> { Current.impersonator }
   config.event_notifications_enabled = true
@@ -359,6 +440,8 @@ end
 ### Configuration Notes
 
 - `recordable_types`: Array of delegated recordable class names. Use `register_recordable_type` for incremental runtime registration.
+- `require_recordable_declarations`: Requires each configured ActiveRecord type to call
+  `recording_studio_recordable`; set false only while migrating older apps, where missing declarations warn.
 - `actor`: Callable used when callers omit `actor:` from write APIs.
 - `impersonator`: Callable used when callers omit `impersonator:` from write APIs.
 - `idempotency_mode`: Controls how duplicate `idempotency_key` values are handled. `:return_existing` returns the
@@ -370,6 +453,13 @@ end
 - `register_recordable_dup_strategy`: lets trusted addon code override duplication for one recordable type without
   changing the global fallback.
 - `hooks`: Global hook registry exposed as `RecordingStudio.configuration.hooks`.
+
+## Upgrade Guide
+
+For existing apps upgrading to declaration-enforced roots and parent rules, see
+[docs/UPGRADING.md](docs/UPGRADING.md). The short version is: add `recording_studio_recordable(...)` to every configured
+ActiveRecord recordable, mark only true top-level types with `root: true`, declare `allowed_parent_types:` for child
+types, and use `config.require_recordable_declarations = false` only as a temporary migration bridge.
 
 ## Root Recording API
 
@@ -685,6 +775,9 @@ The quick examples below are accurate for the current code, but the exhaustive m
 | `root_recording.recordings_query(type: "Page", recordable_scope: ->(scope) { scope.where("topic ILIKE ?", "%Plans%") })` | Recordings filtered by a custom recordable scope. |
 | `root_recording.recordings_query(limit: 50, offset: 100)` | Paginated recordings. |
 | `root_recording.recordings_query(include_children: true)` | Recordings for a root recording (includes nested children). |
+| `root_recording.recordings_with_children(type: Page, child_type: Comment)` | Parent recordings that have matching direct children. |
+| `root_recording.recordings_with_descendants(type: Page, descendant_type: Comment)` | Ancestor recordings that have matching nested descendants. |
+| `root_recording.recordings_without_children(type: Page, child_type: Comment)` | Parent recordings that do not have matching direct children. |
 | `root_recording.recording_for(page)` | One recording wrapper for a persisted recordable in the current root. |
 | `root_recording.recordings_for([page, folder])` | Recording wrappers for multiple persisted recordables, preserving input order. |
 | `root_recording.recordables_of(Page, include_children: true)` | Raw current recordable models for the filtered recordings under the root. |
@@ -785,6 +878,7 @@ bin/dev
 
 - Assert that recordables are immutable by verifying a new recordable was created on `revise`.
 - Assert `Event` counts and actions, not direct model mutations.
+- Assert recordable declarations for every configured type and cover root/parent rejection paths.
 - Use `idempotency_key` in tests for retriable flows.
 
 ## Release Process

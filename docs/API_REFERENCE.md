@@ -10,6 +10,8 @@ reverse-engineering the engine internals.
 - Treat the delegated `recordable` as an immutable snapshot of state.
 - Treat `RecordingStudio::Event` as append-only history.
 - Use a root recording as the write and query boundary for a workspace/project/thread tree.
+- Declare every configured ActiveRecord recordable with `recording_studio_recordable(...)`; declarations define type
+  labels, root eligibility, and allowed parent types.
 - Prefer the documented helpers below over reaching into concerns, callbacks, or internals.
 
 ## Choose The Right Entry Point
@@ -28,6 +30,9 @@ Use this decision guide before calling methods:
   `RecordingStudio.record!(...)`
 - You need recordings under a root:
   `root_recording.recordings_query(...)`
+- You need recordings based on direct child or nested descendant presence:
+  `root_recording.recordings_with_children(...)`, `root_recording.recordings_with_descendants(...)`, or
+  `root_recording.recordings_without_children(...)`
 - You need events under a root:
   `root_recording.events_query(...)`
 - You need events for one recording only:
@@ -51,6 +56,19 @@ These methods are the main addon-facing API.
 | `recordable_global_id(recordable)` | recordable instance | GlobalID string or `nil` | Produces a GlobalID string when the recordable supports it. |
 | `recordable_name(recordable)` | recordable instance | `String` | Returns the display name used by recordings and UIs. |
 | `recordable_type_label(recordable_or_type)` | instance, class, or class name | `String` | Returns a human-facing type label like `Page`. |
+| `recordable_type_plural_label(recordable_or_type)` | instance, class, or class name | `String` | Returns the declared plural label or pluralized type label for a type. |
+| `recordable_declaration_for(type)` | instance, class, or class name | declaration or `nil` | Reads the `recording_studio_recordable` declaration. |
+| `recordable_declaration_defined?(type)` | instance, class, or class name | `true` or `false` | Checks whether a type declared RecordingStudio rules. |
+| `recordable_declarations` | nothing | duplicate `Hash<String, Declaration>` | Introspects the currently loaded declarations without exposing the mutable registry. |
+| `validate_recordable_declarations!` | nothing | `true` or raises | Ensures configured ActiveRecord recordable types have valid declarations. |
+| `allowed_parent_types_for(type)` | instance, class, or class name | `Array<String>` | Reads the declared parent type allowlist for a recordable type. |
+| `root_allowed?(type)` | instance, class, or class name | `true`, `false`, or raises | Checks whether a recordable type may be saved as a root. |
+| `root_recordable_type?(type)` | instance, class, or class name | `true`, `false`, or raises | Alias-style helper for `root_allowed?`. |
+| `root_recordable_types` | nothing | `Array<String>` or raises | Lists configured recordable types allowed as roots. |
+| `root_recordable_declarations` | nothing | `Array<Declaration>` | Lists configured declarations whose types declare `root: true`. |
+| `parent_allowed?(child_type:, parent_recording:)` | child type, parent recording | `true`, `false`, or raises | Checks declared parent/child hierarchy rules. |
+| `assert_root_allowed!(type)` | instance, class, or class name | `true` or raises `RecordingStudio::RootNotAllowed` | Guards APIs that create or identify root recordings. |
+| `assert_parent_allowed!(child_type:, parent_recording:)` | child type, parent recording | `true` or raises `RecordingStudio::InvalidParent` | Guards child creation against declaration hierarchy rules. |
 | `root_recording_for(recordable)` | persisted top-level recordable | `RecordingStudio::Recording` | Finds or creates the root recording for a top-level object. |
 | `root_recording_or_self(recording)` | recording or root recording | `RecordingStudio::Recording` or `nil` | Collapses `root_recording || self` into one public helper. |
 | `root_recording_id_for(recording)` | recording or root recording | root recording ID or `nil` | Returns the root boundary ID used by tree queries. |
@@ -88,10 +106,58 @@ Use `RecordingStudio.record!` when you need the event object, or when a higher-l
 Behavior summary:
 
 - When `recording:` is omitted, a new `RecordingStudio::Recording` is created.
+- New recordings under an existing root need a `parent_recording:`; use `root_recording_for(recordable)` to create
+  top-level roots.
+- New child recordings enforce `recording_studio_recordable` parent rules before the recordable is saved.
 - When `recording:` is present, the current recordable may be replaced, but its type cannot change.
 - On success, the return value is always the new or reused `RecordingStudio::Event`.
 - If `idempotency_key:` matches an existing event for the same recording, behavior depends on
   `config.idempotency_mode`.
+
+## Recordable Declarations
+
+Every configured ActiveRecord recordable type should call the model macro:
+
+```ruby
+class Workspace < ApplicationRecord
+  recording_studio_recordable label: "Workspace", plural_label: "Workspaces", root: true
+end
+
+class Page < ApplicationRecord
+  recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
+end
+```
+
+Macro parameters:
+
+| Parameter | Required | Meaning |
+| --- | --- | --- |
+| `label:` | yes | Singular human-facing type label. Used by `recordable_type_label`. |
+| `plural_label:` | no | Plural human-facing type label. Defaults to `label.pluralize`. |
+| `root:` | yes | `true` when the type can be a root recording; `false` for child-only types. |
+| `allowed_parent_types:` | required when `root: false` | Class names/classes allowed as direct parents. `[]` is valid but means the type cannot currently be nested anywhere. |
+
+Declaration behavior:
+
+- `config.require_recordable_declarations` defaults to `true`; missing declarations raise
+  `RecordingStudio::MissingRecordableDeclaration`.
+- Setting `config.require_recordable_declarations = false` keeps legacy apps running while logging missing-declaration
+  warnings. Invalid declarations still raise.
+- A declaration for an unregistered type warns when declarations are not required and raises
+  `RecordingStudio::InvalidRecordableDeclaration` when they are required.
+- `allowed_parent_types` entries must be registered recordable types.
+- Direct model saves validate hierarchy rules too, so bypassing `record!` does not create valid orphan recordings.
+- Destroying a parent with children is restricted by the `child_recordings` association.
+
+Hierarchy errors:
+
+| Error | Raised when |
+| --- | --- |
+| `RecordingStudio::RootNotAllowed` | A non-root recordable is used where a root is required. |
+| `RecordingStudio::InvalidParent` | A child is recorded without a parent or under a disallowed parent type. |
+| `RecordingStudio::OrphanRecording` | A low-level new recording is attempted under an existing root without a parent. |
+| `RecordingStudio::MissingRecordableDeclaration` | A configured ActiveRecord type has no declaration while declarations are required. |
+| `RecordingStudio::InvalidRecordableDeclaration` | A declaration has invalid arguments, references unregistered parents, or belongs to an unregistered type while strict declarations are enabled. |
 
 ## Configuration: `RecordingStudio::Configuration`
 
@@ -101,6 +167,7 @@ Use `RecordingStudio.configure` to access these settings.
 | --- | --- | --- | --- |
 | `recordable_types` | nothing | `Array<String>` | Lists delegated recordable types currently registered. |
 | `recordable_types=(types)` | array of classes or names | normalized array | Declares which recordable classes the engine should treat as delegated types. |
+| `require_recordable_declarations` / `require_recordable_declarations=` | boolean | boolean | Requires configured ActiveRecord recordable types to declare hierarchy rules. Defaults to `true`. |
 | `actor` | callable | callable | Supplies the default actor for writes when callers omit `actor:`. |
 | `impersonator` | callable | callable | Supplies the default impersonator for writes when callers omit `impersonator:`. |
 | `event_notifications_enabled` | boolean | boolean | Enables ActiveSupport event instrumentation. |
@@ -137,6 +204,7 @@ Use this module when an addon needs recordable naming without duplicating UI heu
 | `name_for(recordable)` | recordable instance | `String` | Preferred display name for the recordable. |
 | `label_for(recordable)` | recordable instance | `String` | Compatibility alias for `name_for`. |
 | `type_label_for(recordable_or_type)` | instance, class, or class name | `String` | Human-facing type label. |
+| `type_plural_label_for(recordable_or_type)` | instance, class, or class name | `String` | Human-facing plural type label. |
 | `title_for(recordable)` | recordable instance | `String` | Optional presentation title. |
 | `summary_for(recordable)` | recordable instance | `String` or `nil` | Optional summary/body snippet. |
 
@@ -144,9 +212,20 @@ Resolution order for `name_for(recordable)`:
 
 1. Registered `name` formatter
 2. `recordable.recordable_name`
-3. `recordable.recording_studio_label`
+3. `recordable.recording_studio_label` compatibility alias
 4. Heuristics: `title`, `name`, built-in comment snippet, class plus ID fallback
 5. Explicit type label fallback
+
+Resolution order for `type_label_for(recordable_or_type)`:
+
+1. Registered `type_label` formatter
+2. Declaration `label:`
+3. Legacy model methods (`recordable_type_label`, then `recording_studio_type_label`)
+4. ActiveModel human name
+5. Humanized class name
+
+`type_plural_label_for(recordable_or_type)` returns declaration `plural_label:` when present and otherwise pluralizes
+the resolved type label.
 
 ## Hooks: `RecordingStudio::Hooks`
 
@@ -211,6 +290,8 @@ This is the main object addons and host apps work with after they resolve a root
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
 | `root?` | nothing | `true` or `false` | Checks whether this recording is a root recording. |
+| `parentless?` | nothing | `true` or `false` | Checks whether `parent_recording_id` is blank. |
+| `orphan?` | nothing | `true` or `false` | Checks whether this recording is parentless but not a valid declared root. |
 | `leaf?` | nothing | `true` or `false` | Checks whether this recording has no children. |
 | `root_recording_or_self` | nothing | `RecordingStudio::Recording` | Returns the root recording boundary for this recording. |
 | `ancestors` | nothing | `Array<RecordingStudio::Recording>` | Returns root-to-parent ancestry for tree navigation. |
@@ -248,7 +329,8 @@ Call these on a root recording. They enforce that work stays inside that root tr
 Write behavior details:
 
 - `record` accepts either a class like `Page` or a prebuilt recordable instance.
-- `record` saves the recordable before calling `RecordingStudio.record!`.
+- `record` defaults `parent_recording:` to the root; the child type must allow the root type as a parent.
+- `record` builds/yields the recordable and delegates saving to `RecordingStudio.record!`.
 - `revise` duplicates the current recordable using the configured duplication strategy.
 - `revert` expects `to_recordable:` to be a compatible snapshot of the same recordable type.
 - `log_event` and `log_event!` return the event, not the recording.
@@ -265,6 +347,9 @@ Write behavior details:
 | `child_recordings_of(parent_recording, **options)` | parent recording plus query options | `ActiveRecord::Relation<RecordingStudio::Recording>` | Reads direct children under the same root. |
 | `events_query(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, actions: nil, actor: nil, actor_type: nil, actor_id: nil, impersonator: nil, impersonator_type: nil, impersonator_id: nil, from: nil, to: nil, limit: nil, offset: nil)` | root recording filters plus event filters | `ActiveRecord::Relation<RecordingStudio::Event>` | Reads an event timeline for a root or subtree slice. |
 | `recordings_with_events(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, actions: nil, actor: nil, actor_type: nil, actor_id: nil, impersonator: nil, impersonator_type: nil, impersonator_id: nil, from: nil, to: nil, order: nil, limit: nil, offset: nil)` | root recording filters plus event filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Finds recordings whose history matches event filters. |
+| `recordings_with_children(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, child_type: nil, child_id: nil, child_recording_id: nil, child_recordable_filters: nil, child_recordable_scope: nil, order: nil, limit: nil, offset: nil)` | parent and child filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Finds recordings that have matching direct children. |
+| `recordings_with_descendants(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, descendant_type: nil, descendant_id: nil, descendant_recording_id: nil, descendant_recordable_filters: nil, descendant_recordable_scope: nil, order: nil, limit: nil, offset: nil)` | parent and descendant filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Finds recordings that have matching descendants anywhere below them. |
+| `recordings_without_children(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, child_type: nil, child_id: nil, child_recording_id: nil, child_recordable_filters: nil, child_recordable_scope: nil, order: nil, limit: nil, offset: nil)` | parent and child filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Finds recordings that do not have matching direct children. |
 
 Query guidance:
 
@@ -275,6 +360,8 @@ Query guidance:
 - `recording_id:` exists on `events_query` and `recordings_with_events` when you need to target one recording wrapper.
 - `recordable_filters:` accepts a `Hash`, `ActiveRecord::Relation`, or Arel node.
 - `recordable_scope:` must be trusted code. It receives a relation and may return a relation.
+- Child and descendant query helpers support the same filter/scope pattern with `child_recordable_filters`,
+  `child_recordable_scope`, `descendant_recordable_filters`, and `descendant_recordable_scope`.
 - `order:` is sanitized against recording columns.
 - `recordable_order:` is sanitized against recordable columns for the resolved `type:`.
 
@@ -318,6 +405,14 @@ These are stable helpers for trusted addon code.
 ### Create a root and first page
 
 ```ruby
+class Workspace < ApplicationRecord
+  recording_studio_recordable label: "Workspace", root: true
+end
+
+class Page < ApplicationRecord
+  recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
+end
+
 workspace = Workspace.find_or_create_by!(name: "Studio")
 root = RecordingStudio.root_recording_for(workspace)
 

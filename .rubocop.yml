@@ -24,6 +24,7 @@ Metrics/ClassLength:
   Exclude:
     - 'test/**/*'
     - 'lib/gem_template/hooks.rb'
+    - 'lib/recording_studio/configuration.rb'
     - 'lib/recording_studio/hooks.rb'
 
 Metrics/MethodLength:
@@ -33,6 +34,7 @@ Metrics/MethodLength:
     - 'app/models/concerns/**/has_recordings_container.rb'
     - 'app/models/recording_studio/recording.rb'
     - 'db/migrate/**/*'
+    - 'lib/recording_studio/configuration.rb'
     - 'lib/recording_studio.rb'
     - 'lib/recording_studio/delegated_type_registrar.rb'
 
@@ -64,6 +66,7 @@ Metrics/PerceivedComplexity:
 
 Metrics/ModuleLength:
   Exclude:
+    - 'app/models/recording_studio/concerns/recording_hierarchy.rb'
     - 'app/models/concerns/**/has_recordings_container.rb'
     - 'lib/recording_studio/labels.rb'
 
