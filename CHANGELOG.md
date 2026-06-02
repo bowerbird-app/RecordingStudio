@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Breaking
+- Root recording semantics are now explicit and controlled by `config.roots`; apps must configure root recordable types,
+  for example `config.roots = ["Workspace"]`.
+
 ### Added
 - Added `config.roots` and `RecordingStudio.root_type?` to explicitly configure which recordable types may create root
   recordings.
