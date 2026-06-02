@@ -51,6 +51,12 @@ These methods are the main addon-facing API.
 | `recordable_global_id(recordable)` | recordable instance | GlobalID string or `nil` | Produces a GlobalID string when the recordable supports it. |
 | `recordable_name(recordable)` | recordable instance | `String` | Returns the display name used by recordings and UIs. |
 | `recordable_type_label(recordable_or_type)` | instance, class, or class name | `String` | Returns a human-facing type label like `Page`. |
+| `recordable_type_plural_label(recordable_or_type)` | instance, class, or class name | `String` | Returns the declared plural label for a type. |
+| `recordable_declaration_for(type)` | instance, class, or class name | declaration or `nil` | Reads the `recording_studio_recordable` declaration. |
+| `recordable_declaration_defined?(type)` | instance, class, or class name | `true` or `false` | Checks whether a type declared RecordingStudio rules. |
+| `validate_recordable_declarations!` | nothing | `true` or raises | Ensures configured ActiveRecord recordable types have valid declarations. |
+| `root_recordable_types` | nothing | `Array<String>` | Lists configured recordable types allowed as roots. |
+| `parent_allowed?(child_type:, parent_recording:)` | child type, parent recording | `true` or `false` | Checks declared parent/child hierarchy rules. |
 | `root_recording_for(recordable)` | persisted top-level recordable | `RecordingStudio::Recording` | Finds or creates the root recording for a top-level object. |
 | `root_recording_or_self(recording)` | recording or root recording | `RecordingStudio::Recording` or `nil` | Collapses `root_recording || self` into one public helper. |
 | `root_recording_id_for(recording)` | recording or root recording | root recording ID or `nil` | Returns the root boundary ID used by tree queries. |
@@ -101,6 +107,7 @@ Use `RecordingStudio.configure` to access these settings.
 | --- | --- | --- | --- |
 | `recordable_types` | nothing | `Array<String>` | Lists delegated recordable types currently registered. |
 | `recordable_types=(types)` | array of classes or names | normalized array | Declares which recordable classes the engine should treat as delegated types. |
+| `require_recordable_declarations` | boolean | boolean | Requires configured ActiveRecord recordable types to declare hierarchy rules. |
 | `actor` | callable | callable | Supplies the default actor for writes when callers omit `actor:`. |
 | `impersonator` | callable | callable | Supplies the default impersonator for writes when callers omit `impersonator:`. |
 | `event_notifications_enabled` | boolean | boolean | Enables ActiveSupport event instrumentation. |

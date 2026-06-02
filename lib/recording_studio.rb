@@ -4,12 +4,13 @@ require "recording_studio/version"
 require "recording_studio/engine"
 require "recording_studio/configuration"
 require "recording_studio/counter_caches"
+require "recording_studio/errors"
 require "recording_studio/delegated_type_registrar"
 require "recording_studio/duplication"
-require "recording_studio/errors"
 require "recording_studio/identity"
 require "recording_studio/labels"
 require "recording_studio/recordable"
+require "recording_studio/recordable_declarations"
 require "recording_studio/relationships"
 require "recording_studio/services/base_service"
 require "recording_studio/services/example_service"
@@ -80,11 +81,71 @@ module RecordingStudio
       RecordingStudio::Labels.type_label_for(recordable_or_type)
     end
 
+    def recordable_type_plural_label(recordable_or_type)
+      RecordingStudio::Labels.type_plural_label_for(recordable_or_type)
+    end
+
+    def recordable_declaration_for(recordable_or_type)
+      RecordingStudio::RecordableDeclarations.declaration_for(recordable_or_type)
+    end
+
+    def recordable_declaration_defined?(recordable_or_type)
+      RecordingStudio::RecordableDeclarations.declaration_defined?(recordable_or_type)
+    end
+
+    def recordable_declarations
+      RecordingStudio::RecordableDeclarations.ensure_loaded!
+      RecordingStudio::RecordableDeclarations.declarations.dup
+    end
+
+    def validate_recordable_declarations!
+      RecordingStudio::RecordableDeclarations.validate!
+    end
+
+    def allowed_parent_types_for(recordable_or_type)
+      RecordingStudio::RecordableDeclarations.allowed_parent_types_for(recordable_or_type)
+    end
+
+    def root_allowed?(recordable_or_type)
+      RecordingStudio::RecordableDeclarations.root_allowed?(recordable_or_type)
+    end
+
+    def root_recordable_type?(recordable_or_type)
+      root_allowed?(recordable_or_type)
+    end
+
+    def root_recordable_types
+      RecordingStudio::RecordableDeclarations.root_recordable_types
+    end
+
+    def root_recordable_declarations
+      RecordingStudio::RecordableDeclarations.declarations_for_configured_types.select(&:root?)
+    end
+
+    def parent_allowed?(child_type:, parent_recording:)
+      RecordingStudio::RecordableDeclarations.parent_allowed?(
+        child_type: child_type,
+        parent_recording: parent_recording
+      )
+    end
+
+    def assert_root_allowed!(recordable_or_type)
+      RecordingStudio::RecordableDeclarations.assert_root_allowed!(recordable_or_type)
+    end
+
+    def assert_parent_allowed!(child_type:, parent_recording:)
+      RecordingStudio::RecordableDeclarations.assert_parent_allowed!(
+        child_type: child_type,
+        parent_recording: parent_recording
+      )
+    end
+
     def root_recording_for(recordable)
       raise ArgumentError, "recordable is required" if recordable.nil?
       unless recordable.respond_to?(:persisted?) && recordable.persisted?
         raise ArgumentError, "recordable must be persisted"
       end
+      assert_root_allowed!(recordable)
 
       RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: recordable, parent_recording_id: nil)
     end
@@ -175,6 +236,14 @@ module RecordingStudio
       RecordingStudio::Recording.transaction do
         existing_event = find_idempotent_event(recording, idempotency_key)
         return handle_idempotency(existing_event) if existing_event
+
+        unless recording
+          if parent_recording.nil?
+            assert_root_allowed!(recordable.class.name)
+          else
+            assert_parent_allowed!(child_type: recordable.class.name, parent_recording: parent_recording)
+          end
+        end
 
         recordable.save! unless recordable.persisted?
         if recording

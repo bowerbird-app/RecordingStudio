@@ -13,7 +13,7 @@ module RecordingStudio
       :idempotency_mode,
       :recordable_dup_strategy
     )
-    attr_reader :recordable_types, :hooks, :recordable_dup_strategies
+    attr_reader :recordable_types, :hooks, :recordable_dup_strategies, :require_recordable_declarations
 
     def initialize
       @recordable_types = []
@@ -24,6 +24,7 @@ module RecordingStudio
       @event_notifications_enabled = true
       @idempotency_mode = :return_existing
       @recordable_dup_strategy = :dup
+      @require_recordable_declarations = true
       @recordable_dup_strategies = {}
       @hooks = Hooks.new
     end
@@ -38,6 +39,14 @@ module RecordingStudio
 
     def recordable_types=(types)
       @recordable_types = Array(types).map { |type| type.is_a?(Class) ? type.name : type.to_s }.uniq
+    end
+
+    def require_recordable_declarations=(value)
+      unless [true, false].include?(value)
+        raise ArgumentError, "require_recordable_declarations must be true or false"
+      end
+
+      @require_recordable_declarations = value
     end
 
     def enable_capability(capability, on:)
@@ -71,6 +80,7 @@ module RecordingStudio
         recordable_types: recordable_types,
         event_notifications_enabled: event_notifications_enabled,
         idempotency_mode: idempotency_mode,
+        require_recordable_declarations: require_recordable_declarations,
         recordable_dup_strategy: recordable_dup_strategy,
         recordable_dup_strategies: recordable_dup_strategies.keys.sort,
         hooks_registered: hooks.registered_counts

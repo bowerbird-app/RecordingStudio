@@ -7,7 +7,12 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
     @original_types = RecordingStudio.configuration.recordable_types
     @original_dup_strategy = RecordingStudio.configuration.recordable_dup_strategy
 
-    RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioPage RecordingStudioComment]
+    RecordingStudio.configuration.recordable_types = %w[
+      Workspace
+      RecordingStudioPage
+      RecordingStudioComment
+      RecordingStudioFolder
+    ]
     RecordingStudio.configuration.recordable_dup_strategy = :dup
     RecordingStudio::DelegatedTypeRegistrar.apply!
 

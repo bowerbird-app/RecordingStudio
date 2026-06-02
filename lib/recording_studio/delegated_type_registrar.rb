@@ -5,7 +5,9 @@ module RecordingStudio
     def self.apply!
       return unless defined?(ActiveRecord::Base)
 
+      RecordingStudio::RecordableDeclarations.install_active_record_macro!
       types = Array(RecordingStudio.configuration.recordable_types).map(&:to_s).uniq.sort
+      RecordingStudio.validate_recordable_declarations!
       return if types.empty?
 
       recording_class = if RecordingStudio.const_defined?(:Recording, false)

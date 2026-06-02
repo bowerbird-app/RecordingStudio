@@ -6,7 +6,17 @@ module RecordingStudio
       extend ActiveSupport::Concern
 
       def root?
-        RecordingStudio.root_recording?(self)
+        RecordingStudio.root_recording?(self) && RecordingStudio.root_allowed?(recordable_type)
+      rescue RecordingStudio::MissingRecordableDeclaration
+        false
+      end
+
+      def parentless?
+        parent_recording_id.blank?
+      end
+
+      def orphan?
+        parentless? && !root?
       end
 
       def leaf?

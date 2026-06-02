@@ -189,12 +189,31 @@ RecordingStudio.configure do |config|
 end
 
 RecordingStudio.register_recordable_type("Page")
+
+class Page < ApplicationRecord
+  recording_studio_recordable label: "Page", root: true
+end
 ```
 
 Each entry is an ActiveRecord model class name (as a String). RecordingStudio constantizes these names and registers them
 with `delegated_type`, so the class must be loadable in your app.
 
-The engine applies `delegated_type` on boot and reload via a Railtie, and registration is idempotent.
+The engine applies `delegated_type` on boot and reload via a Railtie, and registration is idempotent. By default,
+configured ActiveRecord types must also declare their RecordingStudio hierarchy rules with
+`recording_studio_recordable`.
+
+Root recordables can be top-level recordings. Non-root recordables must list allowed parents; an empty list is valid
+but means the type cannot currently be recorded under any parent.
+
+```ruby
+class Workspace < ApplicationRecord
+  recording_studio_recordable label: "Workspace", root: true
+end
+
+class Page < ApplicationRecord
+  recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace"]
+end
+```
 
 ## Labeling Recordables
 
@@ -347,6 +366,7 @@ That reference is the best starting point for AI agents and addon authors becaus
 ```ruby
 RecordingStudio.configure do |config|
   config.recordable_types = []
+  config.require_recordable_declarations = true
   config.actor = -> { Current.actor }
   config.impersonator = -> { Current.impersonator }
   config.event_notifications_enabled = true
@@ -359,6 +379,8 @@ end
 ### Configuration Notes
 
 - `recordable_types`: Array of delegated recordable class names. Use `register_recordable_type` for incremental runtime registration.
+- `require_recordable_declarations`: Requires each configured ActiveRecord type to call
+  `recording_studio_recordable`; set false only while migrating older apps, where missing declarations warn.
 - `actor`: Callable used when callers omit `actor:` from write APIs.
 - `impersonator`: Callable used when callers omit `impersonator:` from write APIs.
 - `idempotency_mode`: Controls how duplicate `idempotency_key` values are handled. `:return_existing` returns the

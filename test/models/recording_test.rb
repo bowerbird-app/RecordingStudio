@@ -5,6 +5,7 @@ require "test_helper"
 class RecordingTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
+    @original_declarations = RecordingStudio::RecordableDeclarations.declarations.dup
     RecordingStudio.configuration.recordable_types = %w[
       Workspace
       RecordingStudioPage
@@ -18,6 +19,7 @@ class RecordingTest < ActiveSupport::TestCase
 
   def teardown
     RecordingStudio.configuration.recordable_types = @original_types
+    RecordingStudio::RecordableDeclarations.declarations.replace(@original_declarations)
   end
 
   def test_scopes_filter_recordings
@@ -188,6 +190,15 @@ class RecordingTest < ActiveSupport::TestCase
 
   def test_recordings_counter_skips_when_recordable_missing_column
     _, root = create_workspace_root
+    RecordingStudio::RecordableDeclarations.register(
+      SystemActor,
+      label: "System actor",
+      plural_label: nil,
+      root: false,
+      options: { allowed_parent_types: ["Workspace"] }
+    )
+    RecordingStudio.configuration.recordable_types += ["SystemActor"]
+    RecordingStudio::DelegatedTypeRegistrar.apply!
     system_actor = SystemActor.create!(name: "Background task")
 
     recording = RecordingStudio::Recording.create!(root_recording: root, parent_recording: root,

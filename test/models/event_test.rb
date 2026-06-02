@@ -5,7 +5,12 @@ require "test_helper"
 class EventTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
-    RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioPage]
+    RecordingStudio.configuration.recordable_types = %w[
+      Workspace
+      RecordingStudioPage
+      RecordingStudioComment
+      RecordingStudioFolder
+    ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     reset_recording_studio_tables!(RecordingStudioPage)

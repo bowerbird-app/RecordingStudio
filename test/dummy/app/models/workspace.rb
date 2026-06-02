@@ -1,6 +1,8 @@
 class Workspace < ApplicationRecord
   self.table_name = "recording_studio_workspaces"
 
+  recording_studio_recordable label: "Workspace", root: true, allowed_parent_types: []
+
   validates :name, presence: true
 
   def self.recordable_type_label

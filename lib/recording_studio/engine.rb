@@ -5,6 +5,7 @@ module RecordingStudio
     isolate_namespace RecordingStudio
 
     config.to_prepare do
+      RecordingStudio::RecordableDeclarations.install_active_record_macro!
       RecordingStudio::DelegatedTypeRegistrar.apply!
       RecordingStudio.apply_capabilities!
     end
@@ -58,8 +59,7 @@ module RecordingStudio
     # Apply model extensions when models are loaded
     initializer "recording_studio.apply_model_extensions" do
       ActiveSupport.on_load(:active_record) do
-        # Model extensions are applied when the model class is first accessed
-        # via the extend_model hook in configuration
+        RecordingStudio::RecordableDeclarations.install_active_record_macro!
       end
     end
 

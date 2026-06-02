@@ -9,7 +9,12 @@ class RecordingApiTest < ActiveSupport::TestCase
     @original_idempotency_mode = RecordingStudio.configuration.idempotency_mode
     @original_notifications = RecordingStudio.configuration.event_notifications_enabled
 
-    RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioPage RecordingStudioComment]
+    RecordingStudio.configuration.recordable_types = %w[
+      Workspace
+      RecordingStudioPage
+      RecordingStudioComment
+      RecordingStudioFolder
+    ]
     RecordingStudio.configuration.actor = -> {}
     RecordingStudio.configuration.idempotency_mode = :return_existing
     RecordingStudio.configuration.event_notifications_enabled = true

@@ -12,7 +12,12 @@ class RecordingStudioFolderTest < ActiveSupport::TestCase
 
   def test_folder_can_be_registered_and_recorded
     original_types = RecordingStudio.configuration.recordable_types
-    RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioFolder]
+    RecordingStudio.configuration.recordable_types = %w[
+      Workspace
+      RecordingStudioPage
+      RecordingStudioComment
+      RecordingStudioFolder
+    ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 
     workspace = Workspace.create!(name: "Folder Workspace")

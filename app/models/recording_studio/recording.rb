@@ -17,11 +17,12 @@ module RecordingStudio
     belongs_to :parent_recording, class_name: "RecordingStudio::Recording", optional: true,
                                   inverse_of: :child_recordings
     has_many :child_recordings, class_name: "RecordingStudio::Recording", foreign_key: :parent_recording_id,
-                                inverse_of: :parent_recording, dependent: :nullify
+                                inverse_of: :parent_recording, dependent: :restrict_with_error
     has_many :events, -> { recent }, class_name: "RecordingStudio::Event", inverse_of: :recording, dependent: :destroy
 
     validate :parent_recording_root_consistency
     validate :parent_recording_must_not_create_cycle
+    validate :recordable_declaration_allows_hierarchy
 
     before_create :assign_root_recording_id
     after_create :set_self_root_recording_id, if: -> { parent_recording_id.nil? && root_recording_id.nil? }
@@ -486,6 +487,43 @@ module RecordingStudio
 
       update_recordable_counter(previous_type, previous_id, :recordings_count, -1)
       update_recordable_counter(recordable_type, recordable_id, :recordings_count, 1)
+    end
+
+    def recordable_declaration_allows_hierarchy
+      return if recordable_type.blank?
+
+      if parent_recording_id.present?
+        validate_parent_allowed
+      else
+        validate_parentless_allowed
+      end
+    end
+
+    def validate_parent_allowed
+      RecordingStudio.assert_parent_allowed!(child_type: recordable_type, parent_recording: resolved_parent_recording)
+    rescue RecordingStudio::InvalidParent, RecordingStudio::MissingRecordableDeclaration => e
+      errors.add(:parent_recording, e.message)
+    end
+
+    def validate_root_allowed
+      RecordingStudio.assert_root_allowed!(recordable_type)
+    rescue RecordingStudio::RootNotAllowed, RecordingStudio::MissingRecordableDeclaration => e
+      errors.add(:recordable_type, e.message)
+    end
+
+    def validate_parentless_allowed
+      return validate_root_allowed if RecordingStudio.root_allowed?(recordable_type)
+
+      errors.add(
+        :parent_recording_id,
+        "#{recordable_type} cannot be saved without a parent because it does not declare root: true"
+      )
+    rescue RecordingStudio::MissingRecordableDeclaration => e
+      errors.add(:recordable_type, e.message)
+    end
+
+    def resolved_parent_recording
+      parent_recording || self.class.unscoped.find_by(id: parent_recording_id)
     end
   end
   # rubocop:enable Metrics/ClassLength

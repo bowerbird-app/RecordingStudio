@@ -1,4 +1,6 @@
 class RecordingStudioPage < ApplicationRecord
+  recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "RecordingStudioFolder"]
+
   validates :title, presence: true
 
   include Capabilities::Commentable.with(comment_class: "RecordingStudioComment")

@@ -7,6 +7,7 @@ module RecordingStudio
     FORMATTER_TYPES = %i[name type_label title summary].freeze
 
     @formatters = FORMATTER_TYPES.index_with { {} }
+    @warned_legacy_label_keys = Set.new
 
     module_function
 
@@ -46,9 +47,22 @@ module RecordingStudio
       klass = type_name.safe_constantize
 
       formatter_value(:type_label, recordable_or_type) ||
+        declaration_label_for(type_name) ||
         explicit_type_label_for(klass) ||
         model_type_label_for(klass, type_name) ||
         fallback_type_label_for(type_name)
+    end
+
+    def type_plural_label_for(recordable_or_type)
+      return EMPTY_LABEL if recordable_or_type.blank?
+
+      type_name = type_name_for(recordable_or_type)
+      return EMPTY_LABEL if type_name.blank?
+
+      declaration = RecordingStudio.recordable_declaration_for(type_name)
+      return declaration.plural_label if declaration
+
+      type_label_for(recordable_or_type).pluralize
     end
 
     def title_for(recordable)
@@ -73,20 +87,45 @@ module RecordingStudio
 
       return unless recordable.respond_to?(:recording_studio_label)
 
+      warn_legacy_label!(:recording_studio_label, recordable.class.name)
       normalize_label(recordable.recording_studio_label)
     end
     private_class_method :explicit_name_for
 
     def explicit_type_label_for(recordable_class)
       if recordable_class.respond_to?(:recordable_type_label)
+        warn_legacy_label!(:recordable_type_label, recordable_class.name)
         return normalize_label(recordable_class.recordable_type_label)
       end
 
       return unless recordable_class.respond_to?(:recording_studio_type_label)
 
+      warn_legacy_label!(:recording_studio_type_label, recordable_class.name)
       normalize_label(recordable_class.recording_studio_type_label)
     end
     private_class_method :explicit_type_label_for
+
+    def declaration_label_for(type_name)
+      RecordingStudio.recordable_declaration_for(type_name)&.label
+    end
+    private_class_method :declaration_label_for
+
+    def warn_legacy_label!(method_name, type_name)
+      key = [type_name, method_name]
+      return if @warned_legacy_label_keys.include?(key)
+
+      @warned_legacy_label_keys.add(key)
+      message = "[RecordingStudio] #{type_name}.#{method_name} is deprecated; " \
+                "use recording_studio_recordable label: instead"
+      if defined?(ActiveSupport::Deprecation)
+        ActiveSupport::Deprecation.new("2.0", "RecordingStudio").warn(message)
+      elsif defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
+        Rails.logger.warn(message)
+      else
+        warn(message)
+      end
+    end
+    private_class_method :warn_legacy_label!
 
     def heuristic_name_for(recordable)
       squished_value(recordable, :title) ||

@@ -1,4 +1,6 @@
 class RecordingStudioFolder < ApplicationRecord
+  recording_studio_recordable label: "Folder", root: false, allowed_parent_types: ["Workspace", "RecordingStudioFolder"]
+
   validates :name, presence: true
 
   def self.recordable_type_label

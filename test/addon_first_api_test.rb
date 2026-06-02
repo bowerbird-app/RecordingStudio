@@ -9,7 +9,12 @@ class AddonFirstApiTest < ActiveSupport::TestCase
     @original_dup_strategies = RecordingStudio.configuration.recordable_dup_strategies.dup
     @original_label_formatters = RecordingStudio::Labels.formatters.transform_values(&:dup)
 
-    RecordingStudio.configuration.recordable_types = %w[Workspace RecordingStudioPage]
+    RecordingStudio.configuration.recordable_types = %w[
+      Workspace
+      RecordingStudioPage
+      RecordingStudioComment
+      RecordingStudioFolder
+    ]
     RecordingStudio.configuration.recordable_dup_strategy = :dup
     RecordingStudio.configuration.recordable_dup_strategies.clear
     reset_label_formatters!

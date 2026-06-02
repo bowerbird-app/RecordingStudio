@@ -5,6 +5,7 @@ RecordingStudio.configure do |config|
   config.event_notifications_enabled = true
   config.idempotency_mode = :return_existing
   config.recordable_dup_strategy = :dup
+  config.require_recordable_declarations = true
 end
 
 RecordingStudio.register_recordable_type("Workspace")
