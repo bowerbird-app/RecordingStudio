@@ -1,164 +1,95 @@
-> **Architecture Documentation**
-> *   **Canonical Source:** [bowerbird-app/gem_template](https://github.com/bowerbird-app/gem_template/tree/main/docs/gem_template)
-> *   **Last Updated:** December 11, 2025
->
-> *Maintainers: Please update the date above when modifying this file.*
+# RecordingStudio Migrations
 
----
+RecordingStudio ships two migration sets and a generator that chooses between them.
 
-# Migrations
+## Which Generator To Use
 
-This guide explains how to work with database migrations in GemTemplate.
-
----
-
-## Installing Migrations in a Host App
-
-GemTemplate includes a migrations generator that copies engine migrations to your host application with proper timestamps.
-
-### Run the Generator
+Fresh installs:
 
 ```bash
-rails generate gem_template:migrations
+bin/rails generate recording_studio:migrations
 ```
 
-This will:
-1. Find all migrations in the engine's `db/migrate/` directory
-2. Copy them to your app's `db/migrate/` with new timestamps
-3. Skip any migrations that already exist (based on migration name)
+Upgrade paths that need the full historical chain:
 
-### Apply the Migrations
+```bash
+bin/rails generate recording_studio:migrations --full_history
+```
+
+Then apply the copied migrations:
 
 ```bash
 bin/rails db:migrate
 ```
 
----
+## Migration Sources
+
+RecordingStudio keeps migrations in two directories:
+
+- `db/install_migrate/`: the clean schema for brand-new host apps
+- `db/migrate/`: the full historical chain, including compatibility and cleanup migrations for older installations
+
+The default generator copies from `db/install_migrate/` because fresh installs should not replay legacy table renames,
+container-to-root conversions, or extracted access-control/device-session cleanup steps.
 
 ## Generator Options
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--skip-existing` | `true` | Skip migrations that already exist in the host app |
-| `--pretend` | `false` | Show what would be copied without making changes |
-| `--force` | `false` | Overwrite existing migrations |
+Generator-specific options:
 
-### Preview Mode
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `--skip-existing` | `true` | Skip migrations whose names already exist in the host app, ignoring timestamps. |
+| `--full_history` | `false` | Copy from `db/migrate/` instead of `db/install_migrate/`. |
 
-To see what migrations would be installed without making changes:
+Standard Rails generator flags such as `--pretend` still work, but the options above are the RecordingStudio-specific
+behavior controls.
 
-```bash
-rails generate gem_template:migrations --pretend
-```
+## Fresh Install Versus Upgrade Guidance
 
-### Force Reinstall
+Use the default install set when:
 
-To overwrite existing migrations (useful for updates):
+- the host app has never installed RecordingStudio before
+- you want the current schema without replaying historical compatibility steps
 
-```bash
-rails generate gem_template:migrations --no-skip-existing --force
-```
+Use `--full_history` only when:
 
----
+- the host app previously depended on RecordingStudio's historical migration chain
+- you are aligning an older installation with newer core releases and need the upgrade-only migrations too
 
-## Adding Migrations to the Engine
+## Current Schema Direction
 
-When developing the engine, add migrations to `db/migrate/`:
+The current fresh-install schema models:
 
-```bash
-# From the gem root
-touch db/migrate/$(date +%Y%m%d%H%M%S)_create_gem_template_widgets.rb
-```
+- `recording_studio_recordings`
+- `recording_studio_events`
 
-### Migration Conventions
+Historical tables and columns related to access control, device sessions, and older container naming are not part of the
+fresh-install path anymore.
 
-1. **Use UUID primary keys** for PostgreSQL compatibility:
+## Adding New Engine Migrations
 
-   ```ruby
-   class CreateGemTemplateWidgets < ActiveRecord::Migration[7.1]
-     def change
-       create_table :gem_template_widgets, id: :uuid do |t|
-         t.string :name, null: false
-         t.timestamps
-       end
-     end
-   end
-   ```
+When maintainers add migrations to the engine:
 
-2. **Prefix table names** with the gem name to avoid conflicts:
+- add the migration to both `db/install_migrate/` and `db/migrate/` when new installs and upgrades both need it
+- add the migration only to `db/migrate/` when it exists purely to transform or remove legacy state during upgrades
 
-   ```ruby
-   # Good: gem_template_widgets
-   # Bad: widgets
-   ```
+Keep table names namespaced with the `recording_studio_` prefix.
 
-3. **Use `jsonb` for flexible data** (PostgreSQL):
+## How The Generator Copies Files
 
-   ```ruby
-   t.jsonb :metadata, default: {}
-   ```
+The generator:
 
-4. **Add indexes** for frequently queried columns:
+- scans the selected source directory
+- compares migration names without timestamps
+- copies each missing migration into the host app's `db/migrate/`
+- assigns a fresh timestamp in the host app
 
-   ```ruby
-   add_index :gem_template_widgets, :name
-   add_index :gem_template_widgets, :created_at
-   ```
+That means host-app migration version numbers will differ from the engine's version numbers even when the migration body
+is the same.
 
----
+## Testing Migrations In This Repo
 
-## Engine Migration Structure
-
-```
-db/
-└── migrate/
-    ├── 20250101000001_create_gem_template_examples.rb
-    └── 20250101000002_create_gem_template_widgets.rb
-```
-
-Migrations are included in the gem via the gemspec:
-
-```ruby
-spec.files = Dir["{app,config,db,lib}/**/*", ...]
-```
-
----
-
-## Updating Migrations
-
-When you release a new version with additional migrations:
-
-1. Host app developers run the generator again:
-   ```bash
-   rails generate gem_template:migrations
-   ```
-
-2. Only new migrations are copied (existing ones are skipped)
-
-3. Apply the new migrations:
-   ```bash
-   bin/rails db:migrate
-   ```
-
----
-
-## Rollback Considerations
-
-If a host app needs to rollback engine migrations:
-
-```bash
-# Rollback specific migration
-bin/rails db:migrate:down VERSION=20250101000001
-
-# Or rollback all engine tables manually
-bin/rails db:rollback STEP=N
-```
-
----
-
-## Testing Migrations
-
-The dummy app (`test/dummy/`) is used to test migrations during development:
+The dummy app is the easiest validation target:
 
 ```bash
 cd test/dummy
@@ -166,19 +97,19 @@ bin/rails db:migrate
 bin/rails db:rollback
 ```
 
----
+Generator-specific tests also live in the top-level test suite.
 
-## After Renaming the Gem
+## Troubleshooting
 
-When you rename the gem using `bin/rename_gem`, the migration files are automatically updated:
+| Issue | What to check |
+| --- | --- |
+| A migration was not copied | The same migration name may already exist in the host app. Re-run with `--no-skip-existing` only if you really need another copy. |
+| Fresh install pulls legacy cleanup migrations | Use the default generator without `--full_history`. |
+| Upgrading app still misses compatibility steps | Re-run with `--full_history` and compare the host app's existing migration names against `db/migrate/`. |
+| Migration versions differ from the engine | Expected; the generator gives host apps fresh timestamps. |
 
-- Class names change (e.g., `CreateGemTemplateExamples` → `CreateMyEngineExamples`)
-- Table names change (e.g., `gem_template_examples` → `my_engine_examples`)
+## Files To Check
 
----
-
-## Related Guides
-
-- [Installing](INSTALLING.md) — Full installation guide
-- [Configuration](CONFIGURATION.md) — Engine configuration options
-- [Local Development](LOCAL_DEVELOPMENT.md) — Development setup
+- `lib/generators/recording_studio/migrations/migrations_generator.rb`
+- `db/install_migrate/`
+- `db/migrate/`

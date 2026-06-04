@@ -1,104 +1,55 @@
-> **Architecture Documentation**
-> *   **Canonical Source:** [bowerbird-app/gem_template](https://github.com/bowerbird-app/gem_template/tree/main/docs/gem_template)
-> *   **Last Updated:** December 12, 2025
->
-> *Maintainers: Please update the date above when modifying this file.*
+# Git-Sourced Dependencies And Repository Access
 
----
+RecordingStudio currently depends on git-sourced repositories in development, most notably `flat_pack` from the
+`bowerbird-app` organization. This document explains what to check when Bundler or GitHub access fails.
 
-# Private Gem Dependencies
+## Current Git-Sourced Dependencies
 
-This gem template may depend on private Ruby gems hosted as GitHub repositories under the `bowerbird-app` organization. This document explains how authentication works across different environments.
+At the time of writing:
 
----
+- the top-level `Gemfile` references `flat_pack` via `https://github.com/bowerbird-app/flatpack.git`
+- the dummy app `Gemfile` also references `flat_pack`
+- the devcontainer requests read access to `bowerbird-app/gem_docs` for shared documentation material
 
-## Overview
+If those repositories are public in your environment, no extra configuration is required. If any of them are private,
+Git must be able to authenticate to GitHub before `bundle install` will succeed.
 
-Private gems are referenced in the `Gemfile` using Git URLs:
+## Quick Verification
 
-```ruby
-gem 'mothball', git: 'https://github.com/bowerbird-app/mothball.git'
-```
-
-To install these gems, Bundler needs authentication to access private GitHub repositories.
-
----
-
-## GitHub Codespaces
-
-**No configuration required.** 
-
-The organization-level Codespaces secret `BOWERBIRD_ORG_CODESPACE_TOKEN` is automatically available in all Codespaces. This token:
-
-- Is configured at the `bowerbird-app` organization level
-- Has read access to all private repositories in the organization
-- Is automatically used by Bundler during `bundle install`
-
-The `postCreateCommand` in `.devcontainer/devcontainer.json` handles gem installation automatically.
-
----
-
-## Local Development
-
-To work with private gems locally, you need a GitHub Personal Access Token:
-
-### 1. Create a Personal Access Token
-
-1. Go to [GitHub Settings → Developer settings → Personal access tokens → Tokens (classic)](https://github.com/settings/tokens)
-2. Click **Generate new token (classic)**
-3. Give it a descriptive name (e.g., "Bundler - Bowerbird Gems")
-4. Select the **`repo`** scope (full control of private repositories)
-5. Click **Generate token**
-6. Copy the token immediately (you won't see it again)
-
-### 2. Configure Bundler
-
-Set the token globally:
+Before debugging Bundler, make sure GitHub access works directly:
 
 ```bash
-bundle config set --global GITHUB__COM your_github_token_here
+git ls-remote https://github.com/bowerbird-app/flatpack.git
 ```
 
-Or set it per-project:
+If that command fails with authentication or repository access errors, fix GitHub access first.
+
+## Local Development Options
+
+Any approach that makes Git able to clone the dependency is fine. Common options:
+
+- authenticate with the GitHub CLI and credential manager
+- use your OS keychain-backed Git credential helper
+- use a personal access token in a Git URL rewrite
+
+Example URL rewrite:
 
 ```bash
-bundle config set --local GITHUB__COM your_github_token_here
+git config --global url."https://oauth2:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
 ```
 
-### 3. Verify
+That is usually more reliable for git-sourced gems than configuring only `BUNDLE_GITHUB__COM`, because the dependency is
+cloned by Git over HTTPS.
 
-Run `bundle install` – it should successfully fetch private gems.
+## Codespaces And Devcontainers
 
----
+Codespaces usually inherit repository access from the signed-in GitHub account plus any organization or repository
+permissions granted to the codespace. If `bundle install` fails inside the devcontainer, verify that the account running
+the codespace can read the dependency repository.
 
-## Production Deployment
+## CI Or Docker Builds
 
-Production applications using this gem template will need access to private dependencies.
-
-### Requirements
-
-- **GitHub Personal Access Token** with `repo` scope
-- **Organization membership** – the token owner must have access to `bowerbird-app` private repositories
-
-### Configuration
-
-Set the token as an environment variable or configure it in your deployment system:
-
-**Option 1: Environment variable**
-
-```bash
-export BUNDLE_GITHUB__COM=your_production_token
-```
-
-**Option 2: Bundler config**
-
-```bash
-bundle config set --local GITHUB__COM your_production_token
-```
-
-**Option 3: Git credentials helper** (for Docker builds)
-
-In your `Dockerfile`:
+For automated builds, configure Git before running Bundler:
 
 ```dockerfile
 ARG GITHUB_TOKEN
@@ -106,41 +57,19 @@ RUN git config --global url."https://oauth2:${GITHUB_TOKEN}@github.com/".instead
 RUN bundle install
 ```
 
-Then pass the token during build:
-
-```bash
-docker build --build-arg GITHUB_TOKEN=$GITHUB_TOKEN .
-```
-
----
-
-## Security Best Practices
-
-- **Never commit tokens** to version control
-- Use **environment-specific tokens** (dev, staging, prod)
-- Rotate tokens periodically
-- Use **read-only tokens** where possible (`:repo` scope is required for private gems)
-- Store tokens in secrets managers (GitHub Secrets, AWS Secrets Manager, etc.)
-
----
+Use a read-only token with access only to the repositories you need.
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| `bundle install` fails with 401/403 | Check token has `repo` scope and org access |
-| "Repository not found" | Ensure token owner is a member of `bowerbird-app` |
-| Token not being used | Verify `bundle config get GITHUB__COM` shows your token |
-| Works locally but fails in CI | Set `BUNDLE_GITHUB__COM` in CI environment variables |
+| Issue | What to check |
+| --- | --- |
+| `bundle install` fails with 401 or 403 | The GitHub token or signed-in account cannot read the git-sourced dependency. |
+| `Repository not found` | The repo may be private, renamed, or unavailable to the current GitHub identity. |
+| Bundler works locally but not in Codespaces | The local machine may have cached Git credentials that the container does not. |
+| `BUNDLE_GITHUB__COM` is set but clones still fail | Git-sourced gems may still require Git credential configuration, not just Bundler source credentials. |
 
----
+## Files To Check
 
-## Reference
-
-- [Bundler Git Authentication](https://bundler.io/man/bundle-config.1.html#CREDENTIALS-FOR-GEM-SOURCES)
-- [GitHub Personal Access Tokens](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token)
-- [Codespaces Secrets](https://docs.github.com/en/codespaces/managing-your-codespaces/managing-secrets-for-your-codespaces)
-
----
-
-Need help? Check the internal Bowerbird docs or ask in `#engineering`.
+- `Gemfile`
+- `test/dummy/Gemfile`
+- `.devcontainer/devcontainer.json`

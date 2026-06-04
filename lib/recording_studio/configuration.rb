@@ -49,28 +49,83 @@ module RecordingStudio
 
     def enable_capability(capability, on:)
       type_name = on.is_a?(Class) ? on.name : on.to_s
-      @capabilities[type_name] ||= Set.new
-      @capabilities[type_name].add(capability.to_sym)
+      RecordingStudio.synchronize_capabilities do
+        @capabilities[type_name] ||= Set.new
+        @capabilities[type_name].add(capability.to_sym)
+      end
+    end
+
+    def enabled_recordable_types_for(capability)
+      capability_name = capability.to_sym
+      RecordingStudio.synchronize_capabilities do
+        @capabilities.each_with_object([]) do |(type_name, capabilities), types|
+          types << type_name if capabilities.include?(capability_name)
+        end.sort
+      end
     end
 
     def capability_enabled?(capability, for_type:)
       type_name = for_type.is_a?(Class) ? for_type.name : for_type.to_s
-      @capabilities[type_name]&.include?(capability.to_sym) || false
+      RecordingStudio.synchronize_capabilities do
+        @capabilities[type_name]&.include?(capability.to_sym) || false
+      end
     end
 
     def capabilities_for(recordable_or_type)
       type_name = recordable_or_type.is_a?(Class) ? recordable_or_type.name : recordable_or_type.to_s
-      @capabilities.fetch(type_name, Set.new).to_a.sort
+      RecordingStudio.synchronize_capabilities do
+        @capabilities.fetch(type_name, Set.new).to_a.sort
+      end
     end
 
     def set_capability_options(capability, on:, **options)
       type_name = on.is_a?(Class) ? on.name : on.to_s
-      @capability_options[[capability.to_sym, type_name]] = options
+      RecordingStudio.synchronize_capabilities do
+        @capability_options[[capability.to_sym, type_name]] = options
+      end
     end
 
     def capability_options(capability, for_type:)
       type_name = for_type.is_a?(Class) ? for_type.name : for_type.to_s
-      @capability_options[[capability.to_sym, type_name]]
+      RecordingStudio.synchronize_capabilities do
+        @capability_options[[capability.to_sym, type_name]]
+      end
+    end
+
+    def capability_parent_types_for(recordable_or_type)
+      child_type_name = RecordingStudio.recordable_type_name(recordable_or_type)
+      return [] if child_type_name.blank?
+
+      RecordingStudio.synchronize_capabilities do
+        @capabilities.each_with_object(Set.new) do |(parent_type_name, capabilities), parent_types|
+          next unless capability_enabled_for_child_type?(capabilities, child_type_name)
+
+          parent_types << parent_type_name
+        end.to_a.sort
+      end
+    end
+
+    def child_recordable_types_for(recordable_or_type)
+      parent_type_name = RecordingStudio.recordable_type_name(recordable_or_type)
+      return [] if parent_type_name.blank?
+
+      RecordingStudio.synchronize_capabilities do
+        @capabilities.fetch(parent_type_name, Set.new).each_with_object(Set.new) do |capability_name, child_types|
+          child_types.merge(capability_registration_child_recordables(capability_name))
+        end.to_a.sort
+      end
+    end
+
+    def parent_capabilities_for(child_type:, parent_type:)
+      child_type_name = RecordingStudio.recordable_type_name(child_type)
+      resolved_parent_type_name = RecordingStudio.recordable_type_name(parent_type)
+      return [] if child_type_name.blank? || resolved_parent_type_name.blank?
+
+      RecordingStudio.synchronize_capabilities do
+        @capabilities.fetch(resolved_parent_type_name, Set.new).select do |capability_name|
+          capability_registration_includes_child?(capability_name, child_type_name)
+        end.to_a.sort
+      end
     end
 
     def to_h
@@ -118,6 +173,23 @@ module RecordingStudio
     end
 
     private
+
+    def capability_enabled_for_child_type?(capabilities, child_type_name)
+      capabilities.any? do |capability_name|
+        capability_registration_includes_child?(capability_name, child_type_name)
+      end
+    end
+
+    def capability_registration_includes_child?(capability_name, child_type_name)
+      capability_registration_child_recordables(capability_name).include?(child_type_name)
+    end
+
+    def capability_registration_child_recordables(capability_name)
+      registration = RecordingStudio.registered_capabilities[capability_name]
+      return [] if registration.blank? || registration[:source].blank?
+
+      Array(registration[:child_recordables])
+    end
 
     def warn_removed_configuration_key!(key)
       message = "[RecordingStudio] '#{key}' configuration has been removed from core. " \

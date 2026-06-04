@@ -32,16 +32,11 @@ echo "Step 5: Change to dummy app directory"
 echo "Command: cd test/dummy"
 echo
 
-echo "Step 6: Bundle install (dummy app)"
-echo "Command: bundle install"
+echo "Step 6: Bootstrap dummy app"
+echo "Command: bin/setup --skip-server"
 echo
 
-echo "Step 7: Prepare database"
-echo "Command: bundle exec rails db:prepare"
-echo "Note: Uses DB_HOST=db by default inside Codespaces"
-echo
-
-echo "Step 8: Build Tailwind CSS"
+echo "Step 7: Build Tailwind CSS"
 echo "Command: bundle exec rails tailwindcss:build"
 echo
 
@@ -49,6 +44,7 @@ echo "=== Codespaces postCreateCommand complete ==="
 echo
 echo "To start the server:"
 echo "  cd test/dummy"
-echo "  bundle exec rails server -p 3000 -b 0.0.0.0"
+echo "  bin/dev"
 echo
-echo "Then visit: http://localhost:3000/recording_studio"
+echo "Then visit: http://localhost:3000/"
+echo "Useful demo routes: /workspaces, /methods, /capabilities"

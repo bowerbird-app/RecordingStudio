@@ -4,11 +4,19 @@ require "test_helper"
 
 class RecordingStudioTest < Minitest::Test
   def setup
-    @original_registered_capabilities = RecordingStudio.registered_capabilities.dup
+    @original_registered_capabilities = RecordingStudio.registered_capabilities.transform_values(&:dup)
+    @original_capabilities =
+      RecordingStudio.configuration.instance_variable_get(:@capabilities).transform_values(&:dup)
+    @original_capability_options = RecordingStudio.configuration.instance_variable_get(:@capability_options).dup
+    RecordingStudio.instance_variable_set(:@registered_capabilities, {})
+    RecordingStudio.configuration.instance_variable_set(:@capabilities, {})
+    RecordingStudio.configuration.instance_variable_set(:@capability_options, {})
   end
 
   def teardown
     RecordingStudio.instance_variable_set(:@registered_capabilities, @original_registered_capabilities)
+    RecordingStudio.configuration.instance_variable_set(:@capabilities, @original_capabilities)
+    RecordingStudio.configuration.instance_variable_set(:@capability_options, @original_capability_options)
   end
 
   def test_version_exists
@@ -33,7 +41,79 @@ class RecordingStudioTest < Minitest::Test
     assert RecordingStudio::Recording.new.respond_to?(:capability_auto_apply_probe_value)
     included_count = RecordingStudio::Recording.included_modules.count { |mod| mod == capability_module }
     assert_equal 1, included_count
-    assert_equal capability_module, RecordingStudio.registered_capabilities.fetch(:auto_apply_probe).fetch(:mod)
+    registration = RecordingStudio.registered_capabilities.fetch(:auto_apply_probe)
+
+    assert_equal capability_module, registration.fetch(:mod)
+    assert_equal capability_module, registration.fetch(:recording_methods)
+    assert_nil registration.fetch(:source)
+    assert_equal [], registration.fetch(:child_recordables)
+  end
+
+  def test_register_capability_allows_child_recordables_without_recording_methods
+    RecordingStudio.register_capability(
+      :commentable_probe,
+      source: "recording_studio_test_probe",
+      child_recordables: "RecordingStudioComment"
+    )
+
+    registration = RecordingStudio.registered_capabilities.fetch(:commentable_probe)
+
+    assert_nil registration[:mod]
+    assert_nil registration[:recording_methods]
+    assert_equal "recording_studio_test_probe", registration[:source]
+    assert_equal ["RecordingStudioComment"], registration[:child_recordables]
+  end
+
+  def test_register_capability_refreshes_recording_methods_for_same_source
+    first_module = Module.new
+    second_module = Module.new do
+      def capability_refresh_probe_value
+        :refreshed
+      end
+    end
+
+    RecordingStudio.register_capability(:refresh_probe, first_module, source: "recording_studio_test_probe")
+    RecordingStudio.register_capability(:refresh_probe, second_module, source: "recording_studio_test_probe")
+
+    registration = RecordingStudio.registered_capabilities.fetch(:refresh_probe)
+    assert_equal second_module, registration.fetch(:mod)
+    assert_equal second_module, registration.fetch(:recording_methods)
+    assert RecordingStudio::Recording.included_modules.include?(second_module)
+    assert_equal :refreshed, RecordingStudio::Recording.new.capability_refresh_probe_value
+  end
+
+  def test_register_capability_accepts_recording_methods_keyword
+    capability_module = Module.new
+
+    RecordingStudio.register_capability(
+      :keyword_probe,
+      recording_methods: capability_module,
+      source: "recording_studio_test_probe"
+    )
+
+    registration = RecordingStudio.registered_capabilities.fetch(:keyword_probe)
+    assert_equal capability_module, registration.fetch(:recording_methods)
+    assert_equal "recording_studio_test_probe", registration.fetch(:source)
+  end
+
+  def test_capability_parent_types_follow_enablement_after_registration
+    RecordingStudio.register_capability(
+      :commentable_probe,
+      source: "recording_studio_test_probe",
+      child_recordables: "RecordingStudioComment"
+    )
+
+    assert_equal [], RecordingStudio.capability_parent_types_for("RecordingStudioComment")
+
+    RecordingStudio.enable_capability(:commentable_probe, on: "RecordingStudioFolder")
+
+    assert_equal ["RecordingStudioFolder"], RecordingStudio.capability_parent_types_for("RecordingStudioComment")
+    assert_equal ["RecordingStudioComment"], RecordingStudio.child_recordable_types_for("RecordingStudioFolder")
+    assert_equal [:commentable_probe],
+                 RecordingStudio.parent_capabilities_for(
+                   child_type: "RecordingStudioComment",
+                   parent_type: "RecordingStudioFolder"
+                 )
   end
 
   def test_configuration_to_h_excludes_removed_feature_flags

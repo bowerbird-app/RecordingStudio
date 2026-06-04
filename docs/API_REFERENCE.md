@@ -38,6 +38,23 @@ Use this decision guide before calling methods:
 - You need events for one recording only:
   `recording.events(...)`
 
+## AI Hierarchy And Write Checklist
+
+When an AI agent needs to create or revise data, validate the hierarchy first instead of inferring it from naming:
+
+1. Normalize the type with `RecordingStudio.recordable_type_name(...)`.
+2. Read the declaration with `RecordingStudio.recordable_declaration_for(...)`.
+3. For top-level writes, require a persisted recordable, confirm `RecordingStudio.root_allowed?(...)`, then call
+  `RecordingStudio.root_recording_for(...)`.
+4. For child writes, resolve the intended `parent_recording` in the same root tree and check
+  `RecordingStudio.parent_allowed?(child_type:, parent_recording:)` before writing.
+5. If the child is capability-owned and does not list all parents directly, inspect
+  `RecordingStudio.recordable_parent_allowances_for(...)`,
+  `RecordingStudio.capability_parent_types_for(...)`, and
+  `RecordingStudio.parent_capabilities_for(child_type:, parent_recording:)` to explain the relationship.
+6. Prefer `root_recording.record`, `root_recording.revise`, and `recording.log_event!`; use
+  `RecordingStudio.record!` only when you need the returned event object or lower-level control.
+
 ## Top-Level Module: `RecordingStudio`
 
 These methods are the main addon-facing API.
@@ -46,8 +63,8 @@ These methods are the main addon-facing API.
 | --- | --- | --- | --- |
 | `configuration` | nothing | `RecordingStudio::Configuration` | Read or mutate engine configuration in one place. |
 | `configure` | block with `config` | same configuration object | Standard Rails-style configuration entry point. |
-| `registered_capabilities` | nothing | `Hash` | Introspection for capability registrations already applied to recordings. |
-| `register_capability(name, mod)` | capability name, module | registered module map | Adds recording-level behavior from an addon without monkey-patching core. |
+| `registered_capabilities` | nothing | `Hash` | Introspection for capability registrations, including source and child-recordable metadata. |
+| `register_capability(name, mod = nil, recording_methods: nil, source: nil, child_recordables: [])` | capability name plus optional recording methods and child recordables | registered capability metadata | Adds recording-level behavior and/or source-aware capability-owned child-recordable metadata without monkey-patching core. |
 | `apply_capabilities!` | nothing | `Hash` of registrations iterated | Re-applies registered recording modules after reloads or boot order changes. |
 | `register_recordable_type(name)` | class or class name | updated `recordable_types` and delegated-type registration side effect | Makes a recordable type available to delegated type resolution. |
 | `recordable_type_name(recordable_or_type)` | instance, class, or class name | `String` or `nil` | Normalizes a recordable type to its class name. |
@@ -61,14 +78,20 @@ These methods are the main addon-facing API.
 | `recordable_declaration_defined?(type)` | instance, class, or class name | `true` or `false` | Checks whether a type declared RecordingStudio rules. |
 | `recordable_declarations` | nothing | duplicate `Hash<String, Declaration>` | Introspects the currently loaded declarations without exposing the mutable registry. |
 | `validate_recordable_declarations!` | nothing | `true` or raises | Ensures configured ActiveRecord recordable types have valid declarations. |
-| `allowed_parent_types_for(type)` | instance, class, or class name | `Array<String>` | Reads the declared parent type allowlist for a recordable type. |
+| `declared_parent_types_for(type)` / `declared_allowed_parent_types_for(type)` | instance, class, or class name | `Array<String>` | Reads parent types declared directly on the recordable declaration. |
+| `allowed_parent_types_for(type)` | instance, class, or class name | `Array<String>` | Reads the effective parent allowlist, including capability-derived parent types. |
+| `capability_child_recordables_for(capability)` | capability name | `Array<String>` | Lists child recordables declared for a registered capability. |
+| `capability_parent_types_for(type)` / `capability_allowed_parent_types_for(type)` | instance, class, or class name | `Array<String>` | Lists parent types granted by capability registrations and enablement. |
+| `recordable_parent_allowances_for(type)` | instance, class, or class name | frozen `Hash<String, Array<String>>` | Lists capability-derived parent allowances grouped by source/provenance. |
+| `child_recordable_types_for(type)` | instance, class, or class name | `Array<String>` | Lists capability-owned child recordable types enabled for a parent type. |
+| `parent_capabilities_for(child_type:, parent_recording: nil, parent_type: nil)` | child type plus parent recording or type | `Array<Symbol>` | Explains which capabilities allow a given parent/child relationship. |
 | `root_allowed?(type)` | instance, class, or class name | `true`, `false`, or raises | Checks whether a recordable type may be saved as a root. |
 | `root_recordable_type?(type)` | instance, class, or class name | `true`, `false`, or raises | Alias-style helper for `root_allowed?`. |
 | `root_recordable_types` | nothing | `Array<String>` or raises | Lists configured recordable types allowed as roots. |
 | `root_recordable_declarations` | nothing | `Array<Declaration>` | Lists configured declarations whose types declare `root: true`. |
-| `parent_allowed?(child_type:, parent_recording:)` | child type, parent recording | `true`, `false`, or raises | Checks declared parent/child hierarchy rules. |
+| `parent_allowed?(child_type:, parent_recording:)` | child type, parent recording | `true`, `false`, or raises | Checks declared and capability-derived parent/child hierarchy rules. |
 | `assert_root_allowed!(type)` | instance, class, or class name | `true` or raises `RecordingStudio::RootNotAllowed` | Guards APIs that create or identify root recordings. |
-| `assert_parent_allowed!(child_type:, parent_recording:)` | child type, parent recording | `true` or raises `RecordingStudio::InvalidParent` | Guards child creation against declaration hierarchy rules. |
+| `assert_parent_allowed!(child_type:, parent_recording:)` | child type, parent recording | `true` or raises `RecordingStudio::InvalidParent` | Guards child creation against declaration and capability-derived hierarchy rules. |
 | `root_recording_for(recordable)` | persisted top-level recordable | `RecordingStudio::Recording` | Finds or creates the root recording for a top-level object. |
 | `root_recording_or_self(recording)` | recording or root recording | `RecordingStudio::Recording` or `nil` | Collapses `root_recording || self` into one public helper. |
 | `root_recording_id_for(recording)` | recording or root recording | root recording ID or `nil` | Returns the root boundary ID used by tree queries. |
@@ -85,6 +108,23 @@ These methods are the main addon-facing API.
 | `set_capability_options(capability, on:, **options)` | capability name, recordable type, option hash | configuration side effect | Stores per-type capability options. |
 | `capability_options(capability, for: type)` | capability name, recordable type | `Hash` or `nil` | Reads per-type capability options. |
 | `record!(action:, recordable:, recording: nil, root_recording: nil, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)` | write parameters | `RecordingStudio::Event` | Canonical low-level write API used by higher-level helpers. |
+
+Capability-owned child recordables are for addon internals whose valid parents are determined by host recordables opting
+into a capability:
+
+```ruby
+RecordingStudio.register_capability(
+  :accessible,
+  RecordingStudioAccessible::RecordingMethods,
+  source: "recording_studio_accessible",
+  child_recordables: ["RecordingStudio::Access"]
+)
+```
+
+The recording methods module may be omitted when a capability only contributes metadata. `source:` is required whenever
+`child_recordables:` is present. It is provenance metadata, not an authentication boundary. Write paths only honor
+capability-derived parents when both parent and child are registered recordable types and the child has a valid non-root
+declaration.
 
 ### `RecordingStudio.record!` parameter guidance
 
@@ -135,7 +175,7 @@ Macro parameters:
 | `label:` | yes | Singular human-facing type label. Used by `recordable_type_label`. |
 | `plural_label:` | no | Plural human-facing type label. Defaults to `label.pluralize`. |
 | `root:` | yes | `true` when the type can be a root recording; `false` for child-only types. |
-| `allowed_parent_types:` | required when `root: false` | Class names/classes allowed as direct parents. `[]` is valid but means the type cannot currently be nested anywhere. |
+| `allowed_parent_types:` | required when `root: false` unless parent allowances are derived from a registered capability | Class names/classes allowed as direct parents. `[]` is valid but means the type cannot currently be nested anywhere unless capability enablement grants parents. |
 
 Declaration behavior:
 
@@ -146,6 +186,8 @@ Declaration behavior:
 - A declaration for an unregistered type warns when declarations are not required and raises
   `RecordingStudio::InvalidRecordableDeclaration` when they are required.
 - `allowed_parent_types` entries must be registered recordable types.
+- Non-root capability-owned child recordables may omit `allowed_parent_types` only when a registered capability declares
+  them in `child_recordables:`; effective parents are then derived from recordable types where that capability is enabled.
 - Direct model saves validate hierarchy rules too, so bypassing `record!` does not create valid orphan recordings.
 - Destroying a parent with children is restricted by the `child_recordings` association.
 

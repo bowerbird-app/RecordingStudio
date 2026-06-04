@@ -1,248 +1,156 @@
-> **Architecture Documentation**
-> *   **Canonical Source:** [bowerbird-app/gem_template](https://github.com/bowerbird-app/gem_template/tree/main/docs/gem_template)
-> *   **Last Updated:** December 11, 2025
->
-> *Maintainers: Please update the date above when modifying this file.*
+# Installing RecordingStudio In A Host Application
 
----
-
-# Installing in a Host Application
-
-This guide explains how to install the GemTemplate engine in your Rails application.
-
----
+This guide documents the current install flow for RecordingStudio as a Rails engine. For API details after installation,
+use [../../README.md](../../README.md) and [../API_REFERENCE.md](../API_REFERENCE.md).
 
 ## Prerequisites
 
-- Rails 7.0+ application
-- PostgreSQL (recommended for UUID compatibility)
-- TailwindCSS (optional, for styling engine views)
+- Ruby 3.3+
+- Rails 8.1+
+- ActiveRecord-backed application
+- TailwindCSS only if your host app wants the generator to wire engine view scanning automatically
 
----
+## Standard Install Flow
 
-## Installation Steps
-
-### 1. Add the Gem
-
-Add to your `Gemfile`:
+1. Add the gem to your `Gemfile`.
 
 ```ruby
-# From GitHub
-gem "gem_template", github: "bowerbird-app/gem_template"
-
-# Or from a local path (for development)
-gem "gem_template", path: "../gem_template"
-
-# Or from RubyGems (after publishing)
-gem "gem_template"
+gem "recording_studio"
 ```
 
-### 2. Install Dependencies
+For local development against a checkout:
+
+```ruby
+gem "recording_studio", path: "../RecordingStudio"
+```
+
+2. Install dependencies.
 
 ```bash
 bundle install
 ```
 
-### 3. Run the Install Generator
+3. Run the install generator.
 
 ```bash
-rails generate gem_template:install
+bin/rails generate recording_studio:install
 ```
 
-This will:
-1. **Mount the engine** at `/gem_template` in your `config/routes.rb`
-2. **Create a configuration initializer** at `config/initializers/gem_template.rb`
-3. **Configure Tailwind** to include engine views (if Tailwind is detected)
-4. **Display post-installation instructions**
+4. Run the copied migrations.
 
----
-
-## What the Generator Does
-
-### Routes
-
-Adds this line to `config/routes.rb`:
-
-```ruby
-mount GemTemplate::Engine, at: "/gem_template"
+```bash
+bin/rails db:migrate
 ```
 
-### Configuration
+## What The Install Generator Actually Does
 
-Creates `config/initializers/gem_template.rb`:
+The current generator:
+
+- mounts `RecordingStudio::Engine` at `/recording_studio`
+- creates `config/initializers/recording_studio.rb`
+- invokes `recording_studio:migrations`
+- optionally creates `config/recording_studio.yml`
+- adds Tailwind `@source` scanning for engine ERB views when `app/assets/tailwind/application.css` exists
+
+The mounted engine is not a bundled application UI. RecordingStudio currently ships no default root page or browser
+routes under `/recording_studio`, so do not treat that mount path as an installation smoke test.
+
+## Minimal Post-Install Wiring
+
+RecordingStudio only becomes useful after you declare and register the recordable types your app wants to store.
+
+Initializer example:
 
 ```ruby
-GemTemplate.configure do |config|
-  # config.api_key = ENV["GEM_TEMPLATE_API_KEY"]
-  # config.enable_feature_x = false
-  # config.timeout = 5
+RecordingStudio.configure do |config|
+  config.recordable_types = %w[Workspace Page]
 end
 ```
 
-See [CONFIGURATION.md](CONFIGURATION.md) for all options.
-
-### Tailwind CSS
-
-If your app uses Tailwind, the generator adds a `@source` directive to include engine views:
-
-```css
-@source "../../vendor/bundle/**/gem_template/app/views/**/*.erb";
-```
-
-This ensures Tailwind scans the engine's templates for class names during CSS compilation.
-
----
-
-## Manual Installation
-
-If you prefer not to use the generator:
-
-### Mount the Engine
-
-Add to `config/routes.rb`:
+Model declarations:
 
 ```ruby
-Rails.application.routes.draw do
-  mount GemTemplate::Engine, at: "/gem_template"
-  # ... your other routes
+class Workspace < ApplicationRecord
+  recording_studio_recordable label: "Workspace", root: true
+end
+
+class Page < ApplicationRecord
+  recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
 end
 ```
 
-### Add Configuration (Optional)
-
-Create `config/initializers/gem_template.rb`:
+Actor wiring:
 
 ```ruby
-GemTemplate.configure do |config|
-  config.api_key = ENV["GEM_TEMPLATE_API_KEY"]
-  config.enable_feature_x = true
-  config.timeout = 10
-end
-```
+class ApplicationController < ActionController::Base
+  before_action :current_actor
 
-### Configure Tailwind (If Using)
+  private
 
-Add to your `app/assets/tailwind/application.css`:
-
-```css
-@source "../../vendor/bundle/**/gem_template/app/views/**/*.erb";
-```
-
-Then rebuild:
-
-```bash
-bin/rails tailwindcss:build
-```
-
----
-
-## Verifying Installation
-
-1. Start your Rails server:
-   ```bash
-   bin/rails server
-   ```
-
-2. Visit the engine:
-   ```
-   http://localhost:3000/gem_template
-   ```
-
-You should see the engine's welcome page.
-
----
-
-## Customizing the Mount Path
-
-Change the mount path in `config/routes.rb`:
-
-```ruby
-# Mount at root
-mount GemTemplate::Engine, at: "/"
-
-# Mount at a custom path
-mount GemTemplate::Engine, at: "/my-engine"
-
-# Mount with constraints
-mount GemTemplate::Engine, at: "/gem_template", constraints: { subdomain: "api" }
-```
-
----
-
-## Accessing Engine Routes
-
-From your host app views:
-
-```erb
-<%= link_to "Visit Engine", gem_template.root_path %>
-```
-
-From controllers:
-
-```ruby
-redirect_to gem_template.root_path
-```
-
-The `gem_template` helper provides access to all engine routes.
-
----
-
-## Overriding Engine Views
-
-To customize engine views, copy them to your app:
-
-```bash
-mkdir -p app/views/gem_template/home
-cp $(bundle show gem_template)/app/views/gem_template/home/index.html.erb \
-   app/views/gem_template/home/
-```
-
-Rails will use your app's version instead of the engine's.
-
----
-
-## Overriding Engine Controllers
-
-Create a decorator or subclass:
-
-```ruby
-# app/controllers/gem_template/home_controller.rb
-class GemTemplate::HomeController < GemTemplate::ApplicationController
-  def index
-    # Your custom logic
-    super
+  def current_actor
+    Current.actor = current_user
+    Current.impersonator = nil
   end
 end
 ```
 
----
+First write:
+
+```ruby
+workspace = Workspace.create!(name: "Studio")
+root = RecordingStudio.root_recording_for(workspace)
+
+root.record(Page) do |page|
+  page.title = "Getting started"
+end
+```
+
+## `config.recordable_types` Versus `register_recordable_type`
+
+Most host apps should set `config.recordable_types` during boot. Use `RecordingStudio.register_recordable_type(...)`
+when an addon or runtime integration needs incremental registration after boot. Calling both is usually unnecessary,
+but harmless if they describe the same types.
+
+## Tailwind Integration
+
+If the host app has `app/assets/tailwind/application.css`, the generator inserts:
+
+```css
+@source "../../vendor/bundle/**/recording_studio/app/views/**/*.erb";
+```
+
+That is the only asset integration RecordingStudio currently performs. The engine does not ship install-time JS,
+Importmap, or Sprockets wiring.
+
+## Verification
+
+Good validation checks after installation:
+
+```ruby
+RecordingStudio.validate_recordable_declarations!
+RecordingStudio.root_recordable_types
+RecordingStudio.root_recording_for(Workspace.first)
+```
+
+Or from a console/session:
+
+```ruby
+root = RecordingStudio.root_recording_for(Workspace.first)
+root.recordings_query
+```
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| Route not found | Ensure engine is mounted in `config/routes.rb`. |
-| Styles missing | Run `bin/rails tailwindcss:build` after adding `@source`. |
-| Generator fails | Check that the gem is installed: `bundle show gem_template`. |
-| Configuration not applied | Ensure initializer runs after engine loads. |
+| Issue | What to check |
+| --- | --- |
+| `RecordingStudio::MissingRecordableDeclaration` | Add `recording_studio_recordable(...)` to every configured ActiveRecord type, or temporarily set `require_recordable_declarations = false` while migrating. |
+| `RecordingStudio::RootNotAllowed` | You called `root_recording_for` for a type that does not declare `root: true`. |
+| `RecordingStudio::InvalidParent` | The child type needs a valid `parent_recording:` and an allowed parent type. |
+| Tailwind classes from engine views are missing | Rebuild CSS with `bin/rails tailwindcss:build` and verify the `@source` line exists. |
+| `/recording_studio` returns 404 | Expected unless your app or a future engine version adds routes there. |
 
----
+## Related Docs
 
-## Uninstalling
-
-1. Remove the mount line from `config/routes.rb`
-2. Delete `config/initializers/gem_template.rb`
-3. Remove the gem from `Gemfile`
-4. Run `bundle install`
-5. Remove the `@source` line from your Tailwind config
-
----
-
-## Related Documentation
-
-- [Configuration Guide](CONFIGURATION.md) – All configuration options
-- [Tailwind Setup](TAILWIND.md) – How Tailwind is configured in the engine
-
----
-
-Happy integrating! 🔌
+- [CONFIGURATION.md](CONFIGURATION.md)
+- [MIGRATIONS.md](MIGRATIONS.md)
+- [../API_REFERENCE.md](../API_REFERENCE.md)

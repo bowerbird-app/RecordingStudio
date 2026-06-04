@@ -3,6 +3,45 @@
 require "test_helper"
 
 class CapabilitiesControllerTest < ActionDispatch::IntegrationTest
+  EXPECTED_CAPABILITY_CATALOG_TEXT = [
+    "Capabilities",
+    "RecordingStudio.registered_capabilities",
+    "RecordingStudio.register_capability",
+    "RecordingStudio.capability_child_recordables_for",
+    "RecordingStudio.child_recordable_types_for",
+    "RecordingStudio.capability_allowed_parent_types_for",
+    "RecordingStudio.recordable_parent_allowances_for",
+    "RecordingStudio.parent_capabilities_for",
+    "RecordingStudio.capability_enabled?",
+    "RecordingStudio.capabilities_for",
+    "RecordingStudio.capability_options",
+    "recording.capability_enabled?",
+    "recording.capability_options",
+    "recording.capabilities",
+    "recording.assert_capability!"
+  ].freeze
+
+  UNEXPECTED_CAPABILITY_CATALOG_TEXT = [
+    "commentable",
+    "recording.comment!",
+    "recording.comments"
+  ].freeze
+
+  EXPECTED_CAPABILITY_RESPONSE_TEXT = [
+    "# Response",
+    "# Example response:",
+    "child_recordables:",
+    "recording_studio_reviewable",
+    "[:reviewable]",
+    "nil on success, or raises RecordingStudio::CapabilityDisabled",
+    "flat-pack--section-title-anchor",
+    "flat-pack--sidebar-group",
+    ">Config<",
+    ">Tree<",
+    ">Capabilities<",
+    "href=\"#recording-capability-enabled\""
+  ].freeze
+
   setup do
     @user = create_user(name: "Capabilities Reader")
     sign_in_as(@user)
@@ -10,30 +49,11 @@ class CapabilitiesControllerTest < ActionDispatch::IntegrationTest
 
   test "index renders capability catalog" do
     get capabilities_path, headers: modern_headers
+    body = @response.body
 
     assert_response :success
-    assert_includes @response.body, "Capabilties"
-    assert_includes @response.body, "RecordingStudio.registered_capabilities"
-    assert_includes @response.body, "RecordingStudio.register_capability"
-    assert_includes @response.body, "RecordingStudio.capability_enabled?"
-    assert_includes @response.body, "RecordingStudio.capabilities_for"
-    assert_includes @response.body, "RecordingStudio.capability_options"
-    assert_includes @response.body, "recording.capability_enabled?"
-    assert_includes @response.body, "recording.capability_options"
-    assert_includes @response.body, "recording.capabilities"
-    assert_includes @response.body, "recording.assert_capability!"
-    assert_includes @response.body, "# Response"
-    assert_includes @response.body, "# Example response:"
-    refute_includes @response.body, "commentable"
-    refute_includes @response.body, "recording.comment!"
-    refute_includes @response.body, "recording.comments"
-    assert_includes @response.body, "[:reviewable]"
-    assert_includes @response.body, "nil on success, or raises RecordingStudio::CapabilityDisabled"
-    assert_includes @response.body, "flat-pack--section-title-anchor"
-    assert_includes @response.body, "flat-pack--sidebar-group"
-    assert_includes @response.body, ">Config<"
-    assert_includes @response.body, ">Tree<"
-    assert_includes @response.body, ">Capabilties<"
-    assert_includes @response.body, "href=\"#recording-capability-enabled\""
+    EXPECTED_CAPABILITY_CATALOG_TEXT.each { |text| assert body.include?(text), "missing expected text: #{text}" }
+    UNEXPECTED_CAPABILITY_CATALOG_TEXT.each { |text| refute body.include?(text), "unexpected text present: #{text}" }
+    EXPECTED_CAPABILITY_RESPONSE_TEXT.each { |text| assert body.include?(text), "missing expected text: #{text}" }
   end
 end

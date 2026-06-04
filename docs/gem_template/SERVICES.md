@@ -1,49 +1,80 @@
-> **Architecture Documentation**
-> *   **Canonical Source:** [bowerbird-app/gem_template](https://github.com/bowerbird-app/gem_template/tree/main/docs/gem_template)
-> *   **Last Updated:** December 11, 2025
->
-> *Maintainers: Please update the date above when modifying this file.*
+# RecordingStudio Service Objects
 
----
+RecordingStudio ships a small service-object base class for maintainers and addon authors who want a consistent
+command-style API with hook support.
 
-# Service Objects
+## What Exists Today
 
-Business logic in GemTemplate is encapsulated in service objects using the Result monad pattern.
+- `RecordingStudio::Services::BaseService`
+- `RecordingStudio::Services::ExampleService`
 
----
+The example service is intentionally trivial. The reusable part is `BaseService`.
 
-## Usage
+## Call Pattern
 
 ```ruby
-result = GemTemplate::Services::ExampleService.call(name: "World")
+result = RecordingStudio::Services::ExampleService.call(name: "World")
 
-if result.success?
-  puts result.value  # => "Hello, World!"
-else
-  puts result.error
-end
+result.success? # => true
+result.value    # => "Hello, World!"
 ```
 
-## Creating Services
+Returned results respond to:
 
-Create your own services by inheriting from `BaseService`:
+- `success?`
+- `failure?`
+- `value`
+- `error`
+- `errors`
+- `on_success { |value| ... }`
+- `on_failure { |error, errors| ... }`
+- `value!`
+
+## Implementing A Service
+
+Subclass `BaseService`, implement `perform`, and return `success(...)` or `failure(...)`.
 
 ```ruby
-module GemTemplate
+module RecordingStudio
   module Services
-    class MyService < BaseService
-      def initialize(param:)
-        @param = param
+    class PublishPage < BaseService
+      def initialize(page_recording:)
+        @page_recording = page_recording
       end
 
       private
 
       def perform
-        # Your logic here
-        success(result_value)
-        # or: failure("Error message")
+        return failure("recording is required") unless @page_recording
+
+        @page_recording.log_event!(action: "published")
+        success(@page_recording)
+      end
+
+      def service_args
+        { recording_id: @page_recording&.id }
       end
     end
   end
 end
 ```
+
+## Hook Integration
+
+`BaseService` automatically cooperates with `RecordingStudio.configuration.hooks`.
+
+Relevant hooks:
+
+- `before_service`
+- `after_service`
+- `around_service`
+
+Example:
+
+```ruby
+RecordingStudio.configuration.hooks.before_service do |service_class, args|
+  Rails.logger.info("Starting #{service_class} with #{args.inspect}")
+end
+```
+
+Override `service_args` in a service subclass when you want hook callbacks to receive meaningful metadata.

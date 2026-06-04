@@ -1,160 +1,129 @@
-> **Architecture Documentation**
-> *   **Canonical Source:** [bowerbird-app/gem_template](https://github.com/bowerbird-app/gem_template/tree/main/docs/gem_template)
-> *   **Last Updated:** December 11, 2025
->
-> *Maintainers: Please update the date above when modifying this file.*
+# RecordingStudio Configuration
 
----
+This guide documents the current `RecordingStudio::Configuration` object and the files that feed it. Runtime method
+selection lives in [../API_REFERENCE.md](../API_REFERENCE.md); this file focuses on boot-time setup.
 
-# GemTemplate Configuration
+## Configuration Sources And Precedence
 
-This document explains how to configure **GemTemplate** in your host Rails application.
+RecordingStudio loads configuration in this order, with later sources winning:
 
----
+1. Defaults from `RecordingStudio::Configuration#initialize`
+2. `config/recording_studio.yml` via `Rails.application.config_for(:recording_studio)` when present
+3. `config.x.recording_studio` when present
+4. `config/initializers/recording_studio.rb`
 
-## Quick Start
+Use the Ruby initializer for anything dynamic or callable. YAML is best for simple serializable values.
 
-After installing the gem, run the install generator:
+## Core Settings
 
-```bash
-rails generate gem_template:install
-```
+| Setting | Type | Default | Notes |
+| --- | --- | --- | --- |
+| `recordable_types` | `Array<String>` | `[]` | Recordable classes available to delegated type resolution. |
+| `require_recordable_declarations` | `true` or `false` | `true` | When `true`, configured ActiveRecord types must call `recording_studio_recordable(...)`. |
+| `actor` | callable | `-> { Current.actor }` when `Current` exists | Used when write APIs omit `actor:`. |
+| `impersonator` | callable | `-> { Current.impersonator }` when `Current` exists | Used when write APIs omit `impersonator:`. |
+| `event_notifications_enabled` | boolean | `true` | Controls `recordings.event_created` notifications. |
+| `instrumentation_enabled` | boolean alias | same as `event_notifications_enabled` | Compatibility alias for the notification switch. |
+| `idempotency_mode` | `:return_existing` or `:raise` | `:return_existing` | Controls duplicate `idempotency_key` behavior. |
+| `recordable_dup_strategy` | symbol or callable | `:dup` | Global duplication strategy used by `revise`. |
+| `recordable_dup_strategies` | `Hash<String, callable>` | `{}` | Per-type overrides registered with `register_recordable_dup_strategy`. |
+| `hooks` | `RecordingStudio::Hooks` | new hook registry | Shared lifecycle and service hook registry. |
 
-This will:
-
-1. Mount the engine in your routes (`/gem_template` by default).
-2. Create `config/initializers/gem_template.rb` with example settings.
-3. Optionally create `config/gem_template.yml` for environment-specific configuration.
-
----
-
-## Configuration Options
-
-| Option              | Type    | Default                          | Description                                 |
-|---------------------|---------|----------------------------------|---------------------------------------------|
-| `api_key`           | String  | `ENV["GEM_TEMPLATE_API_KEY"]`    | API key for external service integration.  |
-| `enable_feature_x`  | Boolean | `false`                          | Toggle optional feature X.                 |
-| `timeout`           | Integer | `5`                              | Timeout (seconds) for external calls.      |
-
----
-
-## Configuration Methods
-
-### 1. Ruby Initializer (Recommended)
-
-Edit `config/initializers/gem_template.rb`:
+## Typical Initializer
 
 ```ruby
-GemTemplate.configure do |config|
-  config.api_key          = ENV["GEM_TEMPLATE_API_KEY"]
-  config.enable_feature_x = true
-  config.timeout          = 10
+RecordingStudio.configure do |config|
+  config.recordable_types = %w[Workspace Page]
+  config.require_recordable_declarations = true
+  config.actor = -> { Current.actor }
+  config.impersonator = -> { Current.impersonator }
+  config.event_notifications_enabled = true
+  config.idempotency_mode = :return_existing
+  config.recordable_dup_strategy = :dup
+
+  config.register_recordable_dup_strategy("Page") do |recordable|
+    Page.new(title: recordable.title)
+  end
 end
 ```
 
-This approach is flexible and allows dynamic values, environment variables, and Rails credentials.
+## YAML Example
 
-### 2. YAML Configuration
-
-If you prefer environment-specific static settings, create `config/gem_template.yml`:
+Only put static values in YAML. Callables and custom duplication blocks belong in the initializer.
 
 ```yaml
 development:
-  api_key: "dev-key"
-  enable_feature_x: true
-  timeout: 5
+  recordable_types:
+    - Workspace
+    - Page
+  instrumentation_enabled: true
+  idempotency_mode: return_existing
+  recordable_dup_strategy: dup
 
 production:
-  api_key: <%= ENV["GEM_TEMPLATE_API_KEY"] %>
-  enable_feature_x: false
-  timeout: 5
+  recordable_types: []
+  instrumentation_enabled: true
+  idempotency_mode: return_existing
+  recordable_dup_strategy: dup
 ```
 
-The engine loads this file automatically via `Rails.application.config_for(:gem_template)`.
+## `config.x.recording_studio`
 
-### 3. `config.x` Namespace
-
-You can also set values in `config/application.rb` or environment files:
+If your app prefers Rails configuration namespaces, RecordingStudio also reads `config.x.recording_studio`:
 
 ```ruby
-# config/environments/production.rb
-config.x.gem_template.api_key = ENV["GEM_TEMPLATE_API_KEY"]
-config.x.gem_template.timeout = 10
+config.x.recording_studio.recordable_types = %w[Workspace Page]
+config.x.recording_studio.idempotency_mode = :return_existing
 ```
 
----
+## Capability State In Configuration
 
-## Load Order & Precedence
+The configuration object stores capability enablement and per-type capability options.
 
-Configuration is merged in the following order (later sources override earlier ones):
+Useful methods:
 
-1. **Defaults** – defined in `GemTemplate::Configuration#initialize`.
-2. **YAML** – `config/gem_template.yml` loaded via `config_for`.
-3. **`config.x.gem_template`** – values set in Rails config files.
-4. **Initializer** – `GemTemplate.configure` block in `config/initializers/gem_template.rb`.
+- `enable_capability(capability, on:)`
+- `capability_enabled?(capability, for_type:)`
+- `capabilities_for(type)`
+- `set_capability_options(capability, on:, **options)`
+- `capability_options(capability, for_type:)`
 
-> **Tip:** For most use cases, stick with the Ruby initializer and use environment variables for secrets.
+In application code, prefer the top-level `RecordingStudio.enable_capability(...)` and related helpers unless you are
+already working directly with the configuration object.
 
----
+## Hooks
 
-## Accessing Configuration at Runtime
+`RecordingStudio.configuration.hooks` exposes the shared hook registry used by services and engine lifecycle events.
+
+Examples:
 
 ```ruby
-GemTemplate.configuration.api_key
-# => "your-api-key"
+RecordingStudio.configuration.hooks.before_service do |service_class, args|
+  Rails.logger.info("Starting #{service_class} with #{args.inspect}")
+end
 
-GemTemplate.configuration.enable_feature_x
-# => true
-
-GemTemplate.configuration.to_h
-# => { api_key: "...", enable_feature_x: true, timeout: 5 }
+RecordingStudio.configuration.hooks.after_initialize do
+  Rails.logger.info("RecordingStudio loaded")
+end
 ```
 
-You can access these values from anywhere in your application or from within the engine's controllers, models, and jobs.
+## Removed Configuration Keys
 
----
-
-## Secret Management
-
-For sensitive values like `api_key`, we recommend:
-
-- **Environment variables** – `ENV["GEM_TEMPLATE_API_KEY"]`
-- **Rails credentials** – `Rails.application.credentials.gem_template[:api_key]`
-
-Avoid committing secrets to version control. The generator templates use `ENV` by default to encourage this practice.
-
----
-
-## Extending Configuration
-
-To add new options:
-
-1. Add `attr_accessor` in `lib/gem_template/configuration.rb`.
-2. Set a sensible default in `#initialize`.
-3. Update `#to_h` if you want the option included in hash export.
-4. Document the new option in this file and in the initializer template.
-
----
+The configuration object intentionally ignores removed keys such as `features` and warns instead. Access-control and
+device-session behavior were extracted from core and should now live in the host app or an addon gem.
 
 ## Troubleshooting
 
-| Issue                                  | Solution                                                                 |
-|----------------------------------------|--------------------------------------------------------------------------|
-| YAML not loading                       | Ensure `config/gem_template.yml` exists and has valid YAML syntax.       |
-| Initializer values not applied         | Make sure the initializer runs after the engine initializer (default).   |
-| `config.x` values ignored              | Verify you're setting them in the correct environment file.             |
+| Issue | What to check |
+| --- | --- |
+| `config/recording_studio.yml` seems ignored | Ensure the file is valid YAML and uses Rails environment keys such as `development:` or `production:`. |
+| Missing declaration errors on boot | Set `recordable_types` only for types that actually call `recording_studio_recordable(...)`, or temporarily disable strict enforcement during upgrades. |
+| Callable settings do not work from YAML | Move `actor`, `impersonator`, or custom duplication logic into the Ruby initializer. |
+| Old access/device-session config no longer works | Move that configuration to the extracted addon or host app; core no longer honors it. |
 
----
+## Files To Check
 
-## Files Reference
-
-| File                                                        | Purpose                                      |
-|-------------------------------------------------------------|----------------------------------------------|
-| `lib/gem_template/configuration.rb`                         | Configuration class with defaults.           |
-| `lib/gem_template/engine.rb`                                | Engine initializer that loads host config.   |
-| `lib/generators/gem_template/install/install_generator.rb`  | Install generator that creates config files. |
-| `lib/generators/gem_template/install/templates/`            | Templates for initializer and YAML files.    |
-
----
-
-Happy configuring! 🎉
+- `lib/recording_studio/configuration.rb`
+- `lib/recording_studio/engine.rb`
+- `lib/generators/recording_studio/install/templates/recording_studio_initializer.rb`
+- `lib/generators/recording_studio/install/templates/recording_studio.yml`

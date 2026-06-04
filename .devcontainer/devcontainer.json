@@ -14,13 +14,6 @@
     }
   },
   "customizations": {
-    "codespaces": {
-      "repositories": {       
-        "bowerbird-app/gem_docs": {
-          "permissions": "read-all"
-        }
-      }
-    },
     "vscode": {
       "extensions": [
         "Shopify.ruby-lsp",
@@ -37,7 +30,7 @@
   "remoteUser": "root",
   "features": {},
   "postCreateCommand": "bash .devcontainer/post-create.sh",
-  "env": {
+  "remoteEnv": {
     "CODESPACES": "true"
   }
 }

@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [3.0.0](https://github.com/bowerbird-app/RecordingStudio/compare/recording_studio/v2.0.0...recording_studio/v3.0.0) (2026-06-04)
+
+### ⚠ BREAKING CHANGES
+
+* require recordable declarations for configured types and fail closed for capability-owned child recordables
+* require addon-owned child recordables to be registered with `source:` and `child_recordables:` and remain non-root
+
+### Features
+
+* enforce declaration-based hierarchy rules across root and child recording creation paths
+* derive capability-owned child parent allowances from enabled capabilities and expose new parent-introspection helpers
+* add dummy app and test coverage for `commentable` pages owning `RecordingStudioComment` children
+* update README, API reference, generated install docs, and upgrade guidance for declaration-enforced hierarchies and capability-owned child recordables
+
+### Bug Fixes
+
+* block undeclared capability-owned child recordables from inheriting root or parent allowance through legacy fallback behavior
+* tighten validation and test assertions so invalid child registration and parent allowance failures are isolated correctly
+
+### Migration Notes
+
+- See [docs/UPGRADING.md](docs/UPGRADING.md) for the full `2.0.0` to `3.0.0` upgrade path.
+- Host apps must declare every configured recordable type and stop creating child-only recordables as roots.
+- Addons that own internal child recordables must register them through `RecordingStudio.register_capability(..., source:, child_recordables:)` and enable the capability on host recordables.
+
 ## [2.0.0](https://github.com/bowerbird-app/RecordingStudio/compare/recording_studio-v1.2.0...recording_studio/v2.0.0) (2026-06-02)
 
 
@@ -25,17 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * **ci:** force postgres user in health check ([1b6dbad](https://github.com/bowerbird-app/RecordingStudio/commit/1b6dbad50c83ae383f5e180cfd59e1191eeba4d8))
 * **test:** stabilize device session cleanup and ordering assertion ([1ef35d1](https://github.com/bowerbird-app/RecordingStudio/commit/1ef35d1bd4c0055b17eae24ca2acb0b039fc06d8))
-
-## [Unreleased]
-
-### Changed
-- Updated README, API reference, and generated install docs for declaration-enforced hierarchy rules, label/plural-label
-  resolution, root/parent guard helpers, orphan helpers, and child/descendant query helpers.
-
-### Migration Notes
-- Added [docs/UPGRADING.md](docs/UPGRADING.md) with the upgrade path for recordable declarations, root eligibility,
-  allowed parent rules, staged migration with `config.require_recordable_declarations = false`, and common hierarchy
-  errors.
 
 ## [1.2.0] - 2026-05-15
 
@@ -117,7 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/recording_studio/v3.0.0...HEAD
 [1.2.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v1.2.0
 [1.1.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v1.1.0
 [1.0.1]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v1.0.1

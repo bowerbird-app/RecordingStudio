@@ -38,4 +38,9 @@ module Capabilities
   end
 end
 
-RecordingStudio.register_capability(:commentable, Capabilities::Commentable::RecordingMethods)
+RecordingStudio.register_capability(
+  :commentable,
+  recording_methods: Capabilities::Commentable::RecordingMethods,
+  source: Capabilities::Commentable,
+  child_recordables: "RecordingStudioComment"
+)
