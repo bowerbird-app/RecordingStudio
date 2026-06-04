@@ -110,9 +110,8 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
       RecordingStudioFolder
       SystemActor
     ]
-    RecordingStudio::DelegatedTypeRegistrar.apply!
-
     error = assert_raises(RecordingStudio::InvalidRecordableDeclaration) do
+      RecordingStudio::DelegatedTypeRegistrar.apply!
       RecordingStudio.validate_recordable_declarations!
     end
 

@@ -99,6 +99,7 @@ module RecordingStudio
       return false unless configured_recordable_type?(type_name)
 
       declaration = declaration_for(type_name)
+      return false if declaration.nil? && capability_owned_child_recordable?(type_name)
       return handle_missing_declaration(type_name, default: true) unless declaration
 
       declaration.root?
@@ -134,6 +135,7 @@ module RecordingStudio
       return false unless configured_recordable_type?(parent_type_name)
 
       declaration = declaration_for(child_type_name)
+      return false if declaration.nil? && capability_owned_child_recordable?(child_type_name)
       return handle_missing_declaration(child_type_name, default: true) unless declaration
 
       declaration.allowed_parent_types.include?(parent_type_name) ||
@@ -254,7 +256,10 @@ module RecordingStudio
       end
 
       declaration = declaration_for(child_type)
-      return handle_missing_declaration(child_type, default: true) unless declaration
+      unless declaration
+        raise RecordingStudio::InvalidRecordableDeclaration,
+              "#{child_type} is a capability-owned child recordable and must declare root: false"
+      end
 
       return unless declaration.root?
 

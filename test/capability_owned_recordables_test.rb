@@ -166,17 +166,22 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
     RecordingStudio.register_capability(:missing_child, source: "missing_child",
                                                         child_recordables: ["RecordingStudioComment"])
 
-    assert_raises(RecordingStudio::InvalidRecordableDeclaration) do
+    error = assert_raises(RecordingStudio::InvalidRecordableDeclaration) do
       RecordingStudio.validate_recordable_declarations!
     end
+    assert_match(/missing_child child_recordables includes unregistered type: RecordingStudioComment/, error.message)
+
+    RecordingStudio.instance_variable_set(:@registered_capabilities, {})
+    RecordingStudio.configuration.instance_variable_set(:@capabilities, {})
 
     RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
                                                      child_recordables: ["SystemActor"])
     RecordingStudio.enable_capability(:actor_tools, on: "MissingParent")
 
-    assert_raises(RecordingStudio::InvalidRecordableDeclaration) do
+    error = assert_raises(RecordingStudio::InvalidRecordableDeclaration) do
       RecordingStudio.validate_recordable_declarations!
     end
+    assert_match(/actor_tools is enabled for unregistered type\(s\): MissingParent/, error.message)
   end
 
   def test_validation_rejects_root_capability_children
@@ -213,6 +218,26 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
     assert_raises(RecordingStudio::InvalidParent) do
       RecordingStudio.assert_parent_allowed!(child_type: "MissingChild", parent_recording: root)
     end
+  end
+
+  def test_legacy_mode_fails_closed_for_capability_child_without_declaration
+    _, root = create_workspace_root
+    declarations_without_system_actor = RecordingStudio::RecordableDeclarations.declarations.except("SystemActor")
+    RecordingStudio::RecordableDeclarations.replace_declarations!(declarations_without_system_actor)
+    RecordingStudio.configuration.require_recordable_declarations = false
+    RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
+                                                     child_recordables: ["SystemActor"])
+    RecordingStudio.enable_capability(:actor_tools, on: "Workspace")
+
+    assert_not RecordingStudio.root_allowed?("SystemActor")
+    assert_not RecordingStudio.parent_allowed?(child_type: "SystemActor", parent_recording: root)
+
+    error = assert_raises(RecordingStudio::InvalidRecordableDeclaration) do
+      RecordingStudio.validate_recordable_declarations!
+    end
+    assert_match(/SystemActor is a capability-owned child recordable and must declare root: false/, error.message)
+  ensure
+    RecordingStudio.configuration.require_recordable_declarations = true
   end
 
   private

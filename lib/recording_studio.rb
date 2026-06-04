@@ -158,8 +158,6 @@ module RecordingStudio
       return {}.freeze if type_name.blank?
 
       capability_mutex.synchronize do
-        capabilities_by_type = configuration.instance_variable_get(:@capabilities) || {}
-
         registered_capabilities.each_with_object({}) do |(capability_name, registration), result|
           next unless Array(registration[:child_recordables]).include?(type_name)
 
@@ -167,9 +165,7 @@ module RecordingStudio
           next if source.blank?
 
           result[source] ||= Set.new
-          capabilities_by_type.each do |parent_type_name, capability_names|
-            result[source] << parent_type_name if capability_names.include?(capability_name)
-          end
+          result[source].merge(configuration.enabled_recordable_types_for(capability_name))
         end.each_with_object({}) do |(source, parents), result|
           result[source] = parents.to_a.sort.freeze
         end.freeze

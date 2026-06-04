@@ -158,7 +158,7 @@ Macro parameters:
 | `label:` | yes | Singular human-facing type label. Used by `recordable_type_label`. |
 | `plural_label:` | no | Plural human-facing type label. Defaults to `label.pluralize`. |
 | `root:` | yes | `true` when the type can be a root recording; `false` for child-only types. |
-| `allowed_parent_types:` | required when `root: false` | Class names/classes allowed as direct parents. `[]` is valid but means the type cannot currently be nested anywhere. |
+| `allowed_parent_types:` | required when `root: false` unless parent allowances are derived from a registered capability | Class names/classes allowed as direct parents. `[]` is valid but means the type cannot currently be nested anywhere unless capability enablement grants parents. |
 
 Declaration behavior:
 
@@ -169,6 +169,8 @@ Declaration behavior:
 - A declaration for an unregistered type warns when declarations are not required and raises
   `RecordingStudio::InvalidRecordableDeclaration` when they are required.
 - `allowed_parent_types` entries must be registered recordable types.
+- Non-root capability-owned child recordables may omit `allowed_parent_types` only when a registered capability declares
+  them in `child_recordables:`; effective parents are then derived from recordable types where that capability is enabled.
 - Direct model saves validate hierarchy rules too, so bypassing `record!` does not create valid orphan recordings.
 - Destroying a parent with children is restricted by the `child_recordings` association.
 
