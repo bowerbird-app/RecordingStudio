@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0](https://github.com/bowerbird-app/RecordingStudio/compare/recording_studio/v2.0.0...recording_studio/v3.0.0) (2026-06-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* harden capability-owned child recordables
+
+### Features
+
+* harden capability-owned child recordables ([a475b91](https://github.com/bowerbird-app/RecordingStudio/commit/a475b91d74924cc9b648b8f2bf7df3291919d5e0))
+
 ## [Unreleased]
 
 ## [3.0.0](https://github.com/bowerbird-app/RecordingStudio/compare/recording_studio/v2.0.0...recording_studio/v3.0.0) (2026-06-04)
