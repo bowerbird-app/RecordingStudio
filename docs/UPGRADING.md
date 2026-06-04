@@ -118,9 +118,37 @@ RecordingStudio.validate_recordable_declarations!
 RecordingStudio.recordable_declarations
 RecordingStudio.root_recordable_types
 RecordingStudio.root_recordable_declarations
+RecordingStudio.declared_allowed_parent_types_for("Page")
 RecordingStudio.allowed_parent_types_for("Page")
 RecordingStudio.parent_allowed?(child_type: "Page", parent_recording: root_recording)
 ```
 
 Use these helpers in upgrade tests or console checks to confirm that the configured hierarchy matches the app's intended
 recording tree.
+
+## Upgrading addon capabilities to 3.0
+
+RecordingStudio 3.0 makes capability-owned child recordables a core contract. Addons that own internal child recordables
+should register them with their capability instead of asking host apps to call implementation-specific child APIs.
+
+```ruby
+RecordingStudio.register_capability(
+  :accessible,
+  RecordingStudioAccessible::RecordingMethods,
+  source: "recording_studio_accessible",
+  child_recordables: ["RecordingStudio::Access"]
+)
+```
+
+Host recordables should enable capabilities through mixins:
+
+```ruby
+class Page < ApplicationRecord
+  include RecordingStudioAccessible::Accessible
+end
+```
+
+The mixin should call `RecordingStudio.enable_capability(:accessible, on: name)`. Core then derives the effective parent
+allowance for `RecordingStudio::Access` under `Page`. Capability-owned child recordables must be registered, declared,
+and non-root. `source:` is required when `child_recordables:` is present and is provenance metadata, not an authentication
+boundary.

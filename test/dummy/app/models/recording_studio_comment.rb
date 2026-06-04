@@ -1,5 +1,5 @@
 class RecordingStudioComment < ApplicationRecord
-  recording_studio_recordable label: "Comment", root: false, allowed_parent_types: [ "RecordingStudioPage" ]
+  recording_studio_recordable label: "Comment", root: false
 
   validates :body, presence: true
 

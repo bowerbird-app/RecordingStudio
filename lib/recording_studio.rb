@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "monitor"
 require "recording_studio/version"
 require "recording_studio/engine"
 require "recording_studio/configuration"
@@ -31,17 +32,36 @@ module RecordingStudio
       @registered_capabilities ||= {}
     end
 
-    def register_capability(name, mod)
-      capability_mutex.synchronize do
-        registered_capabilities[name.to_sym] = { mod: mod }
+    def synchronize_capabilities(&block)
+      capability_mutex.synchronize(&block)
+    end
+
+    def register_capability(name, mod = nil, recording_methods: nil, source: nil, child_recordables: [])
+      capability_name = normalize_capability_name(name)
+      normalized_recording_methods = normalize_capability_recording_methods!(recording_methods || mod)
+      normalized_source = normalize_capability_source(source)
+      normalized_children = normalize_capability_child_recordables(child_recordables)
+      if normalized_children.any? && normalized_source.blank?
+        raise ArgumentError, "source is required when child_recordables are present"
       end
-      apply_capabilities! if defined?(RecordingStudio::Recording)
+
+      capability_mutex.synchronize do
+        merge_capability_registration!(
+          capability_name,
+          normalized_recording_methods,
+          recording_methods: normalized_recording_methods,
+          source: normalized_source,
+          child_recordables: normalized_children
+        )
+      end
+      apply_capabilities! if defined?(RecordingStudio::Recording) && normalized_recording_methods
     end
 
     def apply_capabilities!
       capability_mutex.synchronize do
         registered_capabilities.each_value do |registration|
-          mod = registration.fetch(:mod)
+          mod = registration[:recording_methods] || registration[:mod]
+          next unless mod
           next if RecordingStudio::Recording.included_modules.include?(mod)
 
           RecordingStudio::Recording.include(mod)
@@ -103,8 +123,66 @@ module RecordingStudio
       true
     end
 
+    def declared_parent_types_for(recordable_or_type)
+      RecordingStudio::RecordableDeclarations.declared_parent_types_for(recordable_or_type)
+    end
+
+    def declared_allowed_parent_types_for(recordable_or_type)
+      declared_parent_types_for(recordable_or_type)
+    end
+
     def allowed_parent_types_for(recordable_or_type)
       RecordingStudio::RecordableDeclarations.allowed_parent_types_for(recordable_or_type)
+    end
+
+    def capability_child_recordables_for(capability)
+      capability_name = normalize_capability_name(capability)
+      capability_mutex.synchronize do
+        registered_capabilities.fetch(capability_name, {}).fetch(:child_recordables, []).dup.freeze
+      end
+    end
+
+    def capability_parent_types_for(recordable_or_type)
+      type_name = recordable_type_name(recordable_or_type)
+      return [].freeze if type_name.blank?
+
+      configuration.capability_parent_types_for(type_name).dup.freeze
+    end
+
+    def capability_allowed_parent_types_for(recordable_or_type)
+      capability_parent_types_for(recordable_or_type)
+    end
+
+    def recordable_parent_allowances_for(recordable_or_type)
+      type_name = recordable_type_name(recordable_or_type)
+      return {}.freeze if type_name.blank?
+
+      capability_mutex.synchronize do
+        capabilities_by_type = configuration.instance_variable_get(:@capabilities) || {}
+
+        registered_capabilities.each_with_object({}) do |(capability_name, registration), result|
+          next unless Array(registration[:child_recordables]).include?(type_name)
+
+          source = registration[:source]
+          next if source.blank?
+
+          result[source] ||= Set.new
+          capabilities_by_type.each do |parent_type_name, capability_names|
+            result[source] << parent_type_name if capability_names.include?(capability_name)
+          end
+        end.each_with_object({}) do |(source, parents), result|
+          result[source] = parents.to_a.sort.freeze
+        end.freeze
+      end
+    end
+
+    def child_recordable_types_for(recordable_or_type)
+      configuration.child_recordable_types_for(recordable_or_type)
+    end
+
+    def parent_capabilities_for(child_type:, parent_recording: nil, parent_type: nil)
+      resolved_parent_type = parent_type || parent_recording&.recordable_type
+      configuration.parent_capabilities_for(child_type: child_type, parent_type: resolved_parent_type)
     end
 
     def root_allowed?(recordable_or_type)
@@ -194,7 +272,13 @@ module RecordingStudio
     end
 
     def enable_capability(capability, on:)
-      configuration.enable_capability(capability, on: on)
+      capability_name = normalize_capability_name(capability)
+      type_name = recordable_type_name(on)
+      raise ArgumentError, "recordable type is required" if type_name.blank?
+
+      capability_mutex.synchronize do
+        configuration.enable_capability(capability_name, on: type_name)
+      end
     end
 
     def capability_enabled?(capability, **kwargs)
@@ -293,7 +377,63 @@ module RecordingStudio
     private
 
     def capability_mutex
-      @capability_mutex ||= Mutex.new
+      @capability_mutex ||= Monitor.new
+    end
+
+    def merge_capability_registration!(capability_name, mod, recording_methods:, source:, child_recordables:)
+      existing = registered_capabilities[capability_name]
+
+      unless existing
+        return registered_capabilities[capability_name] = {
+          mod: mod,
+          recording_methods: recording_methods,
+          source: source,
+          child_recordables: child_recordables.freeze
+        }
+      end
+
+      existing_source = existing[:source]
+      if existing_source.present? && source.present? && existing_source != source
+        raise ArgumentError,
+              "capability #{capability_name.inspect} is already registered by #{existing_source.inspect}"
+      end
+
+      merged_children = (Array(existing[:child_recordables]) + child_recordables).uniq.sort.freeze
+      existing[:mod] = mod if mod
+      existing[:recording_methods] = recording_methods if recording_methods
+      existing[:source] = source if existing_source.blank? && source.present?
+      existing[:child_recordables] = merged_children
+      existing
+    end
+
+    def normalize_capability_name(name)
+      value = name.to_s.strip
+      raise ArgumentError, "capability is required" if value.blank?
+
+      value.to_sym
+    end
+
+    def normalize_capability_recording_methods!(mod)
+      return if mod.nil?
+
+      raise ArgumentError, "recording_methods must be a module" unless mod.is_a?(Module)
+
+      mod
+    end
+
+    def normalize_capability_source(source)
+      source.to_s.strip.presence
+    end
+
+    def normalize_capability_child_recordables(child_recordables)
+      Array(child_recordables).map do |child|
+        type_name = RecordingStudio::Identity.type_name_for(child)
+        if type_name.blank?
+          raise RecordingStudio::InvalidRecordableDeclaration, "child_recordables cannot include blank values"
+        end
+
+        type_name
+      end.uniq.sort.freeze
     end
 
     def find_idempotent_event(recording, idempotency_key)

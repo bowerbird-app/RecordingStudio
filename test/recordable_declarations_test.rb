@@ -34,8 +34,11 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
     assert RecordingStudio.root_recordable_type?("Workspace")
     assert_includes RecordingStudio.root_recordable_types, "Workspace"
     assert_includes RecordingStudio.root_recordable_declarations, declaration
+    assert_equal [], RecordingStudio.declared_parent_types_for("RecordingStudioComment")
+    assert_equal ["RecordingStudioPage"], RecordingStudio.capability_parent_types_for("RecordingStudioComment")
     assert_equal %w[Workspace RecordingStudioFolder RecordingStudioPage],
                  RecordingStudio.allowed_parent_types_for("RecordingStudioPage")
+    assert_equal ["RecordingStudioPage"], RecordingStudio.allowed_parent_types_for("RecordingStudioComment")
   end
 
   def test_missing_recordable_declarations_raise_by_default
@@ -90,6 +93,30 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
         options: {}
       )
     end
+  end
+
+  def test_validation_requires_non_root_recordables_to_have_declared_or_capability_parent_types
+    RecordingStudio::RecordableDeclarations.register(
+      SystemActor,
+      label: "System actor",
+      plural_label: nil,
+      root: false,
+      options: {}
+    )
+    RecordingStudio.configuration.recordable_types = %w[
+      Workspace
+      RecordingStudioPage
+      RecordingStudioComment
+      RecordingStudioFolder
+      SystemActor
+    ]
+    RecordingStudio::DelegatedTypeRegistrar.apply!
+
+    error = assert_raises(RecordingStudio::InvalidRecordableDeclaration) do
+      RecordingStudio.validate_recordable_declarations!
+    end
+
+    assert_match(/SystemActor: allowed_parent_types is required when root is false/, error.message)
   end
 
   def test_record_rejects_new_orphan_recording
@@ -241,6 +268,25 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
     ).recording
 
     assert_equal page, comment.parent_recording
+  end
+
+  def test_capability_parent_introspection_lists_parent_sources_and_capabilities
+    _, root = create_workspace_root
+    page = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Page"),
+      root_recording: root,
+      parent_recording: root
+    ).recording
+
+    assert_equal ["RecordingStudioComment"], RecordingStudio.child_recordable_types_for("RecordingStudioPage")
+    assert_equal [:commentable],
+                 RecordingStudio.parent_capabilities_for(
+                   child_type: "RecordingStudioComment",
+                   parent_recording: page
+                 )
+    assert_equal({ "Capabilities::Commentable" => ["RecordingStudioPage"] },
+                 RecordingStudio.recordable_parent_allowances_for("RecordingStudioComment"))
   end
 
   def test_comment_cannot_be_recorded_under_root

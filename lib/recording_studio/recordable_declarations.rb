@@ -104,11 +104,25 @@ module RecordingStudio
       declaration.root?
     end
 
-    def allowed_parent_types_for(recordable_or_type)
+    def declared_parent_types_for(recordable_or_type)
       declaration = declaration_for(recordable_or_type)
       return [] unless declaration
 
       declaration.allowed_parent_types
+    end
+
+    def declared_allowed_parent_types_for(recordable_or_type)
+      declared_parent_types_for(recordable_or_type)
+    end
+
+    def allowed_parent_types_for(recordable_or_type)
+      type_name = RecordingStudio::Identity.type_name_for(recordable_or_type)
+      declaration = declaration_for(type_name)
+      return [] unless declaration
+
+      declaration.allowed_parent_types + valid_capability_parent_types_for(type_name).reject do |parent_type_name|
+        declaration.allowed_parent_types.include?(parent_type_name)
+      end
     end
 
     def parent_allowed?(child_type:, parent_recording:)
@@ -122,7 +136,8 @@ module RecordingStudio
       declaration = declaration_for(child_type_name)
       return handle_missing_declaration(child_type_name, default: true) unless declaration
 
-      declaration.allowed_parent_types.include?(parent_type_name)
+      declaration.allowed_parent_types.include?(parent_type_name) ||
+        capability_parent_allowed?(child_type_name, parent_type_name, declaration)
     end
 
     def assert_root_allowed!(recordable_or_type)
@@ -151,6 +166,8 @@ module RecordingStudio
       end
       validate_declared_types_registered!
       validate_allowed_parent_types_registered!
+      validate_required_parent_types!
+      validate_capability_parent_allowances!
     end
 
     def ensure_loaded!
@@ -208,11 +225,56 @@ module RecordingStudio
       end
     end
 
+    def validate_capability_parent_allowances!
+      registered_types = registered_type_names
+      RecordingStudio.registered_capabilities.each do |capability_name, registration|
+        source = registration[:source].to_s.strip.presence
+        child_types = Array(registration[:child_recordables])
+        next if child_types.empty?
+
+        if source.blank?
+          raise RecordingStudio::InvalidRecordableDeclaration,
+                "#{capability_name} child_recordables require a non-blank source"
+        end
+
+        child_types.each { |child_type| validate_capability_child_type!(capability_name, child_type, registered_types) }
+        validate_capability_enabled_parent_types!(capability_name, registered_types)
+      end
+    end
+
+    def validate_capability_child_type!(capability_name, child_type, registered_types)
+      if child_type.blank?
+        raise RecordingStudio::InvalidRecordableDeclaration,
+              "#{capability_name} child_recordables cannot include blank values"
+      end
+
+      unless registered_types.include?(child_type)
+        raise RecordingStudio::InvalidRecordableDeclaration,
+              "#{capability_name} child_recordables includes unregistered type: #{child_type}"
+      end
+
+      declaration = declaration_for(child_type)
+      return handle_missing_declaration(child_type, default: true) unless declaration
+
+      return unless declaration.root?
+
+      raise RecordingStudio::InvalidRecordableDeclaration,
+            "#{child_type} is a capability-owned child recordable and must declare root: false"
+    end
+
+    def validate_capability_enabled_parent_types!(capability_name, registered_types)
+      invalid_parent_types =
+        RecordingStudio.configuration.enabled_recordable_types_for(capability_name) - registered_types.to_a
+      return if invalid_parent_types.empty?
+
+      raise RecordingStudio::InvalidRecordableDeclaration,
+            "#{capability_name} is enabled for unregistered type(s): #{invalid_parent_types.join(', ')}"
+    end
+
     def validate_declaration_arguments!(recordable_class, attributes)
       validate_label!(recordable_class, attributes.fetch(:label))
       validate_root!(recordable_class, attributes.fetch(:root))
       validate_plural_label!(recordable_class, attributes.fetch(:plural_label))
-      validate_parent_types_presence!(recordable_class, attributes)
 
       normalize_types(attributes.fetch(:allowed_parent_types)) if attributes.fetch(:allowed_parent_types_provided)
     end
@@ -231,12 +293,6 @@ module RecordingStudio
       raise_invalid!(recordable_class, "plural_label must be present when provided")
     end
 
-    def validate_parent_types_presence!(recordable_class, attributes)
-      return unless attributes.fetch(:root) == false && !attributes.fetch(:allowed_parent_types_provided)
-
-      raise_invalid!(recordable_class, "allowed_parent_types is required when root is false")
-    end
-
     def normalize_types(types)
       Array(types).map do |type|
         type_name = RecordingStudio::Identity.type_name_for(type)
@@ -251,6 +307,46 @@ module RecordingStudio
 
     def normalize_label(value)
       value.to_s.squish.presence
+    end
+
+    def valid_capability_parent_types_for(child_type_name)
+      declaration = declaration_for(child_type_name)
+      return [] unless valid_capability_child_declaration?(child_type_name, declaration)
+
+      RecordingStudio.capability_parent_types_for(child_type_name).select do |parent_type_name|
+        configured_recordable_type?(parent_type_name)
+      end
+    end
+
+    def capability_parent_allowed?(child_type_name, parent_type_name, declaration)
+      return false unless valid_capability_child_declaration?(child_type_name, declaration)
+      return false unless configured_recordable_type?(parent_type_name)
+
+      valid_capability_parent_types_for(child_type_name).include?(parent_type_name)
+    end
+
+    def valid_capability_child_declaration?(child_type_name, declaration)
+      configured_recordable_type?(child_type_name) && declaration.present? && !declaration.root?
+    end
+
+    def capability_owned_child_recordable?(type_name)
+      RecordingStudio.registered_capabilities.any? do |_capability_name, registration|
+        registration[:source].present? && Array(registration[:child_recordables]).include?(type_name)
+      end
+    end
+
+    def validate_required_parent_types!
+      configured_type_names.each do |type_name|
+        declaration = declaration_for(type_name)
+        next unless declaration
+        next if declaration.root?
+        next if declaration.allowed_parent_types_provided
+        next if capability_owned_child_recordable?(type_name)
+
+        raise RecordingStudio::InvalidRecordableDeclaration,
+              "#{type_name}: allowed_parent_types is required when root is false unless a registered capability " \
+              "derives parent allowances for it"
+      end
     end
 
     def handle_missing_declaration(recordable_or_type, default:)

@@ -253,7 +253,14 @@ RecordingStudio.root_allowed?("Workspace")
 RecordingStudio.root_recordable_type?("Workspace")
 RecordingStudio.root_recordable_types
 RecordingStudio.root_recordable_declarations
+RecordingStudio.declared_parent_types_for("Page")
+RecordingStudio.declared_allowed_parent_types_for("Page")
+RecordingStudio.capability_parent_types_for("Comment")
+RecordingStudio.capability_allowed_parent_types_for("Comment")
+RecordingStudio.recordable_parent_allowances_for("Comment")
 RecordingStudio.allowed_parent_types_for("Page")
+RecordingStudio.child_recordable_types_for("Page")
+RecordingStudio.parent_capabilities_for(child_type: "Comment", parent_type: "Page")
 RecordingStudio.parent_allowed?(child_type: "Page", parent_recording: root_recording)
 RecordingStudio.assert_root_allowed!("Workspace")
 RecordingStudio.assert_parent_allowed!(child_type: "Page", parent_recording: root_recording)
@@ -261,6 +268,26 @@ RecordingStudio.assert_parent_allowed!(child_type: "Page", parent_recording: roo
 
 Missing declarations raise `RecordingStudio::MissingRecordableDeclaration` by default. Invalid declarations or
 unregistered `allowed_parent_types` raise `RecordingStudio::InvalidRecordableDeclaration`.
+
+Normal domain recordables should continue to declare their native structural hierarchy with `allowed_parent_types:`.
+Addon-owned internal children can instead be attached through capability registration:
+
+```ruby
+RecordingStudio.register_capability(
+  :accessible,
+  source: "recording_studio_accessible",
+  child_recordables: ["RecordingStudio::Access"]
+)
+
+class Page < ApplicationRecord
+  include RecordingStudioAccessible::Accessible
+end
+```
+
+The mixin should call `RecordingStudio.enable_capability(:accessible, on: name)`. Core then treats `Page` as an allowed
+parent for `RecordingStudio::Access` without the addon knowing host-app parent types. Capability-derived parents are
+unioned with declared parents for `allowed_parent_types_for`; use `declared_allowed_parent_types_for` to inspect only the
+model declaration.
 
 ## Labeling Recordables
 
@@ -344,7 +371,14 @@ RecordingStudio.root_allowed?(recordable_or_type)
 RecordingStudio.root_recordable_type?(recordable_or_type)
 RecordingStudio.root_recordable_types
 RecordingStudio.root_recordable_declarations
+RecordingStudio.declared_parent_types_for(recordable_or_type)
+RecordingStudio.declared_allowed_parent_types_for(recordable_or_type)
+RecordingStudio.capability_parent_types_for(recordable_or_type)
+RecordingStudio.capability_allowed_parent_types_for(recordable_or_type)
+RecordingStudio.recordable_parent_allowances_for(recordable_or_type)
 RecordingStudio.allowed_parent_types_for(recordable_or_type)
+RecordingStudio.child_recordable_types_for(recordable_or_type)
+RecordingStudio.parent_capabilities_for(child_type: "Page", parent_recording: recording)
 RecordingStudio.parent_allowed?(child_type: "Page", parent_recording: recording)
 RecordingStudio.assert_root_allowed!(recordable_or_type)
 RecordingStudio.assert_recording_belongs_to_root!(root_recording, recording)
@@ -1006,6 +1040,7 @@ RecordingStudio core is responsible for:
 - delegated-type registration (`register_recordable_type`)
 - capability registration/apply infrastructure (`register_capability`, `apply_capabilities!`)
 - capability enablement + options lookup (`enable_capability`, `set_capability_options`, `capability_options`)
+- capability-owned child recordable parent allowances
 - shared guards/infrastructure (`RecordingStudio::Capability`, capability-disabled checks)
 
 Addon gems are responsible for:
@@ -1021,8 +1056,10 @@ Addon gems are responsible for:
 Recommended integration sequence (works for extracted capabilities in general):
 
 1. Addon gem defines capability code (recordable mixin + recording methods).
-2. Addon gem registers recording methods with `RecordingStudio.register_capability`.
-   Capability modules are automatically applied to `RecordingStudio::Recording`.
+2. Addon gem registers capability metadata with `RecordingStudio.register_capability`.
+   Use `recording_methods:` when the capability adds recording instance methods and `child_recordables:`
+   when the capability owns child recordables whose parent allowances should be derived from enablement.
+   Registered recording methods are automatically applied to `RecordingStudio::Recording`.
    `RecordingStudio.apply_capabilities!` remains available for explicit re-application in reloader/boot
    hooks, for example when your app/gem manually reloads capability constants during development.
 3. Host app registers recordable types with RecordingStudio.
@@ -1043,10 +1080,12 @@ The dummy app uses a concrete addon-style capability example as part of the same
 plugin architecture story as extracted capabilities:
 
 1. Provide a builder method that returns a recordable mixin (for example, `Reviewable.with(...)`).
-2. Register recording methods with `RecordingStudio.register_capability(:reviewable, RecordingMethods)`.
+2. Register capability metadata with
+   `RecordingStudio.register_capability(:reviewable, RecordingMethods, source: "recording_studio_reviewable", child_recordables: ["Approval"])`.
 3. In the mixin, opt specific recordable types in via `enable_capability`.
 4. Store per-recordable configuration with `set_capability_options`.
-5. Optionally register supporting recordable types when needed.
+5. Optionally register supporting recordable types when needed. Child-only recordables may omit
+   `allowed_parent_types:` in their declaration when a registered capability derives those parent allowances.
 6. Invoke behavior from the recording:
 
 ```ruby
@@ -1061,6 +1100,49 @@ recording.capability_options(:reviewable)
 
 If a capability is not enabled for a recordable type, calling its recording method raises
 `RecordingStudio::CapabilityDisabled`.
+
+### Capability-owned child recordables
+
+Addon gems that own internal child recordables should declare those children when registering the capability:
+
+```ruby
+RecordingStudio.register_capability(
+  :accessible,
+  RecordingStudioAccessible::RecordingMethods,
+  source: "recording_studio_accessible",
+  child_recordables: ["RecordingStudio::Access"]
+)
+```
+
+The recording-methods module is optional:
+
+```ruby
+RecordingStudio.register_capability(
+  :accessible,
+  source: "recording_studio_accessible",
+  child_recordables: ["RecordingStudio::Access"]
+)
+```
+
+Whenever a host recordable enables `:accessible`, that host type becomes an allowed parent for
+`RecordingStudio::Access`. The child recordable must still be registered, declare `recording_studio_recordable`, and be
+non-root. `source:` is provenance metadata for debugging, validation, introspection, and conflict detection; it is not an
+authentication boundary.
+
+Useful introspection:
+
+```ruby
+RecordingStudio.capability_child_recordables_for(:accessible)
+RecordingStudio.capability_allowed_parent_types_for("RecordingStudio::Access")
+RecordingStudio.recordable_parent_allowances_for("RecordingStudio::Access")
+RecordingStudio.declared_allowed_parent_types_for("RecordingStudio::Access")
+RecordingStudio.allowed_parent_types_for("RecordingStudio::Access")
+```
+
+Capability-owned children grant only structural eligibility. They do not bypass addon authorization, role checks,
+service-layer validation, deduplication, direct-creation guards, or root/parent hierarchy validation. No wildcard parent
+allowance is introduced: only recordables that explicitly enable the capability become parents for that capability's
+registered child recordables.
 
 ## Access Control
 
