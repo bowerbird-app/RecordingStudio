@@ -4,12 +4,17 @@ class CapabilitiesController < ApplicationController
       title: "Inspect Registered Capabilities",
       subtitle: "RecordingStudio.registered_capabilities",
       code: <<~'RUBY'
-        RecordingStudio.registered_capabilities.keys
-        # => [:reviewable]
+        registration = RecordingStudio.registered_capabilities.fetch(:reviewable)
+
+        # => {
+        #      source: "recording_studio_reviewable",
+        #      child_recordables: ["Approval"]
+        #    }
+        registration.fetch(:child_recordables)
       RUBY
     },
     {
-      title: "Register Capability Methods",
+      title: "Register Capability Methods and Child Metadata",
       subtitle: "RecordingStudio.register_capability",
       code: <<~'RUBY'
         module Capabilities
@@ -22,8 +27,12 @@ class CapabilitiesController < ApplicationController
           end
         end
 
-        # This mixes the API into RecordingStudio::Recording.
-        RecordingStudio.register_capability(:reviewable, Capabilities::Reviewable::RecordingMethods)
+        RecordingStudio.register_capability(
+          :reviewable,
+          recording_methods: Capabilities::Reviewable::RecordingMethods,
+          source: "recording_studio_reviewable",
+          child_recordables: ["Approval"]
+        )
       RUBY
     },
     {
@@ -58,6 +67,59 @@ class CapabilitiesController < ApplicationController
           on: "Page",
           approval_class: "Approval"
         )
+      RUBY
+    },
+    {
+      title: "List Child Recordables Declared by a Capability",
+      subtitle: "RecordingStudio.capability_child_recordables_for",
+      code: <<~'RUBY'
+        child_types = RecordingStudio.capability_child_recordables_for(:reviewable)
+
+        # => ["Approval"]
+        child_types
+      RUBY
+    },
+    {
+      title: "List Child Recordables Enabled for a Parent Type",
+      subtitle: "RecordingStudio.child_recordable_types_for",
+      code: <<~'RUBY'
+        child_types = RecordingStudio.child_recordable_types_for("Page")
+
+        # => ["Approval"]
+        child_types
+      RUBY
+    },
+    {
+      title: "List Capability-Derived Parent Types",
+      subtitle: "RecordingStudio.capability_allowed_parent_types_for",
+      code: <<~'RUBY'
+        parent_types = RecordingStudio.capability_allowed_parent_types_for("Approval")
+
+        # => ["Page"]
+        parent_types
+      RUBY
+    },
+    {
+      title: "Inspect Parent Allowances by Source",
+      subtitle: "RecordingStudio.recordable_parent_allowances_for",
+      code: <<~'RUBY'
+        allowances = RecordingStudio.recordable_parent_allowances_for("Approval")
+
+        # => { "recording_studio_reviewable" => ["Page"] }
+        allowances.fetch("recording_studio_reviewable")
+      RUBY
+    },
+    {
+      title: "Explain Which Capability Allows a Parent/Child Pair",
+      subtitle: "RecordingStudio.parent_capabilities_for",
+      code: <<~'RUBY'
+        capability_names = RecordingStudio.parent_capabilities_for(
+          child_type: "Approval",
+          parent_type: "Page"
+        )
+
+        # => [:reviewable]
+        capability_names
       RUBY
     },
     {
@@ -130,18 +192,23 @@ class CapabilitiesController < ApplicationController
       returns_kind: "Hash",
       returns: "Hash<Symbol, Hash>",
       items: "Capability registration metadata",
-      notes: "Useful for inspecting which recording-level capability modules have been registered.",
+      notes: "Useful for inspecting registered recording methods plus source and child-recordable metadata.",
       example_response: <<~'TEXT'
-        { reviewable: { mod: Capabilities::Reviewable::RecordingMethods } }
+        {
+          reviewable: {
+            source: "recording_studio_reviewable",
+            child_recordables: ["Approval"]
+          }
+        }
       TEXT
     },
     "RecordingStudio.register_capability" => {
       returns_kind: "Side effect",
-      returns: "No stable return contract; registers the capability and may apply it to RecordingStudio::Recording.",
-      notes: "Use this for capability setup, not as a query API.",
+      returns: "No stable return contract; registers capability metadata and may apply recording methods to RecordingStudio::Recording.",
+      notes: "Use this for capability setup. source: is required whenever child_recordables: are present.",
       example_response: <<~'TEXT'
-        RecordingStudio.registered_capabilities.keys
-        # => [:reviewable]
+        RecordingStudio.capability_child_recordables_for(:reviewable)
+        # => ["Approval"]
       TEXT
     },
     "RecordingStudio.apply_capabilities!" => {
@@ -169,6 +236,51 @@ class CapabilitiesController < ApplicationController
       example_response: <<~'TEXT'
         RecordingStudio.capability_options(:reviewable, for: "Page")
         # => { approval_class: "Approval" }
+      TEXT
+    },
+    "RecordingStudio.capability_child_recordables_for" => {
+      returns_kind: "Array",
+      returns: "Array<String>",
+      items: "Child recordable type name",
+      notes: "Lists child recordables declared on a capability registration.",
+      example_response: <<~'TEXT'
+        ["Approval"]
+      TEXT
+    },
+    "RecordingStudio.child_recordable_types_for" => {
+      returns_kind: "Array",
+      returns: "Array<String>",
+      items: "Child recordable type name",
+      notes: "Lists capability-owned child types enabled for the given parent type.",
+      example_response: <<~'TEXT'
+        ["Approval"]
+      TEXT
+    },
+    "RecordingStudio.capability_allowed_parent_types_for" => {
+      returns_kind: "Array",
+      returns: "Array<String>",
+      items: "Parent recordable type name",
+      notes: "Lists parent types granted by capability registrations and enablement.",
+      example_response: <<~'TEXT'
+        ["Page"]
+      TEXT
+    },
+    "RecordingStudio.recordable_parent_allowances_for" => {
+      returns_kind: "Hash",
+      returns: "Hash<String, Array<String>>",
+      items: "Source name => parent type names",
+      notes: "Lists capability-derived parent allowances grouped by source/provenance.",
+      example_response: <<~'TEXT'
+        { "recording_studio_reviewable" => ["Page"] }
+      TEXT
+    },
+    "RecordingStudio.parent_capabilities_for" => {
+      returns_kind: "Array",
+      returns: "Array<Symbol>",
+      items: "Capability symbol",
+      notes: "Explains which enabled capabilities allow a given parent/child relationship.",
+      example_response: <<~'TEXT'
+        [:reviewable]
       TEXT
     },
     "RecordingStudio.capability_enabled?" => {

@@ -38,6 +38,23 @@ Use this decision guide before calling methods:
 - You need events for one recording only:
   `recording.events(...)`
 
+## AI Hierarchy And Write Checklist
+
+When an AI agent needs to create or revise data, validate the hierarchy first instead of inferring it from naming:
+
+1. Normalize the type with `RecordingStudio.recordable_type_name(...)`.
+2. Read the declaration with `RecordingStudio.recordable_declaration_for(...)`.
+3. For top-level writes, require a persisted recordable, confirm `RecordingStudio.root_allowed?(...)`, then call
+  `RecordingStudio.root_recording_for(...)`.
+4. For child writes, resolve the intended `parent_recording` in the same root tree and check
+  `RecordingStudio.parent_allowed?(child_type:, parent_recording:)` before writing.
+5. If the child is capability-owned and does not list all parents directly, inspect
+  `RecordingStudio.recordable_parent_allowances_for(...)`,
+  `RecordingStudio.capability_parent_types_for(...)`, and
+  `RecordingStudio.parent_capabilities_for(child_type:, parent_recording:)` to explain the relationship.
+6. Prefer `root_recording.record`, `root_recording.revise`, and `recording.log_event!`; use
+  `RecordingStudio.record!` only when you need the returned event object or lower-level control.
+
 ## Top-Level Module: `RecordingStudio`
 
 These methods are the main addon-facing API.

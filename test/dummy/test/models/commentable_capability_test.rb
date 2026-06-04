@@ -25,10 +25,10 @@ class CommentableCapabilityTest < ActiveSupport::TestCase
     assert_includes RecordingStudio.child_recordable_types_for("RecordingStudioPage"), "RecordingStudioComment"
     assert_includes RecordingStudio.allowed_parent_types_for("RecordingStudioComment"), "RecordingStudioPage"
 
-    comment_event = page_event.recording.comment!(body: "Looks good", actor: nil)
+    comment_recording = page_event.recording.comment!(body: "Looks good", actor: nil)
 
-    assert_equal page_event.recording, comment_event.recording.parent_recording
-    assert_equal "RecordingStudioComment", comment_event.recording.recordable_type
-    assert_equal [comment_event.recording], page_event.recording.comments.to_a
+    assert_equal page_event.recording, comment_recording.parent_recording
+    assert_equal "RecordingStudioComment", comment_recording.recordable_type
+    assert_equal [ comment_recording ], page_event.recording.comments.to_a
   end
 end

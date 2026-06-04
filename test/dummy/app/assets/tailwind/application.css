@@ -3,6 +3,8 @@
 /* Tailwind CSS - Scan FlatPack components for classes */
 @source "../../../vendor/bundle/**/bundler/gems/flatpack-*/app/components/**/*.rb";
 @source "../../../vendor/bundle/**/bundler/gems/flatpack-*/app/components/**/*.erb";
+@source "../../../../../../usr/local/bundle/**/bundler/gems/flatpack-*/app/components/**/*.rb";
+@source "../../../../../../usr/local/bundle/**/bundler/gems/flatpack-*/app/components/**/*.erb";
 
 /* Extend Tailwind theme with FlatPack design tokens */
 @theme {

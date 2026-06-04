@@ -65,10 +65,16 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
   end
 
   def test_register_capability_is_idempotent_for_same_source_and_rejects_source_conflicts
-    RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
-                                                     child_recordables: ["SystemActor"])
-    RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
-                                                     child_recordables: ["RecordingStudioComment"])
+    RecordingStudio.register_capability(
+      :actor_tools,
+      source: "recording_studio_actor_tools",
+      child_recordables: ["SystemActor"]
+    )
+    RecordingStudio.register_capability(
+      :actor_tools,
+      source: "recording_studio_actor_tools",
+      child_recordables: ["RecordingStudioComment"]
+    )
 
     assert_equal %w[RecordingStudioComment SystemActor],
                  RecordingStudio.capability_child_recordables_for(:actor_tools)
@@ -80,8 +86,11 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
 
   def test_capability_registration_alone_does_not_allow_parent
     _, root = create_workspace_root
-    RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
-                                                     child_recordables: ["SystemActor"])
+    RecordingStudio.register_capability(
+      :actor_tools,
+      source: "recording_studio_actor_tools",
+      child_recordables: ["SystemActor"]
+    )
 
     assert_not RecordingStudio.parent_allowed?(child_type: "SystemActor", parent_recording: root)
     assert_equal [], RecordingStudio.capability_allowed_parent_types_for("SystemActor")
@@ -89,8 +98,11 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
 
   def test_registered_capability_child_is_allowed_under_enabled_parent
     _, root = create_workspace_root
-    RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
-                                                     child_recordables: ["SystemActor"])
+    RecordingStudio.register_capability(
+      :actor_tools,
+      source: "recording_studio_actor_tools",
+      child_recordables: ["SystemActor"]
+    )
     RecordingStudio.enable_capability(:actor_tools, on: "Workspace")
 
     assert RecordingStudio.parent_allowed?(child_type: "SystemActor", parent_recording: root)
@@ -106,8 +118,11 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
 
     assert_not RecordingStudio.parent_allowed?(child_type: "SystemActor", parent_recording: root)
 
-    RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
-                                                     child_recordables: ["SystemActor"])
+    RecordingStudio.register_capability(
+      :actor_tools,
+      source: "recording_studio_actor_tools",
+      child_recordables: ["SystemActor"]
+    )
 
     assert RecordingStudio.parent_allowed?(child_type: "SystemActor", parent_recording: root)
   end
@@ -120,10 +135,16 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
       root_recording: root,
       parent_recording: root
     ).recording
-    RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
-                                                     child_recordables: ["SystemActor"])
-    RecordingStudio.register_capability(:other_actor_tools, source: "other_actor_tools",
-                                                           child_recordables: ["SystemActor"])
+    RecordingStudio.register_capability(
+      :actor_tools,
+      source: "recording_studio_actor_tools",
+      child_recordables: ["SystemActor"]
+    )
+    RecordingStudio.register_capability(
+      :other_actor_tools,
+      source: "other_actor_tools",
+      child_recordables: ["SystemActor"]
+    )
     RecordingStudio.enable_capability(:actor_tools, on: "Workspace")
     RecordingStudio.enable_capability(:other_actor_tools, on: "RecordingStudioPage")
 
@@ -146,8 +167,11 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
   end
 
   def test_introspection_returns_frozen_copies
-    RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
-                                                     child_recordables: ["SystemActor"])
+    RecordingStudio.register_capability(
+      :actor_tools,
+      source: "recording_studio_actor_tools",
+      child_recordables: ["SystemActor"]
+    )
     RecordingStudio.enable_capability(:actor_tools, on: "Workspace")
 
     children = RecordingStudio.capability_child_recordables_for(:actor_tools)
@@ -162,6 +186,10 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
   end
 
   def test_validation_rejects_unregistered_child_and_parent_types
+    minimal_declarations = RecordingStudio::RecordableDeclarations.declarations.slice("Workspace", "SystemActor")
+    RecordingStudio::RecordableDeclarations.replace_declarations!(minimal_declarations)
+    RecordingStudio.instance_variable_set(:@registered_capabilities, {})
+    RecordingStudio.configuration.instance_variable_set(:@capabilities, {})
     RecordingStudio.configuration.recordable_types = %w[Workspace SystemActor]
     RecordingStudio.register_capability(:missing_child, source: "missing_child",
                                                         child_recordables: ["RecordingStudioComment"])
@@ -174,8 +202,11 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
     RecordingStudio.instance_variable_set(:@registered_capabilities, {})
     RecordingStudio.configuration.instance_variable_set(:@capabilities, {})
 
-    RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
-                                                     child_recordables: ["SystemActor"])
+    RecordingStudio.register_capability(
+      :actor_tools,
+      source: "recording_studio_actor_tools",
+      child_recordables: ["SystemActor"]
+    )
     RecordingStudio.enable_capability(:actor_tools, on: "MissingParent")
 
     error = assert_raises(RecordingStudio::InvalidRecordableDeclaration) do
@@ -192,8 +223,11 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
       root: true,
       options: {}
     )
-    RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
-                                                     child_recordables: ["SystemActor"])
+    RecordingStudio.register_capability(
+      :actor_tools,
+      source: "recording_studio_actor_tools",
+      child_recordables: ["SystemActor"]
+    )
 
     assert_raises(RecordingStudio::InvalidRecordableDeclaration) do
       RecordingStudio.validate_recordable_declarations!
@@ -202,8 +236,11 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
 
   def test_capability_child_does_not_become_rootable
     actor = SystemActor.create!(name: "Actor")
-    RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
-                                                     child_recordables: ["SystemActor"])
+    RecordingStudio.register_capability(
+      :actor_tools,
+      source: "recording_studio_actor_tools",
+      child_recordables: ["SystemActor"]
+    )
     RecordingStudio.enable_capability(:actor_tools, on: "Workspace")
 
     assert_raises(RecordingStudio::RootNotAllowed) { RecordingStudio.root_recording_for(actor) }
@@ -225,8 +262,11 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
     declarations_without_system_actor = RecordingStudio::RecordableDeclarations.declarations.except("SystemActor")
     RecordingStudio::RecordableDeclarations.replace_declarations!(declarations_without_system_actor)
     RecordingStudio.configuration.require_recordable_declarations = false
-    RecordingStudio.register_capability(:actor_tools, source: "recording_studio_actor_tools",
-                                                     child_recordables: ["SystemActor"])
+    RecordingStudio.register_capability(
+      :actor_tools,
+      source: "recording_studio_actor_tools",
+      child_recordables: ["SystemActor"]
+    )
     RecordingStudio.enable_capability(:actor_tools, on: "Workspace")
 
     assert_not RecordingStudio.root_allowed?("SystemActor")
@@ -268,5 +308,4 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
       registration.merge(child_recordables: Array(registration[:child_recordables]).dup.freeze)
     end
   end
-
 end

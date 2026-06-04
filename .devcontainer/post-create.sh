@@ -37,11 +37,8 @@ done
 
 cd /workspace/test/dummy
 
-echo "==> Installing Ruby gems"
-bundle install
-
-echo "==> Preparing database"
-bundle exec rails db:prepare
+echo "==> Bootstrapping dummy app"
+bin/setup --skip-server
 
 echo "==> Building Tailwind CSS"
 bundle exec rails tailwindcss:build

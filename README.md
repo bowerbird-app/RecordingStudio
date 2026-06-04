@@ -24,7 +24,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Configuration](#configuration)
 - [Upgrade Guide](#upgrade-guide)
 - [Root Recording API](#root-recording-api)
-- [Access Control and Root Selection](#access-control-and-root-selection)
+- [Root Selection and Authorization](#root-selection-and-authorization)
 - [Actors](#actors)
 - [Query API](#query-api)
 - [Generators](#generators)
@@ -35,8 +35,8 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Extension Philosophy](#extension-philosophy)
 - [Glossary](#glossary)
 - [Limitations](#limitations)
-- [Built-in Capabilities](#built-in-capabilities)
-- [Creating Custom Capabilities](#creating-custom-capabilities)
+- [Plugins / Addon Gems](#plugins--addon-gems)
+- [Maintainer Docs](#maintainer-docs)
 
 ## Why RecordingStudio
 
@@ -456,6 +456,22 @@ That reference is the best starting point for AI agents and addon authors becaus
 - event scopes
 - labels, capabilities, duplication, and counter-cache helpers
 
+### AI Write-Path Checklist
+
+When an AI agent needs to write through RecordingStudio, use this sequence before guessing:
+
+1. Normalize the type and declaration with `RecordingStudio.recordable_type_name(...)` and
+  `RecordingStudio.recordable_declaration_for(...)`.
+2. If the write is for a top-level object, confirm `RecordingStudio.root_allowed?(type)` and call
+  `RecordingStudio.root_recording_for(persisted_recordable)`.
+3. If the write is for a child, resolve the intended `parent_recording` first and verify
+  `RecordingStudio.parent_allowed?(child_type:, parent_recording:)`.
+4. If the child is capability-owned and its parents are derived from enablement, inspect
+  `RecordingStudio.recordable_parent_allowances_for(...)` and
+  `RecordingStudio.parent_capabilities_for(child_type:, parent_recording:)` to explain why the parent is valid.
+5. Prefer the high-level entry points on `RecordingStudio::Recording` (`record`, `revise`, `log_event!`) and drop to
+  `RecordingStudio.record!` only when you need the returned event object or lower-level control.
+
 ## Configuration
 
 ```ruby
@@ -642,7 +658,7 @@ Behavior is controlled by `idempotency_mode`:
 
 If you don’t pass a key, every call creates a new event.
 
-## Access Control and Root Selection
+## Root Selection and Authorization
 
 RecordingStudio core no longer ships built-in access-control recordables, actor-based authorization services, or
 device-session workspace persistence.
@@ -866,8 +882,12 @@ rails g recording_studio:install
 rails g recording_studio:migrations
 ```
 
-The install generator creates the initializer and mounts the engine. The migrations generator installs the current
-core schema for fresh host apps.
+The install generator mounts `RecordingStudio::Engine` at `/recording_studio`, creates the initializer, installs the
+fresh-install migrations, and optionally adds `config/recording_studio.yml`. The mounted engine currently ships no
+built-in browser UI or default routes, so treat that mount as integration surface area rather than a page to visit.
+Use the dummy app for an interactive example.
+
+The migrations generator installs the current core schema for fresh host apps.
 
 If you are upgrading an older host app that previously depended on RecordingStudio's historical migration chain, use:
 
@@ -904,9 +924,13 @@ Run the sandbox:
 
 ```bash
 cd test/dummy
-bin/rails db:setup
+bin/setup --skip-server
+bundle exec rails tailwindcss:build
 bin/dev
 ```
+
+Open `http://localhost:3000/` for the dummy app home page. Useful demo routes include `/workspaces`, `/methods`, and
+`/capabilities`.
 
 ## Testing Guidance
 
@@ -1144,13 +1168,11 @@ service-layer validation, deduplication, direct-creation guards, or root/parent 
 allowance is introduced: only recordables that explicitly enable the capability become parents for that capability's
 registered child recordables.
 
-## Access Control
+## Maintainer Docs
 
-Access control is now an application or addon concern.
+Public gem usage lives in this README, [docs/API_REFERENCE.md](docs/API_REFERENCE.md), and
+[docs/UPGRADING.md](docs/UPGRADING.md).
 
-If you need role-based authorization, workspace switching, or per-device root persistence, build it in your host app or
-use a dedicated addon gem and keep RecordingStudio focused on recordables, recordings, and events.
-
----
-
-The original template documentation lives in `docs/gem_template/` and remains as reference material.
+Repository-maintainer workflows live in `docs/gem_template/`. The directory name is historical, but the files there are
+maintainer docs for this repository's development environment, generators, and release workflow rather than alternate
+public API documentation.

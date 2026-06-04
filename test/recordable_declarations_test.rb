@@ -7,6 +7,8 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
     @original_types = RecordingStudio.configuration.recordable_types
     @original_require_declarations = RecordingStudio.configuration.require_recordable_declarations
     @original_declarations = RecordingStudio::RecordableDeclarations.declarations.dup
+    @original_registered_capabilities = RecordingStudio.registered_capabilities.transform_values(&:dup)
+    @original_capabilities = RecordingStudio.configuration.instance_variable_get(:@capabilities).transform_values(&:dup)
     RecordingStudio.configuration.recordable_types = %w[
       Workspace
       RecordingStudioPage
@@ -21,6 +23,8 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
   def teardown
     RecordingStudio.configuration.recordable_types = @original_types
     RecordingStudio.configuration.require_recordable_declarations = @original_require_declarations
+    RecordingStudio.instance_variable_set(:@registered_capabilities, @original_registered_capabilities)
+    RecordingStudio.configuration.instance_variable_set(:@capabilities, @original_capabilities)
     RecordingStudio::RecordableDeclarations.replace_declarations!(@original_declarations)
   end
 
@@ -52,6 +56,8 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
   def test_missing_recordable_declarations_can_warn_when_requirement_disabled
     RecordingStudio.configuration.recordable_types = ["User"]
     RecordingStudio.configuration.require_recordable_declarations = false
+    RecordingStudio.instance_variable_set(:@registered_capabilities, {})
+    RecordingStudio.configuration.instance_variable_set(:@capabilities, {})
 
     assert RecordingStudio.validate_recordable_declarations!
     assert RecordingStudio.root_allowed?("User")

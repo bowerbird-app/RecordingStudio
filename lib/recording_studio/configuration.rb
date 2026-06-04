@@ -98,11 +98,7 @@ module RecordingStudio
 
       RecordingStudio.synchronize_capabilities do
         @capabilities.each_with_object(Set.new) do |(parent_type_name, capabilities), parent_types|
-          next unless capabilities.any? do |capability_name|
-            registration = RecordingStudio.registered_capabilities[capability_name]
-            registration && registration[:source].present? &&
-              Array(registration[:child_recordables]).include?(child_type_name)
-          end
+          next unless capability_enabled_for_child_type?(capabilities, child_type_name)
 
           parent_types << parent_type_name
         end.to_a.sort
@@ -115,10 +111,7 @@ module RecordingStudio
 
       RecordingStudio.synchronize_capabilities do
         @capabilities.fetch(parent_type_name, Set.new).each_with_object(Set.new) do |capability_name, child_types|
-          registration = RecordingStudio.registered_capabilities[capability_name]
-          next if registration.blank? || registration[:source].blank?
-
-          child_types.merge(Array(registration[:child_recordables]))
+          child_types.merge(capability_registration_child_recordables(capability_name))
         end.to_a.sort
       end
     end
@@ -130,9 +123,7 @@ module RecordingStudio
 
       RecordingStudio.synchronize_capabilities do
         @capabilities.fetch(resolved_parent_type_name, Set.new).select do |capability_name|
-          registration = RecordingStudio.registered_capabilities[capability_name]
-          registration && registration[:source].present? &&
-            Array(registration[:child_recordables]).include?(child_type_name)
+          capability_registration_includes_child?(capability_name, child_type_name)
         end.to_a.sort
       end
     end
@@ -182,6 +173,23 @@ module RecordingStudio
     end
 
     private
+
+    def capability_enabled_for_child_type?(capabilities, child_type_name)
+      capabilities.any? do |capability_name|
+        capability_registration_includes_child?(capability_name, child_type_name)
+      end
+    end
+
+    def capability_registration_includes_child?(capability_name, child_type_name)
+      capability_registration_child_recordables(capability_name).include?(child_type_name)
+    end
+
+    def capability_registration_child_recordables(capability_name)
+      registration = RecordingStudio.registered_capabilities[capability_name]
+      return [] if registration.blank? || registration[:source].blank?
+
+      Array(registration[:child_recordables])
+    end
 
     def warn_removed_configuration_key!(key)
       message = "[RecordingStudio] '#{key}' configuration has been removed from core. " \

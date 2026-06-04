@@ -34,7 +34,7 @@
         <%= render FlatPack::Sidebar::Item::Component.new(label: "Queries", href: query_methods_path, icon: "magnifying-glass", active: current_page?(query_methods_path)) %>
         <%= render FlatPack::Sidebar::Item::Component.new(label: "Tree", href: tree_methods_path, icon: "folder", active: current_page?(tree_methods_path)) %>
         <%= render FlatPack::Sidebar::Item::Component.new(label: "Depreciated", href: depreciated_methods_path, icon: "exclamation-triangle", active: current_page?(depreciated_methods_path)) %>
-        <%= render FlatPack::Sidebar::Item::Component.new(label: "Capabilties", href: capabilities_path, icon: "shield-check", active: current_page?(capabilities_path)) %>
+        <%= render FlatPack::Sidebar::Item::Component.new(label: "Capabilities", href: capabilities_path, icon: "shield-check", active: current_page?(capabilities_path)) %>
         <%= render FlatPack::Sidebar::Item::Component.new(label: "Orphans", href: orphans_path, icon: "shield-check", active: current_page?(orphans_path)) %>
       <% end %>
     <% end %>

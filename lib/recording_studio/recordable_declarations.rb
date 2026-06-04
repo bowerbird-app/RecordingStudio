@@ -131,15 +131,13 @@ module RecordingStudio
 
       child_type_name = RecordingStudio::Identity.type_name_for(child_type)
       parent_type_name = RecordingStudio::Identity.type_name_for(parent_recording.recordable_type)
-      return false unless configured_recordable_type?(child_type_name)
-      return false unless configured_recordable_type?(parent_type_name)
+      return false unless configured_parent_child_types?(child_type_name, parent_type_name)
 
       declaration = declaration_for(child_type_name)
-      return false if declaration.nil? && capability_owned_child_recordable?(child_type_name)
+      return false if missing_capability_child_declaration?(child_type_name, declaration)
       return handle_missing_declaration(child_type_name, default: true) unless declaration
 
-      declaration.allowed_parent_types.include?(parent_type_name) ||
-        capability_parent_allowed?(child_type_name, parent_type_name, declaration)
+      parent_allowed_for_declaration?(declaration, child_type_name, parent_type_name)
     end
 
     def assert_root_allowed!(recordable_or_type)
@@ -200,6 +198,19 @@ module RecordingStudio
       type_name.present? && configured_type_names.include?(type_name)
     end
 
+    def configured_parent_child_types?(child_type_name, parent_type_name)
+      configured_recordable_type?(child_type_name) && configured_recordable_type?(parent_type_name)
+    end
+
+    def missing_capability_child_declaration?(child_type_name, declaration)
+      declaration.nil? && capability_owned_child_recordable?(child_type_name)
+    end
+
+    def parent_allowed_for_declaration?(declaration, child_type_name, parent_type_name)
+      declaration.allowed_parent_types.include?(parent_type_name) ||
+        capability_parent_allowed?(child_type_name, parent_type_name, declaration)
+    end
+
     def validate_declared_types_registered!
       registered_types = registered_type_names
       declaration_registry.each_key do |type|
@@ -212,6 +223,22 @@ module RecordingStudio
 
         warn_unregistered_declaration(type)
       end
+    end
+
+    def validate_capability_registration!(capability_name, registration, registered_types)
+      child_types = Array(registration[:child_recordables])
+      return if child_types.empty?
+
+      validate_capability_source!(capability_name, registration[:source])
+      child_types.each { |child_type| validate_capability_child_type!(capability_name, child_type, registered_types) }
+      validate_capability_enabled_parent_types!(capability_name, registered_types)
+    end
+
+    def validate_capability_source!(capability_name, source)
+      return if source.to_s.strip.present?
+
+      raise RecordingStudio::InvalidRecordableDeclaration,
+            "#{capability_name} child_recordables require a non-blank source"
     end
 
     def validate_allowed_parent_types_registered!
@@ -230,41 +257,15 @@ module RecordingStudio
     def validate_capability_parent_allowances!
       registered_types = registered_type_names
       RecordingStudio.registered_capabilities.each do |capability_name, registration|
-        source = registration[:source].to_s.strip.presence
-        child_types = Array(registration[:child_recordables])
-        next if child_types.empty?
-
-        if source.blank?
-          raise RecordingStudio::InvalidRecordableDeclaration,
-                "#{capability_name} child_recordables require a non-blank source"
-        end
-
-        child_types.each { |child_type| validate_capability_child_type!(capability_name, child_type, registered_types) }
-        validate_capability_enabled_parent_types!(capability_name, registered_types)
+        validate_capability_registration!(capability_name, registration, registered_types)
       end
     end
 
     def validate_capability_child_type!(capability_name, child_type, registered_types)
-      if child_type.blank?
-        raise RecordingStudio::InvalidRecordableDeclaration,
-              "#{capability_name} child_recordables cannot include blank values"
-      end
+      raise_blank_capability_child!(capability_name) if child_type.blank?
+      raise_unregistered_capability_child!(capability_name, child_type) unless registered_types.include?(child_type)
 
-      unless registered_types.include?(child_type)
-        raise RecordingStudio::InvalidRecordableDeclaration,
-              "#{capability_name} child_recordables includes unregistered type: #{child_type}"
-      end
-
-      declaration = declaration_for(child_type)
-      unless declaration
-        raise RecordingStudio::InvalidRecordableDeclaration,
-              "#{child_type} is a capability-owned child recordable and must declare root: false"
-      end
-
-      return unless declaration.root?
-
-      raise RecordingStudio::InvalidRecordableDeclaration,
-            "#{child_type} is a capability-owned child recordable and must declare root: false"
+      validate_capability_child_declaration!(child_type)
     end
 
     def validate_capability_enabled_parent_types!(capability_name, registered_types)
@@ -274,6 +275,24 @@ module RecordingStudio
 
       raise RecordingStudio::InvalidRecordableDeclaration,
             "#{capability_name} is enabled for unregistered type(s): #{invalid_parent_types.join(', ')}"
+    end
+
+    def validate_capability_child_declaration!(child_type)
+      declaration = declaration_for(child_type)
+      return if declaration.present? && !declaration.root?
+
+      raise RecordingStudio::InvalidRecordableDeclaration,
+            "#{child_type} is a capability-owned child recordable and must declare root: false"
+    end
+
+    def raise_blank_capability_child!(capability_name)
+      raise RecordingStudio::InvalidRecordableDeclaration,
+            "#{capability_name} child_recordables cannot include blank values"
+    end
+
+    def raise_unregistered_capability_child!(capability_name, child_type)
+      raise RecordingStudio::InvalidRecordableDeclaration,
+            "#{capability_name} child_recordables includes unregistered type: #{child_type}"
     end
 
     def validate_declaration_arguments!(recordable_class, attributes)

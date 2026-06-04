@@ -32,8 +32,8 @@ module RecordingStudio
       @registered_capabilities ||= {}
     end
 
-    def synchronize_capabilities(&block)
-      capability_mutex.synchronize(&block)
+    def synchronize_capabilities(&)
+      capability_mutex.synchronize(&)
     end
 
     def register_capability(name, mod = nil, recording_methods: nil, source: nil, child_recordables: [])
@@ -158,7 +158,7 @@ module RecordingStudio
       return {}.freeze if type_name.blank?
 
       capability_mutex.synchronize do
-        registered_capabilities.each_with_object({}) do |(capability_name, registration), result|
+        allowances_by_source = registered_capabilities.each_with_object({}) do |(capability_name, registration), result|
           next unless Array(registration[:child_recordables]).include?(type_name)
 
           source = registration[:source]
@@ -166,9 +166,9 @@ module RecordingStudio
 
           result[source] ||= Set.new
           result[source].merge(configuration.enabled_recordable_types_for(capability_name))
-        end.each_with_object({}) do |(source, parents), result|
-          result[source] = parents.to_a.sort.freeze
-        end.freeze
+        end
+
+        allowances_by_source.transform_values { |parents| parents.to_a.sort.freeze }.freeze
       end
     end
 

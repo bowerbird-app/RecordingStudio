@@ -1,117 +1,43 @@
-> **Architecture Documentation**
-> *   **Canonical Source:** [bowerbird-app/gem_template](https://github.com/bowerbird-app/gem_template/tree/main/docs/gem_template)
-> *   **Last Updated:** December 12, 2025
->
-> *Maintainers: Please update the date above when modifying this file.*
+# RecordingStudio Maintainer Docs
 
----
+This directory keeps repository-maintainer guides that originated in the engine template used to create
+RecordingStudio. The path `docs/gem_template/` is historical and is intentionally preserved by `bin/rename_gem`, but
+the content in this directory now documents RecordingStudio as it exists today.
 
-> **📌 Note:** This documentation directory (`docs/gem_template/`) is preserved during gem renaming and serves as architectural reference material. When you rename your gem, these files intentionally remain under `gem_template` to document the original template structure.
+## Use These Docs By Audience
 
----
+Public gem usage:
 
-# GemTemplate
+- [../../README.md](../../README.md)
+- [../API_REFERENCE.md](../API_REFERENCE.md)
+- [../UPGRADING.md](../UPGRADING.md)
 
-A template for building **Rails mountable engine gems** with PostgreSQL UUID primary keys, TailwindCSS, and GitHub Codespaces integration.
+Repository maintenance:
 
----
+- [CODESPACES.md](CODESPACES.md)
+- [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
+- [INSTALLING.md](INSTALLING.md)
+- [CONFIGURATION.md](CONFIGURATION.md)
+- [MIGRATIONS.md](MIGRATIONS.md)
+- [PRIVATE_GEMS.md](PRIVATE_GEMS.md)
+- [CSS_JS_ASSETS_ARCHITECTURE.md](CSS_JS_ASSETS_ARCHITECTURE.md)
+- [SERVICES.md](SERVICES.md)
+- [SECURITY.md](SECURITY.md)
+- [RENAMING.md](RENAMING.md)
 
-## ✅ What's Working
+## Quick Repository Facts
 
-- ✓ Rails Engine mounted and operational
-- ✓ PostgreSQL with UUID primary keys
-- ✓ TailwindCSS styling (auto-rebuilds in development)
-- ✓ Codespaces environment automatically sets up on build
-- ✓ Install generator for host applications
-- ✓ Migrations generator for database setup
-- ✓ Service object pattern with Result monad
+- Ruby 3.3+ and Rails 8.1+
+- The dummy app lives in `test/dummy`
+- The usual setup flow is `cd test/dummy && bin/setup --skip-server && bundle exec rails tailwindcss:build`
+- Start the demo app with `cd test/dummy && bin/dev`
+- Open `http://localhost:3000/` for the demo UI
+- `RecordingStudio::Engine` is mounted at `/recording_studio`, but the engine currently ships no default UI or routes
 
----
+## Documentation Rules
 
-## 🚀 Quick Start
-
-### GitHub Codespaces (Recommended)
-
-1. Click **Code** → **Codespaces** → **Create codespace**
-2. Wait for setup to complete (~3-5 minutes)
-3. Run:
-   ```bash
-   cd test/dummy
-   bin/dev
-   ```
-4. Open port 3000 and visit `/gem_template`
-
-→ [Codespaces Setup Guide](CODESPACES.md)
-
-### Local Development
-
-1. Clone and install dependencies
-2. Setup database and build Tailwind
-3. Run `bin/dev`
-
-→ [Local Development Guide](LOCAL_DEVELOPMENT.md)
-
----
-
-## 📚 Documentation
-
-| Guide | Description |
-|-------|-------------|
-| [Renaming](RENAMING.md) | Instructions for renaming this template gem to your own name. |
-| [Installation](INSTALLING.md) | Step-by-step guide for installing this engine in a host Rails application. |
-| [Configuration](CONFIGURATION.md) | Details on configuring the gem via initializers and environment variables. |
-| [Private Gems](PRIVATE_GEMS.md) | How to authenticate and access private gem dependencies in Codespaces, local, and production environments. |
-| [Database Migrations](MIGRATIONS.md) | How to generate and manage database migrations for the engine. |
-| [Service Objects](SERVICES.md) | Explanation of the Service Object pattern and Result monad used for business logic. |
-| [Engine Hooks](HOOKS.md) | Guide to customizing engine behavior using lifecycle and service hooks. |
-| [Asset Architecture](CSS_JS_ASSETS_ARCHITECTURE.md) | Details on TailwindCSS setup and asset pipeline integration. |
-| [Security](SECURITY.md) | Security considerations. |
-| [Changelog](../../CHANGELOG.md) | Version history. |
-
----
-
-## 📁 Project Structure
-
-```
-gem_template/
-├── app/
-│   ├── controllers/gem_template/
-│   └── views/gem_template/
-├── config/routes.rb
-├── db/migrate/              # Engine migrations
-├── lib/
-│   ├── gem_template.rb
-│   ├── gem_template/
-│   │   ├── configuration.rb
-│   │   ├── engine.rb
-│   │   ├── version.rb
-│   │   └── services/        # Service objects
-│   │       ├── base_service.rb
-│   │       └── example_service.rb
-│   └── generators/
-├── test/dummy/              # Test Rails app
-├── docs/                    # Documentation
-└── gem_template.gemspec
-```
-
----
-
-## 📋 Tech Stack
-
-| Component | Version |
-|-----------|---------|
-| Ruby | 3.3 |
-| Rails | 8.1 |
-| PostgreSQL | 16 |
-| Redis | 7 |
-| TailwindCSS | 4 |
-
----
-
-## 📄 License
-
-MIT – see [MIT-LICENSE](../../MIT-LICENSE)
-
----
-
-**Happy coding! 🎉**
+- Keep public API guidance in the root README, `docs/API_REFERENCE.md`, and `docs/UPGRADING.md`
+- Use this directory for repository workflows, environment setup, and maintainer-facing notes
+- Prefer current repo code, generators, and scripts over template-era assumptions
+- If `bin/rename_gem` is used again in the future, manually review this directory because the script intentionally does
+   not rewrite files under `docs/gem_template/`

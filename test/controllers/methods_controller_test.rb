@@ -251,7 +251,7 @@ class MethodsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, ">Queries<"
     assert_includes @response.body, ">Tree<"
     assert_includes @response.body, ">Depreciated<"
-    assert_includes @response.body, ">Capabilties<"
+    assert_includes @response.body, ">Capabilities<"
 
     logout_form_selector = "form[action='#{destroy_user_session_path}'][method='post']"
     assert_select "#{logout_form_selector} input[name='_method'][value='delete']", count: 1
