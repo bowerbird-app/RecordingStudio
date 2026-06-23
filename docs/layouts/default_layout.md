@@ -5,7 +5,7 @@
 ## What it provides
 
 - `FlatPack::PageNav::Component` rendered at the top.
-- A single `FlatPack::Card::Component` wrapper around the page body (layout owns the card).
+- Direct page body rendering (the layout does not add an extra content wrapper).
 - Standard Rails layout structure with `yield :head` support.
 - Safe defaults when no page-nav metadata is provided.
 

@@ -939,6 +939,8 @@ RecordingStudio provides a reusable layout contract for addon gems at:
 
 - `app/views/layouts/recording_studio/default_layout.html.erb`
 
+The layout provides a shared PageNav shell and then yields page content directly.
+
 Use `RecordingStudio::UsesDefaultLayout` in addon controllers to opt into this shell, then configure page nav metadata
 with `RecordingStudio::LayoutHelper`.
 
