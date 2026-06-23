@@ -34,8 +34,8 @@ class LayoutHelperTest < ActionView::TestCase
   end
 
   def test_recording_studio_head_sets_head_slot_content
-    recording_studio_head { "<meta name='demo' content='1'>".html_safe }
+    recording_studio_head { tag.meta(name: "demo", content: "1") }
 
-    assert_includes content_for(:head), "name='demo'"
+    assert_includes content_for(:head), "name=\"demo\""
   end
 end
