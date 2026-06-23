@@ -1,0 +1,34 @@
+<%%# Intended layout: recording_studio/action_layout (typically used by show actions) %>
+<%% content_for :title, "<%= human_name %>" %>
+<%%# Optional SEO / head helpers:
+    recording_studio_seo_description("<%= human_name %> details")
+    recording_studio_seo_image(image_url("social/<%= file_name %>.png"))
+    content_for :head do
+      stylesheet_link_tag "custom/<%= file_name %>", "data-turbo-track": "reload"
+    end
+%>
+
+<%% content_for :top_nav_left do %>
+  <%%= render "recording_studio/shared/page_nav",
+        title: "<%= human_name %>",
+        back_path: <%= plural_route_helper %>_path,
+        resource: "<%= class_name %>" %>
+<%% end %>
+
+<%% content_for :top_nav_center do %>
+  <span class="text-sm opacity-70">Details</span>
+<%% end %>
+
+<%% content_for :top_nav_right do %>
+  <%%= render FlatPack::Button::Component.new(
+    text: "Edit",
+    href: edit_<%= file_path.tr("/", "_") %>_path(@<%= file_name %>),
+    style: :secondary,
+    size: :sm
+  ) %>
+<%% end %>
+
+<%%= render FlatPack::PageTitle::Component.new(
+  title: "<%= human_name %>",
+  subtitle: "Render your <%= human_name.downcase %> attributes here."
+) %>

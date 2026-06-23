@@ -1,6 +1,10 @@
 # RecordingStudio Default Layout
 
 `recording_studio/default_layout` is the shared, sidebar-free page shell for RecordingStudio addon gems.
+The public layout file is a thin wrapper around
+`app/views/recording_studio/shared/_default_layout.html.erb` so hosts keep a
+stable layout name while the shell lives with other shared layout partials.
+For TopNav-based show/new/edit flows, see `docs/layouts/action_layout.md`.
 
 > **Prerequisite:** The layout depends on `FlatPack::PageNav::Component` and
 > `FlatPack::Alert::Component`. These are bundled with RecordingStudio's

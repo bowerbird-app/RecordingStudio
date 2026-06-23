@@ -1,0 +1,31 @@
+<%%# Intended layout: recording_studio/action_layout (typically used by edit actions) %>
+<%% content_for :title, "Edit <%= human_name %>" %>
+<%%# Optional SEO / head helpers:
+    recording_studio_seo_description("Edit this <%= human_name.downcase %>")
+    content_for :head do
+      stylesheet_link_tag "custom/<%= file_name %>", "data-turbo-track": "reload"
+    end
+%>
+
+<%% content_for :top_nav_left do %>
+  <%%= render "recording_studio/shared/page_nav",
+        title: "Edit <%= human_name %>",
+        back_path: <%= plural_route_helper %>_path,
+        resource: "<%= class_name %>" %>
+<%% end %>
+
+<%% content_for :top_nav_center do %>
+  <span class="text-sm opacity-70">Update</span>
+<%% end %>
+
+<%% content_for :top_nav_right do %>
+  <%%= render FlatPack::Button::Component.new(
+    text: "Cancel",
+    href: <%= singular_route_helper %>_path(@<%= file_name %>),
+    style: :ghost,
+    size: :sm
+  ) %>
+<%% end %>
+
+<%%= render FlatPack::PageTitle::Component.new(title: "Edit <%= human_name %>") %>
+<%%= render "form", <%= file_name %>: @<%= file_name %> %>

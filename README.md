@@ -921,6 +921,7 @@ root_recording.recordings_of(Page)
 ```bash
 rails g recording_studio:install
 rails g recording_studio:migrations
+rails g recording_studio:views RESOURCE
 ```
 
 The install generator mounts `RecordingStudio::Engine` at `/recording_studio`, creates the initializer, installs the
@@ -929,6 +930,16 @@ built-in browser UI or default routes, so treat that mount as integration surfac
 Use the dummy app for an interactive example.
 
 The migrations generator installs the current core schema for fresh host apps.
+
+The views generator scaffolds FlatPack resource templates:
+
+- `index` intended for `recording_studio/default_layout` with `recording_studio_page_nav`
+- `show` / `new` / `edit` intended for `recording_studio/action_layout` with TopNav slots
+- `_form` using FlatPack inputs and buttons
+
+Generated action templates demonstrate `:top_nav_left`, `:top_nav_center`, and `:top_nav_right`, plus the shared
+`recording_studio/shared/page_nav` partial and the existing SEO helpers (`recording_studio_seo_description`,
+`recording_studio_seo_image`, `default_layout_head`).
 
 If you are upgrading an older host app that previously depended on RecordingStudio's historical migration chain, use:
 
@@ -988,12 +999,23 @@ already usable. Fetch-skills always runs last. `.cursor/start.sh` starts
 PostgreSQL on each boot. Rebuild with Draft off to load a new pack. See
 [Cursor skills in Cloud Agents](docs/cursor-skills.md).
 
-## Shared Default Layout
+## Shared Layouts
 
-RecordingStudio provides a reusable layout contract for addon gems at
-`app/views/layouts/recording_studio/default_layout.html.erb`. The layout
-renders a `FlatPack::PageNav::Component` shell, flash alerts, automatic
-OpenGraph meta tags, and yields page content directly.
+RecordingStudio provides two public layout entrypoints for addon gems:
+
+- `recording_studio/default_layout` — PageNav shell (primary shared layout)
+- `recording_studio/action_layout` — TopNav shell for focused create/show/edit flows
+
+Both layouts share the same SEO slot contract (`:title`, `:seo_description`,
+`:seo_image`, `:head`), stylesheet/importmap wiring, flash alerts, and
+`data-theme` defaults. Public layout files are thin wrappers around shared
+shells under `app/views/recording_studio/shared/`.
+
+### Default layout (PageNav)
+
+`recording_studio/default_layout` renders a `FlatPack::PageNav::Component`
+shell, flash alerts, automatic OpenGraph meta tags, and yields page content
+directly.
 
 Opt in from any controller with a single concern:
 
@@ -1012,6 +1034,46 @@ with `RecordingStudio::LayoutHelper`:
 - `recording_studio_seo_description(text)` — set `<meta name="description">` and `og:description`
 - `recording_studio_seo_image(url)` — set `og:image`
 
+### Action layout (TopNav)
+
+`recording_studio/action_layout` is optional for show/new/edit-style screens that
+need left/center/right TopNav regions instead of PageNav:
+
+```ruby
+class PostsController < ApplicationController
+  layout "recording_studio/action_layout"
+  helper RecordingStudio::LayoutHelper
+
+  def show
+  end
+end
+```
+
+Action-layout TopNav slots:
+
+- `:top_nav_left`
+- `:top_nav_center`
+- `:top_nav_right`
+- `:before_body_end` (optional markup before `</body>`)
+
+Recommended left-slot pattern:
+
+```erb
+<% content_for :top_nav_left do %>
+  <%= render "recording_studio/shared/page_nav",
+        title: "Page title",
+        back_path: some_path,
+        items: [{ label: "Overview", href: overview_path }],
+        resource: "ResourceName",
+        context: "Workspace A" %>
+<% end %>
+```
+
+Suggested action mapping for scaffolded controllers:
+
+- `index` → `recording_studio/default_layout`
+- `show` / `new` / `edit` → `recording_studio/action_layout`
+
 Set a custom app name for `<title>` and `og:site_name` fallback:
 
 ```ruby
@@ -1021,9 +1083,10 @@ RecordingStudio.configure { |config| config.app_name = "My App" }
 A `data-theme="rounded"` attribute is applied to `<body>` by default; override
 it per-view with `content_for(:body_theme, "your-theme")`.
 
-Full usage details are documented in:
+Full layout details are documented in:
 
 - `docs/layouts/default_layout.md`
+- `docs/layouts/action_layout.md`
 
 ## Testing Guidance
 
