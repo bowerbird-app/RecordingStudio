@@ -30,6 +30,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Generators](#generators)
 - [Instrumentation](#instrumentation)
 - [Dummy Sandbox](#dummy-sandbox)
+- [Shared Default Layout](#shared-default-layout)
 - [Testing Guidance](#testing-guidance)
 - [Release Process](#release-process)
 - [Extension Philosophy](#extension-philosophy)
@@ -931,6 +932,19 @@ bin/dev
 
 Open `http://localhost:3000/` for the dummy app home page. Useful demo routes include `/workspaces`, `/methods`, and
 `/capabilities`.
+
+## Shared Default Layout
+
+RecordingStudio provides a reusable layout contract for addon gems at:
+
+- `app/views/layouts/recording_studio/default_layout.html.erb`
+
+Use `RecordingStudio::UsesDefaultLayout` in addon controllers to opt into this shell, then configure page nav metadata
+with `RecordingStudio::LayoutHelper`.
+
+Full usage details are documented in:
+
+- `docs/layouts/default_layout.md`
 
 ## Testing Guidance
 

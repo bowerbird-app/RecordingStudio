@@ -1,0 +1,20 @@
+<% recording_studio_page_nav(
+  title: "Default Layout Demo",
+  page_nav_anchor_url: workspaces_path,
+  page_nav_anchor_label: "Close demo"
+) %>
+
+<% recording_studio_head do %>
+  <meta name="recording-studio-demo" content="default-layout">
+<% end %>
+
+<% recording_studio_page_nav_right do %>
+  <%= render FlatPack::Button::Component.new(text: "Create workspace", style: :secondary, url: new_workspace_path) %>
+<% end %>
+
+<div class="space-y-3 p-4">
+  <h1 class="text-lg font-semibold">Default Layout Demo</h1>
+  <p>
+    This page demonstrates the shared RecordingStudio default layout with PageNav above a single card shell.
+  </p>
+</div>

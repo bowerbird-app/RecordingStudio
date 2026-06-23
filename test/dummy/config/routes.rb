@@ -21,6 +21,7 @@ Rails.application.routes.draw do
   get "methods/tree", to: "methods#tree", as: :tree_methods
   get "methods/depreciated", to: "methods#depreciated", as: :depreciated_methods
   get :capabilities, to: "capabilities#index"
+  get :layout_demo, to: "layout_demo#show"
   resources :recordings, only: [ :index, :show ] do
     post :log_event, on: :member
     post :revert, on: :member
