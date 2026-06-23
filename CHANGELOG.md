@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+* add shared default layout (`recording_studio/default_layout`) with `RecordingStudio::UsesDefaultLayout` concern and `RecordingStudio::LayoutHelper` for addon gems
+* add `docs/layouts/default_layout.md` with full usage guide and slot contract reference
+* add dummy app demo route at `/layout_demo` showing default layout with PageNav, right slot, and head metadata
+* add test coverage for layout helper, layout rendering, and initializer wiring
+
+### Migration Notes
+
+- See [docs/UPGRADING.md#adopting-the-shared-default-layout](docs/UPGRADING.md#adopting-the-shared-default-layout) for guidance on adopting the shared default layout in your addon controllers and views.
+
 ## [3.0.0](https://github.com/bowerbird-app/RecordingStudio/compare/recording_studio/v2.0.0...recording_studio/v3.0.0) (2026-06-04)
 
 ### ⚠ BREAKING CHANGES
