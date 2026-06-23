@@ -27,13 +27,13 @@ module RecordingStudio
       nil
     end
 
-    def recording_studio_page_nav_right(&block)
-      content_for(:page_nav_right, &block) if block_given?
+    def recording_studio_page_nav_right(&)
+      content_for(:page_nav_right, &) if block_given?
       nil
     end
 
-    def recording_studio_head(&block)
-      content_for(:head, &block) if block_given?
+    def recording_studio_head(&)
+      content_for(:head, &) if block_given?
       nil
     end
   end

@@ -21,8 +21,9 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{new_workspace_path}'][aria-label='Add workspace']", count: 1
     assert_includes @response.body, @workspace.name
     assert_not_includes @response.body, "New Workspace"
-    assert_not_includes @response.body,
-                        "rounded-lg overflow-visible h-full flex flex-col text-[var(--surface-content-color)] bg-[var(--card-background-color)] border border-[var(--card-border-color)]"
+    long_class = "rounded-lg overflow-visible h-full flex flex-col text-[var(--surface-content-color)] " \
+                 "bg-[var(--card-background-color)] border border-[var(--card-border-color)]"
+    assert_not_includes @response.body, long_class
     assert_not_includes @response.body, "flat-pack--sidebar-group"
   end
 
