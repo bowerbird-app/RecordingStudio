@@ -1,0 +1,55 @@
+<% title = content_for(:title).to_s.strip %>
+<% description = content_for(:description).to_s.strip %>
+<% image = content_for(:image).to_s.strip %>
+<% custom_head = content_for(:head).to_s %>
+<% before_body_end = content_for(:before_body_end).to_s %>
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <% if title.present? %>
+      <title><%= title %></title>
+    <% end %>
+    <% if description.present? %>
+      <meta name="description" content="<%= description %>">
+      <meta property="og:description" content="<%= description %>">
+      <meta name="twitter:description" content="<%= description %>">
+    <% end %>
+    <% if image.present? %>
+      <meta property="og:image" content="<%= image %>">
+      <meta name="twitter:image" content="<%= image %>">
+    <% end %>
+
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= custom_head if custom_head.present? %>
+  </head>
+  <body>
+    <div class="min-h-screen">
+      <%= render FlatPack::TopNav::Component.new do |nav| %>
+        <% if content_for?(:top_nav_left) %>
+          <% left = content_for(:top_nav_left) %>
+          <% nav.left { left } if left.present? %>
+        <% end %>
+
+        <% if content_for?(:top_nav_center) %>
+          <% center = content_for(:top_nav_center) %>
+          <% nav.center { center } if center.present? %>
+        <% end %>
+
+        <% if content_for?(:top_nav_right) %>
+          <% right = content_for(:top_nav_right) %>
+          <% nav.right { right } if right.present? %>
+        <% end %>
+      <% end %>
+
+      <main class="mx-auto w-full max-w-5xl p-6">
+        <%= yield %>
+      </main>
+    </div>
+
+    <%= before_body_end if before_body_end.present? %>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+<%%= form_with model: @<%= file_name %>, class: "space-y-4" do |form| %>
+  <div class="space-y-2">
+    <%%= form.label :name, class: "block text-sm font-medium" %>
+    <%%= form.text_field :name, class: "w-full rounded border px-3 py-2" %>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <%%= form.submit class: "rounded bg-black px-4 py-2 text-white" %>
+    <%%= link_to "Back", <%= plural_route_helper %>_path, class: "text-sm hover:underline" %>
+  </div>
+<%% end %>
