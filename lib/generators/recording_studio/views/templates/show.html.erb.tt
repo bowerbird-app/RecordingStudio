@@ -1,0 +1,29 @@
+<%%# Intended layout: recording_studio/action_layout (typically used by show actions) %>
+<%% content_for :title, "<%= human_name %>" %>
+<%%# Optional metadata slots:
+    content_for :description, "<%= human_name %> details"
+    content_for :image, image_url("social/<%= file_name %>.png")
+    content_for :head do
+      stylesheet_link_tag "custom/<%= file_name %>", "data-turbo-track": "reload"
+    end
+%>
+
+<%% content_for :top_nav_left do %>
+  <%%= render "recording_studio/shared/page_nav",
+        title: "<%= human_name %>",
+        back_path: <%= plural_route_helper %>_path,
+        resource: "<%= class_name %>" %>
+<%% end %>
+
+<%% content_for :top_nav_center do %>
+  <span class="text-sm opacity-70">Details</span>
+<%% end %>
+
+<%% content_for :top_nav_right do %>
+  <%%= link_to "Edit", edit_<%= file_path.tr("/", "_") %>_path(@<%= file_name %>), class: "font-medium hover:underline" %>
+<%% end %>
+
+<section class="space-y-4">
+  <h1 class="text-2xl font-semibold"><%= human_name %></h1>
+  <p class="text-sm opacity-70">Render your <%= human_name.downcase %> attributes here.</p>
+</section>

@@ -1,0 +1,28 @@
+<%%# Intended layout: recording_studio/action_layout (typically used by new actions) %>
+<%% content_for :title, "New <%= human_name %>" %>
+<%%# Optional metadata slots:
+    content_for :description, "Create a new <%= human_name.downcase %>"
+    content_for :head do
+      stylesheet_link_tag "custom/<%= file_name %>", "data-turbo-track": "reload"
+    end
+%>
+
+<%% content_for :top_nav_left do %>
+  <%%= render "recording_studio/shared/page_nav",
+        title: "New <%= human_name %>",
+        back_path: <%= plural_route_helper %>_path,
+        resource: "<%= class_name %>" %>
+<%% end %>
+
+<%% content_for :top_nav_center do %>
+  <span class="text-sm opacity-70">Create</span>
+<%% end %>
+
+<%% content_for :top_nav_right do %>
+  <%%= link_to "Cancel", <%= plural_route_helper %>_path, class: "font-medium hover:underline" %>
+<%% end %>
+
+<section class="space-y-4">
+  <h1 class="text-2xl font-semibold">New <%= human_name %></h1>
+  <%%= render "form", <%= file_name %>: @<%= file_name %> %>
+</section>

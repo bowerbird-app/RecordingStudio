@@ -875,11 +875,58 @@ Root Recordings can filter by recordable class:
 root_recording.recordings_of(Page)
 ```
 
+## Layouts for sub-gems
+
+RecordingStudio provides two public layout names:
+
+- `recording_studio/default_layout`
+- `recording_studio/action_layout`
+
+Default action mapping for host/sub-gem controllers:
+
+- `index` -> `recording_studio/default_layout`
+- `show` -> `recording_studio/action_layout`
+- `new` -> `recording_studio/action_layout`
+- `edit` -> `recording_studio/action_layout`
+
+Both layouts support these optional slots:
+
+- `:title`
+- `:description`
+- `:image`
+- `:head`
+- `:before_body_end`
+
+`recording_studio/action_layout` additionally supports:
+
+- `:top_nav_left`
+- `:top_nav_center`
+- `:top_nav_right`
+
+All slots are optional. If a slot is not provided, nothing is rendered for that slot (including head metadata tags), and no
+placeholder tags are emitted.
+
+Recommended page-nav pattern for action pages:
+
+```erb
+<% content_for :top_nav_left do %>
+  <%= render "recording_studio/shared/page_nav",
+        title: "Page title",
+        back_path: some_path,
+        items: [{ label: "Overview", href: overview_path }],
+        resource: "ResourceName",
+        context: "Workspace A" %>
+<% end %>
+```
+
+The parent-provided page-nav partial takes explicit locals and does not require hidden instance variables.
+
 ## Generators
 
 ```bash
 rails g recording_studio:install
 rails g recording_studio:migrations
+rails g recording_studio:views RESOURCE
 ```
 
 The install generator mounts `RecordingStudio::Engine` at `/recording_studio`, creates the initializer, installs the
@@ -888,6 +935,22 @@ built-in browser UI or default routes, so treat that mount as integration surfac
 Use the dummy app for an interactive example.
 
 The migrations generator installs the current core schema for fresh host apps.
+
+The views generator creates:
+
+- `app/views/<resource_plural>/index.html.erb` (intended for `recording_studio/default_layout`)
+- `app/views/<resource_plural>/show.html.erb` (intended for `recording_studio/action_layout`)
+- `app/views/<resource_plural>/new.html.erb` (intended for `recording_studio/action_layout`)
+- `app/views/<resource_plural>/edit.html.erb` (intended for `recording_studio/action_layout`)
+- `app/views/<resource_plural>/_form.html.erb`
+
+Generated action templates (`show/new/edit`) demonstrate where to customize:
+
+- `:top_nav_left` (recommended slot for page-nav content)
+- `:top_nav_center`
+- `:top_nav_right`
+
+Generated templates also include starter examples for optional `:title`, `:description`, `:image`, and `:head` usage.
 
 If you are upgrading an older host app that previously depended on RecordingStudio's historical migration chain, use:
 

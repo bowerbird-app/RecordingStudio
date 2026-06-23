@@ -1,0 +1,48 @@
+<% title = content_for(:title).to_s.strip %>
+<% description = content_for(:description).to_s.strip %>
+<% image = content_for(:image).to_s.strip %>
+<% custom_head = content_for(:head).to_s %>
+<% before_body_end = content_for(:before_body_end).to_s %>
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <% if title.present? %>
+      <title><%= title %></title>
+    <% end %>
+    <% if description.present? %>
+      <meta name="description" content="<%= description %>">
+      <meta property="og:description" content="<%= description %>">
+      <meta name="twitter:description" content="<%= description %>">
+    <% end %>
+    <% if image.present? %>
+      <meta property="og:image" content="<%= image %>">
+      <meta name="twitter:image" content="<%= image %>">
+    <% end %>
+
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= custom_head if custom_head.present? %>
+  </head>
+  <body>
+    <%= render FlatPack::SidebarLayout::Component.new do |layout| %>
+      <% layout.sidebar do %>
+        <%= render FlatPack::Sidebar::Component.new do |sidebar| %>
+          <% sidebar.header do %>
+            <%= render FlatPack::Sidebar::Header::Component.new(brand_abbr: "RS", title: "RecordingStudio") %>
+          <% end %>
+        <% end %>
+      <% end %>
+
+      <% layout.main do %>
+        <main class="mx-auto w-full max-w-7xl p-6">
+          <%= yield %>
+        </main>
+      <% end %>
+    <% end %>
+
+    <%= before_body_end if before_body_end.present? %>
+  </body>
+</html>
