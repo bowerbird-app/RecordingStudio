@@ -107,6 +107,13 @@ class InitializersTest < Minitest::Test
     refute_nil matching_call
   end
 
+  def test_default_layout_initializer_applies_shared_layout_concern
+    load initializer_path("recording_studio_default_layout")
+    Rails.application.reloader.prepare!
+
+    assert_includes RecordingStudio::ApplicationController.included_modules, RecordingStudio::UsesDefaultLayout
+  end
+
   private
 
   def initializer_path(name)

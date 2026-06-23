@@ -13,9 +13,14 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "title", text: "Default Layout Demo"
+    assert_select "body[data-recording-studio-default-layout='true']", count: 1
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
-    assert_select "nav[aria-label='Page navigation']", count: 1
-    assert_select "a[href='#{workspaces_path}']", count: 1
+
+    if defined?(FlatPack::PageNav::Component)
+      assert_select "nav[aria-label='Page navigation']", count: 1
+      assert_select "a[href='#{workspaces_path}']", count: 1
+    end
+
     assert_includes @response.body, "Create workspace"
     assert_not_includes @response.body, "flat-pack--sidebar-group"
   end

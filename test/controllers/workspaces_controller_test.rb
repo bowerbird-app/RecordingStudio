@@ -14,8 +14,10 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     get workspaces_path, headers: modern_headers
 
     assert_response :success
+    assert_select "body[data-recording-studio-default-layout='true']", count: 1
     assert_includes @response.body, @workspace.name
     assert_includes @response.body, "bg-[var(--button-primary-background-color)]"
+    assert_not_includes @response.body, "flat-pack--sidebar-group"
   end
 
   test "create also creates a root recording" do
