@@ -11,6 +11,7 @@ class LayoutHelperTest < ActionView::TestCase
       page_nav_anchor_url: "/workspaces",
       page_nav_anchor_icon: "x-mark",
       page_nav_anchor_label: "Close",
+      page_nav_back_url: "/previous",
       page_nav_back_icon: "arrow-left",
       page_nav_back_label: "Back",
       page_nav_back_style: :ghost,
@@ -21,6 +22,7 @@ class LayoutHelperTest < ActionView::TestCase
     assert_equal "/workspaces", content_for(:page_nav_anchor_url)
     assert_equal "x-mark", content_for(:page_nav_anchor_icon)
     assert_equal "Close", content_for(:page_nav_anchor_label)
+    assert_equal "/previous", content_for(:page_nav_back_url)
     assert_equal "arrow-left", content_for(:page_nav_back_icon)
     assert_equal "Back", content_for(:page_nav_back_label)
     assert_equal "ghost", content_for(:page_nav_back_style)

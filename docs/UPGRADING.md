@@ -339,9 +339,10 @@ parent list), use the anchor slot as a styled back link:
 
 The PageNav has two independent positions:
 
-- **Left side (back):** Configured via `page_nav_back_*` slots. Rendered
-  automatically by `FlatPack::PageNav::Component`. Use this for the
-  primary navigation action (e.g., browser-history back).
+- **Left side (back):** Always rendered. Configured via `page_nav_back_*`
+  slots. Falls back to `history.back()` (via button `onclick`) when no
+  `page_nav_back_url` is set. Rendered automatically by
+  `FlatPack::PageNav::Component`.
 - **Right side (anchor + right slot):** Configured via `page_nav_anchor_*`
   slots and `recording_studio_page_nav_right`. The anchor button only
   appears when `page_nav_anchor_url` is set. Use the anchor for close,
@@ -374,6 +375,8 @@ Pass any of these as keyword arguments to `recording_studio_page_nav`:
 - `page_nav_anchor_url` — URL for the anchor (close) button. Omit to hide.
 - `page_nav_anchor_icon` — Icon for the anchor button (default: `"x-mark"`).
 - `page_nav_anchor_label` — ARIA label for the anchor button (default: `"Close"`).
+- `page_nav_back_url` — URL for the back button. Omit to use browser history
+  back via `history.back()`. The back button is always rendered.
 - `page_nav_back_icon` — Icon for the back button (default: `"chevron-left"`).
 - `page_nav_back_label` — Label for the back button (default: `"Go back"`).
 - `page_nav_back_style` — FlatPack button style for back (default: `"secondary"`).

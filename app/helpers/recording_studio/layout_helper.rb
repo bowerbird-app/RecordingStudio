@@ -6,6 +6,7 @@ module RecordingStudio
       page_nav_anchor_url
       page_nav_anchor_icon
       page_nav_anchor_label
+      page_nav_back_url
       page_nav_back_icon
       page_nav_back_label
       page_nav_back_style

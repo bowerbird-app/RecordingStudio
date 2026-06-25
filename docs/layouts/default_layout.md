@@ -75,6 +75,7 @@ The layout reads optional `content_for` slots:
 - `:page_nav_back_label`
 - `:page_nav_back_style`
 - `:page_nav_back_size`
+- `:page_nav_back_url`
 - `:page_nav_right` (block content rendered into `PageNav` right slot)
 
 ## Helper API
@@ -103,10 +104,12 @@ If no nav config is provided:
 | `page_nav_back_label` | `"Go back"` |
 | `page_nav_back_style` | `:"secondary"` |
 | `page_nav_back_size` | `:"md"` |
+| `page_nav_back_url` | `nil` (back button always shown; when URL is absent, uses `history.back()` via button onclick) |
 | `page_nav_anchor_icon` | `"x-mark"` |
 | `page_nav_anchor_label` | `"Close"` |
 | Anchor action | Hidden (no `page_nav_anchor_url` provided) |
 | Right slot | Empty |
+| Back action | Always rendered; uses `page_nav_back_url` when set, otherwise falls back to `history.back()` via a button |
 
 ## Migration Example
 

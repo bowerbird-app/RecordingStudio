@@ -58,7 +58,9 @@
         anchor_icon: content_for(:page_nav_anchor_icon).presence || "x-mark",
         anchor_label: content_for(:page_nav_anchor_label).presence || "Close"
       } %>
+      <% back_url = content_for(:page_nav_back_url).presence %>
       <% anchor_url = content_for(:page_nav_anchor_url).presence %>
+      <% page_nav_options[:back_url] = back_url if back_url.present? %>
       <% page_nav_options[:anchor_url] = anchor_url if anchor_url.present? %>
 
       <div class="mb-4">
@@ -73,34 +75,63 @@
             <%= render FlatPack::PageNav::Component.new(**page_nav_options) %>
           <% end %>
         <% else %>
-          <% show_fallback_nav = anchor_url.present? || content_for?(:page_nav_right) %>
-          <% if show_fallback_nav %>
-            <nav aria-label="Page navigation" class="flex items-center justify-between gap-3">
-              <div>
-                <% if anchor_url.present? %>
-                  <% if defined?(FlatPack::Button::Component) %>
-                    <%= render FlatPack::Button::Component.new(
-                      icon: page_nav_options[:anchor_icon],
-                      icon_only: true,
-                      style: :secondary,
-                      size: :md,
-                      url: anchor_url,
-                      aria: { label: page_nav_options[:anchor_label] }
-                    ) %>
-                  <% else %>
-                    <a href="<%= anchor_url %>" class="inline-flex items-center gap-2 text-sm font-medium text-(--surface-content-color)">
-                      <%= content_for(:page_nav_anchor_label).presence || "Close" %>
-                    </a>
-                  <% end %>
+          <nav aria-label="Page navigation" class="flex items-center justify-between gap-3">
+            <div>
+              <% if defined?(FlatPack::Button::Component) %>
+                <% if back_url.present? %>
+                  <%= render FlatPack::Button::Component.new(
+                    icon: page_nav_options[:back_icon],
+                    icon_only: true,
+                    style: page_nav_options[:back_style],
+                    size: page_nav_options[:back_size],
+                    url: back_url,
+                    aria: { label: page_nav_options[:back_label] }
+                  ) %>
+                <% else %>
+                  <%= render FlatPack::Button::Component.new(
+                    icon: page_nav_options[:back_icon],
+                    icon_only: true,
+                    style: page_nav_options[:back_style],
+                    size: page_nav_options[:back_size],
+                    tag: :button,
+                    html_options: { onclick: "history.back()" },
+                    aria: { label: page_nav_options[:back_label] }
+                  ) %>
                 <% end %>
-              </div>
-              <% if content_for?(:page_nav_right) %>
-                <div class="flex items-center justify-end">
-                  <%= yield :page_nav_right %>
-                </div>
+                <% if anchor_url.present? %>
+                  <%= render FlatPack::Button::Component.new(
+                    icon: page_nav_options[:anchor_icon],
+                    icon_only: true,
+                    style: :secondary,
+                    size: :md,
+                    url: anchor_url,
+                    aria: { label: page_nav_options[:anchor_label] },
+                    class: "ml-2"
+                  ) %>
+                <% end %>
+              <% else %>
+                <% if back_url.present? %>
+                  <a href="<%= back_url %>" class="inline-flex items-center gap-2 text-sm font-medium text-(--surface-content-color)">
+                    <%= page_nav_options[:back_label] %>
+                  </a>
+                <% else %>
+                  <button onclick="history.back()" class="inline-flex items-center gap-2 text-sm font-medium text-(--surface-content-color) cursor-pointer">
+                    <%= page_nav_options[:back_label] %>
+                  </button>
+                <% end %>
+                <% if anchor_url.present? %>
+                  <a href="<%= anchor_url %>" class="inline-flex items-center gap-2 text-sm font-medium text-(--surface-content-color) ml-2">
+                    <%= content_for(:page_nav_anchor_label).presence || "Close" %>
+                  </a>
+                <% end %>
               <% end %>
-            </nav>
-          <% end %>
+            </div>
+            <% if content_for?(:page_nav_right) %>
+              <div class="flex items-center justify-end">
+                <%= yield :page_nav_right %>
+              </div>
+            <% end %>
+          </nav>
         <% end %>
       </div>
 
