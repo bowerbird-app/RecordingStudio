@@ -222,9 +222,15 @@ a lightweight helper API to configure page nav metadata.
 
 - `FlatPack::PageNav::Component` rendered at the top of every page.
 - Direct page body rendering (no extra content wrapper).
-- Standard `yield :head` support for metadata.
+- Standard `yield :head` support for metadata, plus optional
+  `recording_studio/_recording_studio_head` partial auto-detection.
+- Automatic OpenGraph tags (og:title, og:type, og:url, og:description,
+  og:image, og:site_name) for SEO, plus optional `<meta name="description">`.
 - Flash notice/alert rendering with `FlatPack::Alert::Component`.
 - Automatic fallbacks when FlatPack components are unavailable.
+- Configurable app name via `RecordingStudio.configuration.app_name`
+  (defaults to `"RecordingStudio"`) used as the `<title>` and `og:site_name`
+  fallback.
 - Safe defaults: no anchor action, empty right slot, title falls back to
   `RecordingStudio`.
 
@@ -356,12 +362,15 @@ shared default.
 | `recording_studio_page_nav(title:, **slots)` | Sets the page `<title>` and configures PageNav slots. |
 | `recording_studio_page_nav_right { ... }` | Renders block content into the PageNav right slot. |
 | `recording_studio_head { ... }` | Appends block content to the `<head>` element. |
+| `recording_studio_seo_description(text)` | Sets `<meta name="description">` and `og:description` tags. |
+| `recording_studio_seo_image(url)` | Sets `<meta property="og:image">` tag. |
 
 ### Supported Slot Keys
 
 Pass any of these as keyword arguments to `recording_studio_page_nav`:
 
-- `title` — Sets `<title>` and falls back to `"RecordingStudio"`.
+- `title` — Sets `<title>`. Falls back to `RecordingStudio.configuration.app_name`
+  and then to `"RecordingStudio"`.
 - `page_nav_anchor_url` — URL for the anchor (close) button. Omit to hide.
 - `page_nav_anchor_icon` — Icon for the anchor button (default: `"x-mark"`).
 - `page_nav_anchor_label` — ARIA label for the anchor button (default: `"Close"`).
@@ -369,6 +378,10 @@ Pass any of these as keyword arguments to `recording_studio_page_nav`:
 - `page_nav_back_label` — Label for the back button (default: `"Go back"`).
 - `page_nav_back_style` — FlatPack button style for back (default: `"secondary"`).
 - `page_nav_back_size` — FlatPack button size for back (default: `"md"`).
+- `seo_description` — Set via `recording_studio_seo_description(text)`; renders
+  `<meta name="description">` and `og:description` when present.
+- `seo_image` — Set via `recording_studio_seo_image(url)`; renders `og:image`
+  when present.
 
 ### Testing Your Layout Adoption
 

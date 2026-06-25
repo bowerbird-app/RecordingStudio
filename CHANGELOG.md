@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * add `docs/layouts/default_layout.md` with full usage guide and slot contract reference
 * add dummy app demo route at `/layout_demo` showing default layout with PageNav, right slot, and head metadata
 * add test coverage for layout helper, layout rendering, and initializer wiring
+* add `RecordingStudio.configuration.app_name` for customizable `<title>` and `og:site_name` fallback (defaults to `"RecordingStudio"`)
+* add OpenGraph meta tag support (og:title, og:type, og:url, og:description, og:image, og:site_name) with automatic rendering
+* add `recording_studio_seo_description` and `recording_studio_seo_image` helper methods for SEO metadata
+* add optional `recording_studio/_recording_studio_head` partial auto-detection for sub-gem `<head>` injection
 
 ### Migration Notes
 
