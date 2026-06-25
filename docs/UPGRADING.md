@@ -326,30 +326,31 @@ _After (PageNav with helper API):_
 ```
 
 For a back-navigation pattern (e.g., a "New" form that navigates back to the
-parent list), use the anchor slot as a styled back link:
+parent list), use `page_nav_back_url` to set the left-side back button:
 
 ```erb
 <% recording_studio_page_nav(
   title: "New Workspace",
-  page_nav_anchor_url: workspaces_path,
-  page_nav_anchor_icon: "chevron-left",
-  page_nav_anchor_label: "Workspaces"
+  page_nav_back_url: workspaces_path,
+  page_nav_back_icon: "chevron-left",
+  page_nav_back_label: "Workspaces"
 ) %>
 ```
 
-The PageNav has two independent positions:
+You can also combine both sides — the back button on the left and an anchor
+or custom actions on the right — they are independent:
 
-- **Left side (back):** Always rendered. Configured via `page_nav_back_*`
-  slots. Falls back to `history.back()` (via button `onclick`) when no
-  `page_nav_back_url` is set. Rendered automatically by
-  `FlatPack::PageNav::Component`.
-- **Right side (anchor + right slot):** Configured via `page_nav_anchor_*`
-  slots and `recording_studio_page_nav_right`. The anchor button only
-  appears when `page_nav_anchor_url` is set. Use the anchor for close,
-  home, or a secondary navigation target.
-
-You can use both sides simultaneously — the back button on the left and an
-anchor or custom actions on the right — they are independent.
+```erb
+<% recording_studio_page_nav(
+  title: "New Workspace",
+  page_nav_back_url: workspaces_path,
+  page_nav_back_icon: "chevron-left",
+  page_nav_back_label: "Workspaces",
+  page_nav_anchor_url: root_path,
+  page_nav_anchor_icon: "home",
+  page_nav_anchor_label: "Home"
+) %>
+```
 
 **Step 3: Remove any existing sidebar or custom layout that duplicates what
 the default layout already provides.** The default layout is sidebar-free;

@@ -162,19 +162,32 @@ _After — PageNav with helper API:_
 ) %>
 ```
 
-For a back-navigation form (e.g., "New Workspace"), repurpose the anchor slot
-as a styled back link:
+For a back-navigation form (e.g., "New Workspace"), use
+`page_nav_back_url` to set the left-side back button:
 
 ```erb
 <% recording_studio_page_nav(
   title: "New Workspace",
-  page_nav_anchor_url: workspaces_path,
-  page_nav_anchor_icon: "chevron-left",
-  page_nav_anchor_label: "Workspaces"
+  page_nav_back_url: workspaces_path,
+  page_nav_back_icon: "chevron-left",
+  page_nav_back_label: "Workspaces"
 ) %>
 ```
 
-The PageNav has two independent positions:
+Both sides are independent — you can combine the back button with an anchor
+or custom right-slot actions on the same page:
+
+```erb
+<% recording_studio_page_nav(
+  title: "New Workspace",
+  page_nav_back_url: workspaces_path,
+  page_nav_back_icon: "chevron-left",
+  page_nav_back_label: "Workspaces",
+  page_nav_anchor_url: root_path,
+  page_nav_anchor_icon: "home",
+  page_nav_anchor_label: "Home"
+) %>
+```
 
 - **Left side (back):** Configured via `page_nav_back_*` slots. Rendered
   automatically by `FlatPack::PageNav::Component`. Use this for the
