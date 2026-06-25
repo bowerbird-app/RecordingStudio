@@ -401,6 +401,8 @@ actions as needed.
 | Right actions | Embedded in `PageTitle` actions slot | `recording_studio_page_nav_right { ... }` |
 | Head metadata | Manual `content_for :head` | `recording_studio_head { ... }` |
 | Flash messages | Per-view or per-layout | Rendered automatically by layout |
+| SEO description | Not available | `recording_studio_seo_description(...)` helper |
+| SEO / OG image | Not available | `recording_studio_seo_image(...)` helper |
 
 ### Addon Author Notes
 
@@ -411,6 +413,37 @@ per-addon layout maintenance.
 
 If your addon needs a sidebar, create a layout that inherits from or wraps
 `recording_studio/default_layout` rather than duplicating the PageNav shell.
+
+#### Injecting shared `<head>` content
+
+Sub-gems can provide `recording_studio/_recording_studio_head.html.erb` in
+their view paths to inject shared `<head>` markup (stylesheets, meta tags,
+analytics scripts, etc.) without requiring every consumer view to include
+`recording_studio_head` blocks. The layout automatically detects and renders
+this partial before `yield :head`.
+
+```erb
+<%# app/views/recording_studio/_recording_studio_head.html.erb %>
+<link rel="stylesheet" href="<%= asset_path("my_addon/styles.css") %>">
+<meta name="my-addon-version" content="<%= MyAddon::VERSION %>">
+```
+
+#### Configuring the app name
+
+Set a custom app name for title and `og:site_name` fallbacks:
+
+```ruby
+# config/initializers/recording_studio.rb
+RecordingStudio.configure do |config|
+  config.app_name = "My App"
+end
+```
+
+The title fallback chain is:
+
+1. `content_for(:title)` — set per-view
+2. `RecordingStudio.configuration.app_name` — configurable globally
+3. `"RecordingStudio"` — final hardcoded default
 
 Full documentation is at `docs/layouts/default_layout.md`. A working demo is
 available in the dummy app at `/layout_demo`.
