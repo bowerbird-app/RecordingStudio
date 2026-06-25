@@ -8,6 +8,9 @@
   <meta name="recording-studio-demo" content="default-layout">
 <% end %>
 
+<% recording_studio_seo_description("RecordingStudio layout demo page with PageNav, SEO, and OpenGraph support") %>
+<% recording_studio_seo_image("https://example.com/og-image.png") %>
+
 <% recording_studio_page_nav_right do %>
   <%= render FlatPack::Button::Component.new(text: "Create workspace", style: :secondary, url: new_workspace_path) %>
 <% end %>

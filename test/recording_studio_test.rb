@@ -4,6 +4,8 @@ require "test_helper"
 
 class RecordingStudioTest < Minitest::Test
   def setup
+    @original_app_name = RecordingStudio.configuration.app_name
+    RecordingStudio.configuration.app_name = "RecordingStudio"
     @original_registered_capabilities = RecordingStudio.registered_capabilities.transform_values(&:dup)
     @original_capabilities =
       RecordingStudio.configuration.instance_variable_get(:@capabilities).transform_values(&:dup)
@@ -14,6 +16,7 @@ class RecordingStudioTest < Minitest::Test
   end
 
   def teardown
+    RecordingStudio.configuration.app_name = @original_app_name
     RecordingStudio.instance_variable_set(:@registered_capabilities, @original_registered_capabilities)
     RecordingStudio.configuration.instance_variable_set(:@capabilities, @original_capabilities)
     RecordingStudio.configuration.instance_variable_set(:@capability_options, @original_capability_options)
@@ -25,6 +28,18 @@ class RecordingStudioTest < Minitest::Test
 
   def test_engine_exists
     assert_kind_of Class, ::RecordingStudio::Engine
+  end
+
+  def test_app_name_configuration_default
+    assert_equal "RecordingStudio", RecordingStudio.configuration.app_name
+  end
+
+  def test_app_name_configuration_configured
+    original = RecordingStudio.configuration.app_name
+    RecordingStudio.configure { |c| c.app_name = "My Custom App" }
+    assert_equal "My Custom App", RecordingStudio.configuration.app_name
+  ensure
+    RecordingStudio.configuration.app_name = original
   end
 
   def test_register_capability_applies_capability_without_manual_apply

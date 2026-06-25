@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title).presence || "RecordingStudio" %></title>
+    <% rs_config = RecordingStudio.configuration %>
+    <% app_name = (rs_config.respond_to?(:app_name) ? rs_config.app_name : nil) || "RecordingStudio" %>
+    <title><%= content_for(:title).presence || app_name %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
@@ -12,7 +14,30 @@
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "flat_pack/variables", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "flat_pack/rich_text", "data-turbo-track": "reload" %>
+    <% if lookup_context.exists?("recording_studio/recording_studio_head", [], true) %>
+      <%= render "recording_studio/recording_studio_head" %>
+    <% end %>
     <%= yield :head %>
+    <% page_title = content_for(:title).presence || app_name %>
+    <% seo_description = content_for(:seo_description) %>
+    <% seo_image = content_for(:seo_image) %>
+
+    <% if seo_description.present? %>
+      <meta name="description" content="<%= seo_description %>">
+    <% end %>
+    <% if seo_image.present? %>
+      <meta property="og:image" content="<%= seo_image %>">
+    <% end %>
+
+    <meta property="og:title" content="<%= page_title %>">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<%= request.original_url %>">
+    <% if seo_description.present? %>
+      <meta property="og:description" content="<%= seo_description %>">
+    <% end %>
+    <% site_name = rs_config.respond_to?(:app_name) ? rs_config.app_name : nil %>
+    <% site_name = site_name.presence || page_title %>
+    <meta property="og:site_name" content="<%= site_name %>">
     <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
   </head>
 

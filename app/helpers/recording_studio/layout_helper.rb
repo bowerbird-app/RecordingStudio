@@ -36,5 +36,15 @@ module RecordingStudio
       content_for(:head, &) if block_given?
       nil
     end
+
+    def recording_studio_seo_description(text)
+      content_for(:seo_description, text) if text.present?
+      nil
+    end
+
+    def recording_studio_seo_image(url)
+      content_for(:seo_image, url) if url.present?
+      nil
+    end
   end
 end

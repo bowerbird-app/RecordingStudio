@@ -21,5 +21,21 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
 
     assert_includes @response.body, "Create workspace"
     assert_not_includes @response.body, "flat-pack--sidebar-group"
+
+    # SEO / OpenGraph meta tags
+    assert_select "meta[property='og:title'][content='Default Layout Demo']", count: 1
+    assert_select "meta[property='og:type'][content='website']", count: 1
+    assert_select "meta[name='description'][content*='SEO']", count: 1
+    assert_select "meta[property='og:image'][content='https://example.com/og-image.png']", count: 1
+    assert_select "meta[property='og:site_name'][content='Custom App Name']", count: 1
+    assert_select "meta[property='og:description'][content*='SEO']", count: 1
+  end
+
+  test "show falls back to configured app_name when no title content_for is set" do
+    get layout_demo_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "title", text: "Default Layout Demo"
+    assert_select "meta[property='og:site_name'][content='Custom App Name']", count: 1
   end
 end

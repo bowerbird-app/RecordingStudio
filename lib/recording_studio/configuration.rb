@@ -11,7 +11,8 @@ module RecordingStudio
       :impersonator,
       :event_notifications_enabled,
       :idempotency_mode,
-      :recordable_dup_strategy
+      :recordable_dup_strategy,
+      :app_name
     )
     attr_reader :recordable_types, :hooks, :recordable_dup_strategies, :require_recordable_declarations
 
@@ -27,6 +28,7 @@ module RecordingStudio
       @require_recordable_declarations = true
       @recordable_dup_strategies = {}
       @hooks = Hooks.new
+      @app_name = "RecordingStudio"
     end
 
     def instrumentation_enabled

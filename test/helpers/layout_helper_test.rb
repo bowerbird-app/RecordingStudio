@@ -38,4 +38,16 @@ class LayoutHelperTest < ActionView::TestCase
 
     assert_includes content_for(:head), "name=\"demo\""
   end
+
+  def test_recording_studio_seo_description_sets_slot
+    recording_studio_seo_description("Test description for SEO")
+
+    assert_equal "Test description for SEO", content_for(:seo_description)
+  end
+
+  def test_recording_studio_seo_image_sets_slot
+    recording_studio_seo_image("https://example.com/image.png")
+
+    assert_equal "https://example.com/image.png", content_for(:seo_image)
+  end
 end
