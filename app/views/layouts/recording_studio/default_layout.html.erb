@@ -16,7 +16,7 @@
     <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
   </head>
 
-  <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true">
+  <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true" data-theme="<%= content_for(:body_theme).presence || 'rounded' %>">
     <main class="mx-auto min-h-screen w-full max-w-4xl p-6">
       <% if flash[:notice].present? %>
         <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-4") %>

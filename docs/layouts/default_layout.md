@@ -63,6 +63,7 @@ The layout reads optional `content_for` slots:
 
 - `:head`
 - `:title`
+- `:body_theme`
 - `:page_nav_anchor_url`
 - `:page_nav_anchor_icon`
 - `:page_nav_anchor_label`
@@ -87,6 +88,7 @@ If no nav config is provided:
 | Slot | Default |
 | --- | --- |
 | Title | `"RecordingStudio"` |
+| `body_theme` | `"rounded"` |
 | `page_nav_back_icon` | `"chevron-left"` |
 | `page_nav_back_label` | `"Go back"` |
 | `page_nav_back_style` | `:"secondary"` |
