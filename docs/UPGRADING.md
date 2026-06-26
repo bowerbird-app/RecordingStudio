@@ -99,9 +99,10 @@ class Page < ApplicationRecord
 end
 ```
 
-The mixin should call `RecordingStudio.enable_capability(:accessible, on: name)`. Capability-owned child recordables
-must still be declared and non-root, but they may derive parent allowance from enabled capabilities instead of a static
-`allowed_parent_types:` list.
+The mixin should call `RecordingStudio.enable_capability(:accessible, on: name)`. Core then derives the effective parent
+allowance for `RecordingStudio::Access` under `Page`. Capability-owned child recordables must be registered, declared,
+and non-root. `source:` is required when `child_recordables:` is present and is provenance metadata, not an authentication
+boundary.
 
 5. If you need a staged migration, temporarily disable strict missing-declaration enforcement.
 
@@ -202,7 +203,7 @@ boundary.
 
 ## Adopting the Shared Default Layout
 
-RecordingStudio `3.0.0` ships a reusable layout for addon gems at
+RecordingStudio `3.0.1` ships a reusable layout for addon gems at
 `app/views/layouts/recording_studio/default_layout.html.erb`. It provides a
 `FlatPack::PageNav::Component` shell with standard Rails layout structure and
 safe defaults. Addon controllers can opt in with a single concern include and
