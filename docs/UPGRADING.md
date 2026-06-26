@@ -223,7 +223,7 @@ a lightweight helper API to configure page nav metadata.
 - `FlatPack::PageNav::Component` rendered at the top of every page.
 - Direct page body rendering (no extra content wrapper).
 - Standard `yield :head` support for metadata, plus optional
-  `recording_studio/_recording_studio_head` partial auto-detection.
+  `default_layout_head` partial auto-detection.
 - Automatic OpenGraph tags (og:title, og:type, og:url, og:description,
   og:image, og:site_name) for SEO, plus optional `<meta name="description">`.
 - Flash notice/alert rendering with `FlatPack::Alert::Component`.
@@ -380,7 +380,7 @@ shared default.
 | --- | --- |
 | `recording_studio_page_nav(title:, **slots)` | Sets the page `<title>` and configures PageNav slots. |
 | `recording_studio_page_nav_right { ... }` | Renders block content into the PageNav right slot. |
-| `recording_studio_head { ... }` | Appends block content to the `<head>` element. |
+| `default_layout_head { ... }` | Appends block content to the `<head>` element. |
 | `recording_studio_seo_description(text)` | Sets `<meta name="description">` and `og:description` tags. |
 | `recording_studio_seo_image(url)` | Sets `<meta property="og:image">` tag. |
 
@@ -433,7 +433,7 @@ actions as needed.
 | Page chrome | Manual `FlatPack::Breadcrumb::Component` | `FlatPack::PageNav::Component` (automatic) |
 | Page nav config | `content_for` scattered across views | `recording_studio_page_nav(...)` helper |
 | Right actions | Embedded in `PageTitle` actions slot | `recording_studio_page_nav_right { ... }` |
-| Head metadata | Manual `content_for :head` | `recording_studio_head { ... }` |
+| Head metadata | Manual `content_for :head` | `default_layout_head { ... }` |
 | Flash messages | Per-view or per-layout | Rendered automatically by layout |
 | SEO description | Not available | `recording_studio_seo_description(...)` helper |
 | SEO / OG image | Not available | `recording_studio_seo_image(...)` helper |
@@ -450,16 +450,14 @@ If your addon needs a sidebar, create a layout that inherits from or wraps
 
 #### Injecting shared `<head>` content
 
-Sub-gems can provide `recording_studio/_recording_studio_head.html.erb` in
+Sub-gems can provide `recording_studio/_default_layout_head.html.erb` in
 their view paths to inject shared `<head>` markup (stylesheets, meta tags,
 analytics scripts, etc.) without requiring every consumer view to include
-`recording_studio_head` blocks. The layout automatically detects and renders
+`default_layout_head` blocks. The layout automatically detects and renders
 this partial before `yield :head`.
 
 ```erb
-<%# app/views/recording_studio/_recording_studio_head.html.erb %>
-<link rel="stylesheet" href="<%= asset_path("my_addon/styles.css") %>">
-<meta name="my-addon-version" content="<%= MyAddon::VERSION %>">
+<%# app/views/recording_studio/_default_layout_head.html.erb %>
 ```
 
 #### Configuring the app name

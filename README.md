@@ -935,14 +935,36 @@ Open `http://localhost:3000/` for the dummy app home page. Useful demo routes in
 
 ## Shared Default Layout
 
-RecordingStudio provides a reusable layout contract for addon gems at:
+RecordingStudio provides a reusable layout contract for addon gems at
+`app/views/layouts/recording_studio/default_layout.html.erb`. The layout
+renders a `FlatPack::PageNav::Component` shell, flash alerts, automatic
+OpenGraph meta tags, and yields page content directly.
 
-- `app/views/layouts/recording_studio/default_layout.html.erb`
+Opt in from any controller with a single concern:
 
-The layout provides a shared PageNav shell and then yields page content directly.
+```ruby
+class WorkspacesController < ApplicationController
+  include RecordingStudio::UsesDefaultLayout
+end
+```
 
-Use `RecordingStudio::UsesDefaultLayout` in addon controllers to opt into this shell, then configure page nav metadata
-with `RecordingStudio::LayoutHelper`.
+Configure page navigation, SEO metadata, and `<head>` content from your views
+with `RecordingStudio::LayoutHelper`:
+
+- `recording_studio_page_nav(title:, **slots)` — set the page title and PageNav slots
+- `recording_studio_page_nav_right { ... }` — render content into the PageNav right slot
+- `default_layout_head { ... }` — append content to `<head>`
+- `recording_studio_seo_description(text)` — set `<meta name="description">` and `og:description`
+- `recording_studio_seo_image(url)` — set `og:image`
+
+Set a custom app name for `<title>` and `og:site_name` fallback:
+
+```ruby
+RecordingStudio.configure { |config| config.app_name = "My App" }
+```
+
+A `data-theme="rounded"` attribute is applied to `<body>` by default; override
+it per-view with `content_for(:body_theme, "your-theme")`.
 
 Full usage details are documented in:
 

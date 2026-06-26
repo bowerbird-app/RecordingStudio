@@ -13,7 +13,7 @@
 - `FlatPack::PageNav::Component` rendered at the top.
 - Flash notice/alert rendering via `FlatPack::Alert::Component`.
 - Direct page body rendering (the layout does not add an extra content wrapper).
-- Standard Rails layout structure with `yield :head` support and optional `recording_studio/_recording_studio_head` partial.
+- Standard Rails layout structure with `yield :head` support and optional `recording_studio/_default_layout_head` partial.
 - SEO support: meta description, OpenGraph tags (og:title, og:type, og:url, og:description, og:image, og:site_name).
 - Automatic fallbacks when FlatPack components are unavailable.
 - Safe defaults when no page-nav metadata is provided.
@@ -84,7 +84,7 @@ Use helper methods instead of setting all slots manually:
 
 - `recording_studio_page_nav(title: nil, **slot_values)`
 - `recording_studio_page_nav_right { ... }`
-- `recording_studio_head { ... }`
+- `default_layout_head { ... }`
 - `recording_studio_seo_description(text)`
 - `recording_studio_seo_image(url)`
 
@@ -243,7 +243,7 @@ The title fallback chain is:
 
 ### Optional `_head` partial
 
-Sub-gems can provide `recording_studio/_recording_studio_head.html.erb` in their view paths.
+Sub-gems can provide `recording_studio/_default_layout_head.html.erb` in their view paths.
 The layout automatically renders this partial when it exists (before `yield :head`), and silently
 skips it when absent. This lets addons inject shared `<head>` content (meta tags, scripts, etc.)
 without consumers needing to include it in every view.

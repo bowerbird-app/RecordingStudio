@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * add `RecordingStudio.configuration.app_name` for customizable `<title>` and `og:site_name` fallback (defaults to `"RecordingStudio"`)
 * add OpenGraph meta tag support (og:title, og:type, og:url, og:description, og:image, og:site_name) with automatic rendering
 * add `recording_studio_seo_description` and `recording_studio_seo_image` helper methods for SEO metadata
-* add optional `recording_studio/_recording_studio_head` partial auto-detection for sub-gem `<head>` injection
+* add optional `recording_studio/_default_layout_head` partial auto-detection for sub-gem `<head>` injection
 
 ### Migration Notes
 

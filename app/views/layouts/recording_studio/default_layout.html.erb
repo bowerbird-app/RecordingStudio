@@ -2,7 +2,7 @@
 <html>
   <head>
     <% rs_config = RecordingStudio.configuration %>
-    <% app_name = (rs_config.respond_to?(:app_name) ? rs_config.app_name : nil) || "RecordingStudio" %>
+    <% app_name = (rs_config.respond_to?(:app_name) ? rs_config.app_name : nil) || "CHANGE_APP_NAME_IN_DEFAULT_LAYOUT" %>
     <title><%= content_for(:title).presence || app_name %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link rel="icon" href="/icon.png" type="image/png">
@@ -14,8 +14,8 @@
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "flat_pack/variables", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "flat_pack/rich_text", "data-turbo-track": "reload" %>
-    <% if lookup_context.exists?("recording_studio/recording_studio_head", [], true) %>
-      <%= render "recording_studio/recording_studio_head" %>
+    <% if lookup_context.exists?("recording_studio/default_layout_head", [], true) %>
+      <%= render "recording_studio/default_layout_head" %>
     <% end %>
     <%= yield :head %>
     <% page_title = content_for(:title).presence || app_name %>
@@ -63,7 +63,7 @@
       <% page_nav_options[:back_url] = back_url if back_url.present? %>
       <% page_nav_options[:anchor_url] = anchor_url if anchor_url.present? %>
 
-      <div class="mb-4">
+      <div class="my-4">
         <% if defined?(FlatPack::PageNav::Component) %>
           <% if content_for?(:page_nav_right) %>
             <%= render FlatPack::PageNav::Component.new(**page_nav_options) do |page_nav| %>

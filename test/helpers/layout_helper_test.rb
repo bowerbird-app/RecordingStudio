@@ -35,8 +35,8 @@ class LayoutHelperTest < ActionView::TestCase
     assert_includes content_for(:page_nav_right), "Right slot action"
   end
 
-  def test_recording_studio_head_sets_head_slot_content
-    recording_studio_head { tag.meta(name: "demo", content: "1") }
+  def test_default_layout_head_sets_head_slot_content
+    default_layout_head { tag.meta(name: "demo", content: "1") }
 
     assert_includes content_for(:head), "name=\"demo\""
   end

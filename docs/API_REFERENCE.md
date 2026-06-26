@@ -506,7 +506,7 @@ or manually add `helper RecordingStudio::LayoutHelper`.
 | --- | --- | --- | --- |
 | `recording_studio_page_nav(title:, **slot_values)` | optional title and page-nav slot keys | `nil` | Sets `content_for` slots for `FlatPack::PageNav::Component` configuration. |
 | `recording_studio_page_nav_right(&block)` | block | `nil` | Renders block content into the PageNav right slot. |
-| `recording_studio_head(&block)` | block | `nil` | Adds block content to `<head>` via `yield :head`. |
+| `default_layout_head(&block)` | block | `nil` | Adds block content to `<head>` via `yield :head`. |
 
 ### SEO helpers
 

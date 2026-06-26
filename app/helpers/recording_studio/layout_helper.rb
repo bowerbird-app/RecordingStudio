@@ -33,7 +33,7 @@ module RecordingStudio
       nil
     end
 
-    def recording_studio_head(&)
+    def default_layout_head(&)
       content_for(:head, &) if block_given?
       nil
     end
