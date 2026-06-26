@@ -236,6 +236,23 @@ a lightweight helper API to configure page nav metadata.
 
 ### Opting In
 
+**Step 0 (optional): Configure the app name and data-theme.**
+
+Set a custom app name for `<title>` and `og:site_name` fallback (defaults to
+`"RecordingStudio"`):
+
+```ruby
+# config/initializers/recording_studio.rb
+RecordingStudio.configure do |config|
+  config.app_name = "My App"
+end
+```
+
+The layout applies `data-theme="rounded"` to `<body>` by default. Override it
+per-view with `content_for(:body_theme, "your-theme")`. If your existing layout
+already sets a `<body>` theme, make sure to include the `:body_theme` slot or
+your body classes won't carry over.
+
 **Step 1: Include the concern in your controller.**
 
 ```ruby
