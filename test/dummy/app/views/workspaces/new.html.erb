@@ -1,12 +1,11 @@
-<% content_for :title, "New Workspace" %>
+<% recording_studio_page_nav(
+  title: "New Workspace",
+  page_nav_back_url: workspaces_path,
+  page_nav_back_icon: "chevron-left",
+  page_nav_back_label: "Workspaces"
+) %>
 
-<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
-  <% breadcrumb.item(text: "Home", href: root_path) %>
-  <% breadcrumb.item(text: "Workspaces", href: workspaces_path) %>
-  <% breadcrumb.item(text: "New") %>
-<% end %>
-
-<%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg, class: "max-w-2xl") do %>
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg, class: "") do %>
   <%= render FlatPack::PageTitle::Component.new(
     title: "New Workspace",
     subtitle: "Create a container for recordings.",

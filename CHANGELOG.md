@@ -5,7 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.0.1] - 2026-06-26
+
+### Added
+
+* add shared default layout (`recording_studio/default_layout`) with `RecordingStudio::UsesDefaultLayout` concern and `RecordingStudio::LayoutHelper` for addon gems
+* add `docs/layouts/default_layout.md` with full usage guide and slot contract reference
+* add dummy app demo route at `/layout_demo` showing default layout with PageNav, right slot, and head metadata
+* add test coverage for layout helper, layout rendering, and initializer wiring
+* add `RecordingStudio.configuration.app_name` for customizable `<title>` and `og:site_name` fallback (defaults to `"RecordingStudio"`)
+* add OpenGraph meta tag support (og:title, og:type, og:url, og:description, og:image, og:site_name) with automatic rendering
+* add `recording_studio_seo_description` and `recording_studio_seo_image` helper methods for SEO metadata
+* add optional `recording_studio/_default_layout_head` partial auto-detection for sub-gem `<head>` injection
+
+### Migration Notes
+
+- See [docs/UPGRADING.md#adopting-the-shared-default-layout](docs/UPGRADING.md#adopting-the-shared-default-layout) for guidance on adopting the shared default layout in your addon controllers and views.
 
 ## [3.0.0](https://github.com/bowerbird-app/RecordingStudio/compare/recording_studio/v2.0.0...recording_studio/v3.0.0) (2026-06-04)
 
@@ -132,10 +147,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Install generator for host applications
 - Comprehensive README and documentation
 - Basic test suite with Minitest
-
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/recording_studio/v3.0.0...HEAD
-[1.2.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v1.2.0
-[1.1.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v1.1.0
-[1.0.1]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v1.0.1
-[0.2.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v0.2.0
-[0.1.0]: https://github.com/bowerbird-app/RecordingStudio/releases/tag/v0.1.0

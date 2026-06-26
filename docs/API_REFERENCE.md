@@ -227,6 +227,7 @@ Use `RecordingStudio.configure` to access these settings.
 | `register_recordable_dup_strategy(type, callable = nil, &block)` | type and callable | stored callable | Overrides duplication for one recordable type. |
 | `recordable_dup_strategy_for(recordable_or_type)` | instance, class, or class name | callable or symbol | Resolves the effective duplication strategy for a type. |
 | `merge!(hash)` | hash-like object | merged configuration | Applies compatible keys from a hash, ignoring removed ones with a warning. |
+| `app_name` / `app_name=` | `String` | `String` | Application name used for `<title>` and `og:site_name` fallbacks in the default layout. Defaults to `"RecordingStudio"`. |
 
 Important behavior:
 
@@ -492,6 +493,48 @@ publish_events = root.events_query(
   actions: %w[published unpublished],
   from: 7.days.ago
 )
+```
+
+## Layout Helpers: `RecordingStudio::LayoutHelper`
+
+Available in views when controllers include `RecordingStudio::UsesDefaultLayout`
+or manually add `helper RecordingStudio::LayoutHelper`.
+
+### Page nav helpers
+
+| Method | Takes | Returns | Why it exists |
+| --- | --- | --- | --- |
+| `recording_studio_page_nav(title:, **slot_values)` | optional title and page-nav slot keys | `nil` | Sets `content_for` slots for `FlatPack::PageNav::Component` configuration. |
+| `recording_studio_page_nav_right(&block)` | block | `nil` | Renders block content into the PageNav right slot. |
+| `default_layout_head(&block)` | block | `nil` | Adds block content to `<head>` via `yield :head`. |
+
+### SEO helpers
+
+| Method | Takes | Returns | Why it exists |
+| --- | --- | --- | --- |
+| `recording_studio_seo_description(text)` | description string | `nil` | Sets `<meta name="description">` and `og:description` tags. |
+| `recording_studio_seo_image(url)` | image URL string | `nil` | Sets `<meta property="og:image">` tag. |
+
+### Example
+
+```erb
+<% recording_studio_page_nav(
+  title: "Workspaces",
+  page_nav_anchor_url: root_path,
+  page_nav_anchor_icon: "home",
+  page_nav_anchor_label: "Home"
+) %>
+
+<% recording_studio_seo_description("Browse and manage your workspaces") %>
+<% recording_studio_seo_image("https://example.com/workspaces-og.png") %>
+
+<% recording_studio_page_nav_right do %>
+  <%= render FlatPack::Button::Component.new(
+    text: "New Workspace",
+    style: :primary,
+    url: new_workspace_path
+  ) %>
+<% end %>
 ```
 
 ## What Not To Depend On

@@ -99,9 +99,10 @@ class Page < ApplicationRecord
 end
 ```
 
-The mixin should call `RecordingStudio.enable_capability(:accessible, on: name)`. Capability-owned child recordables
-must still be declared and non-root, but they may derive parent allowance from enabled capabilities instead of a static
-`allowed_parent_types:` list.
+The mixin should call `RecordingStudio.enable_capability(:accessible, on: name)`. Core then derives the effective parent
+allowance for `RecordingStudio::Access` under `Page`. Capability-owned child recordables must be registered, declared,
+and non-root. `source:` is required when `child_recordables:` is present and is provenance metadata, not an authentication
+boundary.
 
 5. If you need a staged migration, temporarily disable strict missing-declaration enforcement.
 
@@ -199,3 +200,283 @@ The mixin should call `RecordingStudio.enable_capability(:accessible, on: name)`
 allowance for `RecordingStudio::Access` under `Page`. Capability-owned child recordables must be registered, declared,
 and non-root. `source:` is required when `child_recordables:` is present and is provenance metadata, not an authentication
 boundary.
+
+## Adopting the Shared Default Layout
+
+RecordingStudio `3.0.1` ships a reusable layout for addon gems at
+`app/views/layouts/recording_studio/default_layout.html.erb`. It provides a
+`FlatPack::PageNav::Component` shell with standard Rails layout structure and
+safe defaults. Addon controllers can opt in with a single concern include and
+a lightweight helper API to configure page nav metadata.
+
+> **Prerequisite:** The default layout depends on `FlatPack::PageNav::Component`
+> and `FlatPack::Alert::Component`. These are bundled with RecordingStudio's
+> FlatPack dependency — no additional gem installation is needed. The layout
+> includes automatic fallbacks when FlatPack components are unavailable, so
+> pages won't break if FlatPack hasn't been wired up yet.
+>
+> The demo route at `/layout_demo` in the dummy app shows a complete working
+> example (see `test/dummy/app/controllers/layout_demo_controller.rb` and
+> `test/dummy/app/views/layout_demo/show.html.erb`).
+
+### What the Layout Provides
+
+- `FlatPack::PageNav::Component` rendered at the top of every page.
+- Direct page body rendering (no extra content wrapper).
+- Standard `yield :head` support for metadata, plus optional
+  `default_layout_head` partial auto-detection.
+- Automatic OpenGraph tags (og:title, og:type, og:url, og:description,
+  og:image, og:site_name) for SEO, plus optional `<meta name="description">`.
+- Flash notice/alert rendering with `FlatPack::Alert::Component`.
+- Automatic fallbacks when FlatPack components are unavailable.
+- Configurable app name via `RecordingStudio.configuration.app_name`
+  (defaults to `"RecordingStudio"`) used as the `<title>` and `og:site_name`
+  fallback.
+- Safe defaults: no anchor action, empty right slot, title falls back to
+  `RecordingStudio`.
+
+### Opting In
+
+**Step 0 (optional): Configure the app name and data-theme.**
+
+Set a custom app name for `<title>` and `og:site_name` fallback (defaults to
+`"RecordingStudio"`):
+
+```ruby
+# config/initializers/recording_studio.rb
+RecordingStudio.configure do |config|
+  config.app_name = "My App"
+end
+```
+
+The layout applies `data-theme="rounded"` to `<body>` by default. Override it
+per-view with `content_for(:body_theme, "your-theme")`. If your existing layout
+already sets a `<body>` theme, make sure to include the `:body_theme` slot or
+your body classes won't carry over.
+
+**Step 1: Include the concern in your controller.**
+
+```ruby
+class WorkspacesController < ApplicationController
+  include RecordingStudio::UsesDefaultLayout
+end
+```
+
+This applies `layout "recording_studio/default_layout"` and makes
+`RecordingStudio::LayoutHelper` available in your views.
+
+> **Note:** `layout` replaces any previously declared layout for this
+> controller. If your controller inherits from `ApplicationController`
+> which sets `layout "application"`, including `UsesDefaultLayout` will
+> override it. All actions in the controller will use
+> `recording_studio/default_layout`.
+
+To apply the layout only to specific actions:
+
+```ruby
+class WorkspacesController < ApplicationController
+  include RecordingStudio::UsesDefaultLayout
+
+  # Override per-action if some views still need the app layout
+  layout "recording_studio/default_layout", only: [:index, :show]
+  layout "application", only: [:settings]
+end
+```
+
+Alternatively, skip the concern and set the layout + helper directly:
+
+```ruby
+class WorkspacesController < ApplicationController
+  layout "recording_studio/default_layout"
+  include RecordingStudio::LayoutHelper
+end
+```
+
+**Step 2: Replace manual breadcrumb and page-chrome markup with the helper API.**
+
+_Before (manual FlatPack breadcrumb and button slots):_
+
+```erb
+<% content_for :title, "Workspaces" %>
+
+<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+  <% breadcrumb.item(text: "Home", href: root_path) %>
+  <% breadcrumb.item(text: "Workspaces") %>
+<% end %>
+
+<%= render FlatPack::PageTitle::Component.new(
+  title: "Workspaces",
+  subtitle: "Choose a workspace."
+) do |page_title| %>
+  <% page_title.actions do %>
+    <%= render FlatPack::Button::Component.new(
+      text: "New Workspace", style: :primary, url: new_workspace_path
+    ) %>
+  <% end %>
+<% end %>
+```
+
+_After (PageNav with helper API):_
+
+```erb
+<% recording_studio_page_nav(
+  title: "Workspaces",
+  page_nav_anchor_url: root_path,
+  page_nav_anchor_icon: "home",
+  page_nav_anchor_label: "Home"
+) %>
+
+<% recording_studio_page_nav_right do %>
+  <%= render FlatPack::Button::Component.new(
+    icon: "plus",
+    icon_only: true,
+    style: :secondary,
+    size: :md,
+    url: new_workspace_path,
+    aria: { label: "Add workspace" }
+  ) %>
+<% end %>
+
+<%= render FlatPack::PageTitle::Component.new(
+  title: "Workspaces",
+  subtitle: "Choose a workspace."
+) %>
+```
+
+For a back-navigation pattern (e.g., a "New" form that navigates back to the
+parent list), use `page_nav_back_url` to set the left-side back button:
+
+```erb
+<% recording_studio_page_nav(
+  title: "New Workspace",
+  page_nav_back_url: workspaces_path,
+  page_nav_back_icon: "chevron-left",
+  page_nav_back_label: "Workspaces"
+) %>
+```
+
+You can also combine both sides — the back button on the left and an anchor
+or custom actions on the right — they are independent:
+
+```erb
+<% recording_studio_page_nav(
+  title: "New Workspace",
+  page_nav_back_url: workspaces_path,
+  page_nav_back_icon: "chevron-left",
+  page_nav_back_label: "Workspaces",
+  page_nav_anchor_url: root_path,
+  page_nav_anchor_icon: "home",
+  page_nav_anchor_label: "Home"
+) %>
+```
+
+**Step 3: Remove any existing sidebar or custom layout that duplicates what
+the default layout already provides.** The default layout is sidebar-free;
+any addon-specific sidebar logic should live in addon layouts, not in the
+shared default.
+
+### Helper API Reference
+
+| Method | Purpose |
+| --- | --- |
+| `recording_studio_page_nav(title:, **slots)` | Sets the page `<title>` and configures PageNav slots. |
+| `recording_studio_page_nav_right { ... }` | Renders block content into the PageNav right slot. |
+| `default_layout_head { ... }` | Appends block content to the `<head>` element. |
+| `recording_studio_seo_description(text)` | Sets `<meta name="description">` and `og:description` tags. |
+| `recording_studio_seo_image(url)` | Sets `<meta property="og:image">` tag. |
+
+### Supported Slot Keys
+
+Pass any of these as keyword arguments to `recording_studio_page_nav`:
+
+- `title` — Sets `<title>`. Falls back to `RecordingStudio.configuration.app_name`
+  and then to `"RecordingStudio"`.
+- `page_nav_anchor_url` — URL for the anchor (close) button. Omit to hide.
+- `page_nav_anchor_icon` — Icon for the anchor button (default: `"x-mark"`).
+- `page_nav_anchor_label` — ARIA label for the anchor button (default: `"Close"`).
+- `page_nav_back_url` — URL for the back button. Omit to use browser history
+  back via `history.back()`. The back button is always rendered.
+- `page_nav_back_icon` — Icon for the back button (default: `"chevron-left"`).
+- `page_nav_back_label` — Label for the back button (default: `"Go back"`).
+- `page_nav_back_style` — FlatPack button style for back (default: `"secondary"`).
+- `page_nav_back_size` — FlatPack button size for back (default: `"md"`).
+- `seo_description` — Set via `recording_studio_seo_description(text)`; renders
+  `<meta name="description">` and `og:description` when present.
+- `seo_image` — Set via `recording_studio_seo_image(url)`; renders `og:image`
+  when present.
+
+### Testing Your Layout Adoption
+
+After adopting the default layout, verify your views render correctly:
+
+```ruby
+class WorkspacesControllerTest < ActionDispatch::IntegrationTest
+  test "index renders default layout with page nav" do
+    get workspaces_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "title", text: "Workspaces"
+    assert_select "body[data-recording-studio-default-layout='true']", count: 1
+    assert_select "nav[aria-label='Page navigation']", count: 1
+  end
+end
+```
+
+The `data-recording-studio-default-layout="true"` attribute on `<body>` confirms
+the layout is active. Assert on your specific nav links, titles, and right-slot
+actions as needed.
+
+### Before / After Summary
+
+| Concern | Before (manual) | After (default layout) |
+| --- | --- | --- |
+| Layout source | Custom per-addon layout or no shared layout | `recording_studio/default_layout` |
+| Page chrome | Manual `FlatPack::Breadcrumb::Component` | `FlatPack::PageNav::Component` (automatic) |
+| Page nav config | `content_for` scattered across views | `recording_studio_page_nav(...)` helper |
+| Right actions | Embedded in `PageTitle` actions slot | `recording_studio_page_nav_right { ... }` |
+| Head metadata | Manual `content_for :head` | `default_layout_head { ... }` |
+| Flash messages | Per-view or per-layout | Rendered automatically by layout |
+| SEO description | Not available | `recording_studio_seo_description(...)` helper |
+| SEO / OG image | Not available | `recording_studio_seo_image(...)` helper |
+
+### Addon Author Notes
+
+If you ship an addon gem with controllers, prefer
+`include RecordingStudio::UsesDefaultLayout` over a custom layout. This ensures
+a consistent page shell across all RecordingStudio addons and reduces
+per-addon layout maintenance.
+
+If your addon needs a sidebar, create a layout that inherits from or wraps
+`recording_studio/default_layout` rather than duplicating the PageNav shell.
+
+#### Injecting shared `<head>` content
+
+Sub-gems can provide `recording_studio/_default_layout_head.html.erb` in
+their view paths to inject shared `<head>` markup (stylesheets, meta tags,
+analytics scripts, etc.) without requiring every consumer view to include
+`default_layout_head` blocks. The layout automatically detects and renders
+this partial before `yield :head`.
+
+```erb
+<%# app/views/recording_studio/_default_layout_head.html.erb %>
+```
+
+#### Configuring the app name
+
+Set a custom app name for title and `og:site_name` fallbacks:
+
+```ruby
+# config/initializers/recording_studio.rb
+RecordingStudio.configure do |config|
+  config.app_name = "My App"
+end
+```
+
+The title fallback chain is:
+
+1. `content_for(:title)` — set per-view
+2. `RecordingStudio.configuration.app_name` — configurable globally
+3. `"RecordingStudio"` — final hardcoded default
+
+Full documentation is at `docs/layouts/default_layout.md`. A working demo is
+available in the dummy app at `/layout_demo`.

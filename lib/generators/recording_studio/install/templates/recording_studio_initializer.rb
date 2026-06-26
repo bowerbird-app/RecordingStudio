@@ -22,6 +22,9 @@ RecordingStudio.configure do |config|
 
   # Optional per-type duplication overrides for trusted addon code
   # config.register_recordable_dup_strategy("Page") { |recordable| Page.new(title: recordable.title) }
+
+  # Application name used as title fallback in default layout (defaults to "RecordingStudio")
+  # config.app_name = "My App"
 end
 
 # Example recordable registration, after the model declarations below exist:

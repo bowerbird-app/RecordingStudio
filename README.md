@@ -30,6 +30,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Generators](#generators)
 - [Instrumentation](#instrumentation)
 - [Dummy Sandbox](#dummy-sandbox)
+- [Shared Default Layout](#shared-default-layout)
 - [Testing Guidance](#testing-guidance)
 - [Release Process](#release-process)
 - [Extension Philosophy](#extension-philosophy)
@@ -931,6 +932,43 @@ bin/dev
 
 Open `http://localhost:3000/` for the dummy app home page. Useful demo routes include `/workspaces`, `/methods`, and
 `/capabilities`.
+
+## Shared Default Layout
+
+RecordingStudio provides a reusable layout contract for addon gems at
+`app/views/layouts/recording_studio/default_layout.html.erb`. The layout
+renders a `FlatPack::PageNav::Component` shell, flash alerts, automatic
+OpenGraph meta tags, and yields page content directly.
+
+Opt in from any controller with a single concern:
+
+```ruby
+class WorkspacesController < ApplicationController
+  include RecordingStudio::UsesDefaultLayout
+end
+```
+
+Configure page navigation, SEO metadata, and `<head>` content from your views
+with `RecordingStudio::LayoutHelper`:
+
+- `recording_studio_page_nav(title:, **slots)` — set the page title and PageNav slots
+- `recording_studio_page_nav_right { ... }` — render content into the PageNav right slot
+- `default_layout_head { ... }` — append content to `<head>`
+- `recording_studio_seo_description(text)` — set `<meta name="description">` and `og:description`
+- `recording_studio_seo_image(url)` — set `og:image`
+
+Set a custom app name for `<title>` and `og:site_name` fallback:
+
+```ruby
+RecordingStudio.configure { |config| config.app_name = "My App" }
+```
+
+A `data-theme="rounded"` attribute is applied to `<body>` by default; override
+it per-view with `content_for(:body_theme, "your-theme")`.
+
+Full usage details are documented in:
+
+- `docs/layouts/default_layout.md`
 
 ## Testing Guidance
 
