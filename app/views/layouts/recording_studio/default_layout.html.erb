@@ -42,7 +42,7 @@
   </head>
 
   <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true" data-theme="<%= content_for(:body_theme).presence || 'rounded' %>">
-    <main class="mx-auto min-h-screen w-full max-w-4xl p-6">
+    <main class="mx-auto min-h-screen w-full max-w-6xl p-6">
       <% if flash[:notice].present? %>
         <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-4") %>
       <% end %>
@@ -63,7 +63,7 @@
       <% page_nav_options[:back_url] = back_url if back_url.present? %>
       <% page_nav_options[:anchor_url] = anchor_url if anchor_url.present? %>
 
-      <div class="my-4">
+      <div class="mt-4 mb-8">
         <% if defined?(FlatPack::PageNav::Component) %>
           <% if content_for?(:page_nav_right) %>
             <%= render FlatPack::PageNav::Component.new(**page_nav_options) do |page_nav| %>
