@@ -10,7 +10,7 @@
   title: @workspace.name,
   subtitle: "A workspace root recording with explicit page routes and its full recording tree."
 ) do |page_title| %>
-  <% page_title.actions do %>
+  <% page_title.slot do %>
     <%= render FlatPack::Button::Component.new(text: "Back to Workspaces", style: :secondary, url: workspaces_path) %>
     <%= render FlatPack::Button::Component.new(text: "Browse Pages", style: :secondary, url: workspace_pages_path(@workspace)) %>
     <%= render FlatPack::Button::Component.new(text: "New Page", style: :primary, url: new_workspace_page_path(@workspace)) %>
