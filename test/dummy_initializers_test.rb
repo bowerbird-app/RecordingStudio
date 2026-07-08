@@ -106,8 +106,8 @@ class DummyInitializersTest < ActiveSupport::TestCase
 
   def with_broadcast_append_later_stub(implementation)
     singleton_class = class << Turbo::StreamsChannel
-      self
-    end
+                        self
+                      end
 
     original_method = if Turbo::StreamsChannel.respond_to?(:broadcast_append_later_to)
                         singleton_class.instance_method(:broadcast_append_later_to)
