@@ -28,7 +28,7 @@ gem "jbuilder"
 gem "tailwindcss-rails"
 
 # Flatpack UI component library
-gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git"
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", ref: "0103a450ebca6b6856ea5bcfad131da037de059b"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
