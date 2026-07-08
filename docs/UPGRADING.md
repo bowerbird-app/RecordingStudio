@@ -201,9 +201,26 @@ allowance for `RecordingStudio::Access` under `Page`. Capability-owned child rec
 and non-root. `source:` is required when `child_recordables:` is present and is provenance metadata, not an authentication
 boundary.
 
+## Upgrading To 3.0.2
+
+RecordingStudio `3.0.2` is a patch release that updates the FlatPack dependency
+and aligns the dummy app sidebar version badge with the RecordingStudio gem
+version.
+
+### What Changed In 3.0.2
+
+- FlatPack is updated to `v0.1.117` for security/audit fixes.
+- The dummy app's left sidebar now displays `RecordingStudio::VERSION`
+  instead of `FlatPack::VERSION`.
+
+### Required Host App Changes
+
+None. This release does not change RecordingStudio public APIs or data
+migrations.
+
 ## Adopting the Shared Default Layout
 
-RecordingStudio `3.0.1` ships a reusable layout for addon gems at
+RecordingStudio `3.0.1` introduced a reusable layout for addon gems at
 `app/views/layouts/recording_studio/default_layout.html.erb`. It provides a
 `FlatPack::PageNav::Component` shell with standard Rails layout structure and
 safe defaults. Addon controllers can opt in with a single concern include and
