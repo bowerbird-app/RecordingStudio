@@ -920,6 +920,7 @@ comments, and event history. It demonstrates:
 - Mixin-style event logging with `recording.log_event!`
 - Explicit workspace-root page routes in the demo app, while RecordingStudio core stays focused on root recording primitives
 - Simple browsing of workspaces, recordings, folders, and page history without built-in access management or hidden workspace switching
+- Sidebar branding that reports the current `RecordingStudio::VERSION` so demo UI versioning matches gem releases
 
 Run the sandbox:
 

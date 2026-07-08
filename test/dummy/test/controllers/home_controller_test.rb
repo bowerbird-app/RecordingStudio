@@ -16,4 +16,11 @@ class HomeControllerTest < ActiveSupport::TestCase
 
     assert_includes html, "Recording Studio Demo"
   end
+
+  test "sidebar header shows RecordingStudio version badge" do
+    html = ApplicationController.render(partial: "layouts/flat_pack/sidebar")
+
+    assert_includes html, "v#{RecordingStudio::VERSION}"
+    refute_includes html, "v#{FlatPack::VERSION}"
+  end
 end

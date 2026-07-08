@@ -54,7 +54,7 @@ class DummyInitializersTest < ActiveSupport::TestCase
   def test_notifications_initializer_broadcasts_impersonator_message
     calls = []
 
-    Turbo::StreamsChannel.stub(:broadcast_append_later_to, lambda { |*args, **kwargs|
+    with_broadcast_append_later_stub(lambda { |*args, **kwargs|
       calls << { args: args, kwargs: kwargs }
     }) do
       load dummy_initializer_path("recording_studio_notifications")
@@ -87,7 +87,7 @@ class DummyInitializersTest < ActiveSupport::TestCase
   def test_notifications_initializer_uses_default_message_values
     calls = []
 
-    Turbo::StreamsChannel.stub(:broadcast_append_later_to, lambda { |*args, **kwargs|
+    with_broadcast_append_later_stub(lambda { |*args, **kwargs|
       calls << { args: args, kwargs: kwargs }
     }) do
       load dummy_initializer_path("recording_studio_notifications")
@@ -103,6 +103,22 @@ class DummyInitializersTest < ActiveSupport::TestCase
   end
 
   private
+
+  def with_broadcast_append_later_stub(implementation)
+    singleton_class = class << Turbo::StreamsChannel
+                        self
+                      end
+
+    original_method = if Turbo::StreamsChannel.respond_to?(:broadcast_append_later_to)
+                        singleton_class.instance_method(:broadcast_append_later_to)
+                      end
+
+    singleton_class.send(:define_method, :broadcast_append_later_to, implementation)
+    yield
+  ensure
+    singleton_class.send(:remove_method, :broadcast_append_later_to)
+    singleton_class.send(:define_method, :broadcast_append_later_to, original_method) if original_method
+  end
 
   def dummy_initializer_path(name)
     Rails.root.join("config/initializers/#{name}.rb")

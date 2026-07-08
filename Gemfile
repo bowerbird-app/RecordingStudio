@@ -11,7 +11,7 @@ gem "sprockets-rails"
 group :development, :test do
   gem "bootsnap", require: false
   gem "debug"
-  gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git"
+  gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", ref: "0103a450ebca6b6856ea5bcfad131da037de059b"
   gem "pg", "~> 1.1"
 end
 

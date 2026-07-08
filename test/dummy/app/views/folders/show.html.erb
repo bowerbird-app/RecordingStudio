@@ -11,7 +11,7 @@
   subtitle: "Folder recording details and children.",
   class: "mb-6"
 ) do |page_title| %>
-  <% page_title.actions do %>
+  <% page_title.slot do %>
     <%= render FlatPack::Button::Component.new(text: "Back to Folders", style: :secondary, url: folders_path) %>
   <% end %>
 <% end %>
