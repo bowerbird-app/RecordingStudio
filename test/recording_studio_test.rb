@@ -136,9 +136,12 @@ class RecordingStudioTest < Minitest::Test
   end
 
   def test_configuration_to_h_reports_registered_hook_counts
+    baseline = RecordingStudio.configuration.to_h.fetch(:hooks_registered).fetch(:after_initialize, 0)
+
     RecordingStudio.configuration.hooks.after_initialize {}
 
-    assert_equal 1, RecordingStudio.configuration.to_h.fetch(:hooks_registered).fetch(:after_initialize)
+    current = RecordingStudio.configuration.to_h.fetch(:hooks_registered).fetch(:after_initialize, 0)
+    assert_equal baseline + 1, current
   ensure
     RecordingStudio.configuration.hooks.clear!
   end

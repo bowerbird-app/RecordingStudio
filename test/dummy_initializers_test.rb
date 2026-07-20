@@ -52,11 +52,7 @@ class DummyInitializersTest < ActiveSupport::TestCase
   end
 
   def test_notifications_initializer_broadcasts_impersonator_message
-    calls = []
-
-    Turbo::StreamsChannel.stub(:broadcast_append_later_to, lambda { |*args, **kwargs|
-      calls << { args: args, kwargs: kwargs }
-    }) do
+    calls = capture_turbo_broadcast_calls do
       load dummy_initializer_path("recording_studio_notifications")
 
       ActiveSupport::Notifications.instrument(
@@ -85,11 +81,7 @@ class DummyInitializersTest < ActiveSupport::TestCase
   end
 
   def test_notifications_initializer_uses_default_message_values
-    calls = []
-
-    Turbo::StreamsChannel.stub(:broadcast_append_later_to, lambda { |*args, **kwargs|
-      calls << { args: args, kwargs: kwargs }
-    }) do
+    calls = capture_turbo_broadcast_calls do
       load dummy_initializer_path("recording_studio_notifications")
       ActiveSupport::Notifications.instrument("recordings.event_created", {})
     end
@@ -103,6 +95,20 @@ class DummyInitializersTest < ActiveSupport::TestCase
   end
 
   private
+
+  def capture_turbo_broadcast_calls
+    calls = []
+    original_broadcast = Turbo::StreamsChannel.method(:broadcast_append_later_to)
+
+    Turbo::StreamsChannel.define_singleton_method(:broadcast_append_later_to) do |*args, **kwargs|
+      calls << { args: args, kwargs: kwargs }
+    end
+
+    yield
+    calls
+  ensure
+    Turbo::StreamsChannel.define_singleton_method(:broadcast_append_later_to, original_broadcast)
+  end
 
   def dummy_initializer_path(name)
     Rails.root.join("config/initializers/#{name}.rb")
