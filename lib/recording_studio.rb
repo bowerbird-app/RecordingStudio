@@ -19,7 +19,7 @@ require "recording_studio/recordable_declarations"
 require "recording_studio/relationships"
 require "recording_studio/services/base_service"
 
-# rubocop:disable Metrics/ModuleLength
+# rubocop:disable Metrics/ModuleLength, Metrics/ClassLength
 
 module RecordingStudio
   class << self
@@ -319,7 +319,6 @@ module RecordingStudio
       configuration.capability_options(capability, for_type: resolved_type)
     end
 
-    # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
     def record!(action:, recordable:, recording: nil, root_recording: nil, actor: nil, impersonator: nil,
                 metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)
       RecordingStudio::DelegatedTypeRegistrar.apply!
@@ -425,7 +424,6 @@ module RecordingStudio
         event
       end
     end
-    # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
 
     private
 
@@ -561,4 +559,4 @@ module RecordingStudio
 end
 
 require "recording_studio/capability"
-# rubocop:enable Metrics/ModuleLength
+# rubocop:enable Metrics/ModuleLength, Metrics/ClassLength

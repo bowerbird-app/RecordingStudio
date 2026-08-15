@@ -100,7 +100,7 @@ module RecordingStudio
         errors.add(:parent_recording_id, "must belong to the same root recording")
       end
 
-      def parent_recording_must_not_create_cycle
+      def parent_recording_must_not_create_cycle # rubocop:disable Metrics/AbcSize
         return if parent_recording_id.nil?
 
         if id.present? && parent_recording_id == id

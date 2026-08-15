@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class CreateRecordingStudioEvents < ActiveRecord::Migration[8.1]
+  # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
   def change
     create_table :recording_studio_events, id: :uuid do |t|
       t.references :recording, null: false, type: :uuid,
@@ -36,4 +37,5 @@ class CreateRecordingStudioEvents < ActiveRecord::Migration[8.1]
               %i[actor_type actor_id occurred_at],
               name: "index_rs_events_on_actor_and_occurred_at"
   end
+  # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
 end

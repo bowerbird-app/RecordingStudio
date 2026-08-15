@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 class HardenRecordingStudioIndexesAndConstraints < ActiveRecord::Migration[8.1]
+  # rubocop:disable Metrics/MethodLength
   def change
     add_index :recording_studio_recordings,
               %i[recordable_type recordable_id],
@@ -35,4 +36,5 @@ class HardenRecordingStudioIndexesAndConstraints < ActiveRecord::Migration[8.1]
               name: "index_rs_events_on_actor_and_occurred_at",
               if_not_exists: true
   end
+  # rubocop:enable Metrics/MethodLength
 end

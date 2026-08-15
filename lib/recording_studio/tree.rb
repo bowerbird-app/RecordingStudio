@@ -6,7 +6,7 @@ module RecordingStudio
   module Tree
     module_function
 
-    def ancestor_ids(starting_parent_id)
+    def ancestor_ids(starting_parent_id) # rubocop:disable Metrics/MethodLength
       return [] if starting_parent_id.blank?
 
       sql = <<~SQL.squish
@@ -25,7 +25,7 @@ module RecordingStudio
       connection.select_values(sql)
     end
 
-    def descendant_ids(recording_id, root_recording_id: nil)
+    def descendant_ids(recording_id, root_recording_id: nil) # rubocop:disable Metrics/MethodLength
       return [] if recording_id.blank?
 
       root_clause =

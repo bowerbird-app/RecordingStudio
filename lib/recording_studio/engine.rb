@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "set"
-
 module RecordingStudio
   class Engine < ::Rails::Engine
     isolate_namespace RecordingStudio
@@ -65,7 +63,7 @@ module RecordingStudio
         apply_controller_extensions!
       end
 
-      def apply_model_extensions!
+      def apply_model_extensions! # rubocop:disable Metrics/MethodLength
         hooks = RecordingStudio.configuration.hooks
         {
           recording: RecordingStudio::Recording,

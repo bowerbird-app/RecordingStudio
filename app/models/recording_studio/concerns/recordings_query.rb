@@ -72,7 +72,7 @@ module RecordingStudio
         include_self ? [id] + ids : ids
       end
 
-      def apply_subtree_scope(relation, scope, allow_unsafe_recordable_query: nil)
+      def apply_subtree_scope(relation, scope, allow_unsafe_recordable_query: nil) # rubocop:disable Metrics/MethodLength
         return relation if scope.blank?
 
         scoped_relation = if scope.respond_to?(:call)
@@ -104,7 +104,7 @@ module RecordingStudio
         [Arel.sql("CASE #{table_name}.id #{case_sql} END ASC")]
       end
 
-      # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
+      # rubocop:disable Metrics/AbcSize, Metrics/MethodLength, Metrics/ParameterLists
       def apply_recordable_query_options(scope, type:, recordable_order:, recordable_filters:, recordable_scope:,
                                          allow_unsafe_recordable_query: nil)
         return scope unless type.present?
@@ -137,7 +137,7 @@ module RecordingStudio
         safe_recordable_order = sanitize_order_for_model(recordable_order, recordable_class)
         safe_recordable_order.present? ? scoped.reorder(safe_recordable_order) : scoped
       end
-      # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
+      # rubocop:enable Metrics/AbcSize, Metrics/MethodLength, Metrics/ParameterLists
 
       def apply_recordable_scope(scope, recordable_scope, allow_unsafe_recordable_query: nil)
         return scope unless recordable_scope.respond_to?(:call)
@@ -256,10 +256,10 @@ module RecordingStudio
       # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
 
       def assert_unsafe_recordable_query_allowed!(feature, allow_unsafe_recordable_query: nil)
-        allowed = if !allow_unsafe_recordable_query.nil?
-                    allow_unsafe_recordable_query
-                  else
+        allowed = if allow_unsafe_recordable_query.nil?
                     RecordingStudio.configuration.allow_unsafe_recordable_queries
+                  else
+                    allow_unsafe_recordable_query
                   end
         return if allowed
 

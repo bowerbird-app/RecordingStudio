@@ -15,10 +15,17 @@ module RecordingStudio
       :recordable_dup_strategy,
       :app_name
     )
-    attr_reader :recordable_types, :hooks, :recordable_dup_strategies, :require_recordable_declarations,
-                :authorize_write, :require_actor, :max_metadata_bytes, :allow_unsafe_recordable_queries
+    attr_reader :recordable_types,
+                :hooks,
+                :recordable_dup_strategies,
+                :require_recordable_declarations,
+                :authorize_write,
+                :require_actor,
+                :max_metadata_bytes,
+                :allow_unsafe_recordable_queries,
+                :configured_type_names
 
-    def initialize
+    def initialize # rubocop:disable Metrics/AbcSize
       @recordable_types = []
       @configured_type_names = [].freeze
       @capabilities = {}
@@ -51,10 +58,6 @@ module RecordingStudio
       @configured_type_names = @recordable_types.filter_map(&:presence).uniq.freeze
     end
 
-    def configured_type_names
-      @configured_type_names
-    end
-
     def require_recordable_declarations=(value)
       raise ArgumentError, "require_recordable_declarations must be true or false" unless [true, false].include?(value)
 
@@ -68,9 +71,7 @@ module RecordingStudio
     end
 
     def allow_unsafe_recordable_queries=(value)
-      unless [true, false].include?(value)
-        raise ArgumentError, "allow_unsafe_recordable_queries must be true or false"
-      end
+      raise ArgumentError, "allow_unsafe_recordable_queries must be true or false" unless [true, false].include?(value)
 
       @allow_unsafe_recordable_queries = value
     end
