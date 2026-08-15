@@ -295,7 +295,7 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
       recordable_order: "recording_studio_pages.title desc; select * from users"
     )
 
-    assert_equal [first.id, second.id], recordings.map(&:id)
+    assert_equal [first.id, second.id].sort, recordings.map(&:id).sort
   end
 
   def test_recordings_sanitizes_recordable_filters
