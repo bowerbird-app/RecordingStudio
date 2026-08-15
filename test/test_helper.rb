@@ -33,9 +33,10 @@ require "rails"
 
 module RecordingStudioTestDataHelpers
   def reset_recording_studio_tables!(*recordable_classes)
-    RecordingStudio::Event.delete_all
-    RecordingStudio::Recording.unscoped.update_all(parent_recording_id: nil, root_recording_id: nil)
-    RecordingStudio::Recording.unscoped.delete_all
+    ActiveRecord::Base.connection.disable_referential_integrity do
+      RecordingStudio::Event.delete_all
+      RecordingStudio::Recording.unscoped.delete_all
+    end
 
     recordable_classes.compact.uniq.each(&:delete_all)
     Workspace.delete_all if defined?(Workspace)
