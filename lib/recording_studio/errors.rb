@@ -14,4 +14,14 @@ module RecordingStudio
   class InvalidRecordableDeclaration < StandardError; end
 
   class OrphanRecording < InvalidParent; end
+
+  class MetadataTooLarge < StandardError; end
+
+  class AuthorizationError < StandardError; end
+
+  class ActorRequired < StandardError; end
+
+  class InvalidRevertTarget < ArgumentError; end
+
+  class UnsafeRecordableQuery < ArgumentError; end
 end

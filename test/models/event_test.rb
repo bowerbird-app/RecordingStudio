@@ -75,7 +75,10 @@ class EventTest < ActiveSupport::TestCase
     page.reload
     assert_equal 1, page.events_count
 
-    event.destroy!
+    assert_raises(ActiveRecord::ReadOnlyRecord) { event.destroy! }
+
+    RecordingStudio::Event.where(id: event.id).delete_all
+    RecordingStudioPage.update_counters(page.id, events_count: -1)
     page.reload
     assert_equal 0, page.events_count
   end

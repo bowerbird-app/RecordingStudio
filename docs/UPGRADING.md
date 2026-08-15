@@ -1,3 +1,103 @@
+# Upgrading To 4.0.0
+
+This guide covers the breaking changes between `3.x` and `4.0.0`: integrity hardening, Event append-only history,
+query safety defaults, and removal of Recording's implicit default order.
+
+## Upgrade Impact
+
+This is a breaking upgrade for:
+
+- callers that relied on `RecordingStudio::Recording` returning newest-first without `.recent` or an explicit `order:`
+- code that updated or destroyed `RecordingStudio::Event` rows through ActiveRecord
+- query call sites that pass `recordable_scope:`, Relation/Arel `recordable_filters:`, or subtree `scope:` procs
+- `revert` call sites that pointed a recording at a snapshot outside that recording's event history
+- apps that depended on `RecordingStudio::Services::ExampleService`
+
+## What Changed
+
+- `Recording` no longer has a `default_scope` order. Prefer `Recording.recent` or pass `order:` to query helpers.
+- Events are append-only at the ActiveRecord layer. Intentional retention purges must use SQL `delete_all` (recording
+  destruction uses `dependent: :delete_all` for events).
+- Relation/Arel/proc recordable query escape hatches require
+  `config.allow_unsafe_recordable_queries = true` or per-call `allow_unsafe_recordable_query: true`.
+- `revert` validates that `to_recordable` appears in the target recording's history.
+- Unique root index prevents duplicate root recordings for the same recordable.
+- New optional production controls: `require_actor`, `authorize_write`, and `max_metadata_bytes`.
+- `RecordingStudio.record!` fires `before_record` / `after_record` hooks.
+- Template `ExampleService` was removed; keep using `Services::BaseService` for host/addon commands.
+
+## Upgrade Steps
+
+1. Install and run the harden migration.
+
+```bash
+rails g recording_studio:migrations
+rails db:migrate
+```
+
+If you already installed from the fresh-install set, the generator should copy
+`harden_recording_studio_indexes_and_constraints`. Resolve any duplicate root recordings before migrating if the unique
+index cannot be created.
+
+2. Replace implicit recording ordering.
+
+```ruby
+# before
+RecordingStudio::Recording.where(root_recording_id: root.id).first
+
+# after
+RecordingStudio::Recording.recent.where(root_recording_id: root.id).first
+# or
+root.recordings_query(order: { updated_at: :desc }).first
+```
+
+3. Opt in where trusted code needs unsafe query escape hatches.
+
+```ruby
+RecordingStudio.configure do |config|
+  config.allow_unsafe_recordable_queries = true # host-wide trusted mode
+end
+
+root.recordings_query(
+  type: Page,
+  recordable_scope: ->(scope) { scope.where(pages: { published: true }) },
+  allow_unsafe_recordable_query: true # per-call opt-in
+)
+```
+
+Hash `recordable_filters:` remain column-whitelisted and do not need the flag.
+
+4. Ensure revert targets come from history.
+
+```ruby
+original = page_recording.recordable
+root.revise(page_recording) { |page| page.title = "Updated" }
+root.revert(page_recording, to_recordable: original) # ok: original is in history
+```
+
+5. Recommended production write hardening.
+
+```ruby
+RecordingStudio.configure do |config|
+  config.require_actor = true
+  config.authorize_write = lambda { |root_recording:, actor:, **|
+    actor.present? && Current.user&.can_write?(root_recording)
+  }
+  config.max_metadata_bytes = 16_384
+end
+```
+
+6. Replace any `ExampleService` usage with your own `BaseService` subclass.
+
+## Compatibility Notes
+
+- Idempotency keys and `root_recording_for` are race-safer under concurrency via unique indexes plus `RecordNotUnique`
+  rescue.
+- Counter caches may not decrement when events are purged with `delete_all`; recompute or adjust counters in retention
+  jobs when needed.
+
+---
+
 # Upgrading To 3.0.0
 
 This guide covers the breaking changes between `2.0.0` and `3.0.0`: declaration-enforced recordable hierarchies and

@@ -74,7 +74,8 @@ class RecordingTest < ActiveSupport::TestCase
     comment_child.log_event!(action: "commented")
 
     events = parent.subtree_events(
-      descendant_scope: ->(scope) { scope.where(recordable_type: "RecordingStudioPage") }
+      descendant_scope: ->(scope) { scope.where(recordable_type: "RecordingStudioPage") },
+      allow_unsafe_recordable_query: true
     )
 
     assert_equal %w[published reviewed created created], events.map(&:action)
@@ -93,6 +94,7 @@ class RecordingTest < ActiveSupport::TestCase
     events = parent.subtree_events(
       include_self: false,
       descendant_scope: ->(scope) { scope.where(recordable_type: "RecordingStudioPage") },
+      allow_unsafe_recordable_query: true,
       actions: "reviewed",
       actor: actor,
       from: 36.hours.ago,
@@ -353,7 +355,10 @@ class RecordingTest < ActiveSupport::TestCase
     ).recording
 
     assert_kind_of ActiveRecord::Relation, root.subtree_recordings
-    assert_equal [comment.id], root.subtree_recordings(scope: ->(relation) { relation.where(id: comment.id) }).map(&:id)
+    assert_equal [comment.id], root.subtree_recordings(
+      scope: ->(relation) { relation.where(id: comment.id) },
+      allow_unsafe_recordable_query: true
+    ).map(&:id)
     assert_equal [root.id, folder.id, page.id, comment.id].sort.reverse,
                  root.subtree_recordings(order: "id desc").map(&:id)
   end

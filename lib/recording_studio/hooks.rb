@@ -86,6 +86,16 @@ module RecordingStudio
       register(:around_service, handler, priority: priority, &)
     end
 
+    # Register a before_record hook invoked inside RecordingStudio.record!
+    def before_record(handler = nil, priority: DEFAULT_PRIORITY, &)
+      register(:before_record, handler, priority: priority, &)
+    end
+
+    # Register an after_record hook invoked after a successful RecordingStudio.record!
+    def after_record(handler = nil, priority: DEFAULT_PRIORITY, &)
+      register(:after_record, handler, priority: priority, &)
+    end
+
     # Register a custom event hook
     #
     # @param event_name [Symbol] The event name to listen for

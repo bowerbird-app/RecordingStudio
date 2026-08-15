@@ -10,11 +10,11 @@ module RecordingStudio
         subtree_ids(include_self: include_self)
       end
 
-      def subtree_recordings(include_self: true, order: nil, scope: nil)
+      def subtree_recordings(include_self: true, order: nil, scope: nil, allow_unsafe_recordable_query: nil)
         ids = subtree_ids(include_self: include_self)
         return self.class.unscoped.none if ids.empty?
 
-        relation = scoped_subtree_relation(ids, scope)
+        relation = scoped_subtree_relation(ids, scope, allow_unsafe_recordable_query: allow_unsafe_recordable_query)
         reorder_subtree_relation(relation, ids, order)
       end
 
@@ -22,7 +22,7 @@ module RecordingStudio
       def recordings_query(include_children: false, type: nil, id: nil, parent_id: nil,
                            created_after: nil, created_before: nil, updated_after: nil, updated_before: nil,
                            order: nil, recordable_order: nil, recordable_filters: nil, recordable_scope: nil,
-                           limit: nil, offset: nil)
+                           allow_unsafe_recordable_query: nil, limit: nil, offset: nil)
         root_id = RecordingStudio.root_recording_id_for(root_recording_or_self)
         base_scope = RecordingStudio::Recording.for_root(root_id)
         scope = include_children ? base_scope : base_scope.where(parent_recording_id: root_id)
@@ -38,23 +38,24 @@ module RecordingStudio
           type: type,
           recordable_order: recordable_order,
           recordable_filters: recordable_filters,
-          recordable_scope: recordable_scope
+          recordable_scope: recordable_scope,
+          allow_unsafe_recordable_query: allow_unsafe_recordable_query
         )
         scope = enforce_recordings_scope(scope, root_id: root_id, include_children: include_children)
         scope = extend_recordings_query(scope)
-        safe_recording_order = sanitize_order_for_model(order, RecordingStudio::Recording)
-        scope = scope.reorder(safe_recording_order) if safe_recording_order.present?
-        scope = scope.limit(limit) if limit.present?
-        scope = scope.offset(offset) if offset.present?
-        scope
+        apply_relation_window(scope, order: order, limit: limit, offset: offset)
       end
       # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/ParameterLists, Metrics/PerceivedComplexity
 
       private
 
-      def scoped_subtree_relation(ids, scope)
+      def scoped_subtree_relation(ids, scope, allow_unsafe_recordable_query: nil)
         relation = self.class.unscoped.where(id: ids)
-        apply_subtree_scope(relation, scope).where(id: ids)
+        apply_subtree_scope(
+          relation,
+          scope,
+          allow_unsafe_recordable_query: allow_unsafe_recordable_query
+        ).where(id: ids)
       end
 
       def reorder_subtree_relation(relation, ids, order)
@@ -67,16 +68,24 @@ module RecordingStudio
       def subtree_ids(include_self:)
         return [] if id.blank?
 
-        ids = descendants.map(&:id)
+        ids = descendant_id_chain
         include_self ? [id] + ids : ids
       end
 
-      def apply_subtree_scope(relation, scope)
+      def apply_subtree_scope(relation, scope, allow_unsafe_recordable_query: nil)
         return relation if scope.blank?
 
         scoped_relation = if scope.respond_to?(:call)
+                            assert_unsafe_recordable_query_allowed!(
+                              :scope,
+                              allow_unsafe_recordable_query: allow_unsafe_recordable_query
+                            )
                             scope.call(relation)
                           elsif scope.is_a?(ActiveRecord::Relation)
+                            assert_unsafe_recordable_query_allowed!(
+                              :scope,
+                              allow_unsafe_recordable_query: allow_unsafe_recordable_query
+                            )
                             relation.merge(scope)
                           else
                             relation
@@ -96,7 +105,8 @@ module RecordingStudio
       end
 
       # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
-      def apply_recordable_query_options(scope, type:, recordable_order:, recordable_filters:, recordable_scope:)
+      def apply_recordable_query_options(scope, type:, recordable_order:, recordable_filters:, recordable_scope:,
+                                         allow_unsafe_recordable_query: nil)
         return scope unless type.present?
 
         query_options_present = recordable_order.present? ||
@@ -112,16 +122,30 @@ module RecordingStudio
         scoped = scoped.joins(
           "INNER JOIN #{recordable_table} ON #{recordable_table}.id = recording_studio_recordings.recordable_id"
         )
-        scoped = apply_recordable_filters(scoped, recordable_filters, recordable_class)
-        scoped = apply_recordable_scope(scoped, recordable_scope)
+        scoped = apply_recordable_filters(
+          scoped,
+          recordable_filters,
+          recordable_class,
+          allow_unsafe_recordable_query: allow_unsafe_recordable_query
+        )
+        scoped = apply_recordable_scope(
+          scoped,
+          recordable_scope,
+          allow_unsafe_recordable_query: allow_unsafe_recordable_query
+        )
 
         safe_recordable_order = sanitize_order_for_model(recordable_order, recordable_class)
         safe_recordable_order.present? ? scoped.reorder(safe_recordable_order) : scoped
       end
       # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
 
-      def apply_recordable_scope(scope, recordable_scope)
+      def apply_recordable_scope(scope, recordable_scope, allow_unsafe_recordable_query: nil)
         return scope unless recordable_scope.respond_to?(:call)
+
+        assert_unsafe_recordable_query_allowed!(
+          :recordable_scope,
+          allow_unsafe_recordable_query: allow_unsafe_recordable_query
+        )
 
         custom_scope = recordable_scope.call(scope)
         custom_scope.is_a?(ActiveRecord::Relation) ? custom_scope : scope
@@ -133,6 +157,14 @@ module RecordingStudio
         else
           scope
         end
+      end
+
+      def apply_relation_window(scope, order:, limit:, offset:, model: RecordingStudio::Recording)
+        safe_order = sanitize_order_for_model(order, model)
+        scope = scope.reorder(safe_order) if safe_order.present?
+        scope = scope.limit(limit) if limit.present?
+        scope = scope.offset(offset) if offset.present?
+        scope
       end
 
       def sanitize_order_for_model(order, model_class)
@@ -189,7 +221,8 @@ module RecordingStudio
       # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
 
       # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
-      def apply_recordable_filters(scope, recordable_filters, recordable_class = nil)
+      def apply_recordable_filters(scope, recordable_filters, recordable_class = nil,
+                                   allow_unsafe_recordable_query: nil)
         return scope if recordable_filters.blank?
 
         if recordable_filters.is_a?(Hash)
@@ -205,14 +238,35 @@ module RecordingStudio
 
           sanitized.present? ? scope.where(recordable_class.table_name => sanitized) : scope
         elsif recordable_filters.is_a?(ActiveRecord::Relation)
+          assert_unsafe_recordable_query_allowed!(
+            :recordable_filters,
+            allow_unsafe_recordable_query: allow_unsafe_recordable_query
+          )
           scope.merge(recordable_filters)
         elsif defined?(Arel::Nodes::Node) && recordable_filters.is_a?(Arel::Nodes::Node)
+          assert_unsafe_recordable_query_allowed!(
+            :recordable_filters,
+            allow_unsafe_recordable_query: allow_unsafe_recordable_query
+          )
           scope.where(recordable_filters)
         else
           scope
         end
       end
       # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
+
+      def assert_unsafe_recordable_query_allowed!(feature, allow_unsafe_recordable_query: nil)
+        allowed = if !allow_unsafe_recordable_query.nil?
+                    allow_unsafe_recordable_query
+                  else
+                    RecordingStudio.configuration.allow_unsafe_recordable_queries
+                  end
+        return if allowed
+
+        raise RecordingStudio::UnsafeRecordableQuery,
+              "#{feature} requires config.allow_unsafe_recordable_queries = true " \
+              "or allow_unsafe_recordable_query: true on the query call"
+      end
     end
   end
 end

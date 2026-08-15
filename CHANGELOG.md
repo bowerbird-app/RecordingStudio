@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-08-15
+
+### ⚠ BREAKING CHANGES
+
+* remove `Recording.default_scope` ordering; use `Recording.recent` (or an explicit `order:`) when newest-first is required
+* make `RecordingStudio::Event` append-only (AR update/destroy raise); purge history with SQL `delete_all` or recording `dependent: :delete_all`
+* reject Relation/Arel/proc recordable query escape hatches unless `config.allow_unsafe_recordable_queries = true` or `allow_unsafe_recordable_query: true`
+* `revert` requires `to_recordable` to appear in that recording's event history
+* remove template `RecordingStudio::Services::ExampleService`
+
+### Added
+
+* unique root-recording index per recordable (`parent_recording_id IS NULL`)
+* composite indexes for root/parent/recordable lookups and event timeline/actor/action filters
+* recursive CTE tree helpers for ancestors/descendants
+* `config.require_actor`, `config.authorize_write`, `config.max_metadata_bytes`, `config.allow_unsafe_recordable_queries`
+* `before_record` / `after_record` hooks on `RecordingStudio.record!`
+* race-safe `root_recording_for` and idempotent event create via `RecordNotUnique` rescue
+* shared warning helpers, metadata normalization, and query relation window helper
+
+### Changed
+
+* recording destruction uses `dependent: :delete_all` for events so intentional purges bypass append-only AR guards
+* Labels body-snippet naming is declaration-driven instead of hard-coded Comment type lists
+* install migrations include hardened indexes; incremental `harden_recording_studio_indexes_and_constraints` migration is idempotent
+
+### Migration Notes
+
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-400) for the `3.x` to `4.0.0` upgrade path.
+- Run `rails g recording_studio:migrations` (or install the harden migration) and `rails db:migrate`.
+- Replace implicit `Recording` ordering with `.recent` or explicit order hashes.
+- Opt in to unsafe recordable query APIs where addon code passes Relation/Arel/procs.
+- Enable `config.require_actor = true` and optionally `config.authorize_write` in production hosts.
+
 ## [3.0.3] - 2026-07-20
 
 ### Changed

@@ -181,6 +181,9 @@ module RecordingStudio
     end
 
     def configured_type_names
+      names = RecordingStudio.configuration.configured_type_names
+      return names if names.any?
+
       Array(RecordingStudio.configuration.recordable_types).filter_map do |type|
         type_name = RecordingStudio::Identity.type_name_for(type)
         next if type_name.blank?
@@ -407,25 +410,19 @@ module RecordingStudio
     end
 
     def warn_missing_declaration(type_name)
-      message = "[RecordingStudio] #{type_name} is registered in config.recordable_types but does not declare " \
-                "recording_studio_recordable(...). Legacy fallback is enabled because " \
-                "config.require_recordable_declarations = false. This fallback is deprecated. Add " \
-                "recording_studio_recordable(...) to #{type_name}."
-      if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
-        Rails.logger.warn(message)
-      else
-        warn(message)
-      end
+      RecordingStudio::Warnings.warn(
+        "[RecordingStudio] #{type_name} is registered in config.recordable_types but does not declare " \
+        "recording_studio_recordable(...). Legacy fallback is enabled because " \
+        "config.require_recordable_declarations = false. This fallback is deprecated. Add " \
+        "recording_studio_recordable(...) to #{type_name}."
+      )
     end
 
     def warn_unregistered_declaration(type_name)
-      message = "[RecordingStudio] #{type_name} declares recording_studio_recordable(...) but is not registered " \
-                "in config.recordable_types."
-      if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
-        Rails.logger.warn(message)
-      else
-        warn(message)
-      end
+      RecordingStudio::Warnings.warn(
+        "[RecordingStudio] #{type_name} declares recording_studio_recordable(...) but is not registered " \
+        "in config.recordable_types."
+      )
     end
 
     def raise_invalid!(recordable_class, message)

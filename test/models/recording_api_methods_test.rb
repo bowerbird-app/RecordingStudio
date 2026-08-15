@@ -191,7 +191,8 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
     recordings = root_recording.recordings_with_descendants(
       type: RecordingStudioPage,
       descendant_type: RecordingStudioComment,
-      descendant_recordable_filters: { body: "Published" }
+      descendant_recordable_filters: { body: "Published" },
+      order: { created_at: :desc }
     )
 
     assert_equal [published_child.id, published_parent.id], recordings.map(&:id)
@@ -351,7 +352,8 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
     recordings = root_recording.recordings_query(
       include_children: true,
       type: RecordingStudioPage,
-      recordable_scope: ->(scope) { scope.where(recording_studio_pages: { title: "Alpha" }) }
+      recordable_scope: ->(scope) { scope.where(recording_studio_pages: { title: "Alpha" }) },
+      allow_unsafe_recordable_query: true
     )
 
     assert_equal 1, recordings.count
@@ -369,6 +371,7 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
     recordings = root_recording.recordings_query(
       include_children: false,
       type: RecordingStudioPage,
+      allow_unsafe_recordable_query: true,
       recordable_scope: lambda do |scope|
         scope.unscope(where: %i[root_recording_id parent_recording_id])
       end
@@ -403,6 +406,7 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
     relation_filtered = root_recording.recordings_query(
       include_children: true,
       type: RecordingStudioPage,
+      allow_unsafe_recordable_query: true,
       recordable_filters: RecordingStudioPage.where(title: "Alpha")
     )
     assert_equal 1, relation_filtered.count
@@ -410,6 +414,7 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
     arel_filtered = root_recording.recordings_query(
       include_children: true,
       type: RecordingStudioPage,
+      allow_unsafe_recordable_query: true,
       recordable_filters: RecordingStudioPage.arel_table[:title].eq("Beta")
     )
     assert_equal 1, arel_filtered.count

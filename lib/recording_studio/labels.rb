@@ -3,7 +3,6 @@
 module RecordingStudio
   module Labels
     EMPTY_LABEL = "—"
-    COMMENT_TYPE_NAMES = %w[RecordingStudioComment RecordingStudio::Comment].freeze
     FORMATTER_TYPES = %i[name type_label title summary].freeze
 
     @formatters = FORMATTER_TYPES.index_with { {} }
@@ -122,31 +121,28 @@ module RecordingStudio
     private_class_method :warn_legacy_label!
 
     def warn_deprecation(message)
-      if defined?(ActiveSupport::Deprecation)
-        ActiveSupport::Deprecation.new("2.0", "RecordingStudio").warn(message)
-      elsif defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
-        Rails.logger.warn(message)
-      else
-        warn(message)
-      end
+      RecordingStudio::Warnings.deprecation(message)
     end
     private_class_method :warn_deprecation
 
     def heuristic_name_for(recordable)
       squished_value(recordable, :title) ||
         squished_value(recordable, :name) ||
-        comment_name_for(recordable) ||
+        body_snippet_name_for(recordable) ||
         fallback_name_for(recordable)
     end
     private_class_method :heuristic_name_for
 
-    def comment_name_for(recordable)
-      return unless comment_recordable?(recordable)
-
+    def body_snippet_name_for(recordable)
       snippet = squished_value(recordable, :body)
-      snippet.present? ? "Comment: #{snippet.truncate(60)}" : "Comment"
+      return if snippet.blank?
+
+      label = declaration_label_for(recordable.class.name) ||
+              normalize_label(recordable.class.try(:model_name)&.human) ||
+              normalize_label(recordable.class.name.demodulize)
+      "#{label}: #{snippet.truncate(60)}"
     end
-    private_class_method :comment_name_for
+    private_class_method :body_snippet_name_for
 
     def fallback_name_for(recordable)
       class_name = normalize_label(recordable.class.name) || recordable.class.to_s
@@ -202,10 +198,5 @@ module RecordingStudio
       text.presence
     end
     private_class_method :normalize_label
-
-    def comment_recordable?(recordable)
-      COMMENT_TYPE_NAMES.include?(recordable.class.name)
-    end
-    private_class_method :comment_recordable?
   end
 end

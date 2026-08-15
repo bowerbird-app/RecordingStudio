@@ -44,10 +44,21 @@ module RecordingStudio
     }
     scope :recent, -> { order(occurred_at: :desc, created_at: :desc) }
 
+    before_update :raise_append_only_error
+    before_destroy :raise_append_only_error
     after_commit :increment_recordable_events_count, on: :create
     after_commit :decrement_recordable_events_count, on: :destroy
 
+    def readonly?
+      persisted?
+    end
+
     private
+
+    def raise_append_only_error
+      raise ActiveRecord::ReadOnlyRecord,
+            "Events are append-only; use RecordingStudio retention APIs that delete via SQL when purging history."
+    end
 
     def increment_recordable_events_count
       update_recordable_counter(recordable_type, recordable_id, :events_count, 1)

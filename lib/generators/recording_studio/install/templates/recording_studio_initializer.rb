@@ -17,6 +17,20 @@ RecordingStudio.configure do |config|
   # Idempotency behavior for log_event!
   config.idempotency_mode = :return_existing # or :raise
 
+  # Require an actor on every write (recommended for production hosts)
+  # config.require_actor = true
+
+  # Optional write authorization gate. Return truthy to allow the write.
+  # config.authorize_write = ->(action:, recordable:, recording:, root_recording:, parent_recording:, actor:, **) {
+  #   actor.present?
+  # }
+
+  # Reject oversized event metadata payloads (JSON byte size)
+  # config.max_metadata_bytes = 16_384
+
+  # Allow Relation/Arel/proc recordable query escape hatches (trusted host code only)
+  # config.allow_unsafe_recordable_queries = false
+
   # Recordable duplication strategy for revisions
   config.recordable_dup_strategy = :dup
 

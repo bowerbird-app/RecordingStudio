@@ -6,33 +6,11 @@ command-style API with hook support.
 ## What Exists Today
 
 - `RecordingStudio::Services::BaseService`
-- `RecordingStudio::Services::ExampleService`
 
-The example service is intentionally trivial. The reusable part is `BaseService`.
+Use `BaseService` for addon or host-app command objects. RecordingStudio core writes go through
+`RecordingStudio.record!` rather than a bundled example service.
 
 ## Call Pattern
-
-```ruby
-result = RecordingStudio::Services::ExampleService.call(name: "World")
-
-result.success? # => true
-result.value    # => "Hello, World!"
-```
-
-Returned results respond to:
-
-- `success?`
-- `failure?`
-- `value`
-- `error`
-- `errors`
-- `on_success { |value| ... }`
-- `on_failure { |error, errors| ... }`
-- `value!`
-
-## Implementing A Service
-
-Subclass `BaseService`, implement `perform`, and return `success(...)` or `failure(...)`.
 
 ```ruby
 module RecordingStudio
@@ -57,7 +35,22 @@ module RecordingStudio
     end
   end
 end
+
+result = RecordingStudio::Services::PublishPage.call(page_recording: page_recording)
+result.success?
+result.value
 ```
+
+Returned results respond to:
+
+- `success?`
+- `failure?`
+- `value`
+- `error`
+- `errors`
+- `on_success { |value| ... }`
+- `on_failure { |error, errors| ... }`
+- `value!`
 
 ## Hook Integration
 
@@ -69,11 +62,20 @@ Relevant hooks:
 - `after_service`
 - `around_service`
 
+`RecordingStudio.record!` also fires write-path hooks:
+
+- `before_record`
+- `after_record`
+
 Example:
 
 ```ruby
 RecordingStudio.configuration.hooks.before_service do |service_class, args|
   Rails.logger.info("Starting #{service_class} with #{args.inspect}")
+end
+
+RecordingStudio.configuration.hooks.before_record do |payload|
+  Rails.logger.info("RecordingStudio write: #{payload[:action]}")
 end
 ```
 
