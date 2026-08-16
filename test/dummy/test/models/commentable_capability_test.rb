@@ -4,9 +4,10 @@ require_relative "../test_helper"
 
 class CommentableCapabilityTest < ActiveSupport::TestCase
   setup do
-    RecordingStudio::Event.delete_all
-    RecordingStudio::Recording.unscoped.update_all(parent_recording_id: nil, root_recording_id: nil)
-    RecordingStudio::Recording.unscoped.delete_all
+    ActiveRecord::Base.connection.disable_referential_integrity do
+      RecordingStudio::Event.delete_all
+      RecordingStudio::Recording.unscoped.delete_all
+    end
     RecordingStudioComment.delete_all
     RecordingStudioPage.delete_all
     Workspace.delete_all

@@ -483,6 +483,10 @@ RecordingStudio.configure do |config|
   config.impersonator = -> { Current.impersonator }
   config.event_notifications_enabled = true
   config.idempotency_mode = :return_existing # or :raise (avoids duplicates when using idempotency keys; see below)
+  config.require_actor = false # set true in production hosts
+  config.authorize_write = nil # optional ->(**ctx) { ... }
+  config.max_metadata_bytes = 16_384
+  config.allow_unsafe_recordable_queries = false
   config.recordable_dup_strategy = :dup
   config.register_recordable_dup_strategy("Page") { |recordable| Page.new(title: recordable.title) }
 end
@@ -495,6 +499,11 @@ end
   `recording_studio_recordable`; set false only while migrating older apps, where missing declarations warn.
 - `actor`: Callable used when callers omit `actor:` from write APIs.
 - `impersonator`: Callable used when callers omit `impersonator:` from write APIs.
+- `require_actor`: When true, writes without an actor raise `RecordingStudio::ActorRequired`.
+- `authorize_write`: Optional callable invoked inside `record!`; return truthy to allow the write.
+- `max_metadata_bytes`: Maximum JSON byte size for event metadata (default `16384`).
+- `allow_unsafe_recordable_queries`: Allows Relation/Arel/proc recordable query escape hatches. Prefer per-call
+  `allow_unsafe_recordable_query: true` when needed.
 - `idempotency_mode`: Controls how duplicate `idempotency_key` values are handled. `:return_existing` returns the
   original event when the key matches, so retries are safe and do not create duplicates. `:raise` raises an error when
   the key matches, so callers must handle duplicates explicitly.
@@ -503,14 +512,14 @@ end
 - `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
 - `register_recordable_dup_strategy`: lets trusted addon code override duplication for one recordable type without
   changing the global fallback.
-- `hooks`: Global hook registry exposed as `RecordingStudio.configuration.hooks`.
+- `hooks`: Global hook registry exposed as `RecordingStudio.configuration.hooks`. Write path hooks include
+  `before_record` and `after_record`.
 
 ## Upgrade Guide
 
-For existing apps upgrading to declaration-enforced roots and parent rules, see
-[docs/UPGRADING.md](docs/UPGRADING.md). The short version is: add `recording_studio_recordable(...)` to every configured
-ActiveRecord recordable, mark only true top-level types with `root: true`, declare `allowed_parent_types:` for child
-types, and use `config.require_recordable_declarations = false` only as a temporary migration bridge.
+For existing apps upgrading across major versions, see [docs/UPGRADING.md](docs/UPGRADING.md). For `4.0.0`, the short
+version is: install the harden migration, replace implicit Recording ordering with `.recent`, opt in to unsafe query
+escape hatches only where trusted, and ensure `revert` targets come from recording history.
 
 ## Root Recording API
 
@@ -1005,6 +1014,8 @@ Recordables are immutable; history is append-only.
 
 - No built-in UI; this gem focuses on the data and service layer.
 - Storage growth is linear with history; plan retention policies accordingly.
+- Tree helpers use recursive CTEs and still load matching recording rows into Ruby for ordered traversal results.
+- Event metadata is intentionally unbounded in shape but size-capped; keep large blobs out of `metadata`.
 
 ## Plugins / Addon Gems
 

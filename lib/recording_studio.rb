@@ -3,9 +3,13 @@
 require "monitor"
 require "recording_studio/version"
 require "recording_studio/engine"
+require "recording_studio/warnings"
 require "recording_studio/configuration"
 require "recording_studio/counter_caches"
 require "recording_studio/errors"
+require "recording_studio/authorization"
+require "recording_studio/metadata"
+require "recording_studio/tree"
 require "recording_studio/delegated_type_registrar"
 require "recording_studio/duplication"
 require "recording_studio/identity"
@@ -14,7 +18,6 @@ require "recording_studio/recordable"
 require "recording_studio/recordable_declarations"
 require "recording_studio/relationships"
 require "recording_studio/services/base_service"
-require "recording_studio/services/example_service"
 
 # rubocop:disable Metrics/ModuleLength, Metrics/ClassLength
 
@@ -224,7 +227,7 @@ module RecordingStudio
 
       assert_root_allowed!(recordable)
 
-      RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: recordable, parent_recording_id: nil)
+      find_or_create_root_recording!(recordable)
     end
 
     def root_recording_or_self(recording)
@@ -253,6 +256,27 @@ module RecordingStudio
         root_recording,
         **
       )
+    end
+
+    def assert_valid_revert_target!(recording, to_recordable)
+      raise ArgumentError, "recording is required" if recording.nil?
+      raise ArgumentError, "to_recordable is required" if to_recordable.nil?
+
+      unless to_recordable.respond_to?(:persisted?) && to_recordable.persisted?
+        raise RecordingStudio::InvalidRevertTarget, "to_recordable must be persisted"
+      end
+
+      expected_type = recording.recordable_type
+      actual_type = to_recordable.class.base_class.name
+      if expected_type.present? && actual_type != expected_type
+        raise RecordingStudio::InvalidRevertTarget,
+              "to_recordable type must remain #{expected_type}"
+      end
+
+      return if recording_history_includes_recordable?(recording, to_recordable)
+
+      raise RecordingStudio::InvalidRevertTarget,
+            "to_recordable must appear in the recording's event history"
     end
 
     def update_polymorphic_counter(recordable_or_type, recordable_id, column, delta)
@@ -300,9 +324,9 @@ module RecordingStudio
       RecordingStudio::DelegatedTypeRegistrar.apply!
       raise ArgumentError, "root_recording is required" if root_recording.nil? && recording.nil?
 
-      resolved_actor = actor || configuration.actor&.call
+      resolved_actor = RecordingStudio::Authorization.assert_actor!(actor || configuration.actor&.call)
       resolved_impersonator = impersonator || configuration.impersonator&.call
-      metadata = metadata.presence || {}
+      metadata = RecordingStudio::Metadata.normalize(metadata)
       idempotency_key = idempotency_key.presence
 
       RecordingStudio::Recording.transaction do
@@ -322,6 +346,29 @@ module RecordingStudio
         )
 
         assert_parent_recording_belongs_to_root!(parent_recording, root_recording)
+
+        RecordingStudio::Authorization.authorize_write!(
+          action: action,
+          recordable: recordable,
+          recording: recording,
+          root_recording: root_recording,
+          parent_recording: parent_recording,
+          actor: resolved_actor,
+          impersonator: resolved_impersonator,
+          metadata: metadata
+        )
+
+        RecordingStudio::Hooks.run(
+          :before_record,
+          action: action,
+          recordable: recordable,
+          recording: recording,
+          root_recording: root_recording,
+          parent_recording: parent_recording,
+          actor: resolved_actor,
+          impersonator: resolved_impersonator,
+          metadata: metadata
+        )
 
         existing_event = find_idempotent_event(recording, idempotency_key)
         return handle_idempotency(existing_event) if existing_event
@@ -354,18 +401,26 @@ module RecordingStudio
           previous_recordable = nil
         end
 
-        event = recording.events.create!(
-          action: action,
-          recordable: recordable,
-          previous_recordable: previous_recordable,
-          actor: resolved_actor,
-          impersonator: resolved_impersonator,
-          occurred_at: occurred_at,
-          metadata: metadata,
-          idempotency_key: idempotency_key
-        )
+        event = begin
+          recording.events.create!(
+            action: action,
+            recordable: recordable,
+            previous_recordable: previous_recordable,
+            actor: resolved_actor,
+            impersonator: resolved_impersonator,
+            occurred_at: occurred_at,
+            metadata: metadata,
+            idempotency_key: idempotency_key
+          )
+        rescue ActiveRecord::RecordNotUnique
+          existing = find_idempotent_event(recording, idempotency_key)
+          raise unless existing
+
+          next handle_idempotency(existing)
+        end
 
         instrument_event(event)
+        RecordingStudio::Hooks.run(:after_record, event)
         event
       end
     end
@@ -374,6 +429,12 @@ module RecordingStudio
 
     def capability_mutex
       @capability_mutex ||= Monitor.new
+    end
+
+    def find_or_create_root_recording!(recordable)
+      RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: recordable, parent_recording_id: nil)
+    rescue ActiveRecord::RecordNotUnique
+      RecordingStudio::Recording.unscoped.find_by!(recordable: recordable, parent_recording_id: nil)
     end
 
     def merge_capability_registration!(capability_name, mod, recording_methods:, source:, child_recordables:)
@@ -436,6 +497,20 @@ module RecordingStudio
       return unless recording&.persisted? && idempotency_key
 
       recording.events.find_by(idempotency_key: idempotency_key)
+    end
+
+    def recording_history_includes_recordable?(recording, to_recordable)
+      type_name = to_recordable.class.base_class.name
+      recordable_id = to_recordable.id
+
+      return true if recording.recordable_type == type_name && recording.recordable_id == recordable_id
+
+      recording.events.unscope(:order).where(
+        "(recordable_type = :type AND recordable_id = :id) OR " \
+        "(previous_recordable_type = :type AND previous_recordable_id = :id)",
+        type: type_name,
+        id: recordable_id
+      ).exists?
     end
 
     def reload_recording_for_hierarchy!(recording, name)

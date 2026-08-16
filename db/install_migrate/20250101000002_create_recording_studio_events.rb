@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 class CreateRecordingStudioEvents < ActiveRecord::Migration[8.1]
-  # Historical install migration kept as a single change block.
   # rubocop:disable Metrics/AbcSize, Metrics/MethodLength
   def change
     create_table :recording_studio_events, id: :uuid do |t|
@@ -19,6 +18,7 @@ class CreateRecordingStudioEvents < ActiveRecord::Migration[8.1]
       t.datetime :occurred_at, null: false, default: -> { "CURRENT_TIMESTAMP" }
       t.jsonb :metadata, null: false, default: {}
       t.string :idempotency_key
+
       t.datetime :created_at, null: false
     end
 
@@ -26,6 +26,16 @@ class CreateRecordingStudioEvents < ActiveRecord::Migration[8.1]
               unique: true,
               where: "idempotency_key IS NOT NULL",
               name: "index_recording_studio_events_on_recording_and_idempotency_key"
+    add_index :recording_studio_events,
+              %i[recording_id occurred_at created_at],
+              order: { occurred_at: :desc, created_at: :desc },
+              name: "index_rs_events_on_recording_and_timeline"
+    add_index :recording_studio_events,
+              %i[action occurred_at],
+              name: "index_rs_events_on_action_and_occurred_at"
+    add_index :recording_studio_events,
+              %i[actor_type actor_id occurred_at],
+              name: "index_rs_events_on_actor_and_occurred_at"
   end
   # rubocop:enable Metrics/AbcSize, Metrics/MethodLength
 end

@@ -5,6 +5,7 @@ require_relative "hooks"
 module RecordingStudio
   class Configuration
     REMOVED_CONFIGURATION_KEYS = %w[features].freeze
+    DEFAULT_MAX_METADATA_BYTES = 16_384
 
     attr_accessor(
       :actor,
@@ -14,10 +15,19 @@ module RecordingStudio
       :recordable_dup_strategy,
       :app_name
     )
-    attr_reader :recordable_types, :hooks, :recordable_dup_strategies, :require_recordable_declarations
+    attr_reader :recordable_types,
+                :hooks,
+                :recordable_dup_strategies,
+                :require_recordable_declarations,
+                :authorize_write,
+                :require_actor,
+                :max_metadata_bytes,
+                :allow_unsafe_recordable_queries,
+                :configured_type_names
 
-    def initialize
+    def initialize # rubocop:disable Metrics/AbcSize
       @recordable_types = []
+      @configured_type_names = [].freeze
       @capabilities = {}
       @capability_options = {}
       @actor = -> { defined?(Current) ? Current.actor : nil }
@@ -26,6 +36,10 @@ module RecordingStudio
       @idempotency_mode = :return_existing
       @recordable_dup_strategy = :dup
       @require_recordable_declarations = true
+      @require_actor = false
+      @authorize_write = nil
+      @max_metadata_bytes = DEFAULT_MAX_METADATA_BYTES
+      @allow_unsafe_recordable_queries = false
       @recordable_dup_strategies = {}
       @hooks = Hooks.new
       @app_name = "RecordingStudio"
@@ -41,12 +55,43 @@ module RecordingStudio
 
     def recordable_types=(types)
       @recordable_types = Array(types).map { |type| type.is_a?(Class) ? type.name : type.to_s }.uniq
+      @configured_type_names = @recordable_types.filter_map(&:presence).uniq.freeze
     end
 
     def require_recordable_declarations=(value)
       raise ArgumentError, "require_recordable_declarations must be true or false" unless [true, false].include?(value)
 
       @require_recordable_declarations = value
+    end
+
+    def require_actor=(value)
+      raise ArgumentError, "require_actor must be true or false" unless [true, false].include?(value)
+
+      @require_actor = value
+    end
+
+    def allow_unsafe_recordable_queries=(value)
+      raise ArgumentError, "allow_unsafe_recordable_queries must be true or false" unless [true, false].include?(value)
+
+      @allow_unsafe_recordable_queries = value
+    end
+
+    def max_metadata_bytes=(value)
+      bytes = Integer(value)
+      raise ArgumentError, "max_metadata_bytes must be positive" unless bytes.positive?
+
+      @max_metadata_bytes = bytes
+    end
+
+    def authorize_write=(value)
+      if value.nil?
+        @authorize_write = nil
+        return
+      end
+
+      raise ArgumentError, "authorize_write must respond to call" unless value.respond_to?(:call)
+
+      @authorize_write = value
     end
 
     def enable_capability(capability, on:)
@@ -136,6 +181,10 @@ module RecordingStudio
         event_notifications_enabled: event_notifications_enabled,
         idempotency_mode: idempotency_mode,
         require_recordable_declarations: require_recordable_declarations,
+        require_actor: require_actor,
+        max_metadata_bytes: max_metadata_bytes,
+        allow_unsafe_recordable_queries: allow_unsafe_recordable_queries,
+        authorize_write_configured: !authorize_write.nil?,
         recordable_dup_strategy: recordable_dup_strategy,
         recordable_dup_strategies: recordable_dup_strategies.keys.sort,
         hooks_registered: hooks.registered_counts
@@ -194,14 +243,10 @@ module RecordingStudio
     end
 
     def warn_removed_configuration_key!(key)
-      message = "[RecordingStudio] '#{key}' configuration has been removed from core. " \
-                "Move access/device-session configuration to the extracted addon gem."
-
-      if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
-        Rails.logger.warn(message)
-      else
-        warn(message)
-      end
+      RecordingStudio::Warnings.warn(
+        "[RecordingStudio] '#{key}' configuration has been removed from core. " \
+        "Move access/device-session configuration to the extracted addon gem."
+      )
     end
   end
 end
