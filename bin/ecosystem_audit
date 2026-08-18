@@ -857,7 +857,7 @@ class CanvasFile
   end
 
   def json(value)
-    JSON.pretty_generate(value).gsub(/\n/, "\n")
+    JSON.pretty_generate(value)
   end
 
   def quote(value)
