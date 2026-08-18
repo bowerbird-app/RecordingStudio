@@ -1225,3 +1225,6 @@ Public gem usage lives in this README, [docs/API_REFERENCE.md](docs/API_REFERENC
 Repository-maintainer workflows live in `docs/gem_template/`. The directory name is historical, but the files there are
 maintainer docs for this repository's development environment, generators, and release workflow rather than alternate
 public API documentation.
+
+[docs/ECOSYSTEM_DASHBOARD.md](docs/ECOSYSTEM_DASHBOARD.md) covers `bin/ecosystem_audit`, which scans the addon gems
+across the organisation and reports which shared dependencies are pinned behind their latest release.
