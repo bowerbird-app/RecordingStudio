@@ -25,6 +25,18 @@ module RecordingStudio
       false
     end
 
+    def shared_root?(recording)
+      return false unless root_recording?(recording)
+
+      RecordingStudio.shared_root_type?(recording.recordable_type)
+    end
+
+    def shared_root_tree?(recording)
+      return false if recording.nil?
+
+      shared_root?(root_recording_or_self(recording))
+    end
+
     def same_root?(left_recording, right_recording)
       return true if left_recording.nil? && right_recording.nil?
       return false if left_recording.nil? || right_recording.nil?

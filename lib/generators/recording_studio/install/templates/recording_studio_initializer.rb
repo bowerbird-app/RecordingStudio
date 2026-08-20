@@ -49,6 +49,10 @@ end
 # class Workspace < ApplicationRecord
 #   recording_studio_recordable label: "Workspace", root: true
 # end
+#
+# class MessagesRoot < ApplicationRecord
+#   recording_studio_recordable label: "Messages", root: true, shared: true
+# end
 
 # In app/models/page.rb:
 # class Page < ApplicationRecord

@@ -11,6 +11,14 @@ module RecordingStudio
         false
       end
 
+      def shared_root?
+        RecordingStudio.shared_root?(self)
+      end
+
+      def shared_root_tree?
+        RecordingStudio.shared_root_tree?(self)
+      end
+
       def parentless?
         parent_recording_id.blank?
       end

@@ -89,6 +89,9 @@ These methods are the main addon-facing API.
 | `root_recordable_type?(type)` | instance, class, or class name | `true`, `false`, or raises | Alias-style helper for `root_allowed?`. |
 | `root_recordable_types` | nothing | `Array<String>` or raises | Lists configured recordable types allowed as roots. |
 | `root_recordable_declarations` | nothing | `Array<Declaration>` | Lists configured declarations whose types declare `root: true`. |
+| `shared_root_type?(type)` | instance, class, or class name | `true` or `false` | Checks whether a recordable type is a shared root. |
+| `shared_root_types` | nothing | `Array<String>` | Lists configured shared root types. |
+| `shared_root_declarations` | nothing | `Array<Declaration>` | Lists configured shared root declarations. |
 | `parent_allowed?(child_type:, parent_recording:)` | child type, parent recording | `true`, `false`, or raises | Checks declared and capability-derived parent/child hierarchy rules. |
 | `assert_root_allowed!(type)` | instance, class, or class name | `true` or raises `RecordingStudio::RootNotAllowed` | Guards APIs that create or identify root recordings. |
 | `assert_parent_allowed!(child_type:, parent_recording:)` | child type, parent recording | `true` or raises `RecordingStudio::InvalidParent` | Guards child creation against declaration and capability-derived hierarchy rules. |
@@ -96,6 +99,8 @@ These methods are the main addon-facing API.
 | `root_recording_or_self(recording)` | recording or root recording | `RecordingStudio::Recording` or `nil` | Collapses `root_recording || self` into one public helper. |
 | `root_recording_id_for(recording)` | recording or root recording | root recording ID or `nil` | Returns the root boundary ID used by tree queries. |
 | `root_recording?(recording)` | recording | `true` or `false` | Validates that a recording is the root of its tree. |
+| `shared_root?(recording)` | recording | `true` or `false` | Checks whether this recording is a shared root node. |
+| `shared_root_tree?(recording)` | recording | `true` or `false` | Checks whether this recording lives under a shared root. |
 | `assert_recording_belongs_to_root!(root_recording, recording, message: ...)` | root recording, recording, optional message | `nil` or raises `ArgumentError` | Guards writes and queries from crossing root boundaries. |
 | `assert_root_recording!(recording, message: ...)` | recording, optional message | `nil` or raises `ArgumentError` | Guards APIs that must receive a root recording. |
 | `assert_parent_recording_belongs_to_root!(parent_recording, root_recording, message: ...)` | parent recording, root recording, optional message | `nil` or raises `ArgumentError` | Ensures new child recordings stay in the same tree. |
@@ -163,6 +168,10 @@ class Workspace < ApplicationRecord
   recording_studio_recordable label: "Workspace", plural_label: "Workspaces", root: true
 end
 
+class MessagesRoot < ApplicationRecord
+  recording_studio_recordable label: "Messages", root: true, shared: true
+end
+
 class Page < ApplicationRecord
   recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
 end
@@ -175,6 +184,7 @@ Macro parameters:
 | `label:` | yes | Singular human-facing type label. Used by `recordable_type_label`. |
 | `plural_label:` | no | Plural human-facing type label. Defaults to `label.pluralize`. |
 | `root:` | yes | `true` when the type can be a root recording; `false` for child-only types. |
+| `shared:` | no | `true` when a root type is a shared domain forest rather than an owned bucket. Defaults to `false`. Only valid with `root: true`, and cannot be combined with a non-empty `allowed_parent_types`. |
 | `allowed_parent_types:` | required when `root: false` unless parent allowances are derived from a registered capability | Class names/classes allowed as direct parents. `[]` is valid but means the type cannot currently be nested anywhere unless capability enablement grants parents. |
 
 Declaration behavior:
@@ -190,6 +200,9 @@ Declaration behavior:
   them in `child_recordables:`; effective parents are then derived from recordable types where that capability is enabled.
 - Direct model saves validate hierarchy rules too, so bypassing `record!` does not create valid orphan recordings.
 - Destroying a parent with children is restricted by the `child_recordings` association.
+- Shared roots remain valid `root_recording_for` targets. Domain children may declare them as parents.
+- Capability-derived parent allowances ignore shared root types, so capability-owned children cannot attach directly
+  under a shared root. Enable those capabilities on descendants instead.
 
 Hierarchy errors:
 
@@ -199,7 +212,7 @@ Hierarchy errors:
 | `RecordingStudio::InvalidParent` | A child is recorded without a parent or under a disallowed parent type. |
 | `RecordingStudio::OrphanRecording` | A low-level new recording is attempted under an existing root without a parent. |
 | `RecordingStudio::MissingRecordableDeclaration` | A configured ActiveRecord type has no declaration while declarations are required. |
-| `RecordingStudio::InvalidRecordableDeclaration` | A declaration has invalid arguments, references unregistered parents, or belongs to an unregistered type while strict declarations are enabled. |
+| `RecordingStudio::InvalidRecordableDeclaration` | A declaration has invalid arguments, references unregistered parents, uses `shared:` incorrectly, or belongs to an unregistered type while strict declarations are enabled. |
 
 ## Configuration: `RecordingStudio::Configuration`
 
@@ -333,6 +346,8 @@ This is the main object addons and host apps work with after they resolve a root
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
 | `root?` | nothing | `true` or `false` | Checks whether this recording is a root recording. |
+| `shared_root?` | nothing | `true` or `false` | Checks whether this recording is a shared root node. |
+| `shared_root_tree?` | nothing | `true` or `false` | Checks whether this recording's tree root is a shared root. |
 | `parentless?` | nothing | `true` or `false` | Checks whether `parent_recording_id` is blank. |
 | `orphan?` | nothing | `true` or `false` | Checks whether this recording is parentless but not a valid declared root. |
 | `leaf?` | nothing | `true` or `false` | Checks whether this recording has no children. |

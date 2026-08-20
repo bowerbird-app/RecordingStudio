@@ -6,6 +6,7 @@ Next steps:
 2. Review `config/initializers/recording_studio.rb` and `config/recording_studio.yml` if you opted into the YAML file.
 3. Add `recording_studio_recordable` declarations to each configured recordable model:
 	- root types use `root: true`
+	- shared domain forests use `root: true, shared: true`
 	- child-only types use `root: false, allowed_parent_types: [...]`
 4. Set `Current.actor` and `Current.impersonator`, or pass `actor:` and `impersonator:` explicitly from your app.
 5. If your app uses Tailwind, rebuild assets with `bin/rails tailwindcss:build`.

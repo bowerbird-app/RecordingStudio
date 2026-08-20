@@ -149,7 +149,9 @@ module RecordingStudio
       type_name = recordable_type_name(recordable_or_type)
       return [].freeze if type_name.blank?
 
-      configuration.capability_parent_types_for(type_name).dup.freeze
+      configuration.capability_parent_types_for(type_name).reject do |parent_type_name|
+        shared_root_type?(parent_type_name)
+      end.freeze
     end
 
     def capability_allowed_parent_types_for(recordable_or_type)
@@ -168,7 +170,8 @@ module RecordingStudio
           next if source.blank?
 
           result[source] ||= Set.new
-          result[source].merge(configuration.enabled_recordable_types_for(capability_name))
+          enabled_parents = configuration.enabled_recordable_types_for(capability_name)
+          result[source].merge(enabled_parents.reject { |parent_type_name| shared_root_type?(parent_type_name) })
         end
 
         allowances_by_source.transform_values { |parents| parents.to_a.sort.freeze }.freeze
@@ -176,11 +179,15 @@ module RecordingStudio
     end
 
     def child_recordable_types_for(recordable_or_type)
+      return [].freeze if shared_root_type?(recordable_or_type)
+
       configuration.child_recordable_types_for(recordable_or_type)
     end
 
     def parent_capabilities_for(child_type:, parent_recording: nil, parent_type: nil)
       resolved_parent_type = parent_type || parent_recording&.recordable_type
+      return [].freeze if shared_root_type?(resolved_parent_type)
+
       configuration.parent_capabilities_for(child_type: child_type, parent_type: resolved_parent_type)
     end
 
@@ -198,6 +205,26 @@ module RecordingStudio
 
     def root_recordable_declarations
       RecordingStudio::RecordableDeclarations.declarations_for_configured_types.select(&:root?)
+    end
+
+    def shared_root_type?(recordable_or_type)
+      RecordingStudio::RecordableDeclarations.shared_root_type?(recordable_or_type)
+    end
+
+    def shared_root_types
+      RecordingStudio::RecordableDeclarations.shared_root_types
+    end
+
+    def shared_root_declarations
+      RecordingStudio::RecordableDeclarations.shared_root_declarations
+    end
+
+    def shared_root?(recording)
+      RecordingStudio::Relationships.shared_root?(recording)
+    end
+
+    def shared_root_tree?(recording)
+      RecordingStudio::Relationships.shared_root_tree?(recording)
     end
 
     def parent_allowed?(child_type:, parent_recording:)

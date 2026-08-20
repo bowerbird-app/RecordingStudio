@@ -38,6 +38,10 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
     assert RecordingStudio.root_recordable_type?("Workspace")
     assert_includes RecordingStudio.root_recordable_types, "Workspace"
     assert_includes RecordingStudio.root_recordable_declarations, declaration
+    assert_not declaration.shared?
+    assert_not RecordingStudio.shared_root_type?("Workspace")
+    assert_equal [], RecordingStudio.shared_root_types
+    assert_equal [], RecordingStudio.shared_root_declarations
     assert_equal [], RecordingStudio.declared_parent_types_for("RecordingStudioComment")
     assert_equal ["RecordingStudioPage"], RecordingStudio.capability_parent_types_for("RecordingStudioComment")
     assert_equal %w[Workspace RecordingStudioFolder RecordingStudioPage],

@@ -8,12 +8,17 @@ module RecordingStudio
       :label,
       :plural_label,
       :root,
+      :shared,
       :allowed_parent_types,
       :allowed_parent_types_provided,
       keyword_init: true
     ) do
       def root?
         root == true
+      end
+
+      def shared?
+        shared == true
       end
     end
 
@@ -46,6 +51,7 @@ module RecordingStudio
         label: label,
         plural_label: plural_label,
         root: root,
+        shared: options.key?(:shared) ? options[:shared] : false,
         allowed_parent_types: options[:allowed_parent_types],
         allowed_parent_types_provided: options.key?(:allowed_parent_types)
       }
@@ -58,6 +64,7 @@ module RecordingStudio
         label: label,
         plural_label: normalize_label(attributes.fetch(:plural_label)) || label.pluralize,
         root: attributes.fetch(:root),
+        shared: attributes.fetch(:shared),
         allowed_parent_types: normalize_types(attributes.fetch(:allowed_parent_types)).freeze,
         allowed_parent_types_provided: attributes.fetch(:allowed_parent_types_provided)
       )
@@ -92,6 +99,25 @@ module RecordingStudio
     def root_recordable_types
       ensure_loaded!
       configured_type_names.select { |type| root_allowed?(type) }
+    end
+
+    def shared_root_types
+      ensure_loaded!
+      configured_type_names.select { |type| shared_root_type?(type) }
+    end
+
+    def shared_root_declarations
+      declarations_for_configured_types.select(&:shared?)
+    end
+
+    def shared_root_type?(recordable_or_type)
+      type_name = RecordingStudio::Identity.type_name_for(recordable_or_type)
+      return false unless configured_recordable_type?(type_name)
+
+      declaration = declaration_for(type_name)
+      return false unless declaration
+
+      declaration.root? && declaration.shared?
     end
 
     def root_allowed?(recordable_or_type)
@@ -301,6 +327,7 @@ module RecordingStudio
     def validate_declaration_arguments!(recordable_class, attributes)
       validate_label!(recordable_class, attributes.fetch(:label))
       validate_root!(recordable_class, attributes.fetch(:root))
+      validate_shared!(recordable_class, attributes)
       validate_plural_label!(recordable_class, attributes.fetch(:plural_label))
 
       normalize_types(attributes.fetch(:allowed_parent_types)) if attributes.fetch(:allowed_parent_types_provided)
@@ -312,6 +339,21 @@ module RecordingStudio
 
     def validate_root!(recordable_class, root)
       raise_invalid!(recordable_class, "root must be true or false") unless [true, false].include?(root)
+    end
+
+    def validate_shared!(recordable_class, attributes)
+      shared = attributes.fetch(:shared)
+      raise_invalid!(recordable_class, "shared must be true or false") unless [true, false].include?(shared)
+      return unless shared
+
+      raise_invalid!(recordable_class, "shared: true requires root: true") unless attributes.fetch(:root) == true
+
+      return unless attributes.fetch(:allowed_parent_types_provided)
+
+      parent_types = normalize_types(attributes.fetch(:allowed_parent_types))
+      return if parent_types.empty?
+
+      raise_invalid!(recordable_class, "shared: true cannot declare allowed_parent_types")
     end
 
     def validate_plural_label!(recordable_class, plural_label)
@@ -341,7 +383,7 @@ module RecordingStudio
       return [] unless valid_capability_child_declaration?(child_type_name, declaration)
 
       RecordingStudio.capability_parent_types_for(child_type_name).select do |parent_type_name|
-        configured_recordable_type?(parent_type_name)
+        configured_recordable_type?(parent_type_name) && !shared_root_type?(parent_type_name)
       end
     end
 

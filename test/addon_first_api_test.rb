@@ -46,6 +46,8 @@ class AddonFirstApiTest < ActiveSupport::TestCase
     child = root_recording.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child" }
 
     assert_respond_to child, :root?
+    assert_respond_to child, :shared_root?
+    assert_respond_to child, :shared_root_tree?
     assert_respond_to child, :leaf?
     assert_respond_to child, :depth
     assert_respond_to child, :level
@@ -107,6 +109,8 @@ class AddonFirstApiTest < ActiveSupport::TestCase
     assert_predicate root_recording, :persisted?
     assert_equal workspace, root_recording.recordable
     assert RecordingStudio.root_recording?(root_recording)
+    assert_not RecordingStudio.shared_root?(root_recording)
+    assert_not RecordingStudio.shared_root_tree?(root_recording)
     assert_equal root_recording, RecordingStudio.root_recording_for(workspace)
   end
 
