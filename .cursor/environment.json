@@ -7,8 +7,12 @@
   "start": "bash .cursor/start.sh",
   "terminals": [
     {
-      "name": "rails-dev",
-      "command": "cd /workspace/test/dummy && bin/dev"
+      "name": "web",
+      "command": "cd /workspace/test/dummy && bin/rails server -b 0.0.0.0"
+    },
+    {
+      "name": "css",
+      "command": "cd /workspace/test/dummy && bin/rails tailwindcss:watch"
     }
   ],
   "ports": [3000, 5432]

@@ -11,7 +11,7 @@ container**, so PostgreSQL runs inside the same image rather than as a separate 
 
 | File | Purpose |
 | --- | --- |
-| `environment.json` | Declares the image build, the bootstrap/boot commands, the `rails-dev` terminal, and forwarded ports. |
+| `environment.json` | Declares the image build, the bootstrap/boot commands, the `web` and `css` terminals, and forwarded ports. |
 | `Dockerfile` | Base image (`ruby:3.3-slim-bookworm`) with the Ruby toolchain, PostgreSQL, Node.js, and build libraries. |
 | `install.sh` | One-time repository bootstrap: installs gems, prepares the database, builds Tailwind, and seeds demo data. |
 | `start.sh` | Per-boot step: starts PostgreSQL and waits until it accepts connections. |
@@ -24,8 +24,12 @@ container**, so PostgreSQL runs inside the same image rather than as a separate 
    gem and `test/dummy`, runs `bin/rails db:prepare`, builds Tailwind, and seeds the development database. With
    environment builds enabled this runs once and is baked into the snapshot.
 3. **Start** (`start.sh`) – on every boot it brings PostgreSQL back up.
-4. **`rails-dev` terminal** – runs `bin/dev` (`test/dummy/Procfile.dev`), i.e. the Rails server on `0.0.0.0:3000` plus
-   the Tailwind watcher.
+4. **Terminals** – two long-running processes are started in `test/dummy`:
+   - `web` runs `bin/rails server -b 0.0.0.0` (the Rails server on port 3000).
+   - `css` runs `bin/rails tailwindcss:watch` (rebuilds Tailwind on change).
+
+   They are split into separate terminals (rather than a single `bin/dev`/foreman process) so the web server keeps
+   serving even if the Tailwind watcher stops. Run `bin/dev` yourself if you prefer the combined foreman process.
 
 ## Ports and URLs
 
