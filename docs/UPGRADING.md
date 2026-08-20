@@ -9,8 +9,8 @@ This is a non-breaking upgrade. Existing root types stay owned buckets unless yo
 - `recording_studio_recordable` accepts `shared:` (default `false`).
 - `shared: true` is only valid with `root: true` and cannot be combined with a non-empty `allowed_parent_types`.
 - Shared roots remain valid `root_recording_for` targets and write/query boundaries.
-- Capability-owned children cannot use a shared root as a direct parent. Domain children still can, by listing the
-  shared root type in `allowed_parent_types:`.
+- Capability-owned children cannot use a shared root as a direct parent, even if that type is also listed in
+  `allowed_parent_types:`. Domain children still can, by listing the shared root type in `allowed_parent_types:`.
 - New helpers: `shared_root_type?`, `shared_root_types`, `shared_root_declarations`, `shared_root?`,
   `shared_root_tree?`, plus `recording.shared_root?` and `recording.shared_root_tree?`.
 

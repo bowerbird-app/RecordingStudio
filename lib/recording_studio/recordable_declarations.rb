@@ -147,7 +147,18 @@ module RecordingStudio
       declaration = declaration_for(type_name)
       return [] unless declaration
 
-      declaration.allowed_parent_types + valid_capability_parent_types_for(type_name).reject do |parent_type_name|
+      combined_parent_types_for(type_name, declaration)
+    end
+
+    def combined_parent_types_for(type_name, declaration)
+      parents = declaration.allowed_parent_types + extra_capability_parent_types_for(type_name, declaration)
+      return parents unless capability_owned_child_recordable?(type_name)
+
+      parents.reject { |parent_type_name| shared_root_type?(parent_type_name) }
+    end
+
+    def extra_capability_parent_types_for(type_name, declaration)
+      valid_capability_parent_types_for(type_name).reject do |parent_type_name|
         declaration.allowed_parent_types.include?(parent_type_name)
       end
     end
@@ -236,8 +247,14 @@ module RecordingStudio
     end
 
     def parent_allowed_for_declaration?(declaration, child_type_name, parent_type_name)
+      return false if capability_child_blocked_by_shared_root?(child_type_name, parent_type_name)
+
       declaration.allowed_parent_types.include?(parent_type_name) ||
         capability_parent_allowed?(child_type_name, parent_type_name, declaration)
+    end
+
+    def capability_child_blocked_by_shared_root?(child_type_name, parent_type_name)
+      capability_owned_child_recordable?(child_type_name) && shared_root_type?(parent_type_name)
     end
 
     def validate_declared_types_registered!

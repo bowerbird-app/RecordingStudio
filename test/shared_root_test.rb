@@ -33,6 +33,7 @@ class SharedRootTest < ActiveSupport::TestCase
     RecordingStudio.instance_variable_set(:@registered_capabilities, @original_registered_capabilities)
     RecordingStudio.configuration.instance_variable_set(:@capabilities, @original_capabilities)
     RecordingStudio::RecordableDeclarations.replace_declarations!(@original_declarations)
+    RecordingStudio::DelegatedTypeRegistrar.apply!
   end
 
   def test_omitted_shared_flag_defaults_to_false
@@ -155,6 +156,35 @@ class SharedRootTest < ActiveSupport::TestCase
     assert_equal({ "recording_studio_actor_tools" => [] },
                  RecordingStudio.recordable_parent_allowances_for("SystemActor"))
 
+    assert_raises(RecordingStudio::InvalidParent) do
+      RecordingStudio.record!(
+        action: "created",
+        recordable: SystemActor.new(name: "Grant"),
+        root_recording: root,
+        parent_recording: root
+      )
+    end
+  end
+
+  def test_capability_owned_children_cannot_bypass_shared_root_via_allowed_parent_types
+    declare_shared_workspace!
+    _, root = create_workspace_root
+    RecordingStudio::RecordableDeclarations.register(
+      SystemActor,
+      label: "System actor",
+      plural_label: nil,
+      root: false,
+      options: { allowed_parent_types: ["Workspace"] }
+    )
+    RecordingStudio.register_capability(
+      :actor_tools,
+      source: "recording_studio_actor_tools",
+      child_recordables: ["SystemActor"]
+    )
+    RecordingStudio.enable_capability(:actor_tools, on: "Workspace")
+
+    assert_not RecordingStudio.parent_allowed?(child_type: "SystemActor", parent_recording: root)
+    assert_equal [], RecordingStudio.allowed_parent_types_for("SystemActor")
     assert_raises(RecordingStudio::InvalidParent) do
       RecordingStudio.record!(
         action: "created",
