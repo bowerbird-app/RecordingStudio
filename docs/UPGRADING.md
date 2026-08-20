@@ -1,4 +1,57 @@
-# Upgrading To 4.0.0
+# Upgrade Guide
+
+## Upgrading To 4.1.0
+
+This is a non-breaking upgrade. Existing root types stay owned buckets unless you opt a type into `shared: true`.
+
+### What Changed
+
+- `recording_studio_recordable` accepts `shared:` (default `false`).
+- `shared: true` is only valid with `root: true` and cannot be combined with a non-empty `allowed_parent_types`.
+- Shared roots remain valid `root_recording_for` targets and write/query boundaries.
+- Capability-owned children cannot use a shared root as a direct parent, even if that type is also listed in
+  `allowed_parent_types:`. Domain children still can, by listing the shared root type in `allowed_parent_types:`.
+- New helpers: `shared_root_type?`, `shared_root_types`, `shared_root_declarations`, `shared_root?`,
+  `shared_root_tree?`, plus `recording.shared_root?` and `recording.shared_root_tree?`.
+
+### Upgrade Steps
+
+No migration is required. Existing declarations omit `shared:` and keep the previous meaning.
+
+To add a shared domain forest such as messages:
+
+```ruby
+class MessagesRoot < ApplicationRecord
+  recording_studio_recordable label: "Messages", root: true, shared: true
+end
+
+class MessageGroup < ApplicationRecord
+  recording_studio_recordable label: "Message group",
+                              root: false,
+                              allowed_parent_types: ["MessagesRoot"]
+end
+```
+
+Then:
+
+1. Register the types in `config.recordable_types`.
+2. Persist the Messages root recordable and call `RecordingStudio.root_recording_for`.
+3. Enable Accessible (and other capability-owned children) on `MessageGroup`, not on `MessagesRoot`.
+4. Keep the shared root out of Root Switchable and Billing; those addons should treat `shared_root_types` as
+   non-switchable, non-billable buckets.
+
+Access grants on the shared root itself remain an Accessible follow-up. Core already rejects capability-owned children
+as direct children of a shared root, including `record!` bypasses.
+
+Helpful checks:
+
+```ruby
+RecordingStudio.shared_root_types
+RecordingStudio.shared_root?(messages_root)
+RecordingStudio.parent_allowed?(child_type: "MessageGroup", parent_recording: messages_root)
+```
+
+## Upgrading To 4.0.0
 
 This guide covers the breaking changes between `3.x` and `4.0.0`: integrity hardening, Event append-only history,
 query safety defaults, and removal of Recording's implicit default order.
@@ -246,7 +299,7 @@ bundle exec ruby -Itest test/dummy/test/models/commentable_capability_test.rb
 | Error | Meaning | Fix |
 | --- | --- | --- |
 | `RecordingStudio::MissingRecordableDeclaration` | A configured ActiveRecord recordable type has no declaration. | Add `recording_studio_recordable(...)` to that model or temporarily set `require_recordable_declarations = false`. |
-| `RecordingStudio::InvalidRecordableDeclaration` | A declaration is malformed, references an unregistered parent type, or leaves a non-root type without any valid parent allowance. | Register the parent type in `config.recordable_types`, ensure labels/root flags are valid, and declare `allowed_parent_types:` unless the type is capability-owned. |
+| `RecordingStudio::InvalidRecordableDeclaration` | A declaration is malformed, references an unregistered parent type, sets `shared: true` without `root: true`, or leaves a non-root type without any valid parent allowance. | Register the parent type in `config.recordable_types`, ensure labels/root/shared flags are valid, and declare `allowed_parent_types:` unless the type is capability-owned. |
 | `RecordingStudio::RootNotAllowed` | A child-only recordable was used as a root. | Declare the type with `root: true` if it really is a root, or create it under an allowed parent recording. |
 | `RecordingStudio::InvalidParent` | A child was recorded without a parent or under a disallowed parent type. | Pass `parent_recording:` and include that parent's recordable type in `allowed_parent_types:`. |
 | `RecordingStudio::OrphanRecording` | A low-level new recording was attempted under an existing root without a parent. | Use `root_recording_for` for root creation or pass `parent_recording:` for child creation. |
@@ -259,6 +312,8 @@ RecordingStudio.validate_recordable_declarations!
 RecordingStudio.recordable_declarations
 RecordingStudio.root_recordable_types
 RecordingStudio.root_recordable_declarations
+RecordingStudio.shared_root_types
+RecordingStudio.shared_root_declarations
 RecordingStudio.declared_parent_types_for("Page")
 RecordingStudio.declared_allowed_parent_types_for("Page")
 RecordingStudio.capability_parent_types_for("Comment")

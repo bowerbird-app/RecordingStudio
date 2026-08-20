@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-08-20
+
+### Added
+
+* `shared:` on `recording_studio_recordable` for root types that are domain forests rather than owned buckets
+* `RecordingStudio.shared_root_type?`, `shared_root_types`, `shared_root_declarations`, `shared_root?`, and `shared_root_tree?`
+* `recording.shared_root?` and `recording.shared_root_tree?` tree helpers
+
+### Changed
+
+* capability-owned children can no longer use a shared root as a direct parent; domain children still can via `allowed_parent_types`
+
+### Migration Notes
+
+- Existing roots are unchanged (`shared:` defaults to `false`).
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-410) to declare a Messages-style shared root.
+- Enable Accessible and other capability-owned children on objects below the shared root, not on the shared root itself.
+
 ## [4.0.0] - 2026-08-15
 
 ### ⚠ BREAKING CHANGES

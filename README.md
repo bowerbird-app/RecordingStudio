@@ -159,6 +159,7 @@ Event timelines rely on `occurred_at` and `created_at`; `updated_at` is not requ
 - Recordables are immutable snapshots (versioned state).
 - `Event` is the append-only timeline tied to a `Recording`.
 - Root recordings (often wrapping a top-level recordable like `Workspace`) own descendant recordings and provide the primary API.
+- Shared roots (`shared: true`) are still that API boundary, but they mark a domain forest rather than an owned bucket.
 
 ## Recording Hierarchy
 
@@ -172,6 +173,8 @@ recording.parent_recording
 recording.child_recordings
 recording.root_recording_or_self
 recording.root?
+recording.shared_root?
+recording.shared_root_tree?
 recording.parentless?
 recording.orphan?
 recording.leaf?
@@ -184,7 +187,9 @@ recording.self_and_descendants
 ```
 
 `parentless?` checks for a blank `parent_recording_id`. `orphan?` is true when a recording is parentless but is not a
-valid declared root. `ancestors` is ordered from the root recording down to the direct parent. `descendants` returns the
+valid declared root. `shared_root?` is true when this recording is a root whose type declared `shared: true`.
+`shared_root_tree?` is true for any recording whose tree root is shared. `ancestors` is ordered from the root recording
+down to the direct parent. `descendants` returns the
 full nested subtree in parent-before-child order. These traversal helpers return `RecordingStudio::Recording` objects,
 so callers can read `id`, `recordable_type`, `recordable_id`, `recordable_type_name`, or `name` from each returned node.
 
@@ -233,13 +238,28 @@ Root recordables can be top-level recordings. Non-root recordables must list all
 means the type cannot currently be recorded under any parent. `RecordingStudio.root_recording_for(recordable)` only
 accepts recordables that declare `root: true`, and child creation checks `allowed_parent_types` before saving.
 
+A root type may also declare `shared: true`. Shared roots are still roots and still provide the write/query boundary,
+but they mark a domain forest that nobody owns through the root node itself. Domain children declare the shared root in
+`allowed_parent_types:`. Capability-owned children (for example Access grants) cannot attach directly under a shared
+root; enable those capabilities on the objects below it instead.
+
 ```ruby
 class Workspace < ApplicationRecord
   recording_studio_recordable label: "Workspace", root: true
 end
 
+class MessagesRoot < ApplicationRecord
+  recording_studio_recordable label: "Messages", root: true, shared: true
+end
+
 class Page < ApplicationRecord
   recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
+end
+
+class MessageGroup < ApplicationRecord
+  recording_studio_recordable label: "Message group",
+                              root: false,
+                              allowed_parent_types: ["MessagesRoot"]
 end
 ```
 
@@ -254,6 +274,9 @@ RecordingStudio.root_allowed?("Workspace")
 RecordingStudio.root_recordable_type?("Workspace")
 RecordingStudio.root_recordable_types
 RecordingStudio.root_recordable_declarations
+RecordingStudio.shared_root_type?("MessagesRoot")
+RecordingStudio.shared_root_types
+RecordingStudio.shared_root_declarations
 RecordingStudio.declared_parent_types_for("Page")
 RecordingStudio.declared_allowed_parent_types_for("Page")
 RecordingStudio.capability_parent_types_for("Comment")
@@ -372,6 +395,11 @@ RecordingStudio.root_allowed?(recordable_or_type)
 RecordingStudio.root_recordable_type?(recordable_or_type)
 RecordingStudio.root_recordable_types
 RecordingStudio.root_recordable_declarations
+RecordingStudio.shared_root_type?(recordable_or_type)
+RecordingStudio.shared_root?(recording)
+RecordingStudio.shared_root_tree?(recording)
+RecordingStudio.shared_root_types
+RecordingStudio.shared_root_declarations
 RecordingStudio.declared_parent_types_for(recordable_or_type)
 RecordingStudio.declared_allowed_parent_types_for(recordable_or_type)
 RecordingStudio.capability_parent_types_for(recordable_or_type)
@@ -395,6 +423,8 @@ previously used `root_recording || self`.
 
 ```ruby
 recording.root?
+recording.shared_root?
+recording.shared_root_tree?
 recording.parentless?
 recording.orphan?
 recording.leaf?
@@ -1009,6 +1039,7 @@ Recordables are immutable; history is append-only.
 - **Recordable**: Immutable snapshot of state.
 - **Event**: Append-only historical entry.
 - **Root Recording**: Owner and API surface for recordings.
+- **Shared Root**: A root type declared `shared: true`. It is a domain forest, not an owned bucket; capability-owned children cannot attach directly under it.
 
 ## Limitations
 

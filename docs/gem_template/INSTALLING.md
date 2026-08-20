@@ -74,6 +74,10 @@ class Workspace < ApplicationRecord
   recording_studio_recordable label: "Workspace", root: true
 end
 
+class MessagesRoot < ApplicationRecord
+  recording_studio_recordable label: "Messages", root: true, shared: true
+end
+
 class Page < ApplicationRecord
   recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
 end

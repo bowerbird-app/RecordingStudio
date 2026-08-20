@@ -452,6 +452,46 @@ class MethodsController < ApplicationController
       RUBY
     },
     {
+      title: "Check Whether a Type Is a Shared Root",
+      subtitle: "RecordingStudio.shared_root_type?",
+      code: <<~'RUBY'
+        RecordingStudio.shared_root_type?("MessagesRoot")
+        # => true
+      RUBY
+    },
+    {
+      title: "List Shared Root Types",
+      subtitle: "RecordingStudio.shared_root_types",
+      code: <<~'RUBY'
+        RecordingStudio.shared_root_types
+        # => ["MessagesRoot"]
+      RUBY
+    },
+    {
+      title: "List Shared Root Declarations",
+      subtitle: "RecordingStudio.shared_root_declarations",
+      code: <<~'RUBY'
+        RecordingStudio.shared_root_declarations.map(&:type)
+        # => ["MessagesRoot"]
+      RUBY
+    },
+    {
+      title: "Check Whether a Recording Is a Shared Root",
+      subtitle: "RecordingStudio.shared_root?",
+      code: <<~'RUBY'
+        RecordingStudio.shared_root?(messages_root)
+        # => true
+      RUBY
+    },
+    {
+      title: "Check Whether a Recording Lives Under a Shared Root",
+      subtitle: "RecordingStudio.shared_root_tree?",
+      code: <<~'RUBY'
+        RecordingStudio.shared_root_tree?(message_group_recording)
+        # => true
+      RUBY
+    },
+    {
       title: "Assert That a Recording Is a Root",
       subtitle: "RecordingStudio.assert_root_recording!",
       code: <<~'RUBY'
@@ -1208,6 +1248,46 @@ class MethodsController < ApplicationController
         true
       TEXT
     },
+    "RecordingStudio.shared_root_type?" => {
+      returns_kind: "Boolean",
+      returns: "true or false",
+      notes: "Checks whether a recordable type is declared as a shared root.",
+      example_response: <<~'TEXT'
+        true
+      TEXT
+    },
+    "RecordingStudio.shared_root_types" => {
+      returns_kind: "Array",
+      returns: "Array<String>",
+      notes: "Lists configured recordable types declared shared: true.",
+      example_response: <<~'TEXT'
+        ["MessagesRoot"]
+      TEXT
+    },
+    "RecordingStudio.shared_root_declarations" => {
+      returns_kind: "Array",
+      returns: "Array<Declaration>",
+      notes: "Returns the declaration objects for configured shared root types.",
+      example_response: <<~'TEXT'
+        [#<RecordingStudio::RecordableDeclarations::Declaration type: "MessagesRoot", shared: true>]
+      TEXT
+    },
+    "RecordingStudio.shared_root?" => {
+      returns_kind: "Boolean",
+      returns: "true or false",
+      notes: "Checks whether the given recording is a shared root node.",
+      example_response: <<~'TEXT'
+        true
+      TEXT
+    },
+    "RecordingStudio.shared_root_tree?" => {
+      returns_kind: "Boolean",
+      returns: "true or false",
+      notes: "Checks whether the given recording lives in a shared-root tree.",
+      example_response: <<~'TEXT'
+        true
+      TEXT
+    },
     "RecordingStudio.assert_root_recording!" => {
       returns_kind: "Guard",
       returns: "nil on success, or raises ArgumentError",
@@ -1630,6 +1710,22 @@ class MethodsController < ApplicationController
         true
       TEXT
     },
+    "recording.shared_root?" => {
+      returns_kind: "Boolean",
+      returns: "true or false",
+      notes: "Checks whether the current recording is a shared root node.",
+      example_response: <<~'TEXT'
+        true
+      TEXT
+    },
+    "recording.shared_root_tree?" => {
+      returns_kind: "Boolean",
+      returns: "true or false",
+      notes: "Checks whether the current recording lives under a shared root.",
+      example_response: <<~'TEXT'
+        true
+      TEXT
+    },
     "recording.leaf?" => {
       returns_kind: "Boolean",
       returns: "true or false",
@@ -1804,6 +1900,11 @@ class MethodsController < ApplicationController
     "RecordingStudio.root_recording_or_self",
     "RecordingStudio.root_recording_id_for",
     "RecordingStudio.root_recording?",
+    "RecordingStudio.shared_root_type?",
+    "RecordingStudio.shared_root_types",
+    "RecordingStudio.shared_root_declarations",
+    "RecordingStudio.shared_root?",
+    "RecordingStudio.shared_root_tree?",
     "RecordingStudio.assert_root_recording!",
     "RecordingStudio.assert_recording_belongs_to_root!",
     "RecordingStudio.assert_parent_recording_belongs_to_root!",
@@ -1837,6 +1938,14 @@ class MethodsController < ApplicationController
             plural_label: "Workspaces",
             root: true,
             allowed_parent_types: []
+          )
+        end
+
+        class MessagesRoot < ApplicationRecord
+          recording_studio_recordable(
+            label: "Messages",
+            root: true,
+            shared: true
           )
         end
 
@@ -1971,6 +2080,25 @@ class MethodsController < ApplicationController
 
         child_recording.root?
         # => false
+      RUBY
+    },
+    {
+      title: "Check Whether a Recording Is a Shared Root",
+      subtitle: "recording.shared_root?",
+      code: <<~'RUBY'
+        messages_root.shared_root?
+        # => true
+
+        workspace_root.shared_root?
+        # => false
+      RUBY
+    },
+    {
+      title: "Check Whether a Recording Lives Under a Shared Root",
+      subtitle: "recording.shared_root_tree?",
+      code: <<~'RUBY'
+        message_group_recording.shared_root_tree?
+        # => true
       RUBY
     },
     {
