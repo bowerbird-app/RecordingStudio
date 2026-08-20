@@ -3,11 +3,14 @@
 This guide covers local development outside of the devcontainer or Codespaces. If you can use the containerized setup,
 that is the fastest path; local setup is primarily for maintainers who want to run the repo directly on their machine.
 
+For Cursor Cloud Agents the environment is preconfigured under `.cursor/`; see
+[CURSOR_CLOUD_AGENT.md](CURSOR_CLOUD_AGENT.md).
+
 ## Prerequisites
 
 | Dependency | Notes |
 | --- | --- |
-| Ruby 3.3+ | Required by the gemspec |
+| Ruby 3.3 (a current patch, e.g. 3.3.12) | Required by the gemspec. Ruby 3.3.0 is too old for Rails 8.1 and fails to boot, so `.ruby-version` pins a current 3.3 patch. |
 | PostgreSQL 16+ | Used by the dummy app |
 | Redis 7+ | Used by the dummy app environment |
 | Node.js and npm | Required for the dummy app's Tailwind build |

@@ -1,0 +1,15 @@
+{
+  "name": "RecordingStudio (Rails engine + PostgreSQL)",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "rails-dev",
+      "command": "cd /workspace/test/dummy && bin/dev"
+    }
+  ],
+  "ports": [3000, 5432]
+}
