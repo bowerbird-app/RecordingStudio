@@ -1,0 +1,901 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# =============================================================================
+# Recording Studio ecosystem audit
+# =============================================================================
+#
+# Scans every Recording Studio gem repository in the GitHub organisation and
+# reports which shared dependencies are pinned behind their latest release.
+#
+# USAGE:
+#   bin/ecosystem_audit                      # write JSON + HTML into tmp/
+#   bin/ecosystem_audit --json PATH          # choose the JSON output path
+#   bin/ecosystem_audit --html PATH          # choose the HTML output path
+#   bin/ecosystem_audit --from PATH          # re-render from a previous JSON
+#   bin/ecosystem_audit --quiet              # suppress the terminal summary
+#
+# REQUIREMENTS:
+#   The GitHub CLI (`gh`) must be installed and authenticated with read access
+#   to the organisation. Run `gh auth login` first.
+#
+# =============================================================================
+
+require "json"
+require "optparse"
+require "fileutils"
+require "open3"
+require "rubygems"
+require "cgi"
+
+class EcosystemAudit
+  ORGANISATION = "bowerbird-app"
+
+  # Repositories that are kept for history but are no longer maintained.
+  RETIRED_REPOSITORY_PATTERNS = [/depreciated/i, /deprecated/i, /broken/i, /cursor_plugin/i].freeze
+
+  # Repositories whose names do not start with the RecordingStudio prefix but
+  # still belong to the ecosystem.
+  ADDITIONAL_REPOSITORIES = %w[flatpack].freeze
+
+  # A repository that still ships the unrenamed scaffold is not yet a real
+  # ecosystem member, so it is reported separately.
+  SCAFFOLD_GEM_NAME = "gem_template"
+
+  # Shared dependencies worth tracking across the whole ecosystem. Everything
+  # else (rails, redis, sidekiq, ...) is left to Dependabot.
+  SHARED_DEPENDENCIES = %w[recording_studio recording_studio_accessible flat_pack].freeze
+
+  # How urgent an outdated pin is, based on how much of the ecosystem it blocks.
+  DEPENDENCY_PRIORITIES = {
+    "recording_studio" => "high",
+    "recording_studio_accessible" => "medium",
+    "flat_pack" => "low"
+  }.freeze
+
+  def initialize(json_path:, html_path:, canvas_path:, quiet:)
+    @json_path = json_path
+    @html_path = html_path
+    @canvas_path = canvas_path
+    @quiet = quiet
+  end
+
+  def run
+    repositories = fetch_repository_names
+    log "Scanning #{repositories.length} repositories in #{ORGANISATION}..."
+
+    gems = repositories.map { |repository| inspect_repository(repository) }.compact
+    report = build_report(gems)
+
+    write_json(report)
+    render(report)
+    print_summary(report)
+    report
+  end
+
+  def self.render_only(json_path:, html_path:, canvas_path:, quiet:)
+    report = JSON.parse(File.read(json_path))
+    audit = allocate
+    audit.instance_variable_set(:@json_path, json_path)
+    audit.instance_variable_set(:@html_path, html_path)
+    audit.instance_variable_set(:@canvas_path, canvas_path)
+    audit.instance_variable_set(:@quiet, quiet)
+    audit.render(report)
+    audit.print_summary(report)
+    report
+  end
+
+  def render(report)
+    write_html(report)
+    write_canvas(report)
+  end
+
+  # ---------------------------------------------------------------------------
+  # GitHub access
+  # ---------------------------------------------------------------------------
+
+  def fetch_repository_names
+    names = github_json("orgs/#{ORGANISATION}/repos", paginate: true).map { |repo| repo["name"] }
+    names.select { |name| ecosystem_repository?(name) }.sort
+  end
+
+  def ecosystem_repository?(name)
+    return false if RETIRED_REPOSITORY_PATTERNS.any? { |pattern| name.match?(pattern) }
+
+    name.downcase.start_with?("recordingstudio") || ADDITIONAL_REPOSITORIES.include?(name.downcase)
+  end
+
+  def inspect_repository(repository)
+    log "  #{repository}"
+    gemspec_source = fetch_gemspec_source(repository)
+    return nil unless gemspec_source
+
+    {
+      "repository" => repository,
+      "repository_url" => "https://github.com/#{ORGANISATION}/#{repository}",
+      "gem" => extract_gem_name(gemspec_source),
+      "version" => fetch_declared_version(repository),
+      "latest_tag" => fetch_latest_tag(repository),
+      "gemspec_dependencies" => extract_gemspec_dependencies(gemspec_source),
+      "gemfile_pins" => extract_gemfile_pins(repository)
+    }
+  end
+
+  def fetch_gemspec_source(repository)
+    entries = github_json("repos/#{ORGANISATION}/#{repository}/contents/")
+    gemspec = entries.find { |entry| entry["name"].to_s.end_with?(".gemspec") }
+    return nil unless gemspec
+
+    fetch_file(repository, gemspec["name"])
+  end
+
+  def fetch_declared_version(repository)
+    tree = github_json("repos/#{ORGANISATION}/#{repository}/git/trees/HEAD?recursive=1")
+    paths = Array(tree["tree"]).map { |entry| entry["path"] }.compact
+    version_path = paths.find { |path| path.match?(%r{\Alib/[^/]+/version\.rb\z}) }
+    return nil unless version_path
+
+    source = fetch_file(repository, version_path)
+    source&.match(/VERSION\s*=\s*["']([^"']+)["']/)&.captures&.first
+  end
+
+  def fetch_latest_tag(repository)
+    tags = github_json("repos/#{ORGANISATION}/#{repository}/tags?per_page=100")
+    versions = Array(tags).filter_map { |tag| parse_version(tag["name"]) }
+    versions.max&.to_s
+  end
+
+  def fetch_file(repository, path)
+    payload = github_json("repos/#{ORGANISATION}/#{repository}/contents/#{path}")
+    content = payload.is_a?(Hash) ? payload["content"] : nil
+    return nil unless content
+
+    content.unpack1("m")
+  end
+
+  def github_json(endpoint, paginate: false)
+    command = ["gh", "api", endpoint]
+    command << "--paginate" if paginate
+    stdout, stderr, status = Open3.capture3(*command)
+
+    unless status.success?
+      warn "  ! #{endpoint}: #{stderr.strip.lines.first}"
+      return paginate ? [] : {}
+    end
+
+    # `gh --paginate` concatenates one JSON array per page.
+    stdout = stdout.gsub(/\]\s*\[/, ",") if paginate
+    JSON.parse(stdout)
+  rescue JSON::ParserError => error
+    warn "  ! #{endpoint}: #{error.message}"
+    paginate ? [] : {}
+  end
+
+  # ---------------------------------------------------------------------------
+  # Parsing
+  # ---------------------------------------------------------------------------
+
+  def extract_gem_name(gemspec_source)
+    gemspec_source.match(/spec\.name\s*=\s*["']([^"']+)["']/)&.captures&.first
+  end
+
+  def extract_gemspec_dependencies(gemspec_source)
+    gemspec_source.scan(/add_(?:runtime_)?dependency\s+(.+)$/).filter_map do |(arguments)|
+      quoted = arguments.scan(/["']([^"']+)["']/).flatten
+      next if quoted.empty?
+
+      { "name" => quoted.first, "requirement" => quoted[1..].join(", ") }
+    end
+  end
+
+  def extract_gemfile_pins(repository)
+    source = fetch_file(repository, "Gemfile")
+    return [] unless source
+
+    source.scan(/^\s*gem\s+["']([^"']+)["'](.*)$/).filter_map do |(name, arguments)|
+      next unless SHARED_DEPENDENCIES.include?(name)
+
+      {
+        "name" => name,
+        "tag" => arguments[/tag:\s*["']([^"']+)["']/, 1],
+        "branch" => arguments[/branch:\s*["']([^"']+)["']/, 1]
+      }
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Analysis
+  # ---------------------------------------------------------------------------
+
+  def build_report(gems)
+    latest = latest_versions(gems)
+    active, scaffolds = gems.partition { |entry| entry["gem"] != SCAFFOLD_GEM_NAME }
+
+    active.each { |entry| entry["outdated"] = outdated_pins_for(entry, latest) }
+    active.each { |entry| entry["priority"] = highest_priority(entry["outdated"]) }
+
+    needing_updates = active.select { |entry| entry["outdated"].any? }
+
+    {
+      "generated_at" => Time.now.utc.strftime("%Y-%m-%d"),
+      "organisation" => ORGANISATION,
+      "latest_versions" => latest,
+      "totals" => {
+        "active_gems" => active.length,
+        "gems_needing_updates" => needing_updates.length,
+        "gems_up_to_date" => active.length - needing_updates.length,
+        "outdated_pins" => needing_updates.sum { |entry| entry["outdated"].length },
+        "scaffold_repositories" => scaffolds.length
+      },
+      "behind_by_dependency" => SHARED_DEPENDENCIES.to_h do |dependency|
+        [dependency, needing_updates.count { |entry| entry["outdated"].any? { |pin| pin["dependency"] == dependency } }]
+      end,
+      "gems" => active.sort_by { |entry| [priority_rank(entry["priority"]), entry["gem"].to_s] },
+      "scaffold_repositories" => scaffolds.map { |entry| entry["repository"] }.sort
+    }
+  end
+
+  # The newest version we can prove exists, from either the released tag or the
+  # version constant on the default branch.
+  def latest_versions(gems)
+    SHARED_DEPENDENCIES.to_h do |dependency|
+      entry = gems.find { |candidate| candidate["gem"] == dependency }
+      candidates = [entry&.dig("version"), entry&.dig("latest_tag")].filter_map { |value| parse_version(value) }
+      [dependency, candidates.max&.to_s]
+    end.compact
+  end
+
+  def outdated_pins_for(entry, latest)
+    pins = []
+
+    entry["gemspec_dependencies"].each do |dependency|
+      latest_version = latest[dependency["name"]]
+      next unless latest_version
+      next if requirement_allows?(dependency["requirement"], latest_version)
+
+      pins << outdated_pin(
+        dependency["name"], dependency["requirement"], latest_version,
+        "gemspec requirement excludes #{latest_version}", "gemspec"
+      )
+    end
+
+    entry["gemfile_pins"].each do |pin|
+      latest_version = latest[pin["name"]]
+      next unless latest_version && pin["tag"]
+
+      pinned_version = parse_version(pin["tag"])
+      next if pinned_version && pinned_version >= Gem::Version.new(latest_version)
+
+      pins << outdated_pin(
+        pin["name"], "tag: #{pin['tag']}", latest_version,
+        "Gemfile tag is behind #{latest_version}", "Gemfile"
+      )
+    end
+
+    merge_duplicate_pins(pins).sort_by { |pin| [priority_rank(pin["priority"]), pin["dependency"]] }
+  end
+
+  def outdated_pin(dependency, pinned, latest, reason, source)
+    {
+      "dependency" => dependency,
+      "pinned" => pinned,
+      "latest" => latest,
+      "reason" => reason,
+      "source" => source,
+      "priority" => DEPENDENCY_PRIORITIES.fetch(dependency, "low")
+    }
+  end
+
+  # A gem can pin the same dependency in both its gemspec and its Gemfile; show
+  # that as one row so the table counts gems, not files.
+  def merge_duplicate_pins(pins)
+    pins.group_by { |pin| pin["dependency"] }.map do |_dependency, group|
+      next group.first if group.one?
+
+      group.first.merge(
+        "pinned" => group.map { |pin| pin["pinned"] }.uniq.join(" / "),
+        "source" => group.map { |pin| pin["source"] }.uniq.join(" + ")
+      )
+    end
+  end
+
+  def requirement_allows?(requirement, version)
+    Gem::Requirement.new(requirement.split(",").map(&:strip)).satisfied_by?(Gem::Version.new(version))
+  rescue ArgumentError, Gem::Requirement::BadRequirementError
+    true
+  end
+
+  def parse_version(value)
+    return nil unless value
+
+    numeric = value.to_s[/\d+(?:\.\d+)*/]
+    numeric ? Gem::Version.new(numeric) : nil
+  rescue ArgumentError
+    nil
+  end
+
+  def highest_priority(pins)
+    return "current" if pins.empty?
+
+    pins.map { |pin| pin["priority"] }.min_by { |priority| priority_rank(priority) }
+  end
+
+  def priority_rank(priority)
+    %w[high medium low current].index(priority) || 99
+  end
+
+  # ---------------------------------------------------------------------------
+  # Output
+  # ---------------------------------------------------------------------------
+
+  def write_json(report)
+    FileUtils.mkdir_p(File.dirname(@json_path))
+    File.write(@json_path, "#{JSON.pretty_generate(report)}\n")
+    log "Wrote #{@json_path}"
+  end
+
+  def write_html(report)
+    FileUtils.mkdir_p(File.dirname(@html_path))
+    File.write(@html_path, DashboardPage.new(report).render)
+    log "Wrote #{@html_path}"
+  end
+
+  def write_canvas(report)
+    FileUtils.mkdir_p(File.dirname(@canvas_path))
+    File.write(@canvas_path, CanvasFile.new(report).render)
+    log "Wrote #{@canvas_path}"
+  end
+
+  def print_summary(report)
+    return if @quiet
+
+    totals = report["totals"]
+    puts
+    puts "Recording Studio ecosystem — #{report['generated_at']}"
+    puts "  #{totals['gems_needing_updates']} of #{totals['active_gems']} active gems need updates " \
+         "(#{totals['outdated_pins']} outdated pins)"
+    report["behind_by_dependency"].each do |dependency, count|
+      latest = report["latest_versions"][dependency]
+      puts "  #{count} behind #{dependency} #{latest}"
+    end
+    puts
+  end
+
+  def log(message)
+    puts message unless @quiet
+  end
+end
+
+# Renders the audit as a single self-contained HTML file that opens in any
+# browser without a server or build step.
+class DashboardPage
+  PRIORITY_LABELS = { "high" => "High", "medium" => "Medium", "low" => "Low", "current" => "Current" }.freeze
+
+  def initialize(report)
+    @report = report
+  end
+
+  def render
+    <<~HTML
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Recording Studio gem updates</title>
+      <style>#{styles}</style>
+      </head>
+      <body>
+      <main>
+        #{header}
+        #{summary}
+        #{latest_versions}
+        #{outdated_table}
+        #{upgrade_order}
+        #{current_gems}
+        #{scaffolds}
+        #{footer}
+      </main>
+      </body>
+      </html>
+    HTML
+  end
+
+  private
+
+  attr_reader :report
+
+  def header
+    <<~HTML
+      <header>
+        <h1>Recording Studio gem updates</h1>
+        <p class="lede">Shared dependencies across the #{escape(report['organisation'])} Recording Studio gems,
+        and which ones are pinned behind their latest release.</p>
+        <p class="meta">Generated #{escape(report['generated_at'])} from GitHub gemspecs and Gemfiles</p>
+      </header>
+    HTML
+  end
+
+  def summary
+    totals = report["totals"]
+    cards = [
+      ["Gems needing updates", totals["gems_needing_updates"], "warn"],
+      ["Outdated pins", totals["outdated_pins"], "bad"],
+      ["Gems up to date", totals["gems_up_to_date"], "good"],
+      ["Scaffold repositories", totals["scaffold_repositories"], "muted"]
+    ]
+
+    <<~HTML
+      <section class="stats">
+        #{cards.map { |label, value, tone| stat_card(label, value, tone) }.join("\n    ")}
+      </section>
+    HTML
+  end
+
+  def stat_card(label, value, tone)
+    %(<div class="stat"><span class="stat-value #{tone}">#{value}</span><span class="stat-label">#{escape(label)}</span></div>)
+  end
+
+  def latest_versions
+    rows = report["latest_versions"].map do |dependency, version|
+      behind = report["behind_by_dependency"][dependency]
+      <<~HTML
+        <div class="hub">
+          <div class="hub-name">#{escape(dependency)}</div>
+          <div class="hub-version">#{escape(version)}</div>
+          <div class="hub-behind">#{behind} #{behind == 1 ? 'gem' : 'gems'} behind</div>
+        </div>
+      HTML
+    end
+
+    <<~HTML
+      <section>
+        <h2>Latest shared versions</h2>
+        <div class="hubs">#{rows.join}</div>
+      </section>
+    HTML
+  end
+
+  def outdated_table
+    rows = report["gems"].flat_map do |gem|
+      gem["outdated"].map { |pin| outdated_row(gem, pin) }
+    end
+
+    return "" if rows.empty?
+
+    <<~HTML
+      <section>
+        <h2>Dependencies that need updating</h2>
+        <p class="note">One row per outdated pin. Priority reflects how much of the ecosystem the
+        dependency blocks.</p>
+        <table>
+          <thead><tr>
+            <th>Priority</th><th>Gem</th><th>Version</th><th>Dependency</th>
+            <th>Pinned</th><th>Latest</th><th>Declared in</th>
+          </tr></thead>
+          <tbody>#{rows.join}</tbody>
+        </table>
+      </section>
+    HTML
+  end
+
+  def outdated_row(gem, pin)
+    <<~HTML
+      <tr class="row-#{escape(pin['priority'])}">
+        <td><span class="tag #{escape(pin['priority'])}">#{PRIORITY_LABELS.fetch(pin['priority'], pin['priority'])}</span></td>
+        <td><a href="#{escape(gem['repository_url'])}">#{escape(gem['gem'])}</a></td>
+        <td class="mono">#{escape(gem['version'])}</td>
+        <td>#{escape(pin['dependency'])}</td>
+        <td class="mono">#{escape(pin['pinned'])}</td>
+        <td class="mono">#{escape(pin['latest'])}</td>
+        <td class="muted">#{escape(pin['source'])}</td>
+      </tr>
+    HTML
+  end
+
+  def upgrade_order
+    core = report["latest_versions"]["recording_studio"]
+    accessible = report["latest_versions"]["recording_studio_accessible"]
+
+    <<~HTML
+      <section>
+        <h2>Suggested upgrade order</h2>
+        <ol class="steps">
+          <li><strong>Unlock the hub.</strong> Move recording_studio_accessible onto
+          recording_studio #{escape(core)} and release it. Most addons depend on accessible, so
+          nothing else can move cleanly until it does.</li>
+          <li><strong>Roll the addons.</strong> Update every gem still requiring recording_studio
+          below #{escape(core)}, then the ones pinned below accessible #{escape(accessible)}.</li>
+          <li><strong>Refresh Flat Pack tags.</strong> Lower risk and independent of the core
+          migration, so these can land at any point.</li>
+        </ol>
+      </section>
+    HTML
+  end
+
+  def current_gems
+    rows = report["gems"].reject { |gem| gem["outdated"].any? }
+    return "" if rows.empty?
+
+    <<~HTML
+      <section>
+        <h2>Gems with no outdated shared pins</h2>
+        <table>
+          <thead><tr><th>Gem</th><th>Version</th><th>Latest tag</th></tr></thead>
+          <tbody>
+            #{rows.map { |gem| current_gem_row(gem) }.join}
+          </tbody>
+        </table>
+      </section>
+    HTML
+  end
+
+  def current_gem_row(gem)
+    <<~HTML
+      <tr>
+        <td><a href="#{escape(gem['repository_url'])}">#{escape(gem['gem'])}</a></td>
+        <td class="mono">#{escape(gem['version'])}</td>
+        <td class="mono">#{escape(gem['latest_tag'] || '—')}</td>
+      </tr>
+    HTML
+  end
+
+  def scaffolds
+    repositories = report["scaffold_repositories"]
+    return "" if repositories.empty?
+
+    <<~HTML
+      <section>
+        <h2>Scaffold-only repositories</h2>
+        <p class="note">Still shipping the unrenamed gem template, so they are not yet ecosystem
+        consumers.</p>
+        <div class="chips">#{repositories.map { |name| %(<span class="chip">#{escape(name)}</span>) }.join}</div>
+      </section>
+    HTML
+  end
+
+  def footer
+    <<~HTML
+      <footer>Regenerate with <code>bin/ecosystem_audit</code>. Retired and broken repositories are excluded.</footer>
+    HTML
+  end
+
+  def escape(value)
+    CGI.escapeHTML(value.to_s)
+  end
+
+  def styles
+    <<~CSS
+      :root {
+        --bg: #ffffff; --panel: #ffffff; --ink: #16181d; --ink-soft: #5c6370;
+        --line: #e3e6ea; --high: #b42318; --medium: #b54708; --low: #175cd3; --good: #067647;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #16181d; --panel: #1d2027; --ink: #f0f2f5; --ink-soft: #9aa2af;
+          --line: #2b2f38; --high: #f97066; --medium: #fdb022; --low: #6ba5f7; --good: #47cd89;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; background: var(--bg); color: var(--ink);
+        font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+      main { max-width: 1080px; margin: 0 auto; padding: 48px 28px 72px; }
+      h1 { font-size: 28px; margin: 0 0 8px; letter-spacing: -0.01em; }
+      h2 { font-size: 17px; margin: 0 0 14px; letter-spacing: -0.005em; }
+      section { margin-top: 40px; }
+      .lede { margin: 0 0 6px; color: var(--ink-soft); max-width: 68ch; }
+      .meta, .note { color: var(--ink-soft); font-size: 13px; margin: 0 0 14px; }
+      .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 32px; }
+      .stat { border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; }
+      .stat-value { display: block; font-size: 28px; font-weight: 600; letter-spacing: -0.02em; }
+      .stat-label { display: block; font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
+      .stat-value.bad { color: var(--high); } .stat-value.warn { color: var(--medium); }
+      .stat-value.good { color: var(--good); } .stat-value.muted { color: var(--ink-soft); }
+      .hubs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+      .hub { border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+      .hub-name { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+      .hub-version { font-size: 22px; font-weight: 600; margin-top: 6px; letter-spacing: -0.01em; }
+      .hub-behind { font-size: 12px; color: var(--ink-soft); margin-top: 2px; }
+      table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+      th {
+        text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+        color: var(--ink-soft); font-weight: 600; padding: 0 12px 8px; border-bottom: 1px solid var(--line);
+      }
+      td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+      tr.row-high td:first-child { border-left: 2px solid var(--high); }
+      tr.row-medium td:first-child { border-left: 2px solid var(--medium); }
+      tr.row-low td:first-child { border-left: 2px solid var(--low); }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+      .muted { color: var(--ink-soft); }
+      .tag { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; }
+      .tag.high { color: var(--high); } .tag.medium { color: var(--medium); } .tag.low { color: var(--low); }
+      a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--line); }
+      a:hover { border-bottom-color: currentColor; }
+      .steps { margin: 0; padding-left: 20px; }
+      .steps li { margin-bottom: 10px; max-width: 76ch; }
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+      .chip {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
+        border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; color: var(--ink-soft);
+      }
+      footer { margin-top: 48px; padding-top: 18px; border-top: 1px solid var(--line);
+        color: var(--ink-soft); font-size: 12.5px; }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; }
+      @media (max-width: 780px) {
+        .stats, .hubs { grid-template-columns: repeat(2, 1fr); }
+        main { padding: 32px 18px 56px; }
+      }
+    CSS
+  end
+end
+
+# Renders the audit as a Cursor canvas so it can be opened beside the chat and
+# published as a shared team dashboard.
+class CanvasFile
+  PILL_TONES = { "high" => "deleted", "medium" => "warning", "low" => "info" }.freeze
+  ROW_TONES = { "high" => "danger", "medium" => "warning", "low" => "info" }.freeze
+  PRIORITY_LABELS = { "high" => "High", "medium" => "Medium", "low" => "Low" }.freeze
+
+  def initialize(report)
+    @report = report
+  end
+
+  def render
+    <<~TSX
+      // Generated by bin/ecosystem_audit — edit that script rather than this file.
+      import {
+        Callout,
+        Card,
+        CardBody,
+        CardHeader,
+        Grid,
+        H1,
+        H2,
+        H3,
+        Link,
+        Pill,
+        Row,
+        Stack,
+        Stat,
+        Table,
+        Text,
+      } from "cursor/canvas";
+
+      type OutdatedPin = {
+        gem: string;
+        gemVersion: string;
+        repositoryUrl: string;
+        dependency: string;
+        pinned: string;
+        latest: string;
+        source: string;
+        priority: "high" | "medium" | "low";
+      };
+
+      const GENERATED_AT = #{quote(report['generated_at'])};
+      const LATEST_VERSIONS: Array<{ name: string; version: string; behind: number }> = #{json(latest_versions)};
+      const OUTDATED: OutdatedPin[] = #{json(outdated_pins)};
+      const CURRENT_GEMS: Array<{ gem: string; version: string; repositoryUrl: string }> = #{json(current_gems)};
+      const SCAFFOLDS: string[] = #{json(report['scaffold_repositories'])};
+      const TOTALS = #{json(report['totals'])};
+
+      const PILL_TONES = #{json(PILL_TONES)} as const;
+      const ROW_TONES = #{json(ROW_TONES)} as const;
+      const PRIORITY_LABELS = #{json(PRIORITY_LABELS)} as const;
+
+      export default function RecordingStudioGemUpdates() {
+        return (
+          <Stack gap={24} style={{ padding: 24, maxWidth: 1100 }}>
+            <Stack gap={8}>
+              <H1>Recording Studio gem updates</H1>
+              <Text tone="secondary">
+                Shared dependencies across the #{report['organisation']} Recording Studio gems, and which ones
+                are pinned behind their latest release. Source: GitHub gemspecs and Gemfiles ·
+                generated {GENERATED_AT}
+              </Text>
+            </Stack>
+
+            <Callout tone="warning" title="The core migration is the bottleneck">
+              Most addons still resolve recording_studio to 3.x while core is at
+              #{core_version}. Move recording_studio_accessible first — the rest of the ecosystem
+              depends on it.
+            </Callout>
+
+            <Grid columns={4} gap={12}>
+              <Stat value={String(TOTALS.gems_needing_updates)} label="Gems needing updates" tone="warning" />
+              <Stat value={String(TOTALS.outdated_pins)} label="Outdated pins" tone="danger" />
+              <Stat value={String(TOTALS.gems_up_to_date)} label="Gems up to date" tone="success" />
+              <Stat value={String(TOTALS.scaffold_repositories)} label="Scaffold repositories" />
+            </Grid>
+
+            <Stack gap={12}>
+              <H2>Latest shared versions</H2>
+              <Grid columns={3} gap={12}>
+                {LATEST_VERSIONS.map((hub) => (
+                  <Card key={hub.name}>
+                    <CardHeader trailing={<Pill size="sm">{hub.version}</Pill>}>{hub.name}</CardHeader>
+                    <CardBody>
+                      <Text tone="secondary" size="small">
+                        {hub.behind} {hub.behind === 1 ? "gem" : "gems"} behind
+                      </Text>
+                    </CardBody>
+                  </Card>
+                ))}
+              </Grid>
+            </Stack>
+
+            <Stack gap={12}>
+              <H2>Dependencies that need updating</H2>
+              <Text tone="secondary" size="small">
+                One row per outdated pin. Priority reflects how much of the ecosystem the dependency blocks.
+              </Text>
+              <Table
+                headers={["Priority", "Gem", "Version", "Dependency", "Pinned", "Latest", "Declared in"]}
+                rowTone={OUTDATED.map((pin) => ROW_TONES[pin.priority])}
+                rows={OUTDATED.map((pin) => [
+                  <Pill key={`${pin.gem}-${pin.dependency}`} tone={PILL_TONES[pin.priority]} size="sm">
+                    {PRIORITY_LABELS[pin.priority]}
+                  </Pill>,
+                  <Link key={`${pin.gem}-${pin.dependency}-repo`} href={pin.repositoryUrl}>
+                    {pin.gem}
+                  </Link>,
+                  pin.gemVersion,
+                  pin.dependency,
+                  pin.pinned,
+                  pin.latest,
+                  pin.source,
+                ])}
+              />
+            </Stack>
+
+            <Stack gap={12}>
+              <H2>Suggested upgrade order</H2>
+              <Grid columns={3} gap={12}>
+                <Card>
+                  <CardHeader>1. Unlock the hub</CardHeader>
+                  <CardBody>
+                    <Text>
+                      Move recording_studio_accessible onto recording_studio #{core_version} and release it.
+                      Nothing else can move cleanly until it does.
+                    </Text>
+                  </CardBody>
+                </Card>
+                <Card>
+                  <CardHeader>2. Roll the addons</CardHeader>
+                  <CardBody>
+                    <Text>
+                      Update every gem still requiring recording_studio below #{core_version}, then the ones
+                      pinned below accessible #{accessible_version}.
+                    </Text>
+                  </CardBody>
+                </Card>
+                <Card>
+                  <CardHeader>3. Refresh Flat Pack</CardHeader>
+                  <CardBody>
+                    <Text>
+                      Flat Pack tag bumps are lower risk and independent of the core migration, so they can
+                      land at any point.
+                    </Text>
+                  </CardBody>
+                </Card>
+              </Grid>
+            </Stack>
+
+            <Stack gap={12}>
+              <H2>Gems with no outdated shared pins</H2>
+              <Table
+                headers={["Gem", "Version"]}
+                rows={CURRENT_GEMS.map((gem) => [
+                  <Link key={gem.gem} href={gem.repositoryUrl}>
+                    {gem.gem}
+                  </Link>,
+                  gem.version,
+                ])}
+              />
+            </Stack>
+
+            <Stack gap={8}>
+              <H3>Scaffold-only repositories</H3>
+              <Text tone="secondary" size="small">
+                Still shipping the unrenamed gem template, so they are not yet ecosystem consumers.
+              </Text>
+              <Row gap={8} wrap>
+                {SCAFFOLDS.map((repository) => (
+                  <Pill key={repository} size="sm">
+                    {repository}
+                  </Pill>
+                ))}
+              </Row>
+            </Stack>
+          </Stack>
+        );
+      }
+    TSX
+  end
+
+  private
+
+  attr_reader :report
+
+  def core_version
+    report.dig("latest_versions", "recording_studio")
+  end
+
+  def accessible_version
+    report.dig("latest_versions", "recording_studio_accessible")
+  end
+
+  def latest_versions
+    report["latest_versions"].map do |name, version|
+      { "name" => name, "version" => version, "behind" => report["behind_by_dependency"][name] }
+    end
+  end
+
+  def outdated_pins
+    report["gems"].flat_map do |gem|
+      gem["outdated"].map do |pin|
+        {
+          "gem" => gem["gem"],
+          "gemVersion" => gem["version"],
+          "repositoryUrl" => gem["repository_url"],
+          "dependency" => pin["dependency"],
+          "pinned" => pin["pinned"],
+          "latest" => pin["latest"],
+          "source" => pin["source"],
+          "priority" => pin["priority"]
+        }
+      end
+    end
+  end
+
+  def current_gems
+    report["gems"].reject { |gem| gem["outdated"].any? }.map do |gem|
+      { "gem" => gem["gem"], "version" => gem["version"], "repositoryUrl" => gem["repository_url"] }
+    end
+  end
+
+  def json(value)
+    JSON.pretty_generate(value)
+  end
+
+  def quote(value)
+    value.to_s.inspect
+  end
+end
+
+options = {
+  json_path: "tmp/ecosystem_audit.json",
+  html_path: "tmp/ecosystem_dashboard.html",
+  canvas_path: "tmp/recording-studio-gem-updates.canvas.tsx",
+  quiet: false,
+  from: nil
+}
+
+OptionParser.new do |parser|
+  parser.banner = "Usage: bin/ecosystem_audit [options]"
+  parser.on("--json PATH", "Where to write the audit data (default: #{options[:json_path]})") do |value|
+    options[:json_path] = value
+  end
+  parser.on("--html PATH", "Where to write the dashboard (default: #{options[:html_path]})") do |value|
+    options[:html_path] = value
+  end
+  parser.on("--canvas PATH", "Where to write the Cursor canvas (default: #{options[:canvas_path]})") do |value|
+    options[:canvas_path] = value
+  end
+  parser.on("--from PATH", "Re-render the dashboards from an existing JSON audit") { |value| options[:from] = value }
+  parser.on("--quiet", "Only report errors") { options[:quiet] = true }
+  parser.on("-h", "--help", "Show this message") do
+    puts parser
+    exit
+  end
+end.parse!
+
+if options[:from]
+  EcosystemAudit.render_only(json_path: options[:from], html_path: options[:html_path],
+                             canvas_path: options[:canvas_path], quiet: options[:quiet])
+else
+  EcosystemAudit.new(json_path: options[:json_path], html_path: options[:html_path],
+                     canvas_path: options[:canvas_path], quiet: options[:quiet]).run
+end
