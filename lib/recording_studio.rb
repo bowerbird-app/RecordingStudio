@@ -586,4 +586,5 @@ module RecordingStudio
 end
 
 require "recording_studio/capability"
+require "recording_studio/capabilities"
 # rubocop:enable Metrics/ModuleLength, Metrics/ClassLength

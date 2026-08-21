@@ -1077,11 +1077,14 @@ RecordingStudio.register_recordable_type("Folder")
 
 ### Capability mixins are explicit opt-in
 
-A capability is enabled for a recordable type only when that model includes its mixin:
+Installing a mixin gem does **not** enable it. A capability is enabled for a recordable type only when that
+model includes the mixin's `.to` wrapper. Parent rules stay on `recording_studio_recordable`.
 
 ```ruby
 class Page < ApplicationRecord
-  include Capabilities::Reviewable.with(approval_class: "Approval")
+  recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Folder"]
+
+  include RecordingStudio::Capabilities::Reviewable.to(approval_class: "Approval")
 end
 ```
 
@@ -1090,8 +1093,26 @@ This means:
 - `Page` has that capability enabled.
 - Other recordable types do **not** gain that capability unless they also include the mixin.
 - Installing an addon gem does not silently enable behavior globally.
+- Destination and parent rules stay on the type declaration, not on the mixin include.
 
-The mixin may come from your app or from an extracted addon gem namespace.
+Mixin authors wrap the core factory as that thin `.to`. The factory lives on
+`RecordingStudio::Capabilities`, not on the `RecordingStudio::Capability` concern mixed into
+`Recording`:
+
+```ruby
+module RecordingStudio
+  module Capabilities
+    module Reviewable
+      def self.to(**options)
+        RecordingStudio::Capabilities.include_for(:reviewable, **options)
+      end
+    end
+  end
+end
+```
+
+On include, `include_for` calls `enable_capability` and `set_capability_options`. It does not
+register the capability.
 
 ### Capability behavior is called on recordings
 
@@ -1118,7 +1139,7 @@ Capability mixins can accept parameters; they are not only on/off flags:
 
 ```ruby
 class Page < ApplicationRecord
-  include Capabilities::Reviewable.with(approval_class: "Approval")
+  include RecordingStudio::Capabilities::Reviewable.to(approval_class: "Approval")
 end
 ```
 
@@ -1129,7 +1150,8 @@ end
 1. Add gems to your `Gemfile`.
 2. `bundle install`.
 3. Register recordable types.
-4. Include addon mixins on specific recordable models.
+4. Include addon mixins on specific recordable models with
+   `include RecordingStudio::Capabilities::<Name>.to(**opts)`.
 5. Call capability behavior from `RecordingStudio::Recording`.
 
 ```ruby
@@ -1143,6 +1165,7 @@ RecordingStudio core is responsible for:
 - recordings / recordables / events
 - delegated-type registration (`register_recordable_type`)
 - capability registration/apply infrastructure (`register_capability`, `apply_capabilities!`)
+- capability include factory (`RecordingStudio::Capabilities.include_for`)
 - capability enablement + options lookup (`enable_capability`, `set_capability_options`, `capability_options`)
 - capability-owned child recordable parent allowances
 - shared guards/infrastructure (`RecordingStudio::Capability`, capability-disabled checks)
@@ -1160,14 +1183,17 @@ Addon gems are responsible for:
 Recommended integration sequence (works for extracted capabilities in general):
 
 1. Addon gem defines capability code (recordable mixin + recording methods).
-2. Addon gem registers capability metadata with `RecordingStudio.register_capability`.
+2. Addon gem registers capability metadata with `RecordingStudio.register_capability` at boot.
    Use `recording_methods:` when the capability adds recording instance methods and `child_recordables:`
    when the capability owns child recordables whose parent allowances should be derived from enablement.
    Registered recording methods are automatically applied to `RecordingStudio::Recording`.
    `RecordingStudio.apply_capabilities!` remains available for explicit re-application in reloader/boot
    hooks, for example when your app/gem manually reloads capability constants during development.
-3. Host app registers recordable types with RecordingStudio.
-4. Host app includes addon mixins on specific recordable models.
+   Do not call `register_capability` from the include factory.
+3. Host app registers recordable types with RecordingStudio and keeps parent rules on
+   `recording_studio_recordable`.
+4. Host app includes the mixin on specific recordable models with
+   `include RecordingStudio::Capabilities::<Name>.to(**opts)`.
 5. RecordingStudio checks capability enablement/options by `recordable_type`.
 6. Host app invokes capability behavior on `RecordingStudio::Recording`.
 
@@ -1183,18 +1209,21 @@ Useful helper methods on the recording surface:
 The dummy app uses a concrete addon-style capability example as part of the same
 plugin architecture story as extracted capabilities:
 
-1. Provide a builder method that returns a recordable mixin (for example, `Reviewable.with(...)`).
-2. Register capability metadata with
+1. Provide a thin `.to` wrapper around `RecordingStudio::Capabilities.include_for(:name, **opts)`.
+   Keep option validation in the mixin. Do not move option schemas into core.
+2. Register capability metadata at boot with
    `RecordingStudio.register_capability(:reviewable, RecordingMethods, source: "recording_studio_reviewable", child_recordables: ["Approval"])`.
-3. In the mixin, opt specific recordable types in via `enable_capability`.
-4. Store per-recordable configuration with `set_capability_options`.
+   Do not put `register_capability` inside the include factory.
+3. Hosts opt specific recordable types in with the one include verb. Parent rules stay on
+   `recording_studio_recordable`.
+4. The include factory calls `enable_capability` and `set_capability_options`.
 5. Optionally register supporting recordable types when needed. Child-only recordables may omit
    `allowed_parent_types:` in their declaration when a registered capability derives those parent allowances.
 6. Invoke behavior from the recording:
 
 ```ruby
 class MyPage < ApplicationRecord
-  include Capabilities::Reviewable.with(approval_class: "MyApproval")
+  include RecordingStudio::Capabilities::Reviewable.to(approval_class: "MyApproval")
 end
 
 recording.capability_enabled?(:reviewable)

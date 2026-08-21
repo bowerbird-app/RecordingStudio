@@ -88,8 +88,10 @@ Useful methods:
 - `set_capability_options(capability, on:, **options)`
 - `capability_options(capability, for_type:)`
 
-In application code, prefer the top-level `RecordingStudio.enable_capability(...)` and related helpers unless you are
-already working directly with the configuration object.
+In application code, prefer `include RecordingStudio::Capabilities::<Name>.to(**opts)` for per-type
+enablement. Mixin authors should wrap `RecordingStudio::Capabilities.include_for` as that `.to`.
+The low-level `RecordingStudio.enable_capability(...)` helpers remain for the factory and for
+call sites that are already working directly with configuration.
 
 ## Hooks
 

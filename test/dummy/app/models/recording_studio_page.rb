@@ -4,7 +4,7 @@ class RecordingStudioPage < ApplicationRecord
 
   validates :title, presence: true
 
-  include Capabilities::Commentable.with(comment_class: "RecordingStudioComment")
+  include RecordingStudio::Capabilities::Commentable.to(comment_class: "RecordingStudioComment")
 
   def self.recordable_type_label
     "Page"

@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-08-21
+
+### Added
+
+* `RecordingStudio::Capabilities.include_for(:name, **options, &block)` enablement factory
+* Dummy `RecordingStudio::Capabilities::Commentable.to` wrapper as the host include verb
+
+### Changed
+
+* Hosts enable mixin capabilities with `include RecordingStudio::Capabilities::<Name>.to(**opts)`
+* Dummy commentable enablement moved from `.with` to `.to`
+
+### Migration Notes
+
+- Installing a mixin gem still does not enable the capability; per-type opt-in is unchanged.
+- Parent rules stay on `recording_studio_recordable`.
+- Mixin authors should wrap `include_for` as a thin `.to`. Option validation and `register_capability` stay in the mixin, not in core.
+- Direct `enable_capability` / `set_capability_options` calls still work.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-420).
+
 ## [4.1.0] - 2026-08-20
 
 ### Added
