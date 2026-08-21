@@ -4,8 +4,8 @@ require "test_helper"
 
 class CapabilitiesIncludeForTest < Minitest::Test
   module Probe
-    class HostType; end
-    class OtherType; end
+    HostType = Class.new
+    OtherType = Class.new
   end
 
   def setup

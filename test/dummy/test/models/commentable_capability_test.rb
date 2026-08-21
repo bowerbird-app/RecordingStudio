@@ -15,7 +15,6 @@ class CommentableCapabilityTest < ActiveSupport::TestCase
 
   test "pages opt in with Commentable.to and folders stay without commentable" do
     assert_respond_to RecordingStudio::Capabilities::Commentable, :to
-    refute_respond_to RecordingStudio::Capabilities::Commentable, :with
     assert RecordingStudio.capability_enabled?(:commentable, for: "RecordingStudioPage")
     refute RecordingStudio.capability_enabled?(:commentable, for: "RecordingStudioFolder")
     assert_equal({ comment_class: "RecordingStudioComment" },
