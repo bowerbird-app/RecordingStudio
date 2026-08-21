@@ -39,6 +39,17 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_equal created_workspace, created_root.recordable
   end
 
+  test "show uses default layout page nav instead of breadcrumbs" do
+    get workspace_path(@workspace), headers: modern_headers
+
+    assert_response :success
+    assert_select "body[data-recording-studio-default-layout='true']", count: 1
+    assert_select "nav[aria-label='Page navigation']", count: 1
+    assert_select "a[href='#{workspaces_path}'][aria-label='Workspaces'], button[aria-label='Workspaces']", count: 1
+    assert_select "a[href='#{root_path}'][aria-label='Home']", count: 1
+    assert_not_includes @response.body, "flat-pack--breadcrumb"
+  end
+
   test "new renders page nav with workspaces anchor" do
     get new_workspace_path, headers: modern_headers
 

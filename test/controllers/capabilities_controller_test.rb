@@ -7,6 +7,8 @@ class CapabilitiesControllerTest < ActionDispatch::IntegrationTest
     "Capabilities",
     "RecordingStudio.registered_capabilities",
     "RecordingStudio.register_capability",
+    "RecordingStudio::Capabilities.include_for",
+    "RecordingStudio::Capabilities::Reviewable.to",
     "RecordingStudio.capability_child_recordables_for",
     "RecordingStudio.child_recordable_types_for",
     "RecordingStudio.capability_allowed_parent_types_for",

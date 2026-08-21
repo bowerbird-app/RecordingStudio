@@ -36,7 +36,7 @@
           autocomplete: "current-password"
         ) %>
 
-        <%= render FlatPack::Grid::Component.new(cols: 2, gap: :md, align: :center) do %>
+        <%= render FlatPack::Grid::Component.new(cols: 1, gap: :md) do %>
           <% if devise_mapping.rememberable? %>
             <%= render FlatPack::Checkbox::Component.new(
               name: "#{resource_name}[remember_me]",

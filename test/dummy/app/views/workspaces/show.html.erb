@@ -1,10 +1,12 @@
-<% content_for :title, @workspace.name %>
-
-<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
-  <% breadcrumb.item(text: "Home", href: root_path) %>
-  <% breadcrumb.item(text: "Workspaces", href: workspaces_path) %>
-  <% breadcrumb.item(text: @workspace.name) %>
-<% end %>
+<% recording_studio_page_nav(
+  title: @workspace.name,
+  page_nav_back_url: workspaces_path,
+  page_nav_back_icon: "chevron-left",
+  page_nav_back_label: "Workspaces",
+  page_nav_anchor_url: root_path,
+  page_nav_anchor_icon: "home",
+  page_nav_anchor_label: "Home"
+) %>
 
 <%= render FlatPack::PageTitle::Component.new(
   title: @workspace.name,

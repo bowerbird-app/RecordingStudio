@@ -1,5 +1,47 @@
 # Upgrade Guide
 
+## Upgrading To 4.2.0
+
+This is a non-breaking upgrade. Existing `enable_capability` / `set_capability_options` call sites keep working.
+
+### What Changed
+
+- Core adds `RecordingStudio::Capabilities.include_for(:name, **options, &block)`.
+- On include, the factory enables the named capability and stores options. It does not register the capability.
+- The factory lives on `RecordingStudio::Capabilities`, not on the `RecordingStudio::Capability` concern mixed into `Recording`.
+- Hosts enable a mixin with one verb: `include RecordingStudio::Capabilities::<Name>.to(**opts)`.
+- Installing a mixin gem still does not enable it. Parent rules stay on `recording_studio_recordable`.
+
+### Upgrade Steps
+
+No migration is required.
+
+Mixin authors can wrap the factory without moving option schemas into core:
+
+```ruby
+module RecordingStudio
+  module Capabilities
+    module Reviewable
+      def self.to(**options)
+        RecordingStudio::Capabilities.include_for(:reviewable, **options)
+      end
+    end
+  end
+end
+```
+
+Keep `register_capability` at boot, outside `.to` / `include_for`.
+
+Hosts opt each recordable type in explicitly:
+
+```ruby
+class Page < ApplicationRecord
+  recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace"]
+
+  include RecordingStudio::Capabilities::Reviewable.to(approval_class: "Approval")
+end
+```
+
 ## Upgrading To 4.1.0
 
 This is a non-breaking upgrade. Existing root types stay owned buckets unless you opt a type into `shared: true`.

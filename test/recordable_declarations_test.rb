@@ -294,7 +294,7 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
                    child_type: "RecordingStudioComment",
                    parent_recording: page
                  )
-    assert_equal({ "Capabilities::Commentable" => ["RecordingStudioPage"] },
+    assert_equal({ "RecordingStudio::Capabilities::Commentable" => ["RecordingStudioPage"] },
                  RecordingStudio.recordable_parent_allowances_for("RecordingStudioComment"))
   end
 

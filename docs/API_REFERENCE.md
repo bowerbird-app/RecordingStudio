@@ -108,6 +108,7 @@ These methods are the main addon-facing API.
 | `dup_strategy_for(recordable_or_type)` | instance, class, or class name | callable or symbol | Resolves the duplication strategy used by `revise`. |
 | `duplicate_recordable(recordable)` | recordable instance | duplicated recordable or `nil` | Duplicates a snapshot using the configured strategy. |
 | `enable_capability(capability, on:)` | capability name, recordable type | configuration side effect | Enables a named capability for one recordable type. |
+| `RecordingStudio::Capabilities.include_for(name, **options, &block)` | capability name, option hash, optional included callback | includable module | Builds the mixin hosts include via `.to`. Calls `enable_capability` and `set_capability_options` on include. Does not register the capability. |
 | `capability_enabled?(capability, for:)` | capability name, recordable type | `true` or `false` | Checks whether an addon capability is enabled. |
 | `capabilities_for(recordable_or_type)` | instance, class, or class name | sorted `Array<Symbol>` | Lists enabled capabilities for a type. |
 | `set_capability_options(capability, on:, **options)` | capability name, recordable type, option hash | configuration side effect | Stores per-type capability options. |

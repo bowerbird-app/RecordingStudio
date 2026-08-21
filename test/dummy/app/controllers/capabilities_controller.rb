@@ -17,11 +17,13 @@ class CapabilitiesController < ApplicationController
       title: "Register Capability Methods and Child Metadata",
       subtitle: "RecordingStudio.register_capability",
       code: <<~'RUBY'
-        module Capabilities
-          module Reviewable
-            module RecordingMethods
-              def review_events
-                child_recordings.of_type("Approval")
+        module RecordingStudio
+          module Capabilities
+            module Reviewable
+              module RecordingMethods
+                def review_events
+                  child_recordings.of_type("Approval")
+                end
               end
             end
           end
@@ -29,7 +31,7 @@ class CapabilitiesController < ApplicationController
 
         RecordingStudio.register_capability(
           :reviewable,
-          recording_methods: Capabilities::Reviewable::RecordingMethods,
+          recording_methods: RecordingStudio::Capabilities::Reviewable::RecordingMethods,
           source: "recording_studio_reviewable",
           child_recordables: ["Approval"]
         )
@@ -46,16 +48,34 @@ class CapabilitiesController < ApplicationController
       RUBY
     },
     {
+      title: "Build a Capability Include Mixin",
+      subtitle: "RecordingStudio::Capabilities.include_for",
+      code: <<~'RUBY'
+        module RecordingStudio
+          module Capabilities
+            module Reviewable
+              def self.to(**options)
+                RecordingStudio::Capabilities.include_for(:reviewable, **options)
+              end
+            end
+          end
+        end
+      RUBY
+    },
+    {
       title: "Enable a Capability for a Recordable",
-      subtitle: "RecordingStudio.enable_capability",
+      subtitle: "RecordingStudio::Capabilities::Reviewable.to",
       code: <<~'RUBY'
         class Page < ApplicationRecord
-          include Module.new {
-            def self.included(base)
-              RecordingStudio.enable_capability(:reviewable, on: base.name)
-            end
-          }
+          include RecordingStudio::Capabilities::Reviewable.to(approval_class: "Approval")
         end
+      RUBY
+    },
+    {
+      title: "Enable a Capability Directly",
+      subtitle: "RecordingStudio.enable_capability",
+      code: <<~'RUBY'
+        RecordingStudio.enable_capability(:reviewable, on: "Page")
       RUBY
     },
     {
@@ -216,8 +236,27 @@ class CapabilitiesController < ApplicationController
       returns: "No stable return contract; reapplies registered capability modules to RecordingStudio::Recording.",
       notes: "Primarily useful during boot and code reloading.",
       example_response: <<~'TEXT'
-        RecordingStudio::Recording.included_modules.include?(Capabilities::Reviewable::RecordingMethods)
+        RecordingStudio::Recording.included_modules.include?(
+          RecordingStudio::Capabilities::Reviewable::RecordingMethods
+        )
         # => true
+      TEXT
+    },
+    "RecordingStudio::Capabilities.include_for" => {
+      returns_kind: "Module",
+      returns: "An includable module that enables the named capability and stores options.",
+      notes: "Mixin authors wrap this as a thin .to. It does not register the capability.",
+      example_response: <<~'TEXT'
+        include RecordingStudio::Capabilities::Reviewable.to(approval_class: "Approval")
+      TEXT
+    },
+    "RecordingStudio::Capabilities::Reviewable.to" => {
+      returns_kind: "Module",
+      returns: "An includable module produced by Capabilities.include_for.",
+      notes: "Hosts enable a mixin with this include. Installing a gem does not enable it.",
+      example_response: <<~'TEXT'
+        RecordingStudio.capabilities_for("Page")
+        # => [:reviewable]
       TEXT
     },
     "RecordingStudio.enable_capability" => {

@@ -13,6 +13,14 @@ class CommentableCapabilityTest < ActiveSupport::TestCase
     Workspace.delete_all
   end
 
+  test "pages opt in with Commentable.to and folders stay without commentable" do
+    assert_respond_to RecordingStudio::Capabilities::Commentable, :to
+    assert RecordingStudio.capability_enabled?(:commentable, for: "RecordingStudioPage")
+    refute RecordingStudio.capability_enabled?(:commentable, for: "RecordingStudioFolder")
+    assert_equal({ comment_class: "RecordingStudioComment" },
+                 RecordingStudio.capability_options(:commentable, for: "RecordingStudioPage"))
+  end
+
   test "commentable page owns comment child recordables through capability enablement" do
     workspace = Workspace.create!(name: "Workspace")
     root = RecordingStudio.root_recording_for(workspace)
