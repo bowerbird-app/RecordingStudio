@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.1] - 2026-08-22
+
+### Fixed
+
+* Default layout now sets `data-theme` on `<html>` as well as `<body>` so Flatpack `@theme` tokens (`--color-primary`, `--button-primary-background-color`) follow the layout theme (default `rounded` / charcoal)
+
+### Migration Notes
+
+- Hosts using `recording_studio/default_layout` get the `<html>` attribute automatically. No host layout copy is required.
+- `content_for(:body_theme)` still overrides both elements. Existing `body[data-theme]` selectors keep matching.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-421).
+
 ## [4.2.0] - 2026-08-21
 
 ### Added

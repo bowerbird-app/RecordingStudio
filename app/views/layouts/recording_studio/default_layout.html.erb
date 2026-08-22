@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html>
+<% body_theme = content_for(:body_theme).presence || "rounded" %>
+<html data-theme="<%= body_theme %>">
   <head>
     <% rs_config = RecordingStudio.configuration %>
     <% app_name = (rs_config.respond_to?(:app_name) ? rs_config.app_name : nil) || "CHANGE_APP_NAME_IN_DEFAULT_LAYOUT" %>
@@ -41,7 +42,7 @@
     <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
   </head>
 
-  <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true" data-theme="<%= content_for(:body_theme).presence || 'rounded' %>">
+  <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true" data-theme="<%= body_theme %>">
     <main class="mx-auto min-h-screen w-full max-w-6xl p-6">
       <% if flash[:notice].present? %>
         <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-4") %>

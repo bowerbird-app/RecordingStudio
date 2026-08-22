@@ -14,6 +14,7 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     get workspaces_path, headers: modern_headers
 
     assert_response :success
+    assert_select "html[data-theme='rounded']", count: 1
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
     assert_select "body[data-theme='rounded']", count: 1
     assert_select "nav[aria-label='Page navigation']", count: 1

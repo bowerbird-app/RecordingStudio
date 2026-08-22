@@ -1,5 +1,27 @@
 # Upgrade Guide
 
+## Upgrading To 4.2.1
+
+This is a layout-behavior fix. Hosts that render `recording_studio/default_layout` now get the same `data-theme` on `<html>` and `<body>`.
+
+### What Changed
+
+- Flatpack `@theme` tokens (`--color-primary`, `--button-primary-background-color`) compute on `:root` / `html`. Theme-on-body-only left primary buttons on the default hue-250 blue even when `body` was `data-theme="rounded"`.
+- The layout now applies `content_for(:body_theme).presence || "rounded"` to both `<html>` and `<body>`.
+- The `body` attribute is unchanged so existing `body[data-theme]` selectors still match.
+
+### Upgrade Steps
+
+No migration is required. Bump the gem and restart.
+
+If a host copied or forked the default layout instead of using the gem layout, add the same `data-theme` to `<html>`. Do not add custom CSS to paper over token scope.
+
+Override the theme per view as before:
+
+```erb
+<% content_for(:body_theme, "your-theme") %>
+```
+
 ## Upgrading To 4.2.0
 
 This is a non-breaking upgrade. Existing `enable_capability` / `set_capability_options` call sites keep working.
@@ -446,10 +468,11 @@ RecordingStudio.configure do |config|
 end
 ```
 
-The layout applies `data-theme="rounded"` to `<body>` by default. Override it
-per-view with `content_for(:body_theme, "your-theme")`. If your existing layout
-already sets a `<body>` theme, make sure to include the `:body_theme` slot or
-your body classes won't carry over.
+The layout applies `data-theme="rounded"` to both `<html>` and `<body>` by
+default so Flatpack `@theme` tokens compute on `:root`. Override it per-view
+with `content_for(:body_theme, "your-theme")`. If your existing layout already
+sets a theme, make sure to include the `:body_theme` slot or your theme will
+not carry over.
 
 **Step 1: Include the concern in your controller.**
 

@@ -13,6 +13,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "title", text: "Default Layout Demo"
+    assert_select "html[data-theme='rounded']", count: 1
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
     assert_select "body[data-theme='rounded']", count: 1
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
