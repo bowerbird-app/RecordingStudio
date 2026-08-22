@@ -1002,8 +1002,9 @@ Set a custom app name for `<title>` and `og:site_name` fallback:
 RecordingStudio.configure { |config| config.app_name = "My App" }
 ```
 
-A `data-theme="rounded"` attribute is applied to `<body>` by default; override
-it per-view with `content_for(:body_theme, "your-theme")`.
+A `data-theme="rounded"` attribute is applied to both `<html>` and `<body>` by
+default so Flatpack `@theme` tokens resolve on `:root`. Override it per-view
+with `content_for(:body_theme, "your-theme")`.
 
 Full usage details are documented in:
 

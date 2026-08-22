@@ -14,6 +14,7 @@
 - Flash notice/alert rendering via `FlatPack::Alert::Component`.
 - Direct page body rendering (the layout does not add an extra content wrapper).
 - Standard Rails layout structure with `yield :head` support and optional `recording_studio/_default_layout_head` partial.
+- `data-theme` on both `<html>` and `<body>` (default `"rounded"`) so Flatpack `@theme` tokens compute on `:root`.
 - SEO support: meta description, OpenGraph tags (og:title, og:type, og:url, og:description, og:image, og:site_name).
 - Automatic fallbacks when FlatPack components are unavailable.
 - Safe defaults when no page-nav metadata is provided.
@@ -95,7 +96,7 @@ If no nav config is provided:
 | Slot | Default |
 | --- | --- |
 | Title | `content_for(:title)` → `RecordingStudio.configuration.app_name` → `"RecordingStudio"` |
-| `body_theme` | `"rounded"` |
+| `body_theme` | `"rounded"` (applied to `<html>` and `<body>`) |
 | `seo_description` | None (omitted when blank) |
 | `seo_image` | None (omitted when blank) |
 | `og:title` | Same as `<title>` |
@@ -259,14 +260,17 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "title", text: "Workspaces"
+    assert_select "html[data-theme='rounded']", count: 1
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
+    assert_select "body[data-theme='rounded']", count: 1
     assert_select "nav[aria-label='Page navigation']", count: 1
   end
 end
 ```
 
 The `data-recording-studio-default-layout="true"` attribute on `<body>` confirms
-the layout is active.
+the layout is active. Assert `html[data-theme='rounded']` (or your override) so
+Flatpack `:root` tokens resolve to the same theme as `body`.
 
 ## Addon Author Guidance
 
