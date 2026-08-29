@@ -976,10 +976,8 @@ Open `http://localhost:3000/` for the dummy app home page. Useful demo routes in
 
 RecordingStudio provides a reusable layout contract for addon gems at
 `app/views/layouts/recording_studio/default_layout.html.erb`. The layout
-renders a FlatPack PageNav row (back only when `page_nav_back_url` is set,
-Close when `page_nav_anchor_url` is set, plus optional right-slot actions),
-flash alerts, automatic OpenGraph meta tags, and yields page content
-directly.
+renders a `FlatPack::PageNav::Component` shell, flash alerts, automatic
+OpenGraph meta tags, and yields page content directly.
 
 Opt in from any controller with a single concern:
 
