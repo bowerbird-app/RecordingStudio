@@ -2,21 +2,24 @@
 
 `recording_studio/default_layout` is the shared, sidebar-free page shell for RecordingStudio addon gems.
 
-> **Prerequisite:** The layout depends on `FlatPack::PageNav::Component` and
-> `FlatPack::Alert::Component`. These are bundled with RecordingStudio's
+> **Prerequisite:** The layout depends on FlatPack button/tooltip/alert
+> components (`FlatPack::Button::Component`, `FlatPack::Tooltip::Component`,
+> `FlatPack::Alert::Component`). These are bundled with RecordingStudio's
 > FlatPack dependency — no extra gem install needed. The layout includes
 > automatic fallbacks when FlatPack is unavailable, so pages won't break
 > if FlatPack isn't wired up.
 
 ## What it provides
 
-- `FlatPack::PageNav::Component` rendered at the top.
+- A FlatPack-styled PageNav row at the top: back only when
+  `page_nav_back_url` is set, Close when `page_nav_anchor_url` is set, plus
+  optional right-slot actions.
 - Flash notice/alert rendering via `FlatPack::Alert::Component`.
 - Direct page body rendering (the layout does not add an extra content wrapper).
 - Standard Rails layout structure with `yield :head` support and optional `recording_studio/_default_layout_head` partial.
 - SEO support: meta description, OpenGraph tags (og:title, og:type, og:url, og:description, og:image, og:site_name).
 - Automatic fallbacks when FlatPack components are unavailable.
-- Safe defaults when no page-nav metadata is provided.
+- Safe defaults when no page-nav metadata is provided (no back control unless `page_nav_back_url` is set).
 - Configurable app name for title and OpenGraph fallback via `RecordingStudio.configuration.app_name`.
 
 ## Opting in from a controller
@@ -104,12 +107,12 @@ If no nav config is provided:
 | `page_nav_back_label` | `"Go back"` |
 | `page_nav_back_style` | `:"secondary"` |
 | `page_nav_back_size` | `:"md"` |
-| `page_nav_back_url` | `nil` (back button always shown; when URL is absent, uses `history.back()` via button onclick) |
+| `page_nav_back_url` | `nil` (back control hidden when omitted) |
 | `page_nav_anchor_icon` | `"x-mark"` |
 | `page_nav_anchor_label` | `"Close"` |
 | Anchor action | Hidden (no `page_nav_anchor_url` provided) |
 | Right slot | Empty |
-| Back action | Always rendered; uses `page_nav_back_url` when set, otherwise falls back to `history.back()` via a button |
+| Back action | Rendered only when `page_nav_back_url` is set; links to that URL |
 
 ## Migration Example
 
@@ -189,9 +192,10 @@ or custom right-slot actions on the same page:
 ) %>
 ```
 
-- **Left side (back):** Configured via `page_nav_back_*` slots. Rendered
-  automatically by `FlatPack::PageNav::Component`. Use this for the
-  primary navigation action (e.g., browser-history back).
+- **Left side (back):** Configured via `page_nav_back_*` slots. The back
+  control appears only when `page_nav_back_url` is set, and links to that
+  URL. Omit `page_nav_back_url` on root / owner screens (for example My
+  Profile) so no back control is shown.
 - **Right side (anchor + right slot):** Configured via `page_nav_anchor_*`
   slots and `recording_studio_page_nav_right`. The anchor button only
   appears when `page_nav_anchor_url` is set. Use the anchor for close,

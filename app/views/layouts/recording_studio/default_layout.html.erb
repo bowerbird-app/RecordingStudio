@@ -50,86 +50,83 @@
         <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-4") %>
       <% end %>
 
-      <% page_nav_options = {
-        back_icon: content_for(:page_nav_back_icon).presence || "chevron-left",
-        back_label: content_for(:page_nav_back_label).presence || "Go back",
-        back_style: (content_for(:page_nav_back_style).presence || "secondary").to_sym,
-        back_size: (content_for(:page_nav_back_size).presence || "md").to_sym,
-        anchor_icon: content_for(:page_nav_anchor_icon).presence || "x-mark",
-        anchor_label: content_for(:page_nav_anchor_label).presence || "Close"
-      } %>
       <% back_url = content_for(:page_nav_back_url).presence %>
       <% anchor_url = content_for(:page_nav_anchor_url).presence %>
-      <% page_nav_options[:back_url] = back_url if back_url.present? %>
-      <% page_nav_options[:anchor_url] = anchor_url if anchor_url.present? %>
+      <% back_icon = content_for(:page_nav_back_icon).presence || "chevron-left" %>
+      <% back_label = content_for(:page_nav_back_label).presence || "Go back" %>
+      <% back_style = (content_for(:page_nav_back_style).presence || "secondary").to_sym %>
+      <% back_size = (content_for(:page_nav_back_size).presence || "md").to_sym %>
+      <% anchor_icon = content_for(:page_nav_anchor_icon).presence || "x-mark" %>
+      <% anchor_label = content_for(:page_nav_anchor_label).presence || "Close" %>
+      <% show_page_nav_right = content_for?(:page_nav_right) %>
+      <% show_page_nav = back_url.present? || anchor_url.present? || show_page_nav_right %>
 
       <div class="mt-4 mb-8">
-        <% if defined?(FlatPack::PageNav::Component) %>
-          <% if content_for?(:page_nav_right) %>
-            <%= render FlatPack::PageNav::Component.new(**page_nav_options) do |page_nav| %>
-              <% page_nav.right_slot do %>
-                <%= yield :page_nav_right %>
-              <% end %>
-            <% end %>
-          <% else %>
-            <%= render FlatPack::PageNav::Component.new(**page_nav_options) %>
-          <% end %>
-        <% else %>
-          <nav aria-label="Page navigation" class="flex items-center justify-between gap-3">
-            <div>
-              <% if defined?(FlatPack::Button::Component) %>
-                <% if back_url.present? %>
-                  <%= render FlatPack::Button::Component.new(
-                    icon: page_nav_options[:back_icon],
-                    icon_only: true,
-                    style: page_nav_options[:back_style],
-                    size: page_nav_options[:back_size],
-                    url: back_url,
-                    aria: { label: page_nav_options[:back_label] }
-                  ) %>
-                <% else %>
-                  <button name="button" type="button" id="recording-studio-back-button" class="inline-flex items-center justify-center gap-2 rounded-[var(--button-border-radius)] font-medium cursor-pointer transition-colors duration-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring-color)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--button-focus-ring-offset-color)] disabled:pointer-events-none disabled:opacity-[var(--button-disabled-opacity)] bg-[var(--button-secondary-background-color)] hover:bg-[var(--button-secondary-hover-background-color)] text-[var(--button-secondary-text-color)] border border-[var(--button-secondary-border-color)] p-[var(--button-icon-only-padding-md)]" aria-label="<%= page_nav_options[:back_label] %>">
-                    <svg class="inline-block w-5 h-5" data-controller="flat-pack--icon" data-flat-pack--icon-name-value="<%= page_nav_options[:back_icon] %>" data-flat-pack--icon-variant-value="outline" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5"></path></svg>
-                  </button>
-                  <%= javascript_tag nonce: true do %>
-                    document.getElementById("recording-studio-back-button").addEventListener("click", function() {
-                      history.back();
-                    });
+        <% if show_page_nav %>
+          <nav class="flat-pack-page-nav" aria-label="Page navigation">
+            <div class="flex gap-2">
+              <% if back_url.present? %>
+                <div class="flex items-center gap-2">
+                  <% if defined?(FlatPack::Button::Component) %>
+                    <% back_button = capture do %>
+                      <%= render FlatPack::Button::Component.new(
+                        icon: back_icon,
+                        icon_only: true,
+                        style: back_style,
+                        size: back_size,
+                        url: back_url,
+                        aria: { label: back_label }
+                      ) %>
+                    <% end %>
+                    <% if defined?(FlatPack::Tooltip::Component) && back_label.present? %>
+                      <%= render FlatPack::Tooltip::Component.new(text: back_label) do %>
+                        <%= back_button %>
+                      <% end %>
+                    <% else %>
+                      <%= back_button %>
+                    <% end %>
+                  <% else %>
+                    <a href="<%= back_url %>" class="inline-flex items-center gap-2 text-sm font-medium text-(--surface-content-color)" aria-label="<%= back_label %>">
+                      <%= back_label %>
+                    </a>
                   <% end %>
-                <% end %>
-                <% if anchor_url.present? %>
-                  <%= render FlatPack::Button::Component.new(
-                    icon: page_nav_options[:anchor_icon],
-                    icon_only: true,
-                    style: :secondary,
-                    size: :md,
-                    url: anchor_url,
-                    aria: { label: page_nav_options[:anchor_label] },
-                    class: "ml-2"
-                  ) %>
-                <% end %>
-              <% else %>
-                <% if back_url.present? %>
-                  <a href="<%= back_url %>" class="inline-flex items-center gap-2 text-sm font-medium text-(--surface-content-color)">
-                    <%= page_nav_options[:back_label] %>
-                  </a>
-                <% else %>
-                  <button onclick="history.back()" class="inline-flex items-center gap-2 text-sm font-medium text-(--surface-content-color) cursor-pointer">
-                    <%= page_nav_options[:back_label] %>
-                  </button>
-                <% end %>
-                <% if anchor_url.present? %>
-                  <a href="<%= anchor_url %>" class="inline-flex items-center gap-2 text-sm font-medium text-(--surface-content-color) ml-2">
-                    <%= content_for(:page_nav_anchor_label).presence || "Close" %>
-                  </a>
-                <% end %>
+                </div>
+              <% end %>
+
+              <% if anchor_url.present? %>
+                <div class="flex items-center gap-2">
+                  <% if defined?(FlatPack::Button::Component) %>
+                    <% anchor_button = capture do %>
+                      <%= render FlatPack::Button::Component.new(
+                        icon: anchor_icon,
+                        icon_only: true,
+                        style: :secondary,
+                        size: :md,
+                        url: anchor_url,
+                        aria: { label: anchor_label }
+                      ) %>
+                    <% end %>
+                    <% if defined?(FlatPack::Tooltip::Component) && anchor_label.present? %>
+                      <%= render FlatPack::Tooltip::Component.new(text: anchor_label) do %>
+                        <%= anchor_button %>
+                      <% end %>
+                    <% else %>
+                      <%= anchor_button %>
+                    <% end %>
+                  <% else %>
+                    <a href="<%= anchor_url %>" class="inline-flex items-center gap-2 text-sm font-medium text-(--surface-content-color)" aria-label="<%= anchor_label %>">
+                      <%= anchor_label %>
+                    </a>
+                  <% end %>
+                </div>
+              <% end %>
+
+              <% if show_page_nav_right %>
+                <div class="ml-auto flex items-center gap-2">
+                  <%= yield :page_nav_right %>
+                </div>
               <% end %>
             </div>
-            <% if content_for?(:page_nav_right) %>
-              <div class="flex items-center justify-end">
-                <%= yield :page_nav_right %>
-              </div>
-            <% end %>
           </nav>
         <% end %>
       </div>

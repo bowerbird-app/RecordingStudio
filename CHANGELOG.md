@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0] - 2026-08-29
+
+### Changed
+
+* Default layout PageNav back control renders only when `page_nav_back_url` is set
+* Back navigates to `page_nav_back_url` (no `history.back()` fallback)
+* Close (`page_nav_anchor_url`) and `page_nav_right` are unchanged
+
+### Migration Notes
+
+- Root / owner screens that omit `page_nav_back_url` no longer show a circular back control.
+- Child screens must pass `page_nav_back_url` to show back; omit it to hide back.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-430).
+
 ## [4.2.0] - 2026-08-21
 
 ### Added

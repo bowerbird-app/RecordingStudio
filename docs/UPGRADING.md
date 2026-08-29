@@ -1,5 +1,47 @@
 # Upgrade Guide
 
+## Upgrading To 4.3.0
+
+This release changes default-layout PageNav back behavior. Close
+(`page_nav_anchor_url`) and the right slot are unchanged.
+
+### What Changed
+
+- The default layout renders a back control **only** when `page_nav_back_url`
+  is set.
+- That control links to `page_nav_back_url`. The previous `history.back()`
+  fallback when the URL was omitted is removed.
+- Root / owner screens that already omit `page_nav_back_url` (for example
+  Users My Profile) no longer show a random circular back.
+
+### Upgrade Steps
+
+No migration is required.
+
+1. On root / owner screens, omit `page_nav_back_url` (and related
+   `page_nav_back_*` slots if unused). Close via `page_nav_anchor_url` still
+   works the same way.
+2. On child screens (Edit Profile, Sign-in methods, billing children, and
+   similar), keep passing `page_nav_back_url` so the back control remains.
+3. If a screen previously relied on omit-URL → browser history back, pass an
+   explicit `page_nav_back_url` instead.
+
+```erb
+<%# Root — Close only, no back %>
+<% recording_studio_page_nav(
+  title: "My Profile",
+  page_nav_anchor_url: root_path,
+  page_nav_anchor_label: "Close"
+) %>
+
+<%# Child — back to parent %>
+<% recording_studio_page_nav(
+  title: "Edit Profile",
+  page_nav_back_url: profile_path,
+  page_nav_back_label: "My Profile"
+) %>
+```
+
 ## Upgrading To 4.2.0
 
 This is a non-breaking upgrade. Existing `enable_capability` / `set_capability_options` call sites keep working.
@@ -402,15 +444,18 @@ boundary.
 
 RecordingStudio `3.0.1` ships a reusable layout for addon gems at
 `app/views/layouts/recording_studio/default_layout.html.erb`. It provides a
-`FlatPack::PageNav::Component` shell with standard Rails layout structure and
-safe defaults. Addon controllers can opt in with a single concern include and
+FlatPack-styled PageNav row with standard Rails layout structure and safe
+defaults. Addon controllers can opt in with a single concern include and
 a lightweight helper API to configure page nav metadata.
 
-> **Prerequisite:** The default layout depends on `FlatPack::PageNav::Component`
-> and `FlatPack::Alert::Component`. These are bundled with RecordingStudio's
-> FlatPack dependency — no additional gem installation is needed. The layout
-> includes automatic fallbacks when FlatPack components are unavailable, so
-> pages won't break if FlatPack hasn't been wired up yet.
+> **Prerequisite:** The default layout depends on FlatPack button, tooltip,
+> and alert components. These are bundled with RecordingStudio's FlatPack
+> dependency — no additional gem installation is needed. The layout includes
+> automatic fallbacks when FlatPack components are unavailable, so pages
+> won't break if FlatPack hasn't been wired up yet.
+>
+> As of `4.3.0`, back renders only when `page_nav_back_url` is set (see
+> [Upgrading To 4.3.0](#upgrading-to-430)).
 >
 > The demo route at `/layout_demo` in the dummy app shows a complete working
 > example (see `test/dummy/app/controllers/layout_demo_controller.rb` and
@@ -418,7 +463,8 @@ a lightweight helper API to configure page nav metadata.
 
 ### What the Layout Provides
 
-- `FlatPack::PageNav::Component` rendered at the top of every page.
+- A FlatPack-styled PageNav row at the top of every page (back only when
+  `page_nav_back_url` is set; Close when `page_nav_anchor_url` is set).
 - Direct page body rendering (no extra content wrapper).
 - Standard `yield :head` support for metadata, plus optional
   `default_layout_head` partial auto-detection.
@@ -591,8 +637,8 @@ Pass any of these as keyword arguments to `recording_studio_page_nav`:
 - `page_nav_anchor_url` — URL for the anchor (close) button. Omit to hide.
 - `page_nav_anchor_icon` — Icon for the anchor button (default: `"x-mark"`).
 - `page_nav_anchor_label` — ARIA label for the anchor button (default: `"Close"`).
-- `page_nav_back_url` — URL for the back button. Omit to use browser history
-  back via `history.back()`. The back button is always rendered.
+- `page_nav_back_url` — URL for the back button. Omit to hide the back
+  control. When set, the control links to this URL.
 - `page_nav_back_icon` — Icon for the back button (default: `"chevron-left"`).
 - `page_nav_back_label` — Label for the back button (default: `"Go back"`).
 - `page_nav_back_style` — FlatPack button style for back (default: `"secondary"`).
@@ -628,7 +674,7 @@ actions as needed.
 | Concern | Before (manual) | After (default layout) |
 | --- | --- | --- |
 | Layout source | Custom per-addon layout or no shared layout | `recording_studio/default_layout` |
-| Page chrome | Manual `FlatPack::Breadcrumb::Component` | `FlatPack::PageNav::Component` (automatic) |
+| Page chrome | Manual `FlatPack::Breadcrumb::Component` | FlatPack-styled PageNav row (automatic; back only when `page_nav_back_url` is set) |
 | Page nav config | `content_for` scattered across views | `recording_studio_page_nav(...)` helper |
 | Right actions | Embedded in `PageTitle` actions slot | `recording_studio_page_nav_right { ... }` |
 | Head metadata | Manual `content_for :head` | `default_layout_head { ... }` |

@@ -29,6 +29,18 @@ class LayoutHelperTest < ActionView::TestCase
     assert_equal "sm", content_for(:page_nav_back_size)
   end
 
+  def test_recording_studio_page_nav_omits_nil_back_url_slot
+    recording_studio_page_nav(
+      title: "Root",
+      page_nav_anchor_url: "/home",
+      page_nav_back_url: nil
+    )
+
+    assert_equal "Root", content_for(:title)
+    assert_equal "/home", content_for(:page_nav_anchor_url)
+    assert_not content_for?(:page_nav_back_url)
+  end
+
   def test_recording_studio_page_nav_right_sets_right_slot_content
     recording_studio_page_nav_right { "Right slot action" }
 
