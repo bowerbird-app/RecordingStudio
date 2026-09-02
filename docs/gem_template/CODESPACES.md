@@ -1,7 +1,8 @@
 # RecordingStudio Codespaces And Devcontainer Setup
 
 This repository ships a devcontainer that is also used by GitHub Codespaces. The container boots the dummy app, not a
-separate engine UI.
+separate engine UI. Cloud Agent Builds use `.cursor/install.sh` instead of this
+devcontainer. See [Cursor skills in Cloud Agents](../cursor-skills.md).
 
 ## Quick Start
 

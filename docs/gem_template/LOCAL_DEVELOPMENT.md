@@ -1,7 +1,10 @@
 # RecordingStudio Local Development
 
-This guide covers local development outside of the devcontainer or Codespaces. If you can use the containerized setup,
-that is the fastest path; local setup is primarily for maintainers who want to run the repo directly on their machine.
+This guide covers local development outside of the Cloud Agent environment, the
+devcontainer, or Codespaces. Cloud Agent Builds use `.cursor/install.sh` and
+`.cursor/start.sh`. See [Cursor skills in Cloud Agents](../cursor-skills.md).
+If you can use the containerized setup, that is the fastest path. Local setup
+is primarily for maintainers who want to run the repo directly on their machine.
 
 ## Prerequisites
 
