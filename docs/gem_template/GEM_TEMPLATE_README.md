@@ -16,6 +16,7 @@ Repository maintenance:
 
 - [CODESPACES.md](CODESPACES.md)
 - [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)
+- [../cursor-skills.md](../cursor-skills.md)
 - [INSTALLING.md](INSTALLING.md)
 - [CONFIGURATION.md](CONFIGURATION.md)
 - [MIGRATIONS.md](MIGRATIONS.md)

@@ -1,5 +1,28 @@
 # Upgrade Guide
 
+## Upgrading To 4.2.1
+
+This is a non-breaking upgrade. Recording, recordable, and host APIs are unchanged.
+
+### What Changed
+
+Cloud Agent Builds run `.cursor/install.sh`, then `.cursor/fetch-skills.sh`.
+On a warm snapshot the install hook skips apt, ruby-build, db:prepare, and
+tailwind when Ruby, bundle, and Postgres are already usable. A skippable
+provision failure does not fail the Build. Fetch-skills always runs last.
+
+The repository gitignores `.cursor/skills/` and `.cursor/rules/`. It does not
+vendor `SKILL.md` or plugin `*.mdc` files. The gemspec still packages only
+`app`, `config`, `db`, and `lib`, plus the license, Rakefile, and README.
+
+See [Cursor skills in Cloud Agents](cursor-skills.md).
+
+### Upgrade Steps
+
+No migration is required.
+
+Rebuild the Cloud Agent environment with Draft off so Build loads the pack.
+
 ## Upgrading To 4.2.0
 
 This is a non-breaking upgrade. Existing `enable_capability` / `set_capability_options` call sites keep working.

@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.1] - 2026-09-02
+
+Cloud Agent install no longer fails a warm environment rebuild. Skills still
+fetch at Build.
+
+### Added
+
+* `.cursor/environment.json`, `.cursor/install.sh`, `.cursor/fetch-skills.sh`,
+  and `.cursor/start.sh` for Cloud Agent Builds
+
+### Fixed
+
+* `.cursor/install.sh` skips apt, ruby-build, db:prepare, and tailwind when
+  Ruby, bundle, and Postgres are already usable. A skippable provision
+  failure no longer fails the Build. Fetch-skills always runs last.
+
+### Upgrade notes
+
+- No host or schema changes. Rebuild the Cloud Agent environment with Draft
+  off so Build loads the pack.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-421).
+
 ## [4.2.0] - 2026-08-21
 
 ### Added

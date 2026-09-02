@@ -30,6 +30,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Generators](#generators)
 - [Instrumentation](#instrumentation)
 - [Dummy Sandbox](#dummy-sandbox)
+- [Cloud Agent boot](#cloud-agent-boot)
 - [Shared Default Layout](#shared-default-layout)
 - [Testing Guidance](#testing-guidance)
 - [Release Process](#release-process)
@@ -972,6 +973,15 @@ bin/dev
 Open `http://localhost:3000/` for the dummy app home page. Useful demo routes include `/workspaces`, `/methods`, and
 `/capabilities`.
 
+## Cloud Agent boot
+
+Cloud Agent Builds run `.cursor/install.sh`, then `.cursor/fetch-skills.sh`.
+The install hook provisions a cold image. On a warm snapshot it skips apt,
+ruby-build, db:prepare, and tailwind when Ruby, bundle, and Postgres are
+already usable. Fetch-skills always runs last. `.cursor/start.sh` starts
+PostgreSQL on each boot. Rebuild with Draft off to load a new pack. See
+[Cursor skills in Cloud Agents](docs/cursor-skills.md).
+
 ## Shared Default Layout
 
 RecordingStudio provides a reusable layout contract for addon gems at
@@ -1282,6 +1292,8 @@ registered child recordables.
 Public gem usage lives in this README, [docs/API_REFERENCE.md](docs/API_REFERENCE.md), and
 [docs/UPGRADING.md](docs/UPGRADING.md).
 
-Repository-maintainer workflows live in `docs/gem_template/`. The directory name is historical, but the files there are
-maintainer docs for this repository's development environment, generators, and release workflow rather than alternate
-public API documentation.
+Repository-maintainer workflows live in `docs/gem_template/`. Cloud Agent boot
+is documented in [docs/cursor-skills.md](docs/cursor-skills.md). The directory
+name `docs/gem_template/` is historical, but the files there are maintainer
+docs for this repository's development environment, generators, and release
+workflow rather than alternate public API documentation.
