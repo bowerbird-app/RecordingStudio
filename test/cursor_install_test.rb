@@ -69,7 +69,7 @@ class CursorInstallTest < Minitest::Test
   def test_gemspec_does_not_package_cursor_boot_or_pack
     spec = Gem::Specification.load(File.join(ROOT, "recording_studio.gemspec"))
 
-    refute spec.files.any? { |path| path.start_with?(".cursor/") }
+    refute(spec.files.any? { |path| path.start_with?(".cursor/") })
   end
 
   def test_warm_machine_skips_apt_and_still_fetches_skills
