@@ -12,8 +12,8 @@
   subtitle: "Workspace-rooted page recordings for this demo workspace."
 ) do |page_title| %>
   <% page_title.actions do %>
-    <%= render FlatPack::Button::Component.new(text: "Back to Workspace", style: :secondary, url: workspace_path(@workspace)) %>
-    <%= render FlatPack::Button::Component.new(text: "New Page", style: :primary, url: new_workspace_page_path(@workspace)) %>
+    <%= render FlatPack::Button::Component.new(text: "Back to Workspace", style: :secondary, href: workspace_path(@workspace)) %>
+    <%= render FlatPack::Button::Component.new(text: "New Page", style: :primary, href: new_workspace_page_path(@workspace)) %>
   <% end %>
 <% end %>
 

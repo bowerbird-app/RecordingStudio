@@ -122,7 +122,7 @@
               <% if target_recordable && (!current_event_id || event.id != current_event_id) %>
                 <%= render FlatPack::Button::Component.new(
                   text: "Revert",
-                  url: revert_recording_path(@recording, recordable_id: target_recordable.id),
+                  href: revert_recording_path(@recording, recordable_id: target_recordable.id),
                   method: :post,
                   style: :secondary,
                   size: :sm,

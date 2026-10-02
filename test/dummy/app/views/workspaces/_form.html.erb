@@ -7,6 +7,6 @@
 
   <%= render FlatPack::Grid::Component.new(cols: 2, gap: :md, align: :center) do %>
     <%= render FlatPack::Button::Component.new(text: "Create Workspace", type: "submit", style: :primary) %>
-    <%= render FlatPack::Button::Component.new(text: "Cancel", url: workspaces_path, style: :ghost) %>
+    <%= render FlatPack::Button::Component.new(text: "Cancel", href: workspaces_path, style: :ghost) %>
   <% end %>
 <% end %>

@@ -12,7 +12,7 @@
 <% recording_studio_seo_image("https://example.com/og-image.png") %>
 
 <% recording_studio_page_nav_right do %>
-  <%= render FlatPack::Button::Component.new(text: "Create workspace", style: :secondary, url: new_workspace_path) %>
+  <%= render FlatPack::Button::Component.new(text: "Create workspace", style: :secondary, href: new_workspace_path) %>
 <% end %>
 
 <div class="space-y-3 p-4">
