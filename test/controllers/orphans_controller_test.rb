@@ -23,7 +23,7 @@ class OrphansControllerTest < ActionDispatch::IntegrationTest
   test "index renders orphan helper examples" do
     request_orphans
 
-    assert_select "div.rounded-lg.flex.flex-col ul[role='list']", count: 1
+    assert_select "ul.flat-pack-list.flex.flex-col[role='list']", count: 1
     assert_includes @response.body, "recording.parentless?"
     assert_includes @response.body, "Checks whether a recording has no parent_recording_id."
     assert_includes @response.body, "Parentless check"
@@ -79,7 +79,7 @@ class OrphansControllerTest < ActionDispatch::IntegrationTest
     assert_operator methods_index, :<, orphans_index
 
     open_sidebar_link = "div[data-controller='flat-pack--sidebar-group']" \
-                        "[data-flat-pack--sidebar-group-default-open-value='true'] " \
+                        "[data-flat-pack--sidebar-group-open-value='true'] " \
                         "div[data-flat-pack--sidebar-group-target='panel'] a[href='/orphans']"
     assert_select open_sidebar_link, count: 1
   end

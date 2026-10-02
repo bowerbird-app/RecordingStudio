@@ -14,6 +14,6 @@
 
   <%= render FlatPack::Grid::Component.new(cols: 2, gap: :md, align: :center) do %>
     <%= render FlatPack::Button::Component.new(text: submit_label, type: "submit", style: :primary) %>
-    <%= render FlatPack::Button::Component.new(text: "Cancel", url: cancel_url, style: :ghost) %>
+    <%= render FlatPack::Button::Component.new(text: "Cancel", href: cancel_url, style: :ghost) %>
   <% end %>
 <% end %>
