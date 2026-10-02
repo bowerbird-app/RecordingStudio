@@ -79,7 +79,7 @@ class OrphansControllerTest < ActionDispatch::IntegrationTest
     assert_operator methods_index, :<, orphans_index
 
     open_sidebar_link = "div[data-controller='flat-pack--sidebar-group']" \
-                        "[data-flat-pack--sidebar-group-default-open-value='true'] " \
+                        "[data-flat-pack--sidebar-group-open-value='true'] " \
                         "div[data-flat-pack--sidebar-group-target='panel'] a[href='/orphans']"
     assert_select open_sidebar_link, count: 1
   end
