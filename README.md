@@ -961,6 +961,12 @@ comments, and event history. It demonstrates:
 - Explicit workspace-root page routes in the demo app, while RecordingStudio core stays focused on root recording primitives
 - Simple browsing of workspaces, recordings, folders, and page history without built-in access management or hidden workspace switching
 
+The dummy app's `config/credentials.yml.enc` is encrypted with the shared
+RecordingStudio dummy-app development master key. Set `RAILS_MASTER_KEY` or put
+that key in gitignored `test/dummy/config/master.key` if you need to decrypt or
+edit it (`bin/rails credentials:show` from `test/dummy`). Do not commit the
+master key.
+
 Run the sandbox:
 
 ```bash
