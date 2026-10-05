@@ -30,7 +30,11 @@ That origin-check relaxation is for development convenience only.
 
 ## Secrets And Credentials
 
-- dummy app Rails credentials keys are gitignored
+- dummy app `config/master.key` and `config/credentials/*.key` are gitignored and must stay that way
+- `test/dummy/config/credentials.yml.enc` is committed and encrypted with the shared RecordingStudio dummy-app development master key used across these gems (dev/test only; there is no production site)
+- set `RAILS_MASTER_KEY` or write the shared key to `test/dummy/config/master.key` locally to decrypt or edit credentials (`cd test/dummy && bin/rails credentials:show`)
+- do not commit the master key in the repo, docs, or CI config
+- the encrypted file holds `secret_key_base` (used live by Devise via `Rails.application.secret_key_base`, overridable with `SECRET_KEY_BASE`) plus `aws.access_key_id`, `aws.secret_access_key`, `smtp.user_name`, and `smtp.password` (commented dummy templates only; placeholder values)
 - database credentials are driven by environment variables
 - git-sourced dependencies may require separate GitHub credentials; see [PRIVATE_GEMS.md](PRIVATE_GEMS.md)
 

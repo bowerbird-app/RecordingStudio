@@ -95,6 +95,8 @@ bundle exec rails tailwindcss:build
 | `DB_NAME` | `app_development` | Dummy app development database |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis connection URL |
 | `PORT` | `3000` | Rails server port |
+| `RAILS_MASTER_KEY` | unset | Shared RecordingStudio dummy-app development master key. Needed to decrypt `test/dummy/config/credentials.yml.enc`. Alternatively write it to gitignored `test/dummy/config/master.key`. |
+| `SECRET_KEY_BASE` | from credentials | Optional override for Devise and Rails; otherwise the dummy app uses `secret_key_base` from credentials. |
 
 The dummy app's `bin/setup` honors an existing `BUNDLE_PATH`, which is useful in containers and CI where Bundler is
 already configured to install gems into a shared path.
