@@ -1,0 +1,40 @@
+<% content_for :title, "Action Layout Demo" %>
+
+<% recording_studio_seo_description("RecordingStudio action layout demo with TopNav slots and shared page nav") %>
+<% recording_studio_seo_image("https://example.com/action-og-image.png") %>
+
+<% content_for :head do %>
+  <meta name="recording-studio-demo" content="action-layout">
+<% end %>
+
+<% content_for :top_nav_left do %>
+  <%= render "recording_studio/shared/page_nav",
+        title: "Action Layout",
+        back_path: layout_demo_path,
+        items: [{ label: "Overview", href: action_layout_demo_path }],
+        resource: "Demo",
+        context: "Dummy app" %>
+<% end %>
+
+<% content_for :top_nav_center do %>
+  <span class="text-sm opacity-70">Details</span>
+<% end %>
+
+<% content_for :top_nav_right do %>
+  <%= render FlatPack::Button::Component.new(
+    text: "Workspaces",
+    href: workspaces_path,
+    style: :secondary,
+    size: :sm
+  ) %>
+<% end %>
+
+<%= render FlatPack::PageTitle::Component.new(
+  title: "Action Layout Demo",
+  subtitle: "TopNav regions with the shared page-nav partial for focused flows."
+) %>
+
+<p class="mt-4 text-sm opacity-80">
+  This page uses <code>recording_studio/action_layout</code>. Prefer the default
+  PageNav layout for most screens; use this when you need left/center/right TopNav.
+</p>

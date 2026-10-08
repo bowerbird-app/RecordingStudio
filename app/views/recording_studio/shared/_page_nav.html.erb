@@ -1,0 +1,43 @@
+<% title = local_assigns[:title].presence %>
+<% back_path = local_assigns[:back_path].presence %>
+<% items = Array(local_assigns[:items]).compact %>
+<% resource = local_assigns[:resource] %>
+<% context = local_assigns[:context] %>
+
+<nav aria-label="Action page navigation" class="flex min-w-0 items-center gap-3 text-sm">
+  <% if back_path.present? %>
+    <%= render FlatPack::Button::Component.new(
+      text: "Back",
+      href: back_path,
+      style: :ghost,
+      size: :sm
+    ) %>
+  <% end %>
+
+  <% if title.present? %>
+    <span class="truncate font-semibold"><%= title %></span>
+  <% end %>
+
+  <% items.each do |item| %>
+    <% next unless item.respond_to?(:[]) %>
+    <% label = item[:label].presence || item["label"].presence %>
+    <% href = item[:href].presence || item["href"].presence %>
+    <% next if label.blank? %>
+
+    <% if href.present? %>
+      <%= render FlatPack::Link::Component.new(href: href) do %>
+        <%= label %>
+      <% end %>
+    <% else %>
+      <span><%= label %></span>
+    <% end %>
+  <% end %>
+
+  <% if resource.present? %>
+    <span class="truncate text-xs opacity-70"><%= resource %></span>
+  <% end %>
+
+  <% if context.present? %>
+    <span class="truncate text-xs opacity-70"><%= context %></span>
+  <% end %>
+</nav>

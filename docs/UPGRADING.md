@@ -1,5 +1,35 @@
 # Upgrade Guide
 
+## Upgrading To 4.3.0
+
+This is a non-breaking upgrade. Existing `UsesDefaultLayout` hosts keep the
+same PageNav-rendered output.
+
+### What Changed
+
+- Public `recording_studio/default_layout` is a thin wrapper around
+  `recording_studio/shared/_default_layout`. Markup and slots are unchanged.
+- New optional `recording_studio/action_layout` (FlatPack TopNav) for
+  focused show/new/edit flows.
+- Shared `recording_studio/shared/page_nav` partial for TopNav left content.
+- `rails g recording_studio:views RESOURCE` scaffolds FlatPack templates.
+
+### Upgrade Steps
+
+No migration is required.
+
+To opt a controller into the action layout:
+
+```ruby
+class PostsController < ApplicationController
+  layout "recording_studio/action_layout"
+  helper RecordingStudio::LayoutHelper
+end
+```
+
+Keep using `include RecordingStudio::UsesDefaultLayout` for PageNav screens.
+See [docs/layouts/action_layout.md](layouts/action_layout.md).
+
 ## Upgrading To 4.2.1
 
 This is a non-breaking upgrade. Recording, recordable, and host APIs are unchanged.
@@ -700,3 +730,8 @@ The title fallback chain is:
 
 Full documentation is at `docs/layouts/default_layout.md`. A working demo is
 available in the dummy app at `/layout_demo`.
+
+For TopNav-based show/new/edit flows, an optional `recording_studio/action_layout`
+is also available. See `docs/layouts/action_layout.md` and the dummy demo at
+`/action_layout_demo`. Prefer the default PageNav layout unless you need
+left/center/right TopNav regions.

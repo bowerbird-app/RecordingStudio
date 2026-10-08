@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.3.0] - 2026-10-08
+
+### Added
+
+* `recording_studio/action_layout` — FlatPack TopNav shell for focused
+  show/new/edit flows, with `:top_nav_left`, `:top_nav_center`,
+  `:top_nav_right`, and `:before_body_end` slots, sharing the default layout
+  SEO / asset / theme contract
+* Shared layout shells under `app/views/recording_studio/shared/` —
+  `default_layout` is now a thin public wrapper over
+  `shared/_default_layout` (rendered output unchanged from 4.2.x)
+* `recording_studio/shared/page_nav` partial for action-layout TopNav left
+  content (explicit locals; FlatPack buttons/links)
+* `rails g recording_studio:views RESOURCE` FlatPack scaffold templates
+  (`index` → default layout; `show`/`new`/`edit` → action layout)
+
+### Upgrade notes
+
+- Opt into action layout per controller:
+  `layout "recording_studio/action_layout"` plus
+  `helper RecordingStudio::LayoutHelper`
+- Prefer `UsesDefaultLayout` / PageNav for most screens; use action layout
+  only when you need left/center/right TopNav regions
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-430) and
+  [docs/layouts/action_layout.md](docs/layouts/action_layout.md)
+
 ## [4.2.1] - 2026-09-02
 
 Cloud Agent install no longer fails a warm environment rebuild. Skills still

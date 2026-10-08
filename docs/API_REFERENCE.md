@@ -516,6 +516,14 @@ publish_events = root.events_query(
 Available in views when controllers include `RecordingStudio::UsesDefaultLayout`
 or manually add `helper RecordingStudio::LayoutHelper`.
 
+Public layout entrypoints:
+
+- `recording_studio/default_layout` — PageNav shell (see `docs/layouts/default_layout.md`)
+- `recording_studio/action_layout` — TopNav shell for focused flows (see `docs/layouts/action_layout.md`)
+
+Both layouts honor the same SEO helpers below. Action layout additionally reads
+`:top_nav_left`, `:top_nav_center`, `:top_nav_right`, and `:before_body_end`.
+
 ### Page nav helpers
 
 | Method | Takes | Returns | Why it exists |

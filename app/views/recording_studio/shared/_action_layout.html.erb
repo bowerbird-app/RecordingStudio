@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <% rs_config = RecordingStudio.configuration %>
+    <% app_name = (rs_config.respond_to?(:app_name) ? rs_config.app_name : nil) || "CHANGE_APP_NAME_IN_DEFAULT_LAYOUT" %>
+    <title><%= content_for(:title).presence || app_name %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "flat_pack/variables", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "flat_pack/rich_text", "data-turbo-track": "reload" %>
+    <%= yield :head %>
+    <% page_title = content_for(:title).presence || app_name %>
+    <% seo_description = content_for(:seo_description) %>
+    <% seo_image = content_for(:seo_image) %>
+
+    <% if seo_description.present? %>
+      <meta name="description" content="<%= seo_description %>">
+    <% end %>
+    <% if seo_image.present? %>
+      <meta property="og:image" content="<%= seo_image %>">
+    <% end %>
+
+    <meta property="og:title" content="<%= page_title %>">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<%= request.original_url %>">
+    <% if seo_description.present? %>
+      <meta property="og:description" content="<%= seo_description %>">
+    <% end %>
+    <% site_name = rs_config.respond_to?(:app_name) ? rs_config.app_name : nil %>
+    <% site_name = site_name.presence || page_title %>
+    <meta property="og:site_name" content="<%= site_name %>">
+    <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
+  </head>
+
+  <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-action-layout="true" data-theme="<%= content_for(:body_theme).presence || 'rounded' %>">
+    <% if flash[:notice].present? %>
+      <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "m-4") %>
+    <% end %>
+    <% if flash[:alert].present? %>
+      <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "m-4") %>
+    <% end %>
+
+    <%# Match main column: mx-auto w-full max-w-5xl px-6 (same gutter as p-6). %>
+    <%= render FlatPack::TopNav::Component.new(class: "mx-auto w-full max-w-5xl px-6") do |nav| %>
+      <% if content_for?(:top_nav_left) %>
+        <% nav.left do %>
+          <%= yield :top_nav_left %>
+        <% end %>
+      <% end %>
+
+      <% if content_for?(:top_nav_center) %>
+        <% nav.center do %>
+          <%= yield :top_nav_center %>
+        <% end %>
+      <% end %>
+
+      <% if content_for?(:top_nav_right) %>
+        <% nav.right do %>
+          <%= yield :top_nav_right %>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <main class="mx-auto w-full max-w-5xl p-6">
+      <%= yield %>
+    </main>
+
+    <% if content_for?(:before_body_end) %>
+      <%= yield :before_body_end %>
+    <% end %>
+  </body>
+</html>

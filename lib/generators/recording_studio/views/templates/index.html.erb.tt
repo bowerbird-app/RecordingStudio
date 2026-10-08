@@ -1,0 +1,19 @@
+<%%# Intended layout: recording_studio/default_layout (typically used by index actions) %>
+<%% recording_studio_page_nav(title: "<%= plural_name.humanize %>") %>
+<%%# Optional SEO / head helpers:
+    recording_studio_seo_description("Browse <%= plural_name.humanize.downcase %>")
+    recording_studio_seo_image(image_url("social/<%= file_name %>.png"))
+    default_layout_head do
+      stylesheet_link_tag "custom/<%= file_name %>", "data-turbo-track": "reload"
+    end
+%>
+
+<%%= render FlatPack::PageTitle::Component.new(
+  title: "<%= plural_name.humanize %>",
+  subtitle: "Replace this list with your collection UI."
+) %>
+
+<%%= render FlatPack::EmptyState::Component.new(
+  title: "No <%= plural_name.humanize.downcase %> yet",
+  description: "Add the first one to get started."
+) %>

@@ -1,0 +1,12 @@
+<%%= form_with model: @<%= file_name %>, class: "space-y-6" do |_form| %>
+  <%%= render FlatPack::TextInput::Component.new(
+    name: "<%= file_name %>[name]",
+    label: "Name",
+    value: @<%= file_name %>.name
+  ) %>
+
+  <%%= render FlatPack::Grid::Component.new(cols: 2, gap: :md, align: :center) do %>
+    <%%= render FlatPack::Button::Component.new(text: "Save", type: "submit", style: :primary) %>
+    <%%= render FlatPack::Button::Component.new(text: "Back", href: <%= plural_route_helper %>_path, style: :ghost) %>
+  <%% end %>
+<%% end %>
