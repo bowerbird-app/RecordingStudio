@@ -700,3 +700,8 @@ The title fallback chain is:
 
 Full documentation is at `docs/layouts/default_layout.md`. A working demo is
 available in the dummy app at `/layout_demo`.
+
+For TopNav-based show/new/edit flows, an optional `recording_studio/action_layout`
+is also available. See `docs/layouts/action_layout.md` and the dummy demo at
+`/action_layout_demo`. Prefer the default PageNav layout unless you need
+left/center/right TopNav regions.
