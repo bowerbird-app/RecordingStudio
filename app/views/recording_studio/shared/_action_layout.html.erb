@@ -45,8 +45,8 @@
       <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "m-4") %>
     <% end %>
 
-    <%# px-6 matches default_layout main horizontal gutter (p-6). %>
-    <%= render FlatPack::TopNav::Component.new(class: "px-6") do |nav| %>
+    <%# Match main column: mx-auto w-full max-w-5xl px-6 (same gutter as p-6). %>
+    <%= render FlatPack::TopNav::Component.new(class: "mx-auto w-full max-w-5xl px-6") do |nav| %>
       <% if content_for?(:top_nav_left) %>
         <% nav.left do %>
           <%= yield :top_nav_left %>
