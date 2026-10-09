@@ -1,5 +1,37 @@
 # Upgrade Guide
 
+## Upgrading To 4.4.0
+
+This is a non-breaking upgrade. Rendered English interface text is unchanged.
+Callers that pass their own PageNav labels via `content_for` keep working.
+
+### What Changed
+
+- Static layout/page-nav copy in the gem's own views uses Rails I18n keys under
+  `recording_studio.core.navigation`.
+- The gem ships English only in `config/locales/en.yml` (Rails engines load
+  that path by default). There is no dependency on
+  `recording_studio_internationalization`.
+
+Keys added:
+
+| Key | English |
+| --- | --- |
+| `recording_studio.core.navigation.back` | Back |
+| `recording_studio.core.navigation.go_back` | Go back |
+| `recording_studio.core.navigation.close` | Close |
+| `recording_studio.core.navigation.page` | Page navigation |
+| `recording_studio.core.navigation.action_page` | Action page navigation |
+
+Left untranslated on purpose: the developer placeholder
+`CHANGE_APP_NAME_IN_DEFAULT_LAYOUT`, icon/style tokens, flash/user content, and
+caller-provided titles/labels.
+
+### Upgrade Steps
+
+No migration is required. English hosts need no change. To override or add
+another language, set the keys above in the host's `config/locales`.
+
 ## Upgrading To 4.3.0
 
 This is a non-breaking upgrade. Existing `UsesDefaultLayout` hosts keep the

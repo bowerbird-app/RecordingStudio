@@ -52,11 +52,11 @@
 
       <% page_nav_options = {
         back_icon: content_for(:page_nav_back_icon).presence || "chevron-left",
-        back_label: content_for(:page_nav_back_label).presence || "Go back",
+        back_label: content_for(:page_nav_back_label).presence || t("recording_studio.core.navigation.go_back"),
         back_style: (content_for(:page_nav_back_style).presence || "secondary").to_sym,
         back_size: (content_for(:page_nav_back_size).presence || "md").to_sym,
         anchor_icon: content_for(:page_nav_anchor_icon).presence || "x-mark",
-        anchor_label: content_for(:page_nav_anchor_label).presence || "Close"
+        anchor_label: content_for(:page_nav_anchor_label).presence || t("recording_studio.core.navigation.close")
       } %>
       <% back_url = content_for(:page_nav_back_url).presence %>
       <% anchor_url = content_for(:page_nav_anchor_url).presence %>
@@ -74,7 +74,7 @@
             <%= render FlatPack::PageNav::Component.new(**page_nav_options) %>
           <% end %>
         <% else %>
-          <nav aria-label="Page navigation" class="flex items-center justify-between gap-3">
+          <nav aria-label="<%= t("recording_studio.core.navigation.page") %>" class="flex items-center justify-between gap-3">
             <div>
               <% if defined?(FlatPack::Button::Component) %>
                 <% if back_url.present? %>
@@ -119,7 +119,7 @@
                 <% end %>
                 <% if anchor_url.present? %>
                   <a href="<%= anchor_url %>" class="inline-flex items-center gap-2 text-sm font-medium text-(--surface-content-color) ml-2">
-                    <%= content_for(:page_nav_anchor_label).presence || "Close" %>
+                    <%= content_for(:page_nav_anchor_label).presence || t("recording_studio.core.navigation.close") %>
                   </a>
                 <% end %>
               <% end %>
