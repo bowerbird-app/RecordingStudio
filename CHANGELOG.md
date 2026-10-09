@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.4.0] - 2026-10-09
+
+### Added
+
+* English Rails I18n keys for static interface copy in the gem's own layout
+  shells and `page_nav` partial (`config/locales/en.yml` under
+  `recording_studio.core`)
+
+### Changed
+
+* Default PageNav labels and nav aria-labels in
+  `recording_studio/shared/_default_layout` and
+  `recording_studio/shared/_page_nav` resolve through `t(...)` (English output
+  unchanged)
+
+### Upgrade notes
+
+- No migration or host code change is required for English.
+- To translate or override the defaults, add keys under
+  `recording_studio.core.navigation` in the host's locale files.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-440).
+
 ## [4.3.0] - 2026-10-08
 
 ### Added

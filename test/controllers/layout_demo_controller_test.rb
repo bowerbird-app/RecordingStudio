@@ -18,6 +18,8 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
     assert_select "nav[aria-label='Page navigation']", count: 1
     assert_select "a[href='#{workspaces_path}']", count: 1
+    assert_includes @response.body, I18n.t("recording_studio.core.navigation.go_back")
+    assert_includes @response.body, "Close demo"
 
     assert_includes @response.body, "Create workspace"
     assert_not_includes @response.body, "flat-pack--sidebar-group"

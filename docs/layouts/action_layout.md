@@ -61,6 +61,11 @@ locals:
 Locals: `title`, `back_path`, `items`, `resource`, `context`. No hidden
 instance variables are required.
 
+Static chrome on this partial (`Back` button text and the
+`Action page navigation` aria-label) uses
+`recording_studio.core.navigation` keys from the gem's English locale file.
+`title`, `items`, `resource`, and `context` stay caller-provided.
+
 ## Relationship to default layout
 
 | Concern | Default layout | Action layout |
