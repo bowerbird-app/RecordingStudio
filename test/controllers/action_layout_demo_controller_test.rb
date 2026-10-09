@@ -17,7 +17,7 @@ class ActionLayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "body[data-theme='rounded']", count: 1
     assert_select "meta[name='recording-studio-demo'][content='action-layout']", count: 1
     assert_select "header.fp-top-nav.mx-auto.w-full.max-w-5xl.px-6", count: 1
-    assert_select "nav[aria-label='#{I18n.t("recording_studio.core.navigation.action_page")}']", count: 1
+    assert_select "nav[aria-label='#{I18n.t('recording_studio.core.navigation.action_page')}']", count: 1
     assert_select "a[href='#{layout_demo_path}']", count: 1
     assert_includes @response.body, I18n.t("recording_studio.core.navigation.back")
     assert_includes @response.body, "Action Layout Demo"

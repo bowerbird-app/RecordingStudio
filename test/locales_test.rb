@@ -38,9 +38,9 @@ class LocalesTest < ActiveSupport::TestCase
 
   test "en.yml nests keys under recording_studio.core" do
     tree = locale_tree(File.join(engine_locales_dir, "en.yml"), "en")
-      .fetch("recording_studio")
-      .fetch("core")
-      .fetch("navigation")
+                       .fetch("recording_studio")
+                       .fetch("core")
+                       .fetch("navigation")
 
     assert_equal NAVIGATION_KEYS, tree.transform_keys(&:to_s)
   end
