@@ -268,6 +268,8 @@ Use this module when an addon needs recordable naming without duplicating UI heu
 
 `EMPTY_LABEL` remains the English `"—"` constant for direct references. Blank
 inputs on the label helpers call `empty_label` so the active locale wins.
+Helpers return an unfrozen I18n string; compare with `empty_label`, not
+object identity against the constant.
 
 Resolution order for `name_for(recordable)`:
 

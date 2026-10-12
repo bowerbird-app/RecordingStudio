@@ -50,9 +50,30 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "nav[aria-label='Page navigation']", count: 1
-    assert_includes @response.body, "Go back"
+    assert_select "#recording-studio-back-button", count: 1
+    assert_includes @response.body, 'aria-label="Go back"'
     assert_includes @response.body, "Close demo"
+    assert_not_includes @response.body, "flat-pack--page-nav"
   ensure
     FlatPack::PageNav.const_set(:Component, page_nav_component) if page_nav_component
+  end
+
+  test "pure HTML page nav fallback renders default Close english" do
+    page_nav_component = FlatPack::PageNav::Component
+    button_component = FlatPack::Button::Component
+    FlatPack::PageNav.send(:remove_const, :Component)
+    FlatPack::Button.send(:remove_const, :Component)
+
+    get layout_demo_chrome_defaults_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "nav[aria-label='Page navigation']", count: 1
+    assert_select "#recording-studio-back-button", count: 0
+    assert_includes @response.body, "Go back"
+    assert_includes @response.body, "Close"
+    assert_not_includes @response.body, "Close demo"
+  ensure
+    FlatPack::PageNav.const_set(:Component, page_nav_component) if page_nav_component
+    FlatPack::Button.const_set(:Component, button_component) if button_component
   end
 end

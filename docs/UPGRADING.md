@@ -13,6 +13,12 @@ label helpers now resolve through Rails I18n at call time.
   `type_plural_label_for` / `title_for`).
 - The public constant `Labels::EMPTY_LABEL` remains the English `"—"` string
   for direct references; it is not locale-aware.
+- Label helpers return an unfrozen I18n string (not the frozen `EMPTY_LABEL`
+  constant object). Do not use `equal?` / `frozen?` against the constant;
+  compare with `Labels.empty_label`.
+- `Recording#name` / `Recording#label` detect the empty marker via
+  `Labels.empty_label` so translated empty markers still fall back to the
+  type label.
 - Layout / page-nav `t(...)` calls pass English `default:` values so a host
   locale with no fallback never shows “translation missing”.
 - `.release-please-manifest.json` matches `RecordingStudio::VERSION`.
@@ -36,9 +42,10 @@ recordable/user content.
 
 No migration is required. English hosts need no change.
 
-If you compared helper output to `RecordingStudio::Labels::EMPTY_LABEL` and
-you run non-English locales, compare to `Labels.empty_label` (or translate
-`recording_studio.core.labels.empty`) instead.
+If you compared helper output to `RecordingStudio::Labels::EMPTY_LABEL`
+(including `equal?` or `frozen?` checks), switch to `Labels.empty_label`.
+That comparison stays correct when the active locale translates
+`recording_studio.core.labels.empty`.
 
 To override or add another language, set the key above (and the existing
 `recording_studio.core.navigation.*` keys) in the host's `config/locales`.
