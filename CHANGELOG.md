@@ -5,6 +5,55 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [4.5.0] - 2026-10-12
+
+### Added
+
+* English Rails I18n key for the Labels empty marker
+  (`recording_studio.core.labels.empty` → `"—"`)
+* `RecordingStudio::Labels.empty_label` resolves the empty marker through
+  `I18n.t` at call time (honors `I18n.locale`; not memoized)
+* Host English override coverage: test-only fixture
+  `test/dummy/test/locales/core_host_override.en.yml` plus an integration test
+  that appends it last to `I18n.load_path`, reloads, asserts nested
+  `recording_studio.core.*` keys win on layout demo and Labels, then restores
+  the load path
+* Locale regression: every `lib/**/*.rb` file must not mention
+  `i18n.load_path` / `I18n.load_path`
+* Non-FlatPack PageNav fallback render test asserts literal English chrome
+
+### Changed
+
+* `Labels.name_for` / `label_for` / `type_label_for` / `type_plural_label_for` /
+  `title_for` return the I18n-resolved empty label when the recordable is
+  blank (English output unchanged). The public `EMPTY_LABEL` constant remains
+  the English `"—"` literal for hosts that reference it directly.
+* Those helpers return an unfrozen I18n string, not the frozen `EMPTY_LABEL`
+  constant object — identity / `frozen?` checks against the constant no longer
+  hold. Compare with `Labels.empty_label` instead.
+* Layout / page-nav `t(...)` calls pass `default:` with the original English
+* `.release-please-manifest.json` aligned to the shipped gem version
+
+### Fixed
+
+* `Labels.label_for` is a module function again (the `alias` after
+  `module_function` left only an instance method, so
+  `RecordingStudio::Labels.label_for(...)` raised `NoMethodError`)
+* `Recording#name` / `Recording#label` compare against `Labels.empty_label`
+  (call-time) so a translated empty marker still falls back to the type label
+
+### Upgrade notes
+
+- No migration or host code change is required for English.
+- To translate or override the empty label, set
+  `recording_studio.core.labels.empty` in the host's locale files.
+- Prefer `Labels.empty_label` (or the label helpers) over comparing against
+  `Labels::EMPTY_LABEL` when the active locale may not be English, and do not
+  rely on object identity or `frozen?` against the constant.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-450).
+
 ## [4.4.0] - 2026-10-09
 
 ### Added
@@ -305,3 +354,6 @@ fetch at Build.
 - Install generator for host applications
 - Comprehensive README and documentation
 - Basic test suite with Minitest
+
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.5.0...HEAD
+[4.5.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.4.0...v4.5.0

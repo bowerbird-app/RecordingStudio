@@ -436,6 +436,38 @@ class RecordingTest < ActiveSupport::TestCase
     assert_equal "Workspace", root.reload.name
   end
 
+  def test_name_and_label_fall_back_to_type_label_when_empty_marker_is_translated
+    previous_locales = I18n.available_locales
+    I18n.available_locales = (previous_locales + %i[en fr]).uniq
+    I18n.backend.store_translations(:fr, {
+                                      recording_studio: { core: { labels: { empty: "(vide)" } } }
+                                    })
+
+    _, root = create_workspace_root(name: "Studio Workspace")
+    page_recording = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Gone"),
+      root_recording: root,
+      parent_recording: root
+    ).recording
+
+    RecordingStudioPage.where(id: page_recording.recordable_id).delete_all
+    page_recording.reload
+
+    I18n.with_locale(:fr) do
+      assert_equal "(vide)", RecordingStudio::Labels.empty_label
+      assert_equal "Page", page_recording.name
+      assert_equal "Page", page_recording.label
+      refute_equal "(vide)", page_recording.name
+    end
+  ensure
+    I18n.backend.store_translations(:fr, {
+                                      recording_studio: { core: { labels: { empty: nil } } }
+                                    })
+    I18n.available_locales = previous_locales if previous_locales
+    I18n.reload!
+  end
+
   def test_label_remains_an_alias_for_name
     _workspace, root = create_workspace_root(name: "Studio Workspace")
 

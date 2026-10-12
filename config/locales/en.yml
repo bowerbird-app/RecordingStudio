@@ -7,3 +7,5 @@ en:
         close: "Close"
         page: "Page navigation"
         action_page: "Action page navigation"
+      labels:
+        empty: "—"

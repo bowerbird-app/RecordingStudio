@@ -7,7 +7,7 @@ module RecordingStudio
 
       def name
         label = RecordingStudio.recordable_name(presented_recordable)
-        return label unless label == RecordingStudio::Labels::EMPTY_LABEL && recordable_type.present?
+        return label unless label == RecordingStudio::Labels.empty_label && recordable_type.present?
 
         RecordingStudio.recordable_type_label(recordable_type)
       end

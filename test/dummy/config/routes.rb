@@ -22,6 +22,7 @@ Rails.application.routes.draw do
   get "methods/depreciated", to: "methods#depreciated", as: :depreciated_methods
   get :capabilities, to: "capabilities#index"
   get :layout_demo, to: "layout_demo#show"
+  get :layout_demo_chrome_defaults, to: "layout_demo#chrome_defaults"
   get :action_layout_demo, to: "action_layout_demo#show"
   resources :recordings, only: [ :index, :show ] do
     post :log_event, on: :member
