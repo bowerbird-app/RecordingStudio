@@ -23,44 +23,13 @@ class LabelsI18nTest < ActiveSupport::TestCase
   test "empty label resolution honors I18n.locale per call and is not memoized" do
     previous_locales = I18n.available_locales
     I18n.available_locales = (previous_locales + %i[en fr]).uniq
+    store_empty_label_translation(:fr, "VIDE")
 
-    I18n.backend.store_translations(:fr, {
-      recording_studio: {
-        core: {
-          labels: {
-            empty: "VIDE"
-          }
-        }
-      }
-    })
-
-    I18n.with_locale(:en) do
-      assert_equal "—", RecordingStudio::Labels.name_for(nil)
-      assert_equal "—", RecordingStudio::Labels.type_label_for(nil)
-      assert_equal "—", RecordingStudio::Labels.title_for(nil)
-    end
-
-    I18n.with_locale(:fr) do
-      assert_equal "VIDE", RecordingStudio::Labels.name_for(nil)
-      assert_equal "VIDE", RecordingStudio::Labels.type_label_for(nil)
-      assert_equal "VIDE", RecordingStudio::Labels.title_for(nil)
-      assert_equal "VIDE", RecordingStudio::Labels.empty_label
-    end
-
-    I18n.with_locale(:en) do
-      assert_equal "—", RecordingStudio::Labels.name_for(nil)
-      assert_equal "—", RecordingStudio::Labels.empty_label
-    end
+    assert_english_empty_labels
+    assert_french_empty_labels
+    assert_english_empty_labels
   ensure
-    I18n.backend.store_translations(:fr, {
-      recording_studio: {
-        core: {
-          labels: {
-            empty: nil
-          }
-        }
-      }
-    })
+    store_empty_label_translation(:fr, nil)
     I18n.available_locales = previous_locales if previous_locales
     I18n.reload!
   end
@@ -75,5 +44,31 @@ class LabelsI18nTest < ActiveSupport::TestCase
     end
   ensure
     I18n.available_locales = previous_locales if previous_locales
+  end
+
+  private
+
+  def store_empty_label_translation(locale, value)
+    I18n.backend.store_translations(locale, {
+                                      recording_studio: { core: { labels: { empty: value } } }
+                                    })
+  end
+
+  def assert_english_empty_labels
+    I18n.with_locale(:en) do
+      assert_equal "—", RecordingStudio::Labels.name_for(nil)
+      assert_equal "—", RecordingStudio::Labels.type_label_for(nil)
+      assert_equal "—", RecordingStudio::Labels.title_for(nil)
+      assert_equal "—", RecordingStudio::Labels.empty_label
+    end
+  end
+
+  def assert_french_empty_labels
+    I18n.with_locale(:fr) do
+      assert_equal "VIDE", RecordingStudio::Labels.name_for(nil)
+      assert_equal "VIDE", RecordingStudio::Labels.type_label_for(nil)
+      assert_equal "VIDE", RecordingStudio::Labels.title_for(nil)
+      assert_equal "VIDE", RecordingStudio::Labels.empty_label
+    end
   end
 end
