@@ -1,5 +1,48 @@
 # Upgrade Guide
 
+## Upgrading To 4.5.0
+
+This is a minor upgrade. Default English interface text is unchanged. Empty
+label helpers now resolve through Rails I18n at call time.
+
+### What Changed
+
+- `RecordingStudio::Labels` empty markers use
+  `recording_studio.core.labels.empty` via `Labels.empty_label` (and the
+  existing blank-input paths on `name_for` / `label_for` / `type_label_for` /
+  `type_plural_label_for` / `title_for`).
+- The public constant `Labels::EMPTY_LABEL` remains the English `"—"` string
+  for direct references; it is not locale-aware.
+- Layout / page-nav `t(...)` calls pass English `default:` values so a host
+  locale with no fallback never shows “translation missing”.
+- `.release-please-manifest.json` matches `RecordingStudio::VERSION`.
+- `RecordingStudio::Labels.label_for` works as a module function (previously
+  the alias was instance-only after `module_function`).
+
+Keys added:
+
+| Key | English |
+| --- | --- |
+| `recording_studio.core.labels.empty` | — |
+
+Left untranslated on purpose: developer `ArgumentError` / authorization /
+capability exceptions, generator CLI text, log lines, AR validation messages
+that name internal hierarchy fields (`parent_recording_id`, root recording),
+config default `app_name` (`"RecordingStudio"`), the developer placeholder
+`CHANGE_APP_NAME_IN_DEFAULT_LAYOUT`, icon/style tokens, and dynamic
+recordable/user content.
+
+### Upgrade Steps
+
+No migration is required. English hosts need no change.
+
+If you compared helper output to `RecordingStudio::Labels::EMPTY_LABEL` and
+you run non-English locales, compare to `Labels.empty_label` (or translate
+`recording_studio.core.labels.empty`) instead.
+
+To override or add another language, set the key above (and the existing
+`recording_studio.core.navigation.*` keys) in the host's `config/locales`.
+
 ## Upgrading To 4.4.0
 
 This is a non-breaking upgrade. Rendered English interface text is unchanged.

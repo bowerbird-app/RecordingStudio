@@ -258,12 +258,16 @@ Use this module when an addon needs recordable naming without duplicating UI heu
 | --- | --- | --- | --- |
 | `register_formatter(type, name: nil, type_label: nil, title: nil, summary: nil)` | recordable type and one or more callables | formatter registry mutation | Lets addons override display metadata for a type. |
 | `formatters` | nothing | hash of formatter maps | Introspection and testing support. |
+| `empty_label` | nothing | `String` | Locale-aware empty marker (`recording_studio.core.labels.empty`, default `"—"`). |
 | `name_for(recordable)` | recordable instance | `String` | Preferred display name for the recordable. |
 | `label_for(recordable)` | recordable instance | `String` | Compatibility alias for `name_for`. |
 | `type_label_for(recordable_or_type)` | instance, class, or class name | `String` | Human-facing type label. |
 | `type_plural_label_for(recordable_or_type)` | instance, class, or class name | `String` | Human-facing plural type label. |
 | `title_for(recordable)` | recordable instance | `String` | Optional presentation title. |
 | `summary_for(recordable)` | recordable instance | `String` or `nil` | Optional summary/body snippet. |
+
+`EMPTY_LABEL` remains the English `"—"` constant for direct references. Blank
+inputs on the label helpers call `empty_label` so the active locale wins.
 
 Resolution order for `name_for(recordable)`:
 

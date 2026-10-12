@@ -105,12 +105,12 @@ If no nav config is provided:
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
 | `page_nav_back_icon` | `"chevron-left"` |
-| `page_nav_back_label` | `t("recording_studio.core.navigation.go_back")` → `"Go back"` |
+| `page_nav_back_label` | `t("recording_studio.core.navigation.go_back", default: "Go back")` → `"Go back"` |
 | `page_nav_back_style` | `:"secondary"` |
 | `page_nav_back_size` | `:"md"` |
 | `page_nav_back_url` | `nil` (back button always shown; when URL is absent, uses `history.back()` via button onclick) |
 | `page_nav_anchor_icon` | `"x-mark"` |
-| `page_nav_anchor_label` | `t("recording_studio.core.navigation.close")` → `"Close"` |
+| `page_nav_anchor_label` | `t("recording_studio.core.navigation.close", default: "Close")` → `"Close"` |
 | Anchor action | Hidden (no `page_nav_anchor_url` provided) |
 | Right slot | Empty |
 | Back action | Always rendered; uses `page_nav_back_url` when set, otherwise falls back to `history.back()` via a button |
@@ -276,9 +276,13 @@ the layout is active.
 
 Static PageNav defaults and the fallback `aria-label` ship as English Rails I18n
 keys under `recording_studio.core.navigation` in the gem's
-`config/locales/en.yml`. Hosts can override them. Callers that pass their own
-`page_nav_back_label` / `page_nav_anchor_label` via `content_for` are unchanged.
-The developer placeholder `CHANGE_APP_NAME_IN_DEFAULT_LAYOUT` is not translated.
+`config/locales/en.yml`, each looked up with an English `default:`. Hosts can
+override them. Callers that pass their own `page_nav_back_label` /
+`page_nav_anchor_label` via `content_for` are unchanged. The developer
+placeholder `CHANGE_APP_NAME_IN_DEFAULT_LAYOUT` is not translated.
+
+Empty Labels markers use `recording_studio.core.labels.empty` through
+`RecordingStudio::Labels.empty_label` (see the Labels API).
 
 ## Addon Author Guidance
 

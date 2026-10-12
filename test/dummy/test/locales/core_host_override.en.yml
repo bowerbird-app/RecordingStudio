@@ -1,0 +1,10 @@
+# Test-only host English override. Kept outside config/locales so the default
+# dummy UI stays on gem English. Loaded only inside CoreI18nHostOverrideTest.
+en:
+  recording_studio:
+    core:
+      navigation:
+        go_back: "HOST Go back"
+        page: "HOST Page navigation"
+      labels:
+        empty: "HOST —"

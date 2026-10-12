@@ -4,10 +4,10 @@
 <% resource = local_assigns[:resource] %>
 <% context = local_assigns[:context] %>
 
-<nav aria-label="<%= t("recording_studio.core.navigation.action_page") %>" class="flex min-w-0 items-center gap-3 text-sm">
+<nav aria-label="<%= t("recording_studio.core.navigation.action_page", default: "Action page navigation") %>" class="flex min-w-0 items-center gap-3 text-sm">
   <% if back_path.present? %>
     <%= render FlatPack::Button::Component.new(
-      text: t("recording_studio.core.navigation.back"),
+      text: t("recording_studio.core.navigation.back", default: "Back"),
       href: back_path,
       style: :ghost,
       size: :sm

@@ -2,6 +2,8 @@
 
 module RecordingStudio
   module Labels
+    # English empty-label literal kept for hosts that reference the constant.
+    # Runtime empty labels resolve through I18n at call time (see #empty_label).
     EMPTY_LABEL = "—"
     FORMATTER_TYPES = %i[name type_label title summary].freeze
 
@@ -9,6 +11,10 @@ module RecordingStudio
     @warned_legacy_label_keys = Set.new
 
     module_function
+
+    def empty_label
+      I18n.t("recording_studio.core.labels.empty", default: EMPTY_LABEL)
+    end
 
     def register_formatter(type, name: nil, type_label: nil, title: nil, summary: nil)
       type_name = RecordingStudio::Identity.type_name_for(type)
@@ -27,7 +33,7 @@ module RecordingStudio
     end
 
     def name_for(recordable)
-      return EMPTY_LABEL unless recordable
+      return empty_label unless recordable
 
       formatter_value(:name, recordable) ||
         explicit_name_for(recordable) ||
@@ -36,12 +42,13 @@ module RecordingStudio
     end
 
     alias label_for name_for
+    module_function :label_for
 
     def type_label_for(recordable_or_type)
-      return EMPTY_LABEL if recordable_or_type.blank?
+      return empty_label if recordable_or_type.blank?
 
       type_name = type_name_for(recordable_or_type)
-      return EMPTY_LABEL if type_name.blank?
+      return empty_label if type_name.blank?
 
       klass = type_name.safe_constantize
 
@@ -53,10 +60,10 @@ module RecordingStudio
     end
 
     def type_plural_label_for(recordable_or_type)
-      return EMPTY_LABEL if recordable_or_type.blank?
+      return empty_label if recordable_or_type.blank?
 
       type_name = type_name_for(recordable_or_type)
-      return EMPTY_LABEL if type_name.blank?
+      return empty_label if type_name.blank?
 
       declaration = RecordingStudio.recordable_declaration_for(type_name)
       return declaration.plural_label if declaration
@@ -65,7 +72,7 @@ module RecordingStudio
     end
 
     def title_for(recordable)
-      return EMPTY_LABEL unless recordable
+      return empty_label unless recordable
 
       formatter_value(:title, recordable) ||
         squished_value(recordable, :title) ||

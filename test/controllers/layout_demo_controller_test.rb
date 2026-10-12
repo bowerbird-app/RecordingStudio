@@ -19,6 +19,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "nav[aria-label='Page navigation']", count: 1
     assert_select "a[href='#{workspaces_path}']", count: 1
     assert_includes @response.body, I18n.t("recording_studio.core.navigation.go_back")
+    assert_includes @response.body, "Go back"
     assert_includes @response.body, "Close demo"
 
     assert_includes @response.body, "Create workspace"
@@ -39,5 +40,19 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "title", text: "Default Layout Demo"
     assert_select "meta[property='og:site_name'][content='Custom App Name']", count: 1
+  end
+
+  test "non-FlatPack page nav fallback renders literal english" do
+    page_nav_component = FlatPack::PageNav::Component
+    FlatPack::PageNav.send(:remove_const, :Component)
+
+    get layout_demo_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "nav[aria-label='Page navigation']", count: 1
+    assert_includes @response.body, "Go back"
+    assert_includes @response.body, "Close demo"
+  ensure
+    FlatPack::PageNav.const_set(:Component, page_nav_component) if page_nav_component
   end
 end
