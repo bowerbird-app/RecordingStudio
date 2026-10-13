@@ -13,23 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * English fallback for shipped `recording_studio.*` keys when the active locale
   has no translation: `RecordingStudio.t` / `RecordingStudio::Translation.t`
-  resolve the gem's `config/locales/en.yml` value via `locale: :en` instead of
-  showing "Translation missing" or raising
+  resolve the loaded `:en` translation via `locale: :en` (host English
+  overrides included) instead of showing "Translation missing" or raising
 * Layout / page-nav views and `Labels.empty_label` look up copy through
-  `RecordingStudio.t` so the fallback English always comes from `en.yml` (no
-  hand-copied Ruby string defaults that can drift)
-* Behavioral coverage: French locale with no `fr` file renders gem English on
+  `RecordingStudio.t` so the fallback English always comes from the loaded
+  `:en` backend (no hand-copied Ruby string defaults that can drift)
+* Behavioral coverage: a locale with no translations renders loaded English on
   default layout, non-FlatPack page-nav fallback, pure HTML chrome fallback,
-  action page nav, and Labels; a host French override wins on real renders;
-  English renders stay identical to prior gem English
+  action page nav, and Labels; a boot-loaded host French override wins on real
+  renders; English renders stay identical to prior gem English; deleted English
+  keys no longer 500 the page
 
 ### Upgrade notes
 
 - No migration or host code change is required for English.
 - Hosts that enable raise-on-missing translations no longer raise for
   gem-shipped `recording_studio.*` keys looked up through `RecordingStudio.t`
-  (or the call sites above); missing locales receive the gem English from
-  `en.yml`. Host overrides in the active locale still win.
+  (or the call sites above); missing locales receive the loaded English
+  translation (host `:en` overrides win). Host overrides in the active locale
+  still win.
 - `en.yml` is unchanged. Prefer `RecordingStudio.t` for gem keys when adding
   new call sites so missing locales keep the same fallback.
 - See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-460).

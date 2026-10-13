@@ -1,5 +1,5 @@
-# Test-only host French override. Kept outside config/locales. Loaded only
-# inside CoreI18nFrenchHostOverrideTest.
+# Boot-loaded host French override for integration coverage.
+# Loaded after gem en.yml so nested recording_studio.core.* keys win in :fr.
 fr:
   recording_studio:
     core:

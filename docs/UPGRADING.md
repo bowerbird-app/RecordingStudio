@@ -3,14 +3,16 @@
 ## Upgrading To 4.6.0
 
 This is a minor upgrade. Default English interface text is unchanged.
-Gem-shipped `recording_studio.*` keys now fall back to the gem's English
-`en.yml` value when the active locale has no translation.
+Gem-shipped `recording_studio.*` keys now fall back to the loaded `:en`
+translation (host English overrides included) when the active locale has no
+translation.
 
 ### What Changed
 
 - New `RecordingStudio.t` / `RecordingStudio::Translation.t` helper looks up a
-  key in the active locale and, when missing, uses `I18n.t(..., locale: :en)`
-  so the fallback English always comes from `config/locales/en.yml`.
+  key in the active locale and, when missing, uses the loaded `:en` value via
+  `I18n.t(..., locale: :en)` so host `:en` overrides win in the fallback path
+  too. Non-gem keys and present locale values pass through like `I18n.t`.
 - Default layout, shared page-nav, and `Labels.empty_label` call
   `RecordingStudio.t` instead of `t(...)` / `I18n.t(...)` with hand-copied
   English `default:` strings.
@@ -22,8 +24,8 @@ No migration is required. English hosts need no change.
 
 Hosts that set raise-on-missing translations will no longer raise for
 gem-shipped keys resolved through `RecordingStudio.t` (including the layout /
-Labels call sites). Missing locales show gem English from `en.yml`. Host
-overrides in the active locale still win.
+Labels call sites). Missing locales show the loaded English translation (host
+`:en` overrides win). Host overrides in the active locale still win.
 
 To override or add another language, set the existing
 `recording_studio.core.navigation.*` and `recording_studio.core.labels.empty`

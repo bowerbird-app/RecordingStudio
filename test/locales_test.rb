@@ -75,47 +75,28 @@ class LocalesTest < ActiveSupport::TestCase
     assert_equal LABEL_KEYS, core.fetch("labels").transform_keys(&:to_s)
   end
 
-  # Hand-copied English `default:` strings that origin/main passed to t()/I18n.t
-  # before this refactor. Replacing them with RecordingStudio.t must not change
-  # English output — each former default must equal config/locales/en.yml.
-  FORMER_MAIN_DEFAULTS = {
-    "recording_studio.core.navigation.back" => "Back",
-    "recording_studio.core.navigation.go_back" => "Go back",
-    "recording_studio.core.navigation.close" => "Close",
-    "recording_studio.core.navigation.page" => "Page navigation",
-    "recording_studio.core.navigation.action_page" => "Action page navigation",
-    "recording_studio.core.labels.empty" => "—"
-  }.freeze
-
-  test "former main default: strings equal en.yml values so the refactor does not drift" do
-    core = locale_tree(File.join(engine_locales_dir, "en.yml"), "en")
-           .fetch("recording_studio")
-           .fetch("core")
+  test "shipped en.yml keys resolve through RecordingStudio.t in en and missing locales" do
+    shipped = shipped_english_keys
     previous_locales = I18n.available_locales
-    I18n.available_locales = (previous_locales + %i[en fr]).uniq
+    I18n.available_locales = (previous_locales + %i[en de]).uniq
 
-    FORMER_MAIN_DEFAULTS.each do |full_key, former_default|
-      *_, group, key = full_key.split(".")
-      yml_value = core.fetch(group).fetch(key)
-
-      assert_equal former_default, yml_value,
-                   "#{full_key}: former main default: #{former_default.inspect} must equal en.yml"
-
+    shipped.each do |full_key, english|
       I18n.with_locale(:en) do
-        assert_equal former_default, RecordingStudio.t(full_key)
+        assert_equal english, RecordingStudio.t(full_key)
       end
 
-      I18n.with_locale(:fr) do
-        refute I18n.exists?(full_key, :fr)
-        assert_equal former_default, RecordingStudio.t(full_key),
-                     "#{full_key}: fr-without-file fallback must match former main default:"
+      I18n.with_locale(:de) do
+        refute I18n.exists?(full_key, :de)
+        assert_equal english, RecordingStudio.t(full_key),
+                     "#{full_key}: missing-locale fallback must match en.yml"
       end
     end
   ensure
     I18n.available_locales = previous_locales if previous_locales
   end
 
-  test "gem call sites no longer hand-copy English default: on recording_studio keys" do
+  test "every RecordingStudio.t call site key exists in en.yml and has no default" do
+    shipped = shipped_english_keys
     roots = [
       File.expand_path("../app", __dir__),
       File.expand_path("../lib", __dir__)
@@ -123,21 +104,63 @@ class LocalesTest < ActiveSupport::TestCase
     files = roots.flat_map { |root| Dir[File.join(root, "**", "*.{rb,erb}")] }
     refute_empty files
 
-    offenders = files.filter_map do |path|
-      source = File.read(path)
-      next unless source.match?(/recording_studio\.[a-z_.]+/)
-      next unless source.match?(/default:\s*["']|default:\s*[A-Z_]+/)
+    offenders = []
+    unknown_keys = []
 
-      # Allow the EMPTY_LABEL constant definition itself; forbid using it as I18n default.
-      if source.include?('I18n.t("recording_studio.core.labels.empty", default: EMPTY_LABEL)') ||
-         source.match?(/t\(\s*["']recording_studio\.[^"']+["']\s*,\s*default:\s*["']/)
-        path
+    files.each do |path|
+      source = File.read(path)
+      each_translation_call_args(source) do |method_name, args|
+        keys = extract_recording_studio_keys(args)
+        next if keys.empty? && !args.match?(/recording_studio/)
+
+        keys.each do |key|
+          unknown_keys << "#{path}: #{key}" unless shipped.key?(key)
+        end
+
+        next unless args.match?(/\bdefault:\s*/)
+
+        offenders << "#{path}: #{method_name}(... default: ...) args=#{args.gsub(/\s+/, ' ').strip[0, 120]}"
       end
     end
 
+    assert_empty unknown_keys,
+                 "RecordingStudio.t keys must exist in en.yml; unknown: #{unknown_keys.join(', ')}"
     assert_empty offenders,
-                 "expected no hand-copied English default: on gem recording_studio " \
-                 "lookups; found: #{offenders.join(', ')}"
+                 "gem recording_studio lookups must not pass default:; found: #{offenders.join(', ')}"
+  end
+
+  test "scanner catches EMPTY_LABEL single-quoted multi-line I18n.translate and Array defaults" do
+    samples = {
+      empty_label: <<~RUBY,
+        RecordingStudio.t("recording_studio.core.labels.empty", default: EMPTY_LABEL)
+      RUBY
+      single_quoted: <<~RUBY,
+        RecordingStudio.t('recording_studio.core.navigation.back', default: 'Back')
+      RUBY
+      multi_line: <<~RUBY,
+        RecordingStudio.t(
+          "recording_studio.core.navigation.go_back",
+          default: "Go back"
+        )
+      RUBY
+      i18n_translate: <<~RUBY,
+        I18n.translate("recording_studio.core.navigation.close", default: "Close")
+      RUBY
+      array_default: <<~RUBY,
+        I18n.t("recording_studio.core.navigation.page", default: ["Page navigation", "Fallback"])
+      RUBY
+      bare_t: <<~RUBY
+        t("recording_studio.core.navigation.action_page", default: "Action page navigation")
+      RUBY
+    }
+
+    samples.each do |name, source|
+      found = false
+      each_translation_call_args(source) do |_method_name, args|
+        found = true if args.match?(/\bdefault:\s*/)
+      end
+      assert found, "scanner must catch #{name} default: form"
+    end
   end
 
   test "gemspec does not depend on internationalization" do
@@ -162,5 +185,75 @@ class LocalesTest < ActiveSupport::TestCase
 
   def locale_tree(path, locale)
     YAML.safe_load_file(path, aliases: true).fetch(locale)
+  end
+
+  def shipped_english_keys
+    tree = locale_tree(File.join(engine_locales_dir, "en.yml"), "en").fetch("recording_studio")
+    flatten_locale_keys(tree, ["recording_studio"])
+  end
+
+  def flatten_locale_keys(node, prefix)
+    case node
+    when Hash
+      node.each_with_object({}) do |(key, value), result|
+        result.merge!(flatten_locale_keys(value, prefix + [key.to_s]))
+      end
+    else
+      { prefix.join(".") => node }
+    end
+  end
+
+  def each_translation_call_args(source)
+    pattern = /(?:RecordingStudio(?:::Translation)?\.t|I18n\.(?:t|translate)|(?<![\w.:])t)\s*\(/m
+    offset = 0
+    while (match = pattern.match(source, offset))
+      method_name = match[0].sub(/\s*\(\z/, "")
+      args_start = match.end(0)
+      args, args_end = read_balanced_args(source, args_start)
+      yield method_name, args
+      offset = args_end
+    end
+  end
+
+  def read_balanced_args(source, start_index)
+    depth = 1
+    index = start_index
+    in_single = false
+    in_double = false
+    escape = false
+
+    while index < source.length && depth.positive?
+      char = source[index]
+
+      if escape
+        escape = false
+      elsif char == "\\" && (in_single || in_double)
+        escape = true
+      elsif char == "'" && !in_double
+        in_single = !in_single
+      elsif char == '"' && !in_single
+        in_double = !in_double
+      elsif !in_single && !in_double
+        case char
+        when "(" then depth += 1
+        when ")" then depth -= 1
+        end
+      end
+
+      index += 1
+    end
+
+    [source[start_index...(index - 1)], index]
+  end
+
+  def extract_recording_studio_keys(args)
+    keys = []
+    args.scan(/["'](recording_studio\.[^"']+)["']/) { |match| keys << match[0] }
+    if (match = args.match(/%w\[([^\]]+)\]/))
+      match[1].split.each do |token|
+        keys << token if token.start_with?("recording_studio.")
+      end
+    end
+    keys
   end
 end

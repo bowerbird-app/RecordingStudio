@@ -254,9 +254,10 @@ Important behavior:
 
 Use `RecordingStudio.t(key, **options)` (alias
 `RecordingStudio::Translation.t`) for gem-shipped `recording_studio.*` keys.
-It looks up the active locale first, then falls back to the gem English value
-from `config/locales/en.yml` via `locale: :en`. Host overrides in the active
-locale win. Prefer this over hand-copied English `default:` strings.
+It looks up the active locale first, then falls back to the loaded `:en`
+translation via `locale: :en` (host English overrides included). Host
+overrides in the active locale win. Non-gem keys pass through to `I18n.t`.
+Prefer this over hand-copied English `default:` strings.
 
 ## Labels: `RecordingStudio::Labels`
 
@@ -266,7 +267,7 @@ Use this module when an addon needs recordable naming without duplicating UI heu
 | --- | --- | --- | --- |
 | `register_formatter(type, name: nil, type_label: nil, title: nil, summary: nil)` | recordable type and one or more callables | formatter registry mutation | Lets addons override display metadata for a type. |
 | `formatters` | nothing | hash of formatter maps | Introspection and testing support. |
-| `empty_label` | nothing | `String` | Locale-aware empty marker (`recording_studio.core.labels.empty` via `RecordingStudio.t`; missing locales fall back to gem `en.yml`). |
+| `empty_label` | nothing | `String` | Locale-aware empty marker (`recording_studio.core.labels.empty` via `RecordingStudio.t`; missing locales fall back to loaded `:en`). |
 | `name_for(recordable)` | recordable instance | `String` | Preferred display name for the recordable. |
 | `label_for(recordable)` | recordable instance | `String` | Compatibility alias for `name_for`. |
 | `type_label_for(recordable_or_type)` | instance, class, or class name | `String` | Human-facing type label. |

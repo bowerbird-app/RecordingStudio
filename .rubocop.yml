@@ -50,6 +50,7 @@ Metrics/AbcSize:
 
 Metrics/CyclomaticComplexity:
   Exclude:
+    - 'test/**/*'
     - 'app/models/concerns/**/has_recordings_container.rb'
     - 'app/models/recording_studio/recording.rb'
     - 'db/migrate/**/*'
@@ -58,6 +59,7 @@ Metrics/CyclomaticComplexity:
 
 Metrics/PerceivedComplexity:
   Exclude:
+    - 'test/**/*'
     - 'app/models/concerns/**/has_recordings_container.rb'
     - 'app/models/recording_studio/recording.rb'
     - 'db/migrate/**/*'
@@ -78,7 +80,13 @@ Metrics/ParameterLists:
 
 Metrics/BlockLength:
   Exclude:
+    - 'test/**/*'
     - 'lib/recording_studio.rb'
+
+# I18n interpolation in tests intentionally uses %{name} / %{count} tokens.
+Style/FormatStringToken:
+  Exclude:
+    - 'test/**/*'
 
 # Allow empty blocks in tests (common for stubs/mocks)
 Lint/EmptyBlock:
