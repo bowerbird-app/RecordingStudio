@@ -75,6 +75,70 @@ class LocalesTest < ActiveSupport::TestCase
     assert_equal LABEL_KEYS, core.fetch("labels").transform_keys(&:to_s)
   end
 
+  # Hand-copied English `default:` strings that origin/main passed to t()/I18n.t
+  # before this refactor. Replacing them with RecordingStudio.t must not change
+  # English output — each former default must equal config/locales/en.yml.
+  FORMER_MAIN_DEFAULTS = {
+    "recording_studio.core.navigation.back" => "Back",
+    "recording_studio.core.navigation.go_back" => "Go back",
+    "recording_studio.core.navigation.close" => "Close",
+    "recording_studio.core.navigation.page" => "Page navigation",
+    "recording_studio.core.navigation.action_page" => "Action page navigation",
+    "recording_studio.core.labels.empty" => "—"
+  }.freeze
+
+  test "former main default: strings equal en.yml values so the refactor does not drift" do
+    core = locale_tree(File.join(engine_locales_dir, "en.yml"), "en")
+           .fetch("recording_studio")
+           .fetch("core")
+    previous_locales = I18n.available_locales
+    I18n.available_locales = (previous_locales + %i[en fr]).uniq
+
+    FORMER_MAIN_DEFAULTS.each do |full_key, former_default|
+      *_, group, key = full_key.split(".")
+      yml_value = core.fetch(group).fetch(key)
+
+      assert_equal former_default, yml_value,
+                   "#{full_key}: former main default: #{former_default.inspect} must equal en.yml"
+
+      I18n.with_locale(:en) do
+        assert_equal former_default, RecordingStudio.t(full_key)
+      end
+
+      I18n.with_locale(:fr) do
+        refute I18n.exists?(full_key, :fr)
+        assert_equal former_default, RecordingStudio.t(full_key),
+                     "#{full_key}: fr-without-file fallback must match former main default:"
+      end
+    end
+  ensure
+    I18n.available_locales = previous_locales if previous_locales
+  end
+
+  test "gem call sites no longer hand-copy English default: on recording_studio keys" do
+    roots = [
+      File.expand_path("../app", __dir__),
+      File.expand_path("../lib", __dir__)
+    ]
+    files = roots.flat_map { |root| Dir[File.join(root, "**", "*.{rb,erb}")] }
+    refute_empty files
+
+    offenders = files.filter_map do |path|
+      source = File.read(path)
+      next unless source.match?(/recording_studio\.[a-z_.]+/)
+      next unless source.match?(/default:\s*["']|default:\s*[A-Z_]+/)
+
+      # Allow the EMPTY_LABEL constant definition itself; forbid using it as I18n default.
+      if source.include?('I18n.t("recording_studio.core.labels.empty", default: EMPTY_LABEL)') ||
+         source.match?(/t\(\s*["']recording_studio\.[^"']+["']\s*,\s*default:\s*["']/)
+        path
+      end
+    end
+
+    assert_empty offenders,
+                 "expected no hand-copied English default: on gem recording_studio lookups; found: #{offenders.join(', ')}"
+  end
+
   test "gemspec does not depend on internationalization" do
     gemspec = File.read(File.expand_path("../recording_studio.gemspec", __dir__))
 
