@@ -1,0 +1,13 @@
+# Boot-loaded host French override for integration coverage.
+# Loaded after gem en.yml so nested recording_studio.core.* keys win in :fr.
+fr:
+  recording_studio:
+    core:
+      navigation:
+        go_back: "HOST Retour"
+        page: "HOST Navigation de page"
+        back: "HOST Retour court"
+        action_page: "HOST Action page navigation FR"
+        close: "HOST Fermer"
+      labels:
+        empty: "HOST VIDE"

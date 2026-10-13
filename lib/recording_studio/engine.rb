@@ -5,10 +5,16 @@ module RecordingStudio
     isolate_namespace RecordingStudio
 
     config.to_prepare do
+      RecordingStudio::Translation.reset_shipped_english!
+      RecordingStudio::Translation.shipped_english
       RecordingStudio::RecordableDeclarations.install_active_record_macro!
       RecordingStudio::DelegatedTypeRegistrar.apply!
       RecordingStudio.apply_capabilities!
       RecordingStudio::Engine.apply_registered_extensions!
+    end
+
+    initializer "recording_studio.load_shipped_english" do
+      RecordingStudio::Translation.shipped_english
     end
 
     initializer "recording_studio.before_initialize", before: "recording_studio.load_config" do |_app|

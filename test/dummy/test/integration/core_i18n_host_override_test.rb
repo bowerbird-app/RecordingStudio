@@ -4,7 +4,8 @@ require "test_helper"
 
 # Proves a host nested `recording_studio.core.*` override wins over gem English
 # on a real page and at the Labels call site. The YAML lives outside
-# config/locales so the default dummy UI keeps gem English.
+# config/locales so the default dummy UI keeps gem English; the test applies it
+# through the I18n backend (no runtime load_path append).
 class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
   HOST_OVERRIDE_LOCALE = File.expand_path(
     "../locales/core_host_override.en.yml",
@@ -18,7 +19,7 @@ class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
   end
 
   teardown do
-    restore_i18n_load_path!
+    I18n.reload!
     assert_equal @original_load_path, I18n.load_path,
                  "tests must not leave I18n.load_path modified"
   end
@@ -28,12 +29,13 @@ class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
     refute_includes File.expand_path(HOST_OVERRIDE_LOCALE), "/config/locales/"
 
     assert_equal "Go back", I18n.t("recording_studio.core.navigation.go_back"),
-                 "default dummy UI must keep gem English before the override is loaded"
+                 "default dummy UI must keep gem English before the override is applied"
     assert_equal "—", RecordingStudio::Labels.name_for(nil)
 
-    I18n.load_path << HOST_OVERRIDE_LOCALE
-    I18n.reload!
+    apply_host_english_override!
 
+    assert_equal @original_load_path, I18n.load_path,
+                 "host override must not append I18n.load_path"
     assert_equal "HOST Go back", I18n.t("recording_studio.core.navigation.go_back")
     assert_equal "HOST —", RecordingStudio::Labels.name_for(nil)
     assert_equal "HOST —", RecordingStudio::Labels.empty_label
@@ -44,7 +46,7 @@ class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
     assert_includes response.body, "HOST Go back"
     refute_match(/(?<!HOST )Go back/, response.body)
   ensure
-    restore_i18n_load_path!
+    I18n.reload!
   end
 
   test "without the test-only override the gem english still renders" do
@@ -59,10 +61,8 @@ class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
 
   private
 
-  def restore_i18n_load_path!
-    return unless defined?(@original_load_path) && @original_load_path
-
-    I18n.load_path.replace(@original_load_path)
-    I18n.reload!
+  def apply_host_english_override!
+    tree = YAML.safe_load_file(HOST_OVERRIDE_LOCALE, aliases: true)
+    I18n.backend.store_translations(:en, tree.fetch("en"))
   end
 end

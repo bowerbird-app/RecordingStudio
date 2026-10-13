@@ -13,7 +13,7 @@ module RecordingStudio
     module_function
 
     def empty_label
-      I18n.t("recording_studio.core.labels.empty", default: EMPTY_LABEL)
+      RecordingStudio.t("recording_studio.core.labels.empty")
     end
 
     def register_formatter(type, name: nil, type_label: nil, title: nil, summary: nil)

@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.0] - 2026-10-13
+
+### Added
+
+* English fallback for shipped `recording_studio.*` keys when the active locale
+  has no translation: `RecordingStudio.t` / `RecordingStudio::Translation.t`
+  resolve the loaded `:en` translation via `locale: :en` (host English
+  overrides included), then the caller's `default:`, then an eager-loaded,
+  deep-frozen copy of the gem's own `config/locales/en.yml` (reset on Rails
+  code reload)
+* Layout / page-nav views and `Labels.empty_label` look up copy through
+  `RecordingStudio.t` so fallback English comes from the loaded `:en` backend
+  or the gem-shipped table (no hand-copied Ruby string defaults that can drift)
+* Behavioral coverage: a locale with no translations renders loaded English on
+  default layout, non-FlatPack page-nav fallback, pure HTML chrome fallback,
+  action page nav, and Labels; a boot-loaded host French override wins on real
+  renders; English renders stay identical to prior gem English; keys deleted
+  from the loaded backend still render the gem-shipped English (not
+  "Translation missing", not a 500)
+
+### Upgrade notes
+
+- No migration or host code change is required for English.
+- Hosts that enable raise-on-missing translations no longer raise for
+  gem-shipped `recording_studio.*` keys looked up through `RecordingStudio.t`
+  (or the call sites above) when loaded `:en` or the gem-shipped table has the
+  key. Host overrides in the active locale still win; host `:en` overrides win
+  on the loaded-English fallback step.
+- Partial pluralization in a non-English locale (for example French with only
+  `one`) still raises `I18n::InvalidPluralizationData` — the English fallback
+  does not fill missing plural keys.
+- A missing `_html` key with a non-interpolating caller `default:` stays
+  unsafe like view `t`. An interpolating caller `default:` escapes args and
+  returns `html_safe` (stricter than view `t`).
+- `en.yml` is unchanged. Prefer `RecordingStudio.t` for gem keys when adding
+  new call sites so missing locales keep the same fallback.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-460).
+
 ## [4.5.0] - 2026-10-12
 
 ### Added
@@ -355,5 +393,6 @@ fetch at Build.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.5.0...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.0...HEAD
+[4.6.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.4.0...v4.5.0

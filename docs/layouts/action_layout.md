@@ -64,7 +64,8 @@ instance variables are required.
 Static chrome on this partial (`Back` button text and the
 `Action page navigation` aria-label) uses
 `recording_studio.core.navigation` keys from the gem's English locale file,
-each looked up with an English `default:`.
+looked up through `RecordingStudio.t` (missing locales fall back to the loaded
+`:en` translation, then the gem-shipped `en.yml` table).
 `title`, `items`, `resource`, and `context` stay caller-provided.
 
 ## Relationship to default layout
