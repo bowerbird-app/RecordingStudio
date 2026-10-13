@@ -256,12 +256,13 @@ Use `RecordingStudio.t(key, **options)` (alias
 `RecordingStudio::Translation.t`) for gem-shipped `recording_studio.*` keys.
 It looks up the active locale first, then the loaded `:en` translation via
 `locale: :en` (host English overrides included), then the caller's `default:`,
-then a memoized copy of the gem's `config/locales/en.yml`. Host overrides in
-the active locale win. Non-gem keys pass through to `I18n.t`. `_html` keys
-escape unsafe interpolation args then mark the result `html_safe`, like view
-`t`. When an `_html` key is missing and a caller `default:` interpolates, this
-helper is stricter than view `t`: args are escaped and the result is
-`html_safe`. Partial pluralization data in a non-English locale still raises
+then an eager-loaded, deep-frozen copy of the gem's `config/locales/en.yml`
+(reset on Rails code reload). Host overrides in the active locale win.
+Non-gem keys pass through to `I18n.t`. `_html` keys escape unsafe
+interpolation args then mark the result `html_safe`, like view `t`. A missing
+`_html` key with a non-interpolating caller `default:` stays unsafe like view
+`t`; an interpolating caller `default:` is stricter (args escaped, result
+`html_safe`). Partial pluralization data in a non-English locale still raises
 `I18n::InvalidPluralizationData` (the English fallback does not fill missing
 plural keys). Prefer this over hand-copied English `default:` strings.
 

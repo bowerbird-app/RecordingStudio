@@ -38,9 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Partial pluralization in a non-English locale (for example French with only
   `one`) still raises `I18n::InvalidPluralizationData` — the English fallback
   does not fill missing plural keys.
-- A missing `_html` key with an interpolating caller `default:` escapes args
-  and returns `html_safe` (stricter than view `t`, which leaves the default
-  unsafe).
+- A missing `_html` key with a non-interpolating caller `default:` stays
+  unsafe like view `t`. An interpolating caller `default:` escapes args and
+  returns `html_safe` (stricter than view `t`).
 - `en.yml` is unchanged. Prefer `RecordingStudio.t` for gem keys when adding
   new call sites so missing locales keep the same fallback.
 - See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-460).

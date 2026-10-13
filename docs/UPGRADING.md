@@ -5,8 +5,8 @@
 This is a minor upgrade. Default English interface text is unchanged.
 Gem-shipped `recording_studio.*` keys now fall back when the active locale has
 no translation: loaded `:en` (host English overrides included), then the
-caller's `default:`, then a memoized copy of the gem's own
-`config/locales/en.yml`.
+caller's `default:`, then an eager-loaded, deep-frozen copy of the gem's own
+`config/locales/en.yml` (reset on Rails code reload).
 
 ### What Changed
 
@@ -16,8 +16,9 @@ caller's `default:`, then a memoized copy of the gem's own
   gem-shipped English table (eager-loaded and deep-frozen at boot; reset on
   Rails code reload). Non-gem keys and present locale values pass through like
   `I18n.t`. `_html` keys escape interpolation args like view `t`. A missing
-  `_html` key with an interpolating caller `default:` is stricter than view
-  `t` (args escaped, result `html_safe`).
+  `_html` key with a non-interpolating caller `default:` stays unsafe like
+  view `t`; an interpolating caller `default:` is stricter (args escaped,
+  result `html_safe`).
 - Default layout, shared page-nav, and `Labels.empty_label` call
   `RecordingStudio.t` instead of `t(...)` / `I18n.t(...)` with hand-copied
   English `default:` strings.

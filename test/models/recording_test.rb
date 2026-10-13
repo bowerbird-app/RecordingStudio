@@ -439,6 +439,9 @@ class RecordingTest < ActiveSupport::TestCase
   def test_name_and_label_fall_back_to_type_label_when_empty_marker_is_translated
     previous_locales = I18n.available_locales
     I18n.available_locales = (previous_locales + %i[en fr]).uniq
+    # Force backend init before store so boot-loaded fr host override cannot
+    # clobber this value on the next lazy I18n reload from load_path.
+    I18n.exists?("recording_studio.core.labels.empty", :fr)
     I18n.backend.store_translations(:fr, {
                                       recording_studio: { core: { labels: { empty: "(vide)" } } }
                                     })
@@ -461,6 +464,7 @@ class RecordingTest < ActiveSupport::TestCase
       refute_equal "(vide)", page_recording.name
     end
   ensure
+    I18n.exists?("recording_studio.core.labels.empty", :fr)
     I18n.backend.store_translations(:fr, {
                                       recording_studio: { core: { labels: { empty: nil } } }
                                     })

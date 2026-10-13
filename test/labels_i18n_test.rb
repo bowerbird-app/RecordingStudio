@@ -49,6 +49,9 @@ class LabelsI18nTest < ActiveSupport::TestCase
   private
 
   def store_empty_label_translation(locale, value)
+    # Force backend init before store so a later lazy reload from load_path
+    # (including boot-loaded zz_core_host_override.fr.yml) cannot clobber this.
+    I18n.exists?("recording_studio.core.labels.empty", locale)
     I18n.backend.store_translations(locale, {
                                       recording_studio: { core: { labels: { empty: value } } }
                                     })

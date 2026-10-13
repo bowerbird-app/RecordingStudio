@@ -306,12 +306,37 @@ class TranslationTest < ActiveSupport::TestCase
       assert_predicate plural, :html_safe?
       assert_equal view.t("recording_studio.probe.items_html", count: 2), plural
 
+      singular = RecordingStudio.t("recording_studio.probe.items_html", count: 1)
+      assert_equal "<i>1 x</i>", singular
+      assert_predicate singular, :html_safe?
+      assert_equal view.t("recording_studio.probe.items_html", count: 1), singular
+
       # Reserved options (default:) are not html-escaped as interpolation values.
+      # A non-interpolating caller default on a missing _html key stays unsafe
+      # like view t.
       missing_html = "recording_studio.probe.missing_key_html"
       reserved = RecordingStudio.t(missing_html, default: "<b>ok</b>")
       assert_equal "<b>ok</b>", reserved
-      assert_predicate reserved, :html_safe?
+      refute_predicate reserved, :html_safe?
+      assert_equal view.t(missing_html, default: "<b>ok</b>"), reserved
     end
+  end
+
+  test "shipped english table is present after boot" do
+    table = RecordingStudio::Translation.shipped_english
+    refute_nil table
+    refute_empty table
+    assert_equal "Back", table.fetch("recording_studio.core.navigation.back")
+  end
+
+  test "shipped english table becomes a new object after reload reset" do
+    before = RecordingStudio::Translation.shipped_english
+    RecordingStudio::Translation.reset_shipped_english!
+    after = RecordingStudio::Translation.shipped_english
+
+    refute_same before, after
+    assert_equal before, after
+    assert_predicate after, :frozen?
   end
 
   test "lazy keys pass through like I18n.t" do

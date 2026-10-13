@@ -9,13 +9,13 @@ module RecordingStudio
   # Fallback order for gem keys missing in the active locale:
   # 1. loaded `:en` (host English overrides included)
   # 2. caller's `default:`
-  # 3. gem-shipped `config/locales/en.yml` (eager-loaded, deep-frozen, memoized)
+  # 3. gem-shipped `config/locales/en.yml` (eager-loaded, deep-frozen)
   #
   # Non-gem keys, present locale values, Arrays, and lazy keys pass through
   # like `I18n.t`. `_html` keys escape interpolation args then mark html_safe,
-  # matching view `t`. A missing `_html` key with a caller `default:` that
-  # interpolates is stricter than view `t`: args are escaped and the result is
-  # marked html_safe.
+  # matching view `t`. A missing `_html` key with a non-interpolating caller
+  # `default:` stays unsafe like view `t`. An interpolating caller `default:`
+  # is stricter: args are escaped and the result is marked html_safe.
   #
   # Partial pluralization data in a non-English locale still raises
   # `I18n::InvalidPluralizationData` (same as `I18n.t`); the English fallback
@@ -23,12 +23,15 @@ module RecordingStudio
   module Translation
     extend self
 
+    SHIPPED_ENGLISH_MUTEX = Mutex.new
+    private_constant :SHIPPED_ENGLISH_MUTEX
+
     def t(key, **options)
       return key.map { |entry| t(entry, **options) } if key.is_a?(Array)
       return ::I18n.t(key, **options) unless gem_key?(key, options[:scope])
 
       options = escape_html_interpolation(key, options)
-      html_safe_translation(key, translate_gem_key(key, options))
+      html_safe_translation(key, translate_gem_key(key, options), options)
     end
 
     # Deep-frozen flat map of gem `config/locales/en.yml` under `recording_studio.*`.
@@ -37,13 +40,13 @@ module RecordingStudio
     def shipped_english
       return @shipped_english if @shipped_english
 
-      shipped_english_mutex.synchronize do
+      SHIPPED_ENGLISH_MUTEX.synchronize do
         @shipped_english ||= deep_freeze(load_shipped_english)
       end
     end
 
     def reset_shipped_english!
-      shipped_english_mutex.synchronize { @shipped_english = nil }
+      SHIPPED_ENGLISH_MUTEX.synchronize { @shipped_english = nil }
     end
 
     private
@@ -102,14 +105,12 @@ module RecordingStudio
                  .fetch("en")
                  .fetch("recording_studio")
       flatten_locale_keys(tree, ["recording_studio"])
+    rescue Errno::ENOENT
+      {}
     end
 
     def shipped_english_path
       File.expand_path("../../config/locales/en.yml", __dir__)
-    end
-
-    def shipped_english_mutex
-      @shipped_english_mutex ||= Mutex.new
     end
 
     def deep_freeze(object)
@@ -150,12 +151,33 @@ module RecordingStudio
       ::I18n::RESERVED_KEYS.include?(name)
     end
 
-    def html_safe_translation(key, value)
+    def html_safe_translation(key, value, options)
       return value unless value.is_a?(String)
       return value unless html_safe_key?(key)
       return value unless value.respond_to?(:html_safe)
+      return value if plain_caller_default_result?(key, value, options)
 
       value.html_safe
+    end
+
+    # Non-interpolating caller defaults on a missing `_html` key stay unsafe,
+    # matching view `t`. Interpolating defaults that went through arg escaping
+    # still get marked html_safe (stricter than view `t`).
+    def plain_caller_default_result?(key, value, options)
+      default = options[:default]
+      return false unless default.is_a?(String)
+      return false if default.match?(/%\{/)
+      return false unless value == default
+
+      !resolved_translation_present?(key, options)
+    end
+
+    def resolved_translation_present?(key, options)
+      locale = options[:locale] || ::I18n.locale
+      scope = options[:scope]
+      ::I18n.exists?(key, locale, scope: scope) ||
+        ::I18n.exists?(key, :en, scope: scope) ||
+        !shipped_english_value(key, scope).nil?
     end
 
     def html_safe_key?(key)
