@@ -26,7 +26,7 @@ class InitializersTest < Minitest::Test
 
     assert_includes Rails.application.config.assets.paths.map(&:to_s), expected_path
   ensure
-    Rails.application.config.assets.paths.delete(expected_path)
+    restore_builds_asset_path!
   end
 
   def test_assets_initializer_is_idempotent_for_dummy_builds_path
@@ -39,7 +39,7 @@ class InitializersTest < Minitest::Test
 
     assert_equal 1, matching_paths
   ensure
-    Rails.application.config.assets.paths.delete(expected_path)
+    restore_builds_asset_path!
   end
 
   def test_flatpack_initializer_calls_configure_when_available
@@ -118,5 +118,14 @@ class InitializersTest < Minitest::Test
 
   def initializer_path(name)
     Rails.root.join("config/initializers/#{name}.rb")
+  end
+
+  # These tests temporarily mutate global asset paths; always leave builds on the
+  # load path so later integration renders (layout_demo, etc.) can find tailwind.css.
+  def restore_builds_asset_path!
+    expected = Rails.root.join("app/assets/builds")
+    paths = Rails.application.config.assets.paths
+    paths.reject! { |path| path.to_s == expected.to_s }
+    paths << expected
   end
 end
