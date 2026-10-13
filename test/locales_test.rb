@@ -136,7 +136,8 @@ class LocalesTest < ActiveSupport::TestCase
     end
 
     assert_empty offenders,
-                 "expected no hand-copied English default: on gem recording_studio lookups; found: #{offenders.join(', ')}"
+                 "expected no hand-copied English default: on gem recording_studio " \
+                 "lookups; found: #{offenders.join(', ')}"
   end
 
   test "gemspec does not depend on internationalization" do
