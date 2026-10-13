@@ -73,6 +73,7 @@ Metrics/ModuleLength:
     - 'app/models/recording_studio/concerns/recording_hierarchy.rb'
     - 'app/models/concerns/**/has_recordings_container.rb'
     - 'lib/recording_studio/labels.rb'
+    - 'lib/recording_studio/translation.rb'
 
 Metrics/ParameterLists:
   Exclude:

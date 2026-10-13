@@ -9,11 +9,13 @@ module RecordingStudio
   # Fallback order for gem keys missing in the active locale:
   # 1. loaded `:en` (host English overrides included)
   # 2. caller's `default:`
-  # 3. gem-shipped `config/locales/en.yml` (memoized; not read per call)
+  # 3. gem-shipped `config/locales/en.yml` (eager-loaded, deep-frozen, memoized)
   #
   # Non-gem keys, present locale values, Arrays, and lazy keys pass through
   # like `I18n.t`. `_html` keys escape interpolation args then mark html_safe,
-  # matching view `t`.
+  # matching view `t`. A missing `_html` key with a caller `default:` that
+  # interpolates is stricter than view `t`: args are escaped and the result is
+  # marked html_safe.
   #
   # Partial pluralization data in a non-English locale still raises
   # `I18n::InvalidPluralizationData` (same as `I18n.t`); the English fallback
@@ -29,14 +31,19 @@ module RecordingStudio
       html_safe_translation(key, translate_gem_key(key, options))
     end
 
-    # Memoized flat map of gem `config/locales/en.yml` under `recording_studio.*`.
+    # Deep-frozen flat map of gem `config/locales/en.yml` under `recording_studio.*`.
+    # Eager-loaded from the engine initializer; reset on Rails code reload.
     # Independent of the I18n backend so a pruned host load path still has text.
     def shipped_english
-      @shipped_english ||= load_shipped_english.freeze
+      return @shipped_english if @shipped_english
+
+      shipped_english_mutex.synchronize do
+        @shipped_english ||= deep_freeze(load_shipped_english)
+      end
     end
 
     def reset_shipped_english!
-      @shipped_english = nil
+      shipped_english_mutex.synchronize { @shipped_english = nil }
     end
 
     private
@@ -99,6 +106,18 @@ module RecordingStudio
 
     def shipped_english_path
       File.expand_path("../../config/locales/en.yml", __dir__)
+    end
+
+    def shipped_english_mutex
+      @shipped_english_mutex ||= Mutex.new
+    end
+
+    def deep_freeze(object)
+      case object
+      when Hash then object.each_value { |value| deep_freeze(value) }
+      when Array then object.each { |value| deep_freeze(value) }
+      end
+      object.freeze
     end
 
     def flatten_locale_keys(node, prefix)

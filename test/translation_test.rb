@@ -40,10 +40,11 @@ class TranslationTest < ActiveSupport::TestCase
     ).fetch("en").fetch("recording_studio")
 
     expected = flatten_locale_keys(en_yml, ["recording_studio"])
-    assert_equal expected, RecordingStudio::Translation.shipped_english
-    assert_predicate RecordingStudio::Translation.shipped_english, :frozen?
-    assert_same RecordingStudio::Translation.shipped_english,
-                RecordingStudio::Translation.shipped_english,
+    table = RecordingStudio::Translation.shipped_english
+    assert_equal expected, table
+    assert_predicate table, :frozen?
+    table.each_value { |value| assert_predicate value, :frozen? }
+    assert_same table, RecordingStudio::Translation.shipped_english,
                 "shipped english must be memoized (no per-call file reload)"
   end
 
@@ -247,18 +248,69 @@ class TranslationTest < ActiveSupport::TestCase
     end
   end
 
+  test "fallback order prefers loaded english then caller default over shipped table" do
+    key = "recording_studio.core.navigation.back"
+
+    write_loaded_translation!(:en, key, "HOST EN Back")
+    I18n.with_locale(:de) do
+      refute I18n.exists?(key, :de)
+      assert_equal "HOST EN Back", RecordingStudio.t(key),
+                   "host :en override must win over the gem-shipped table"
+    end
+
+    delete_loaded_translation!(:en, key)
+    delete_loaded_translation!(:fr, key)
+    %i[en fr de].each do |locale|
+      I18n.with_locale(locale) do
+        assert_equal "CALLER", RecordingStudio.t(key, default: "CALLER"),
+                     "caller default: must come before the gem-shipped table in #{locale}"
+      end
+    end
+  ensure
+    I18n.reload!
+  end
+
   test "html gem keys escape unsafe interpolation like view t" do
     I18n.backend.store_translations(:en, {
                                       recording_studio: {
-                                        probe: { hi_html: "<b>Hi %{name}</b>" }
+                                        probe: {
+                                          hi_html: "<b>Hi %{name}</b>",
+                                          greet: "Hi %{name}",
+                                          items_html: {
+                                            one: "<i>1 x</i>",
+                                            other: "<i>%{count} xs</i>"
+                                          }
+                                        }
                                       }
                                     })
+    view = ActionController::Base.helpers
 
     I18n.with_locale(:en) do
       value = RecordingStudio.t("recording_studio.probe.hi_html", name: "<script>")
       assert_equal "<b>Hi &lt;script&gt;</b>", value
       assert_predicate value, :html_safe?
-      refute_includes value, "<script>"
+      assert_equal view.t("recording_studio.probe.hi_html", name: "<script>"), value
+
+      plain = RecordingStudio.t("recording_studio.probe.greet", name: "<s>")
+      assert_equal "Hi <s>", plain
+      refute_predicate plain, :html_safe?
+      assert_equal view.t("recording_studio.probe.greet", name: "<s>"), plain
+
+      safe_arg = "<u>ok</u>".html_safe
+      with_safe = RecordingStudio.t("recording_studio.probe.hi_html", name: safe_arg)
+      assert_equal "<b>Hi <u>ok</u></b>", with_safe
+      assert_equal view.t("recording_studio.probe.hi_html", name: safe_arg), with_safe
+
+      plural = RecordingStudio.t("recording_studio.probe.items_html", count: 2)
+      assert_equal "<i>2 xs</i>", plural
+      assert_predicate plural, :html_safe?
+      assert_equal view.t("recording_studio.probe.items_html", count: 2), plural
+
+      # Reserved options (default:) are not html-escaped as interpolation values.
+      missing_html = "recording_studio.probe.missing_key_html"
+      reserved = RecordingStudio.t(missing_html, default: "<b>ok</b>")
+      assert_equal "<b>ok</b>", reserved
+      assert_predicate reserved, :html_safe?
     end
   end
 
@@ -338,9 +390,17 @@ class TranslationTest < ActiveSupport::TestCase
     end
   end
 
-  # Mutate the initialized backend hash. store_translations(nil) is unreliable
-  # after I18n.reload! because the next lookup re-inits from load_path.
+  # Mutate the initialized backend hash. store_translations after I18n.reload!
+  # is unreliable because the next lookup re-inits from load_path.
   def delete_loaded_translation!(locale, full_key)
+    mutate_loaded_translation!(locale, full_key) { |node, leaf| node.delete(leaf) }
+  end
+
+  def write_loaded_translation!(locale, full_key, value)
+    mutate_loaded_translation!(locale, full_key) { |node, leaf| node[leaf] = value }
+  end
+
+  def mutate_loaded_translation!(locale, full_key)
     I18n.exists?(full_key, locale) # ensure translations are loaded
     parts = full_key.split(".").map(&:to_sym)
     leaf = parts.pop
@@ -355,6 +415,6 @@ class TranslationTest < ActiveSupport::TestCase
       node[part] = node[part].dup if node[part].frozen?
       node = node[part]
     end
-    node.delete(leaf) if node.is_a?(Hash)
+    yield node, leaf if node.is_a?(Hash)
   end
 end

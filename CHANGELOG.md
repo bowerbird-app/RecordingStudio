@@ -14,8 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * English fallback for shipped `recording_studio.*` keys when the active locale
   has no translation: `RecordingStudio.t` / `RecordingStudio::Translation.t`
   resolve the loaded `:en` translation via `locale: :en` (host English
-  overrides included), then the caller's `default:`, then a memoized copy of
-  the gem's own `config/locales/en.yml`
+  overrides included), then the caller's `default:`, then an eager-loaded,
+  deep-frozen copy of the gem's own `config/locales/en.yml` (reset on Rails
+  code reload)
 * Layout / page-nav views and `Labels.empty_label` look up copy through
   `RecordingStudio.t` so fallback English comes from the loaded `:en` backend
   or the gem-shipped table (no hand-copied Ruby string defaults that can drift)
@@ -37,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Partial pluralization in a non-English locale (for example French with only
   `one`) still raises `I18n::InvalidPluralizationData` — the English fallback
   does not fill missing plural keys.
+- A missing `_html` key with an interpolating caller `default:` escapes args
+  and returns `html_safe` (stricter than view `t`, which leaves the default
+  unsafe).
 - `en.yml` is unchanged. Prefer `RecordingStudio.t` for gem keys when adding
   new call sites so missing locales keep the same fallback.
 - See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-460).

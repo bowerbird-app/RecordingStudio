@@ -13,8 +13,11 @@ caller's `default:`, then a memoized copy of the gem's own
 - New `RecordingStudio.t` / `RecordingStudio::Translation.t` helper looks up a
   key in the active locale and, when missing, uses the loaded `:en` value via
   `I18n.t(..., locale: :en)`, then the caller's `default:`, then the
-  gem-shipped English table. Non-gem keys and present locale values pass
-  through like `I18n.t`. `_html` keys escape interpolation args like view `t`.
+  gem-shipped English table (eager-loaded and deep-frozen at boot; reset on
+  Rails code reload). Non-gem keys and present locale values pass through like
+  `I18n.t`. `_html` keys escape interpolation args like view `t`. A missing
+  `_html` key with an interpolating caller `default:` is stricter than view
+  `t` (args escaped, result `html_safe`).
 - Default layout, shared page-nav, and `Labels.empty_label` call
   `RecordingStudio.t` instead of `t(...)` / `I18n.t(...)` with hand-copied
   English `default:` strings.

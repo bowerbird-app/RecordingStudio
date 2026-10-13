@@ -259,7 +259,9 @@ It looks up the active locale first, then the loaded `:en` translation via
 then a memoized copy of the gem's `config/locales/en.yml`. Host overrides in
 the active locale win. Non-gem keys pass through to `I18n.t`. `_html` keys
 escape unsafe interpolation args then mark the result `html_safe`, like view
-`t`. Partial pluralization data in a non-English locale still raises
+`t`. When an `_html` key is missing and a caller `default:` interpolates, this
+helper is stricter than view `t`: args are escaped and the result is
+`html_safe`. Partial pluralization data in a non-English locale still raises
 `I18n::InvalidPluralizationData` (the English fallback does not fill missing
 plural keys). Prefer this over hand-copied English `default:` strings.
 
