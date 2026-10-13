@@ -278,10 +278,11 @@ Static PageNav defaults and the fallback `aria-label` ship as English Rails I18n
 keys under `recording_studio.core.navigation` in the gem's
 `config/locales/en.yml`, looked up through `RecordingStudio.t` so a missing
 locale falls back to the loaded `:en` translation (host English overrides
-included; not a hand-copied Ruby string). Hosts can override them. Callers that
-pass their own `page_nav_back_label` / `page_nav_anchor_label` via `content_for`
-are unchanged. The developer placeholder
-`CHANGE_APP_NAME_IN_DEFAULT_LAYOUT` is not translated.
+included) and finally the gem-shipped `en.yml` table — not a hand-copied Ruby
+string. Hosts can override them. Callers that pass their own
+`page_nav_back_label` / `page_nav_anchor_label` via `content_for` are unchanged.
+The developer placeholder `CHANGE_APP_NAME_IN_DEFAULT_LAYOUT` is not
+translated.
 
 Empty Labels markers use `recording_studio.core.labels.empty` through
 `RecordingStudio::Labels.empty_label` (see the Labels API).

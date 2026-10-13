@@ -129,7 +129,7 @@ class LocalesTest < ActiveSupport::TestCase
                  "gem recording_studio lookups must not pass default:; found: #{offenders.join(', ')}"
   end
 
-  test "scanner catches EMPTY_LABEL single-quoted multi-line I18n.translate and Array defaults" do
+  test "scanner catches EMPTY_LABEL single-quoted multi-line I18n.translate Array and paren-less defaults" do
     samples = {
       empty_label: <<~RUBY,
         RecordingStudio.t("recording_studio.core.labels.empty", default: EMPTY_LABEL)
@@ -149,8 +149,11 @@ class LocalesTest < ActiveSupport::TestCase
       array_default: <<~RUBY,
         I18n.t("recording_studio.core.navigation.page", default: ["Page navigation", "Fallback"])
       RUBY
-      bare_t: <<~RUBY
+      bare_t: <<~RUBY,
         t("recording_studio.core.navigation.action_page", default: "Action page navigation")
+      RUBY
+      paren_less: <<~RUBY
+        RecordingStudio.t "recording_studio.core.navigation.back", default: "Back"
       RUBY
     }
 
@@ -204,15 +207,51 @@ class LocalesTest < ActiveSupport::TestCase
   end
 
   def each_translation_call_args(source)
-    pattern = /(?:RecordingStudio(?:::Translation)?\.t|I18n\.(?:t|translate)|(?<![\w.:])t)\s*\(/m
+    pattern = /
+      (?:RecordingStudio(?:::Translation)?\.t|I18n\.(?:t|translate)|(?<![\w.:])t)
+      (?:
+        \s*\(
+        |
+        \s+(?=["'])
+      )
+    /mx
     offset = 0
     while (match = pattern.match(source, offset))
-      method_name = match[0].sub(/\s*\(\z/, "")
+      method_name = match[0].sub(/\s*[(]\z/, "").sub(/\s+\z/, "")
       args_start = match.end(0)
-      args, args_end = read_balanced_args(source, args_start)
+      if match[0].include?("(")
+        args, args_end = read_balanced_args(source, args_start)
+      else
+        args, args_end = read_paren_less_args(source, args_start)
+      end
       yield method_name, args
       offset = args_end
     end
+  end
+
+  def read_paren_less_args(source, start_index)
+    index = start_index
+    in_single = false
+    in_double = false
+    escape = false
+
+    while index < source.length
+      char = source[index]
+      break if !in_single && !in_double && %W[\n ;].include?(char)
+
+      if escape
+        escape = false
+      elsif char == "\\" && (in_single || in_double)
+        escape = true
+      elsif char == "'" && !in_double
+        in_single = !in_single
+      elsif char == '"' && !in_single
+        in_double = !in_double
+      end
+      index += 1
+    end
+
+    [source[start_index...index], index]
   end
 
   def read_balanced_args(source, start_index)

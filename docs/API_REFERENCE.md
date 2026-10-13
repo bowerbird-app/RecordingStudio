@@ -254,10 +254,14 @@ Important behavior:
 
 Use `RecordingStudio.t(key, **options)` (alias
 `RecordingStudio::Translation.t`) for gem-shipped `recording_studio.*` keys.
-It looks up the active locale first, then falls back to the loaded `:en`
-translation via `locale: :en` (host English overrides included). Host
-overrides in the active locale win. Non-gem keys pass through to `I18n.t`.
-Prefer this over hand-copied English `default:` strings.
+It looks up the active locale first, then the loaded `:en` translation via
+`locale: :en` (host English overrides included), then the caller's `default:`,
+then a memoized copy of the gem's `config/locales/en.yml`. Host overrides in
+the active locale win. Non-gem keys pass through to `I18n.t`. `_html` keys
+escape unsafe interpolation args then mark the result `html_safe`, like view
+`t`. Partial pluralization data in a non-English locale still raises
+`I18n::InvalidPluralizationData` (the English fallback does not fill missing
+plural keys). Prefer this over hand-copied English `default:` strings.
 
 ## Labels: `RecordingStudio::Labels`
 

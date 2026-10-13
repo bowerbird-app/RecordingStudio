@@ -32,6 +32,42 @@ class TranslationTest < ActiveSupport::TestCase
     end
   end
 
+  test "memoized shipped english table matches gem en.yml" do
+    RecordingStudio::Translation.reset_shipped_english!
+    en_yml = YAML.safe_load_file(
+      File.expand_path("../config/locales/en.yml", __dir__),
+      aliases: true
+    ).fetch("en").fetch("recording_studio")
+
+    expected = flatten_locale_keys(en_yml, ["recording_studio"])
+    assert_equal expected, RecordingStudio::Translation.shipped_english
+    assert_predicate RecordingStudio::Translation.shipped_english, :frozen?
+    assert_same RecordingStudio::Translation.shipped_english,
+                RecordingStudio::Translation.shipped_english,
+                "shipped english must be memoized (no per-call file reload)"
+  end
+
+  test "deleted loaded english falls back to shipped gem en.yml text" do
+    GEM_KEYS.each_key do |key|
+      delete_loaded_translation!(:en, key)
+      delete_loaded_translation!(:fr, key)
+    end
+
+    GEM_KEYS.each do |key, english|
+      refute I18n.exists?(key, :en), "#{key} must be absent from loaded :en"
+      I18n.with_locale(:en) do
+        assert_equal english, RecordingStudio.t(key)
+        refute_match(/translation missing/i, RecordingStudio.t(key))
+      end
+      I18n.with_locale(:fr) do
+        assert_equal english, RecordingStudio.t(key)
+        refute_match(/translation missing/i, RecordingStudio.t(key))
+      end
+    end
+  ensure
+    I18n.reload!
+  end
+
   test "missing locale falls back to loaded english" do
     I18n.with_locale(:de) do
       GEM_KEYS.each do |key, english|
@@ -180,11 +216,18 @@ class TranslationTest < ActiveSupport::TestCase
       )
       assert_equal "DE Zurück", RecordingStudio.t(:go_back, scope: "recording_studio.core.navigation")
 
+      # scope: when the active locale lacks the key → English / shipped fallback
+      assert_equal(
+        "Close",
+        RecordingStudio.t(:close, scope: "recording_studio.core.navigation"),
+        "scope: gem key missing in :de must fall back to English"
+      )
+
       html = RecordingStudio.t("recording_studio.core.navigation.html_key_html")
       assert_equal "<i>g</i>", html
       assert_predicate html, :html_safe?
 
-      # Absent in en → caller default wins (same as I18n.t)
+      # Absent in en and shipped → caller default wins (same as I18n.t)
       assert_equal "D", RecordingStudio.t(missing, default: "D")
 
       # Present in en → English comes before caller default
@@ -201,6 +244,21 @@ class TranslationTest < ActiveSupport::TestCase
       assert_match(/Translation missing: de\.recording_studio/, error.message)
 
       assert_equal "Go back", RecordingStudio.t(key, locale: :en)
+    end
+  end
+
+  test "html gem keys escape unsafe interpolation like view t" do
+    I18n.backend.store_translations(:en, {
+                                      recording_studio: {
+                                        probe: { hi_html: "<b>Hi %{name}</b>" }
+                                      }
+                                    })
+
+    I18n.with_locale(:en) do
+      value = RecordingStudio.t("recording_studio.probe.hi_html", name: "<script>")
+      assert_equal "<b>Hi &lt;script&gt;</b>", value
+      assert_predicate value, :html_safe?
+      refute_includes value, "<script>"
     end
   end
 
@@ -267,5 +325,36 @@ class TranslationTest < ActiveSupport::TestCase
       fallbacks_fr: (I18n.fallbacks[:fr].dup if I18n.respond_to?(:fallbacks)),
       fallbacks_en: (I18n.fallbacks[:en].dup if I18n.respond_to?(:fallbacks))
     }
+  end
+
+  def flatten_locale_keys(node, prefix)
+    case node
+    when Hash
+      node.each_with_object({}) do |(key, value), result|
+        result.merge!(flatten_locale_keys(value, prefix + [key.to_s]))
+      end
+    else
+      { prefix.join(".") => node }
+    end
+  end
+
+  # Mutate the initialized backend hash. store_translations(nil) is unreliable
+  # after I18n.reload! because the next lookup re-inits from load_path.
+  def delete_loaded_translation!(locale, full_key)
+    I18n.exists?(full_key, locale) # ensure translations are loaded
+    parts = full_key.split(".").map(&:to_sym)
+    leaf = parts.pop
+    translations = I18n.backend.send(:translations)
+    locale_key = locale.to_sym
+    translations[locale_key] = translations[locale_key].dup if translations[locale_key].frozen?
+
+    node = translations[locale_key]
+    parts.each do |part|
+      break unless node.is_a?(Hash) && node[part].is_a?(Hash)
+
+      node[part] = node[part].dup if node[part].frozen?
+      node = node[part]
+    end
+    node.delete(leaf) if node.is_a?(Hash)
   end
 end

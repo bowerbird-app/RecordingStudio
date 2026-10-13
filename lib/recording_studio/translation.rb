@@ -1,13 +1,23 @@
 # frozen_string_literal: true
 
+require "erb"
+require "yaml"
+
 module RecordingStudio
   # Locale lookups for gem-shipped `recording_studio.*` keys.
   #
-  # When the active locale has no translation, falls back to the loaded `:en`
-  # value (host English overrides included) so hosts without a translated file
-  # do not see "Translation missing" or raise. Non-gem keys, present locale
-  # values, caller `default:` / `raise:` / `locale:`, Arrays, and lazy keys
-  # pass through like `I18n.t`.
+  # Fallback order for gem keys missing in the active locale:
+  # 1. loaded `:en` (host English overrides included)
+  # 2. caller's `default:`
+  # 3. gem-shipped `config/locales/en.yml` (memoized; not read per call)
+  #
+  # Non-gem keys, present locale values, Arrays, and lazy keys pass through
+  # like `I18n.t`. `_html` keys escape interpolation args then mark html_safe,
+  # matching view `t`.
+  #
+  # Partial pluralization data in a non-English locale still raises
+  # `I18n::InvalidPluralizationData` (same as `I18n.t`); the English fallback
+  # does not fill missing plural keys.
   module Translation
     extend self
 
@@ -15,19 +25,43 @@ module RecordingStudio
       return key.map { |entry| t(entry, **options) } if key.is_a?(Array)
       return ::I18n.t(key, **options) unless gem_key?(key, options[:scope])
 
+      options = escape_html_interpolation(key, options)
       html_safe_translation(key, translate_gem_key(key, options))
+    end
+
+    # Memoized flat map of gem `config/locales/en.yml` under `recording_studio.*`.
+    # Independent of the I18n backend so a pruned host load path still has text.
+    def shipped_english
+      @shipped_english ||= load_shipped_english.freeze
+    end
+
+    def reset_shipped_english!
+      @shipped_english = nil
     end
 
     private
 
     def translate_gem_key(key, options)
       locale = options[:locale] || ::I18n.locale
-      return ::I18n.t(key, **options) if locale.to_s == "en"
-      return ::I18n.t(key, **options) if ::I18n.exists?(key, locale, scope: options[:scope])
-      return ::I18n.t(key, **options) unless ::I18n.exists?(key, :en, scope: options[:scope])
+      scope = options[:scope]
+      return ::I18n.t(key, **options) if ::I18n.exists?(key, locale, scope: scope)
 
-      english = ::I18n.t(key, **options.except(:default, :raise, :locale), locale: :en)
-      ::I18n.t(key, **options, default: [english, *Array(options[:default])])
+      defaults = fallback_defaults(key, scope, options)
+      return ::I18n.t(key, **options, default: defaults) if defaults.any?
+
+      ::I18n.t(key, **options)
+    end
+
+    def fallback_defaults(key, scope, options)
+      caller_defaults = Array(options[:default])
+      shipped = shipped_english_value(key, scope)
+
+      if ::I18n.exists?(key, :en, scope: scope)
+        english = ::I18n.t(key, **options.except(:default, :raise, :locale), locale: :en)
+        return [english, *caller_defaults, *Array(shipped)].compact
+      end
+
+      [*caller_defaults, *Array(shipped)].compact
     end
 
     def gem_key?(key, scope = nil)
@@ -44,6 +78,59 @@ module RecordingStudio
       name == "recording_studio" || name.start_with?("recording_studio.")
     end
 
+    def shipped_english_value(key, scope = nil)
+      full_key = full_gem_key(key, scope)
+      full_key && shipped_english[full_key]
+    end
+
+    def full_gem_key(key, scope = nil)
+      key_string = key.to_s
+      return nil if key_string.start_with?(".")
+
+      scope ? "#{Array(scope).join('.')}.#{key_string}" : key_string
+    end
+
+    def load_shipped_english
+      tree = YAML.safe_load_file(shipped_english_path, aliases: true)
+                 .fetch("en")
+                 .fetch("recording_studio")
+      flatten_locale_keys(tree, ["recording_studio"])
+    end
+
+    def shipped_english_path
+      File.expand_path("../../config/locales/en.yml", __dir__)
+    end
+
+    def flatten_locale_keys(node, prefix)
+      case node
+      when Hash
+        node.each_with_object({}) do |(key, value), result|
+          result.merge!(flatten_locale_keys(value, prefix + [key.to_s]))
+        end
+      else
+        { prefix.join(".") => node }
+      end
+    end
+
+    def escape_html_interpolation(key, options)
+      return options unless html_safe_key?(key)
+
+      options.each_with_object({}) do |(name, value), escaped|
+        escaped[name] = escape_interpolation_value(name, value)
+      end
+    end
+
+    def escape_interpolation_value(name, value)
+      return value if i18n_option?(name)
+      return value if name == :count && value.is_a?(Numeric)
+
+      ERB::Util.html_escape(value.to_s)
+    end
+
+    def i18n_option?(name)
+      ::I18n::RESERVED_KEYS.include?(name)
+    end
+
     def html_safe_translation(key, value)
       return value unless value.is_a?(String)
       return value unless html_safe_key?(key)
@@ -53,7 +140,7 @@ module RecordingStudio
     end
 
     def html_safe_key?(key)
-      key.to_s.match?(/(\b|_|\.)html\z/)
+      key.to_s.match?(/(?:\b|_)html\z/)
     end
   end
 

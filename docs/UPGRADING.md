@@ -3,16 +3,18 @@
 ## Upgrading To 4.6.0
 
 This is a minor upgrade. Default English interface text is unchanged.
-Gem-shipped `recording_studio.*` keys now fall back to the loaded `:en`
-translation (host English overrides included) when the active locale has no
-translation.
+Gem-shipped `recording_studio.*` keys now fall back when the active locale has
+no translation: loaded `:en` (host English overrides included), then the
+caller's `default:`, then a memoized copy of the gem's own
+`config/locales/en.yml`.
 
 ### What Changed
 
 - New `RecordingStudio.t` / `RecordingStudio::Translation.t` helper looks up a
   key in the active locale and, when missing, uses the loaded `:en` value via
-  `I18n.t(..., locale: :en)` so host `:en` overrides win in the fallback path
-  too. Non-gem keys and present locale values pass through like `I18n.t`.
+  `I18n.t(..., locale: :en)`, then the caller's `default:`, then the
+  gem-shipped English table. Non-gem keys and present locale values pass
+  through like `I18n.t`. `_html` keys escape interpolation args like view `t`.
 - Default layout, shared page-nav, and `Labels.empty_label` call
   `RecordingStudio.t` instead of `t(...)` / `I18n.t(...)` with hand-copied
   English `default:` strings.
@@ -24,8 +26,13 @@ No migration is required. English hosts need no change.
 
 Hosts that set raise-on-missing translations will no longer raise for
 gem-shipped keys resolved through `RecordingStudio.t` (including the layout /
-Labels call sites). Missing locales show the loaded English translation (host
-`:en` overrides win). Host overrides in the active locale still win.
+Labels call sites) when loaded `:en` or the gem-shipped table has the key.
+Host overrides in the active locale still win.
+
+Partial pluralization in a non-English locale (for example French with only
+`one` and a `count` of 5) still raises `I18n::InvalidPluralizationData`, the
+same as bare `I18n.t` — the English fallback does not fill missing plural
+keys.
 
 To override or add another language, set the existing
 `recording_studio.core.navigation.*` and `recording_studio.core.labels.empty`

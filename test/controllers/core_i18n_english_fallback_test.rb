@@ -106,24 +106,50 @@ class CoreI18nEnglishFallbackTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "deleted english key on action layout demo returns 200 not 500" do
-    I18n.backend.store_translations(:en, {
-                                      recording_studio: { core: { navigation: { back: nil } } }
-                                    })
-    I18n.backend.store_translations(:fr, {
-                                      recording_studio: { core: { navigation: { back: nil } } }
-                                    })
+  test "deleted english key on action layout demo shows shipped Back without translation missing" do
+    delete_loaded_translation!(:en, "recording_studio.core.navigation.back")
+    delete_loaded_translation!(:fr, "recording_studio.core.navigation.back")
 
     refute I18n.exists?("recording_studio.core.navigation.back", :en)
     refute I18n.exists?("recording_studio.core.navigation.back", :fr)
 
-    I18n.with_locale(:fr) do
-      get action_layout_demo_path, headers: modern_headers
+    previous_raise = ActionView::Helpers::TranslationHelper.raise_on_missing_translations
 
-      assert_response :success
-      refute_equal 500, @response.status
+    [false, true].each do |raise_on_missing|
+      ActionView::Helpers::TranslationHelper.raise_on_missing_translations = raise_on_missing
+
+      %i[en fr].each do |locale|
+        I18n.with_locale(locale) do
+          get action_layout_demo_path, headers: modern_headers
+
+          assert_response :success
+          assert_includes @response.body, ">Back<"
+          refute_match(/translation missing/i, @response.body)
+        end
+      end
     end
   ensure
+    ActionView::Helpers::TranslationHelper.raise_on_missing_translations = previous_raise
     I18n.reload!
+  end
+
+  private
+
+  def delete_loaded_translation!(locale, full_key)
+    I18n.exists?(full_key, locale)
+    parts = full_key.split(".").map(&:to_sym)
+    leaf = parts.pop
+    translations = I18n.backend.send(:translations)
+    locale_key = locale.to_sym
+    translations[locale_key] = translations[locale_key].dup if translations[locale_key].frozen?
+
+    node = translations[locale_key]
+    parts.each do |part|
+      break unless node.is_a?(Hash) && node[part].is_a?(Hash)
+
+      node[part] = node[part].dup if node[part].frozen?
+      node = node[part]
+    end
+    node.delete(leaf) if node.is_a?(Hash)
   end
 end

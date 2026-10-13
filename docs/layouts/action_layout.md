@@ -65,7 +65,7 @@ Static chrome on this partial (`Back` button text and the
 `Action page navigation` aria-label) uses
 `recording_studio.core.navigation` keys from the gem's English locale file,
 looked up through `RecordingStudio.t` (missing locales fall back to the loaded
-`:en` translation, host English overrides included).
+`:en` translation, then the gem-shipped `en.yml` table).
 `title`, `items`, `resource`, and `context` stay caller-provided.
 
 ## Relationship to default layout

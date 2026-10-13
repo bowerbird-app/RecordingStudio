@@ -50,7 +50,9 @@ Metrics/AbcSize:
 
 Metrics/CyclomaticComplexity:
   Exclude:
-    - 'test/**/*'
+    - 'test/locales_test.rb'
+    - 'test/translation_test.rb'
+    - 'test/controllers/core_i18n_english_fallback_test.rb'
     - 'app/models/concerns/**/has_recordings_container.rb'
     - 'app/models/recording_studio/recording.rb'
     - 'db/migrate/**/*'
@@ -59,7 +61,7 @@ Metrics/CyclomaticComplexity:
 
 Metrics/PerceivedComplexity:
   Exclude:
-    - 'test/**/*'
+    - 'test/locales_test.rb'
     - 'app/models/concerns/**/has_recordings_container.rb'
     - 'app/models/recording_studio/recording.rb'
     - 'db/migrate/**/*'
@@ -80,13 +82,14 @@ Metrics/ParameterLists:
 
 Metrics/BlockLength:
   Exclude:
-    - 'test/**/*'
+    - 'test/translation_test.rb'
+    - 'test/locales_test.rb'
     - 'lib/recording_studio.rb'
 
-# I18n interpolation in tests intentionally uses %{name} / %{count} tokens.
+# I18n interpolation in translation parity tests uses %{name} / %{count}.
 Style/FormatStringToken:
   Exclude:
-    - 'test/**/*'
+    - 'test/translation_test.rb'
 
 # Allow empty blocks in tests (common for stubs/mocks)
 Lint/EmptyBlock:
