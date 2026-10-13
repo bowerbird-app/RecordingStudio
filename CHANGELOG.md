@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.0] - 2026-10-13
+
+### Added
+
+* English fallback for shipped `recording_studio.*` keys when the active locale
+  has no translation: `RecordingStudio.t` / `RecordingStudio::Translation.t`
+  resolve the gem's `config/locales/en.yml` value via `locale: :en` instead of
+  showing "Translation missing" or raising
+* Layout / page-nav views and `Labels.empty_label` look up copy through
+  `RecordingStudio.t` so the fallback English always comes from `en.yml` (no
+  hand-copied Ruby string defaults that can drift)
+* Behavioral coverage: French locale with no `fr` file renders gem English on
+  default layout, non-FlatPack page-nav fallback, pure HTML chrome fallback,
+  action page nav, and Labels; a host French override wins on real renders;
+  English renders stay identical to prior gem English
+
+### Upgrade notes
+
+- No migration or host code change is required for English.
+- Hosts that enable raise-on-missing translations no longer raise for
+  gem-shipped `recording_studio.*` keys looked up through `RecordingStudio.t`
+  (or the call sites above); missing locales receive the gem English from
+  `en.yml`. Host overrides in the active locale still win.
+- `en.yml` is unchanged. Prefer `RecordingStudio.t` for gem keys when adding
+  new call sites so missing locales keep the same fallback.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-460).
+
 ## [4.5.0] - 2026-10-12
 
 ### Added
@@ -355,5 +382,6 @@ fetch at Build.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.5.0...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.0...HEAD
+[4.6.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.4.0...v4.5.0

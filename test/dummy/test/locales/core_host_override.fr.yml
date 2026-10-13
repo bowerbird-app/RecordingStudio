@@ -1,0 +1,13 @@
+# Test-only host French override. Kept outside config/locales. Loaded only
+# inside CoreI18nFrenchHostOverrideTest.
+fr:
+  recording_studio:
+    core:
+      navigation:
+        go_back: "HOST Retour"
+        page: "HOST Navigation de page"
+        back: "HOST Retour court"
+        action_page: "HOST Action page navigation FR"
+        close: "HOST Fermer"
+      labels:
+        empty: "HOST VIDE"

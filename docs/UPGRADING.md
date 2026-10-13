@@ -1,5 +1,34 @@
 # Upgrade Guide
 
+## Upgrading To 4.6.0
+
+This is a minor upgrade. Default English interface text is unchanged.
+Gem-shipped `recording_studio.*` keys now fall back to the gem's English
+`en.yml` value when the active locale has no translation.
+
+### What Changed
+
+- New `RecordingStudio.t` / `RecordingStudio::Translation.t` helper looks up a
+  key in the active locale and, when missing, uses `I18n.t(..., locale: :en)`
+  so the fallback English always comes from `config/locales/en.yml`.
+- Default layout, shared page-nav, and `Labels.empty_label` call
+  `RecordingStudio.t` instead of `t(...)` / `I18n.t(...)` with hand-copied
+  English `default:` strings.
+- `en.yml` is byte-identical to 4.5.0. No new keys.
+
+### Upgrade Steps
+
+No migration is required. English hosts need no change.
+
+Hosts that set raise-on-missing translations will no longer raise for
+gem-shipped keys resolved through `RecordingStudio.t` (including the layout /
+Labels call sites). Missing locales show gem English from `en.yml`. Host
+overrides in the active locale still win.
+
+To override or add another language, set the existing
+`recording_studio.core.navigation.*` and `recording_studio.core.labels.empty`
+keys in the host's `config/locales`.
+
 ## Upgrading To 4.5.0
 
 This is a minor upgrade. Default English interface text is unchanged. Empty
