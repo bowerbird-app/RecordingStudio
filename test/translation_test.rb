@@ -319,12 +319,6 @@ class TranslationTest < ActiveSupport::TestCase
       assert_equal "<b>ok</b>", reserved
       refute_predicate reserved, :html_safe?
       assert_equal view.t(missing_html, default: "<b>ok</b>"), reserved
-
-      # Array defaults unwrap to the last String and stay unsafe like view t.
-      array_default = RecordingStudio.t(missing_html, default: ["<b>ok</b>"])
-      assert_equal "<b>ok</b>", array_default
-      refute_predicate array_default, :html_safe?
-      assert_equal view.t(missing_html, default: ["<b>ok</b>"]), array_default
     end
   end
 

@@ -1,23 +1,5 @@
 # Upgrade Guide
 
-## Upgrading To 4.6.1
-
-This is a patch upgrade. Default English interface text is unchanged.
-
-### What Changed
-
-- A missing `_html` key with a non-interpolating Array caller `default:` (for
-  example `default: ["<b>ok</b>"]`) stays unsafe like view `t`, matching the
-  String `default:` behavior from 4.6.0.
-- Boot and reload coverage for the eager-loaded gem English table; missing
-  `en.yml` rescue returns an empty frozen table.
-
-### Upgrade Steps
-
-No migration is required. Hosts that pass Array `default:` values to
-`RecordingStudio.t` on missing `_html` keys now get an unsafe string like
-view `t` (previously marked `html_safe`).
-
 ## Upgrading To 4.6.0
 
 This is a minor upgrade. Default English interface text is unchanged.
