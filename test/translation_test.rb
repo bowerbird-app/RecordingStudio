@@ -369,6 +369,377 @@ class TranslationTest < ActiveSupport::TestCase
     end
   end
 
+  test "register_shipped_english adds path to merged fallback table" do
+    with_registered_shipped_english_fixture(
+      "en" => {
+        "recording_studio" => {
+          "probe_engine" => { "greeting" => "Hello from probe engine" }
+        }
+      }
+    ) do |path|
+      RecordingStudio::Translation.register_shipped_english(path)
+      table = RecordingStudio::Translation.shipped_english
+
+      assert_equal "Hello from probe engine",
+                   table.fetch("recording_studio.probe_engine.greeting")
+      assert_equal "Back", table.fetch("recording_studio.core.navigation.back"),
+                   "base en.yml keys must remain after registration"
+      assert_equal "Hello from probe engine",
+                   RecordingStudio.t("recording_studio.probe_engine.greeting")
+    end
+  end
+
+  test "register_shipped_english de-duplicates the same expanded path" do
+    with_shipped_english_registrations([]) do
+      with_registered_shipped_english_fixture(
+        "en" => {
+          "recording_studio" => {
+            "probe_engine" => { "once" => "only once" }
+          }
+        }
+      ) do |path|
+        RecordingStudio::Translation.register_shipped_english(path)
+        RecordingStudio::Translation.register_shipped_english(path)
+        RecordingStudio::Translation.register_shipped_english(
+          Pathname.new(path).relative_path_from(Pathname.pwd).to_s
+        )
+
+        paths = RecordingStudio::Translation.send(:registered_shipped_english_paths)
+        assert_equal 1, paths.size, "exact total registered path count must stay 1 after de-dupe"
+        assert_equal File.expand_path(path), paths.first
+        assert_equal "only once",
+                     RecordingStudio::Translation.shipped_english.fetch(
+                       "recording_studio.probe_engine.once"
+                     )
+      end
+    end
+  end
+
+  test "missing registered shipped english path is skipped without raising" do
+    missing = File.expand_path("../tmp/missing_registered_en_#{Process.pid}.yml", __dir__)
+    refute File.exist?(missing)
+
+    with_shipped_english_registrations([]) do
+      assert_nothing_raised do
+        RecordingStudio::Translation.register_shipped_english(missing)
+        table = RecordingStudio::Translation.shipped_english
+        assert_equal "Back", table.fetch("recording_studio.core.navigation.back")
+        refute table.key?("recording_studio.missing.registered")
+      end
+    end
+  end
+
+  test "register_shipped_english nil path raises ArgumentError" do
+    error = assert_raises(ArgumentError) do
+      RecordingStudio::Translation.register_shipped_english(nil)
+    end
+    assert_match(/shipped english path is required/i, error.message)
+  end
+
+  test "register_shipped_english blank path raises ArgumentError" do
+    ["", "   ", "\t\n"].each do |blank|
+      error = assert_raises(ArgumentError) do
+        RecordingStudio::Translation.register_shipped_english(blank)
+      end
+      assert_match(/shipped english path is required/i, error.message)
+    end
+  end
+
+  test "malformed registered en.yml without en root is skipped without raising" do
+    assert_malformed_registered_shipped_english_skipped(
+      { "fr" => { "recording_studio" => { "probe" => "nope" } } },
+      "recording_studio.probe"
+    )
+  end
+
+  test "malformed registered en.yml without recording_studio key is skipped without raising" do
+    assert_malformed_registered_shipped_english_skipped(
+      { "en" => { "other" => { "probe" => "nope" } } },
+      "recording_studio.other.probe"
+    )
+  end
+
+  test "malformed registered en.yml with nil recording_studio value is skipped without raising" do
+    assert_malformed_registered_shipped_english_skipped(
+      { "en" => { "recording_studio" => nil } },
+      "recording_studio.probe"
+    )
+  end
+
+  test "malformed registered en.yml with string recording_studio value is skipped without raising" do
+    assert_malformed_registered_shipped_english_skipped(
+      { "en" => { "recording_studio" => "not a hash" } },
+      "recording_studio.probe"
+    )
+  end
+
+  test "malformed registered empty en.yml file is skipped without raising" do
+    with_raw_registered_shipped_english_file("") do |path|
+      with_shipped_english_registrations([]) do
+        assert_nothing_raised do
+          RecordingStudio::Translation.register_shipped_english(path)
+          table = RecordingStudio::Translation.shipped_english
+          assert_equal "Back", table.fetch("recording_studio.core.navigation.back")
+        end
+      end
+    end
+  end
+
+  test "reload rebuilds shipped english table from edited registration file" do
+    with_registered_shipped_english_fixture(
+      "en" => {
+        "recording_studio" => {
+          "probe_engine" => { "reload" => "before reload" }
+        }
+      }
+    ) do |path|
+      RecordingStudio::Translation.register_shipped_english(path)
+      before = RecordingStudio::Translation.shipped_english
+      assert_equal "before reload", before.fetch("recording_studio.probe_engine.reload")
+
+      File.write(
+        path,
+        YAML.dump(
+          "en" => {
+            "recording_studio" => {
+              "probe_engine" => { "reload" => "after reload edit" }
+            }
+          }
+        )
+      )
+
+      Rails.application.reloader.reload!
+      after = RecordingStudio::Translation.shipped_english
+
+      refute_same before, after
+      assert_equal "after reload edit", after.fetch("recording_studio.probe_engine.reload")
+      assert_includes RecordingStudio::Translation.send(:registered_shipped_english_paths),
+                      File.expand_path(path)
+      assert_predicate after, :frozen?
+    end
+  end
+
+  test "overlapping registered engines deep merge later wins and keep siblings" do
+    fixture_a = {
+      "en" => {
+        "recording_studio" => {
+          "shared" => {
+            "conflict" => "from A",
+            "sibling_a" => "A only"
+          }
+        }
+      }
+    }
+    fixture_b = {
+      "en" => {
+        "recording_studio" => {
+          "shared" => {
+            "conflict" => "from B",
+            "sibling_b" => "B only"
+          }
+        }
+      }
+    }
+
+    with_shipped_english_registrations([]) do
+      with_registered_shipped_english_fixture(fixture_a) do |path_a|
+        with_registered_shipped_english_fixture(fixture_b) do |path_b|
+          RecordingStudio::Translation.register_shipped_english(path_a)
+          RecordingStudio::Translation.register_shipped_english(path_b)
+
+          paths = RecordingStudio::Translation.send(:registered_shipped_english_paths)
+          assert_equal 2, paths.size, "exact total registered path count must be 2"
+          assert_equal [File.expand_path(path_a), File.expand_path(path_b)], paths
+
+          table = RecordingStudio::Translation.shipped_english
+          assert_equal "from B", table.fetch("recording_studio.shared.conflict"),
+                       "later registration must win on conflicting keys"
+          assert_equal "A only", table.fetch("recording_studio.shared.sibling_a"),
+                       "deep merge must keep earlier siblings"
+          assert_equal "B only", table.fetch("recording_studio.shared.sibling_b"),
+                       "deep merge must keep later siblings"
+        end
+      end
+    end
+  end
+
+  test "register after building shipped english table exposes new keys without reset" do
+    with_registered_shipped_english_fixture(
+      "en" => {
+        "recording_studio" => {
+          "probe_engine" => { "late" => "registered after build" }
+        }
+      }
+    ) do |path|
+      before = RecordingStudio::Translation.shipped_english
+      refute before.key?("recording_studio.probe_engine.late")
+
+      RecordingStudio::Translation.register_shipped_english(path)
+      after = RecordingStudio::Translation.shipped_english
+
+      refute_same before, after
+      assert_equal "registered after build",
+                   after.fetch("recording_studio.probe_engine.late")
+      assert_equal "registered after build",
+                   RecordingStudio.t("recording_studio.probe_engine.late")
+    end
+  end
+
+  test "two registered engines with disjoint keys resolve after backend delete" do
+    fixture_a = {
+      "en" => {
+        "recording_studio" => {
+          "fake_engine_a" => { "label" => "Engine A English" }
+        }
+      }
+    }
+    fixture_b = {
+      "en" => {
+        "recording_studio" => {
+          "fake_engine_b" => { "label" => "Engine B English" }
+        }
+      }
+    }
+
+    with_registered_shipped_english_fixture(fixture_a) do |path_a|
+      with_registered_shipped_english_fixture(fixture_b) do |path_b|
+        RecordingStudio::Translation.register_shipped_english(path_a)
+        RecordingStudio::Translation.register_shipped_english(path_b)
+
+        key_a = "recording_studio.fake_engine_a.label"
+        key_b = "recording_studio.fake_engine_b.label"
+
+        I18n.backend.store_translations(:en, {
+                                          recording_studio: {
+                                            fake_engine_a: { label: "LOADED A" },
+                                            fake_engine_b: { label: "LOADED B" }
+                                          }
+                                        })
+        assert_equal "LOADED A", RecordingStudio.t(key_a)
+        assert_equal "LOADED B", RecordingStudio.t(key_b)
+
+        delete_loaded_translation!(:en, key_a)
+        delete_loaded_translation!(:en, key_b)
+        delete_loaded_translation!(:fr, key_a)
+        delete_loaded_translation!(:fr, key_b)
+
+        refute I18n.exists?(key_a, :en)
+        refute I18n.exists?(key_b, :en)
+
+        %i[en fr de].each do |locale|
+          I18n.with_locale(locale) do
+            assert_equal "Engine A English", RecordingStudio.t(key_a)
+            assert_equal "Engine B English", RecordingStudio.t(key_b)
+          end
+        end
+      end
+    end
+  ensure
+    I18n.reload!
+  end
+
+  test "merged shipped english table is deep-frozen" do
+    with_registered_shipped_english_fixture(
+      "en" => {
+        "recording_studio" => {
+          "probe_engine" => { "frozen" => "ice" }
+        }
+      }
+    ) do |path|
+      RecordingStudio::Translation.register_shipped_english(path)
+      table = RecordingStudio::Translation.shipped_english
+
+      assert_predicate table, :frozen?
+      table.each_value { |value| assert_predicate value, :frozen? }
+      assert_raises(FrozenError) { table["recording_studio.probe_engine.frozen"] = "nope" }
+    end
+  end
+
+  test "shipped english registration is thread-safe under concurrent access" do
+    with_registered_shipped_english_fixture(
+      "en" => {
+        "recording_studio" => {
+          "probe_engine" => { "thread" => "safe" }
+        }
+      }
+    ) do |path|
+      RecordingStudio::Translation.register_shipped_english(path)
+      RecordingStudio::Translation.shipped_english
+
+      errors = Queue.new
+      readers = 4.times.map do
+        Thread.new do
+          80.times do
+            table = RecordingStudio::Translation.shipped_english
+            raise "not frozen" unless table.frozen?
+            raise "incomplete table" unless table["recording_studio.core.navigation.back"] == "Back"
+            raise "missing registered key" unless table["recording_studio.probe_engine.thread"] == "safe"
+          end
+        rescue StandardError => e
+          errors << e
+        end
+      end
+
+      writers = 4.times.map do
+        Thread.new do
+          40.times do
+            RecordingStudio::Translation.register_shipped_english(path)
+            RecordingStudio::Translation.shipped_english
+          end
+        rescue StandardError => e
+          errors << e
+        end
+      end
+
+      writers.each(&:join)
+      readers.each(&:join)
+
+      assert_empty(errors.size.times.map { errors.pop }, "reader/writer registration must not race")
+      paths = RecordingStudio::Translation.send(:registered_shipped_english_paths)
+      assert_equal(1, paths.count { |entry| entry == File.expand_path(path) })
+      table = RecordingStudio::Translation.shipped_english
+      assert_predicate table, :frozen?
+      assert_equal "safe", table.fetch("recording_studio.probe_engine.thread")
+      assert_equal "Back", table.fetch("recording_studio.core.navigation.back")
+    end
+  end
+
+  test "present keys stay byte-identical to I18n.t with registrations loaded" do
+    with_registered_shipped_english_fixture(
+      "en" => {
+        "recording_studio" => {
+          "probe_engine" => { "extra" => "Extra shipped" }
+        }
+      }
+    ) do |path|
+      RecordingStudio::Translation.register_shipped_english(path)
+
+      GEM_KEYS.each_key do |key|
+        I18n.with_locale(:en) do
+          expected = I18n.t(key)
+          actual = RecordingStudio.t(key)
+          assert_equal expected, actual
+          assert_equal expected.bytes, actual.bytes
+        end
+      end
+
+      I18n.backend.store_translations(:en, {
+                                        recording_studio: {
+                                          probe_engine: { extra: "LOADED Extra" }
+                                        }
+                                      })
+      I18n.with_locale(:en) do
+        expected = I18n.t("recording_studio.probe_engine.extra")
+        actual = RecordingStudio.t("recording_studio.probe_engine.extra")
+        assert_equal "LOADED Extra", actual
+        assert_equal expected, actual
+        assert_equal expected.bytes, actual.bytes
+      end
+    end
+  ensure
+    I18n.reload!
+  end
+
   test "lazy keys pass through like I18n.t" do
     I18n.with_locale(:en) do
       assert_equal I18n.t(".lazy_key_without_scope"), RecordingStudio.t(".lazy_key_without_scope")
@@ -491,5 +862,50 @@ class TranslationTest < ActiveSupport::TestCase
     end
     translation.reset_shipped_english!
     translation.shipped_english
+  end
+
+  def with_registered_shipped_english_fixture(tree)
+    with_raw_registered_shipped_english_file(YAML.dump(tree)) do |path|
+      with_shipped_english_registrations(
+        RecordingStudio::Translation.send(:registered_shipped_english_paths).dup
+      ) do
+        yield path
+      end
+    end
+  end
+
+  def with_raw_registered_shipped_english_file(contents)
+    dir = File.expand_path("../tmp/shipped_english_fixtures", __dir__)
+    FileUtils.mkdir_p(dir)
+    path = File.join(dir, "engine_#{Process.pid}_#{SecureRandom.hex(4)}.en.yml")
+    File.write(path, contents)
+    yield path
+  ensure
+    FileUtils.rm_f(path) if path
+  end
+
+  def with_shipped_english_registrations(paths)
+    translation = RecordingStudio::Translation
+    previous = translation.instance_variable_get(:@registered_shipped_english_paths)
+    translation.instance_variable_set(:@registered_shipped_english_paths, paths.dup)
+    translation.reset_shipped_english!
+    yield
+  ensure
+    translation.instance_variable_set(:@registered_shipped_english_paths, previous)
+    translation.reset_shipped_english!
+    translation.shipped_english
+  end
+
+  def assert_malformed_registered_shipped_english_skipped(tree, absent_key)
+    with_registered_shipped_english_fixture(tree) do |path|
+      with_shipped_english_registrations([]) do
+        assert_nothing_raised do
+          RecordingStudio::Translation.register_shipped_english(path)
+          table = RecordingStudio::Translation.shipped_english
+          assert_equal "Back", table.fetch("recording_studio.core.navigation.back")
+          refute table.key?(absent_key)
+        end
+      end
+    end
   end
 end

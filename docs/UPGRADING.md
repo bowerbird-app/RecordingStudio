@@ -1,5 +1,43 @@
 # Upgrade Guide
 
+## Upgrading To 4.7.0
+
+This is a minor upgrade. Default English interface text is unchanged.
+
+### What Changed
+
+- Addon engines can register additional English locale files for the final
+  shipped-English fallback via
+  `RecordingStudio::Translation.register_shipped_english(path)`.
+- Registration is boot-time only (engine initializer). Missing or malformed
+  registered files are skipped; `nil`/blank paths raise `ArgumentError`.
+- The fallback table deep-merges base `config/locales/en.yml` with every
+  registered file (de-duplicated by expanded path). Registrations persist
+  across Rails code reload; the table is rebuilt on `to_prepare`.
+- Fallback order is unchanged: loaded `:en`, then caller `default:`, then the
+  merged shipped table. Present keys remain byte-identical to `I18n.t`.
+
+### Upgrade Steps
+
+No migration is required for hosts.
+
+Addon gems that ship `recording_studio.<gem>.*` keys need RecordingStudio
+`>= 4.7` (or a `respond_to?(:register_shipped_english)` guard) and should
+register their `config/locales/en.yml` from an engine initializer at boot so
+English remains available when the loaded `:en` backend no longer has those
+keys:
+
+```ruby
+initializer "recording_studio_example.register_shipped_english",
+            before: "recording_studio.load_shipped_english" do
+  next unless RecordingStudio::Translation.respond_to?(:register_shipped_english)
+
+  RecordingStudio::Translation.register_shipped_english(
+    root.join("config/locales/en.yml")
+  )
+end
+```
+
 ## Upgrading To 4.6.0
 
 This is a minor upgrade. Default English interface text is unchanged.
