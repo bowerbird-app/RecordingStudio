@@ -32,7 +32,7 @@ class TranslationTest < ActiveSupport::TestCase
     end
   end
 
-  test "memoized shipped english table matches gem en.yml" do
+  test "shipped english table matches gem en.yml and is reused across calls" do
     RecordingStudio::Translation.reset_shipped_english!
     en_yml = YAML.safe_load_file(
       File.expand_path("../config/locales/en.yml", __dir__),
@@ -45,7 +45,7 @@ class TranslationTest < ActiveSupport::TestCase
     assert_predicate table, :frozen?
     table.each_value { |value| assert_predicate value, :frozen? }
     assert_same table, RecordingStudio::Translation.shipped_english,
-                "shipped english must be memoized (no per-call file reload)"
+                "shipped english must be reused across calls (no per-call file reload)"
   end
 
   test "deleted loaded english falls back to shipped gem en.yml text" do
@@ -319,24 +319,60 @@ class TranslationTest < ActiveSupport::TestCase
       assert_equal "<b>ok</b>", reserved
       refute_predicate reserved, :html_safe?
       assert_equal view.t(missing_html, default: "<b>ok</b>"), reserved
+
+      # Array defaults unwrap to the last String and stay unsafe like view t.
+      array_default = RecordingStudio.t(missing_html, default: ["<b>ok</b>"])
+      assert_equal "<b>ok</b>", array_default
+      refute_predicate array_default, :html_safe?
+      assert_equal view.t(missing_html, default: ["<b>ok</b>"]), array_default
     end
   end
 
   test "shipped english table is present after boot" do
+    refute_nil RecordingStudio::Translation.instance_variable_get(:@shipped_english),
+               "engine initializer / to_prepare must eager-load shipped english before any call"
+    assert_includes RecordingStudio::Engine.initializers.map(&:name),
+                    "recording_studio.load_shipped_english",
+                    "engine must register the load_shipped_english initializer"
     table = RecordingStudio::Translation.shipped_english
-    refute_nil table
     refute_empty table
     assert_equal "Back", table.fetch("recording_studio.core.navigation.back")
   end
 
   test "shipped english table becomes a new object after reload reset" do
     before = RecordingStudio::Translation.shipped_english
-    RecordingStudio::Translation.reset_shipped_english!
+    Rails.application.reloader.reload!
     after = RecordingStudio::Translation.shipped_english
 
     refute_same before, after
     assert_equal before, after
     assert_predicate after, :frozen?
+  end
+
+  test "missing shipped en.yml boots with empty frozen table matching I18n.t" do
+    missing_path = File.expand_path("../tmp/missing_shipped_en_#{Process.pid}.yml", __dir__)
+    refute File.exist?(missing_path), "stub path must not exist"
+
+    with_missing_shipped_english_path(missing_path) do
+      table = RecordingStudio::Translation.shipped_english
+      assert_equal({}, table)
+      assert_predicate table, :frozen?
+
+      missing = "recording_studio.core.navigation.totally_absent_for_missing_yml"
+      %i[en fr de].each do |locale|
+        I18n.with_locale(locale) do
+          assert_equal I18n.t(missing), RecordingStudio.t(missing)
+          assert_equal I18n.t(missing, default: "D"), RecordingStudio.t(missing, default: "D")
+          i18n_error = assert_raises(I18n::MissingTranslationData) do
+            I18n.t(missing, raise: true)
+          end
+          rs_error = assert_raises(I18n::MissingTranslationData) do
+            RecordingStudio.t(missing, raise: true)
+          end
+          assert_equal i18n_error.message, rs_error.message
+        end
+      end
+    end
   end
 
   test "lazy keys pass through like I18n.t" do
@@ -441,5 +477,25 @@ class TranslationTest < ActiveSupport::TestCase
       node = node[part]
     end
     yield node, leaf if node.is_a?(Hash)
+  end
+
+  def with_missing_shipped_english_path(missing_path)
+    translation = RecordingStudio::Translation
+    singleton = class << translation; self; end
+    singleton.alias_method :__original_shipped_english_path, :shipped_english_path
+    singleton.define_method(:shipped_english_path) { missing_path }
+    singleton.send(:private, :shipped_english_path)
+
+    translation.reset_shipped_english!
+    yield
+  ensure
+    if singleton.private_method_defined?(:__original_shipped_english_path) ||
+       singleton.method_defined?(:__original_shipped_english_path)
+      singleton.alias_method :shipped_english_path, :__original_shipped_english_path
+      singleton.send(:private, :shipped_english_path)
+      singleton.remove_method :__original_shipped_english_path
+    end
+    translation.reset_shipped_english!
+    translation.shipped_english
   end
 end

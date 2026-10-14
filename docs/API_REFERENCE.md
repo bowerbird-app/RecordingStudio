@@ -260,9 +260,10 @@ then an eager-loaded, deep-frozen copy of the gem's `config/locales/en.yml`
 (reset on Rails code reload). Host overrides in the active locale win.
 Non-gem keys pass through to `I18n.t`. `_html` keys escape unsafe
 interpolation args then mark the result `html_safe`, like view `t`. A missing
-`_html` key with a non-interpolating caller `default:` stays unsafe like view
-`t`; an interpolating caller `default:` is stricter (args escaped, result
-`html_safe`). Partial pluralization data in a non-English locale still raises
+`_html` key with a non-interpolating caller `default:` (String or Array whose
+last String is non-interpolating) stays unsafe like view `t`; an interpolating
+caller `default:` is stricter (args escaped, result `html_safe`). Partial
+pluralization data in a non-English locale still raises
 `I18n::InvalidPluralizationData` (the English fallback does not fill missing
 plural keys). Prefer this over hand-copied English `default:` strings.
 

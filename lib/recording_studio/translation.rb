@@ -14,8 +14,9 @@ module RecordingStudio
   # Non-gem keys, present locale values, Arrays, and lazy keys pass through
   # like `I18n.t`. `_html` keys escape interpolation args then mark html_safe,
   # matching view `t`. A missing `_html` key with a non-interpolating caller
-  # `default:` stays unsafe like view `t`. An interpolating caller `default:`
-  # is stricter: args are escaped and the result is marked html_safe.
+  # `default:` (String or Array whose last String is non-interpolating) stays
+  # unsafe like view `t`. An interpolating caller `default:` is stricter: args
+  # are escaped and the result is marked html_safe.
   #
   # Partial pluralization data in a non-English locale still raises
   # `I18n::InvalidPluralizationData` (same as `I18n.t`); the English fallback
@@ -162,14 +163,23 @@ module RecordingStudio
 
     # Non-interpolating caller defaults on a missing `_html` key stay unsafe,
     # matching view `t`. Interpolating defaults that went through arg escaping
-    # still get marked html_safe (stricter than view `t`).
+    # still get marked html_safe (stricter than view `t`). Array defaults unwrap
+    # to their last String (same as I18n / view `t`).
     def plain_caller_default_result?(key, value, options)
-      default = options[:default]
-      return false unless default.is_a?(String)
+      default = unwrap_plain_default(options[:default])
+      return false unless default
       return false if default.match?(/%\{/)
       return false unless value == default
 
       !resolved_translation_present?(key, options)
+    end
+
+    def unwrap_plain_default(default)
+      case default
+      when String then default
+      when Array
+        default.reverse_each.find { |entry| entry.is_a?(String) }
+      end
     end
 
     def resolved_translation_present?(key, options)
