@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.6.1] - 2026-10-14
+
+### Added
+
+* Boot and reload coverage for the eager-loaded gem English table (initializer
+  load and `to_prepare` reset); missing shipped `en.yml` returns an empty
+  frozen table and `RecordingStudio.t` matches `I18n.t`
+
+### Upgrade notes
+
+- No migration or host code change is required. Runtime behavior is unchanged
+  from 4.6.0.
+
 ## [4.6.0] - 2026-10-13
 
 ### Added
@@ -393,6 +406,7 @@ fetch at Build.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.0...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.1...HEAD
+[4.6.1]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.4.0...v4.5.0
