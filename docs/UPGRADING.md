@@ -1,5 +1,35 @@
 # Upgrade Guide
 
+## Upgrading To 4.8.0
+
+This is a minor, additive upgrade. Existing host and core APIs are unchanged.
+Addon authors gain shared building blocks that replace pasted template copies.
+
+### What Changed
+
+- `RecordingStudio::AddonConfiguration` — thin base with `hooks`,
+  `hooks_registered`, and setter-dispatch `merge!`
+- `RecordingStudio::Services::AddonBaseService` — `BaseService` subclass that
+  fires hooks on `hooks_owner.configuration.hooks`
+- `BaseService#failure` accepts optional `value:` (default `nil`) for
+  Accessible-compatible failure results
+- `RecordingStudio::Generators::MigrationsGeneratorBase` — shared addon
+  migrations install generator (core `recording_studio:migrations` unchanged)
+- `RecordingStudio::Api::Access` and `Access::WithSiteAdmin` — shared API
+  admin-root access helpers (soft-depend on Admin + Accessible)
+- Docs: [gem_template/ADDON_BOILERPLATE.md](gem_template/ADDON_BOILERPLATE.md)
+
+`RecordingStudio::Hooks`, `RecordingStudio::Services::BaseService`,
+`RecordingStudio::Configuration`, and the core migrations generator remain the
+same public entry points for hosts.
+
+### Upgrade Steps
+
+No migration or host code change is required.
+
+Addon gems may delete their copied boilerplate in follow-up PRs by inheriting
+these bases. Until then, existing addon copies keep working.
+
 ## Upgrading To 4.6.0
 
 This is a minor upgrade. Default English interface text is unchanged.

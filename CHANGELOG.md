@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.8.0] - 2026-10-14
+
+### Added
+
+* Shared addon boilerplate building blocks so sibling gems can inherit instead
+  of copying template scaffolding:
+  * `RecordingStudio::AddonConfiguration` (`hooks`, `hooks_registered`, `merge!`)
+  * `RecordingStudio::Services::AddonBaseService` (addon-scoped service hooks via
+    `hooks_owner`)
+  * `RecordingStudio::Generators::MigrationsGeneratorBase` (template-style
+    migrations install generator for addons)
+  * `RecordingStudio::Api::Access` and `Access::WithSiteAdmin` (admin-root API
+    access helpers; soft-depend on Admin + Accessible)
+* Docs: `docs/gem_template/ADDON_BOILERPLATE.md`, API reference and upgrade notes
+
+### Changed
+
+* `RecordingStudio::Services::BaseService#failure` accepts optional `value:`
+  (default `nil`) so Accessible-compatible call sites can inherit without
+  behavior change for existing callers
+
+### Upgrade notes
+
+- Additive only for hosts and existing core users. No migration required.
+- Addon follow-up PRs can replace pasted `hooks.rb`, configuration shells,
+  `base_service.rb`, migrations generators, and `api/access.rb` copies by
+  inheriting these bases. See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-480)
+  and [docs/gem_template/ADDON_BOILERPLATE.md](docs/gem_template/ADDON_BOILERPLATE.md).
+
 ## [4.6.0] - 2026-10-13
 
 ### Added
@@ -393,6 +422,7 @@ fetch at Build.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.0...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.8.0...HEAD
+[4.8.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.0...v4.8.0
 [4.6.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.4.0...v4.5.0

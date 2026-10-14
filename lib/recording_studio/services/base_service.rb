@@ -114,10 +114,11 @@ module RecordingStudio
       #
       # @param error [String, StandardError] The error message or exception
       # @param errors [Array] Additional error details
+      # @param value [Object, nil] Optional value retained on failure (addon-compatible)
       # @return [Result] A failure result
-      def failure(error, errors: [])
+      def failure(error, errors: [], value: nil)
         error_message = error.is_a?(Exception) ? error.message : error
-        Result.new(success: false, error: error_message, errors: errors)
+        Result.new(success: false, value: value, error: error_message, errors: errors)
       end
 
       # Run before_service hooks

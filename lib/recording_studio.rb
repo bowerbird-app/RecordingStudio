@@ -5,6 +5,7 @@ require "recording_studio/version"
 require "recording_studio/engine"
 require "recording_studio/warnings"
 require "recording_studio/configuration"
+require "recording_studio/addon_configuration"
 require "recording_studio/counter_caches"
 require "recording_studio/errors"
 require "recording_studio/authorization"
@@ -19,6 +20,8 @@ require "recording_studio/recordable"
 require "recording_studio/recordable_declarations"
 require "recording_studio/relationships"
 require "recording_studio/services/base_service"
+require "recording_studio/services/addon_base_service"
+require "recording_studio/api/access"
 
 # rubocop:disable Metrics/ModuleLength, Metrics/ClassLength
 

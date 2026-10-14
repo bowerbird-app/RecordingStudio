@@ -341,6 +341,61 @@ patching core classes.
 | `run_around(event_name, context, &block)` | event name, context, block | block result | Convenience proxy for around hooks. |
 | `trigger(event_name, *args)` | event name and args | `Array` of results | Alias-style convenience method for custom events. |
 
+Addon gems should hold a `RecordingStudio::Hooks` instance on their own
+configuration (see `AddonConfiguration` below) instead of copying a second
+`Hooks` class.
+
+## Addon configuration: `RecordingStudio::AddonConfiguration`
+
+Thin base for addon gem configuration objects. Core's
+`RecordingStudio::Configuration` stays separate.
+
+| Method | Takes | Returns | Why it exists |
+| --- | --- | --- | --- |
+| `initialize(hooks: nil)` | optional `Hooks` | configuration | Defaults `@hooks` to `RecordingStudio::Hooks.new`. |
+| `hooks` | nothing | `RecordingStudio::Hooks` | Addon-scoped hook registry. |
+| `hooks_registered` | nothing | hash of event names to counts | Stable `to_h` helper (uses `hooks.registered_counts`). |
+| `merge!(hash)` | hash-like object | merged setters | Applies keys that have public setters; ignores the rest. |
+
+## Services: `RecordingStudio::Services::BaseService`
+
+Command-object base with `Result`, `.call`, `#perform`, and core hook
+integration (`before_service` / `after_service` / `around_service` on
+`RecordingStudio.configuration.hooks`).
+
+`failure(error, errors: [], value: nil)` may retain an optional failure
+`value` for addon call sites that need it.
+
+### Addon-scoped hooks: `RecordingStudio::Services::AddonBaseService`
+
+Subclass of `BaseService` that fires hooks on
+`hooks_owner.configuration.hooks` instead of the core registry. Set
+`self.hooks_owner = SomeGem` on the subclass.
+
+## Migrations generator base: `RecordingStudio::Generators::MigrationsGeneratorBase`
+
+Shared install generator for addon gems. Copies `db/migrate/*.rb` from the gem
+`source_root` into the host app with fresh timestamps and `--skip-existing`.
+Set `self.engine_label` and `source_root` in the subclass. Core's own
+`recording_studio:migrations` generator (with `--full_history`) is unchanged.
+
+## API access: `RecordingStudio::Api::Access`
+
+Shared admin-root authorization helpers for addon API modules. Soft-depends on
+RecordingStudioAdmin and RecordingStudioAccessible.
+
+| Module | `admin_root_recording` behavior |
+| --- | --- |
+| `RecordingStudio::Api::Access` | `access_recording_resolver` only; resolver errors raise |
+| `RecordingStudio::Api::Access::WithSiteAdmin` | `site_admin_recording_resolver \|\| access_recording_resolver`; rescues resolver errors to `nil` |
+
+Both expose `actor_for`, `can_view?`, and `authorized_on_admin_root?`.
+`resolve_admin_root_recording(prefer_site_admin:, rescue_errors:)` is available
+when a gem needs both policies (for example Support).
+
+See [gem_template/ADDON_BOILERPLATE.md](gem_template/ADDON_BOILERPLATE.md) for
+migration examples.
+
 ## Recording API: `RecordingStudio::Recording`
 
 This is the main object addons and host apps work with after they resolve a root.

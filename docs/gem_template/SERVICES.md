@@ -5,10 +5,15 @@ command-style API with hook support.
 
 ## What Exists Today
 
-- `RecordingStudio::Services::BaseService`
+- `RecordingStudio::Services::BaseService` — uses `RecordingStudio.configuration.hooks`
+- `RecordingStudio::Services::AddonBaseService` — retargets hooks to an addon gem via `hooks_owner`
 
 Use `BaseService` for addon or host-app command objects. RecordingStudio core writes go through
 `RecordingStudio.record!` rather than a bundled example service.
+
+When an addon keeps its own hook registry on `SomeGem.configuration.hooks`,
+subclass `AddonBaseService` and set `self.hooks_owner = SomeGem` instead of
+copying another `base_service.rb`. See [ADDON_BOILERPLATE.md](ADDON_BOILERPLATE.md).
 
 ## Call Pattern
 

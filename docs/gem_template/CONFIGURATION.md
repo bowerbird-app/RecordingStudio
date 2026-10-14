@@ -93,9 +93,20 @@ enablement. Mixin authors should wrap `RecordingStudio::Capabilities.include_for
 The low-level `RecordingStudio.enable_capability(...)` helpers remain for the factory and for
 call sites that are already working directly with configuration.
 
+## Addon configuration base
+
+Addon gems should inherit `RecordingStudio::AddonConfiguration` for the shared
+`hooks` reader, default `Hooks.new`, setter-dispatch `merge!`, and
+`hooks_registered` helper. Keep gem-specific attributes on the subclass. See
+[ADDON_BOILERPLATE.md](ADDON_BOILERPLATE.md).
+
+Core continues to use `RecordingStudio::Configuration` for recordables,
+capabilities, actors, and related host settings.
+
 ## Hooks
 
 `RecordingStudio.configuration.hooks` exposes the shared hook registry used by services and engine lifecycle events.
+Addon configurations should hold their own `RecordingStudio::Hooks` instance rather than copying `hooks.rb`.
 
 Examples:
 

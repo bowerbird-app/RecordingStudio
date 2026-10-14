@@ -108,8 +108,18 @@ Generator-specific tests also live in the top-level test suite.
 | Upgrading app still misses compatibility steps | Re-run with `--full_history` and compare the host app's existing migration names against `db/migrate/`. |
 | Migration versions differ from the engine | Expected; the generator gives host apps fresh timestamps. |
 
+## Addon migrations generators
+
+Addon gems should subclass
+`RecordingStudio::Generators::MigrationsGeneratorBase` (template-style
+`db/migrate` copy with `--skip-existing`) instead of pasting another generator.
+Core's generator above stays separate because it supports the fresh-install
+`db/install_migrate` set and `--full_history`. See
+[ADDON_BOILERPLATE.md](ADDON_BOILERPLATE.md).
+
 ## Files To Check
 
 - `lib/generators/recording_studio/migrations/migrations_generator.rb`
+- `lib/recording_studio/generators/migrations_generator_base.rb`
 - `db/install_migrate/`
 - `db/migrate/`
