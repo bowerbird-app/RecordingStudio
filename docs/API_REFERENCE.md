@@ -256,8 +256,11 @@ Use `RecordingStudio.t(key, **options)` (alias
 `RecordingStudio::Translation.t`) for gem-shipped `recording_studio.*` keys.
 It looks up the active locale first, then the loaded `:en` translation via
 `locale: :en` (host English overrides included), then the caller's `default:`,
-then an eager-loaded, deep-frozen copy of the gem's `config/locales/en.yml`
-(reset on Rails code reload). Host overrides in the active locale win.
+then an eager-loaded, deep-frozen English table built from the gem's
+`config/locales/en.yml` plus every path registered with
+`RecordingStudio::Translation.register_shipped_english` (deep-merged,
+de-duplicated by expanded path; reset on Rails code reload; registrations
+persist across reload). Host overrides in the active locale win.
 Non-gem keys pass through to `I18n.t`. `_html` keys escape unsafe
 interpolation args then mark the result `html_safe`, like view `t`. A missing
 `_html` key with a non-interpolating caller `default:` stays unsafe like view
@@ -265,6 +268,25 @@ interpolation args then mark the result `html_safe`, like view `t`. A missing
 `html_safe`). Partial pluralization data in a non-English locale still raises
 `I18n::InvalidPluralizationData` (the English fallback does not fill missing
 plural keys). Prefer this over hand-copied English `default:` strings.
+
+Addon engines register shipped English at **boot time only**, from an
+initializer (typically `before: "recording_studio.load_shipped_english"`).
+Do not call `register_shipped_english` during a request. Requires
+RecordingStudio `>= 4.7`, or guard with
+`respond_to?(:register_shipped_english)` when supporting older hosts.
+Missing or malformed registered files are skipped; `nil`/blank paths raise
+`ArgumentError`.
+
+```ruby
+initializer "recording_studio_example.register_shipped_english",
+            before: "recording_studio.load_shipped_english" do
+  next unless RecordingStudio::Translation.respond_to?(:register_shipped_english)
+
+  RecordingStudio::Translation.register_shipped_english(
+    root.join("config/locales/en.yml")
+  )
+end
+```
 
 ## Labels: `RecordingStudio::Labels`
 

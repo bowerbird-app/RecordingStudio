@@ -20,6 +20,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Delegated Type Registration](#delegated-type-registration)
 - [Labeling Recordables](#labeling-recordables)
 - [Addon Author API Surface](#addon-author-api-surface)
+- [Registering shipped English for addon engines](#registering-shipped-english-for-addon-engines)
 - [Full API Reference for AI Agents](#full-api-reference-for-ai-agents)
 - [Configuration](#configuration)
 - [Upgrade Guide](#upgrade-guide)
@@ -474,6 +475,44 @@ RecordingStudio::Labels.register_formatter(
   callables, never user input.
 - **Internal/private:** delegated type registrar internals, callback ordering, concern module layout, and direct mutation
   of counter caches outside the helper API.
+
+## Registering shipped English for addon engines
+
+Addon engines that ship `recording_studio.<gem>.*` keys in their own
+`config/locales/en.yml` should register that file so
+`RecordingStudio.t` can still resolve English after the key is gone from the
+loaded `:en` backend.
+
+Registration is **boot-time only**. Call
+`RecordingStudio::Translation.register_shipped_english` from the addon engine
+initializer (before RecordingStudio loads the merged table), not during a
+request. Addons need RecordingStudio `>= 4.7`, or guard with
+`respond_to?(:register_shipped_english)` when supporting older hosts:
+
+```ruby
+module RecordingStudio
+  module Example
+    class Engine < ::Rails::Engine
+      isolate_namespace RecordingStudio::Example
+
+      initializer "recording_studio_example.register_shipped_english",
+                  before: "recording_studio.load_shipped_english" do
+        next unless RecordingStudio::Translation.respond_to?(:register_shipped_english)
+
+        RecordingStudio::Translation.register_shipped_english(
+          root.join("config/locales/en.yml")
+        )
+      end
+    end
+  end
+end
+```
+
+The final fallback table deep-merges RecordingStudio's own `en.yml` with every
+registered file (de-duplicated by expanded path). Missing or malformed
+registered files are skipped. Registrations persist across Rails code reload;
+the table is rebuilt on `to_prepare`. Lookup order stays loaded `:en`, then
+the caller's `default:`, then the shipped table — present keys are unchanged.
 
 ## Full API Reference for AI Agents
 

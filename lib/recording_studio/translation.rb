@@ -9,7 +9,8 @@ module RecordingStudio
   # Fallback order for gem keys missing in the active locale:
   # 1. loaded `:en` (host English overrides included)
   # 2. caller's `default:`
-  # 3. gem-shipped `config/locales/en.yml` (eager-loaded, deep-frozen)
+  # 3. merged gem-shipped English table (base `config/locales/en.yml` plus
+  #    paths registered via {register_shipped_english})
   #
   # Non-gem keys, present locale values, Arrays, and lazy keys pass through
   # like `I18n.t`. `_html` keys escape interpolation args then mark html_safe,
@@ -34,9 +35,31 @@ module RecordingStudio
       html_safe_translation(key, translate_gem_key(key, options), options)
     end
 
-    # Deep-frozen flat map of gem `config/locales/en.yml` under `recording_studio.*`.
-    # Eager-loaded from the engine initializer; reset on Rails code reload.
-    # Independent of the I18n backend so a pruned host load path still has text.
+    # Register an additional English locale file for the final shipped-English
+    # fallback table. Call this only at boot from an addon engine initializer
+    # (typically `before: "recording_studio.load_shipped_english"`), not at
+    # request time.
+    #
+    # Paths are expanded and de-duplicated. Registrations persist across Rails
+    # code reloads; the merged table is rebuilt on the next load / `to_prepare`.
+    # A missing or malformed file is skipped when the table is built (empty
+    # contribution). +nil+ or blank paths raise +ArgumentError+.
+    def register_shipped_english(path)
+      raise ArgumentError, "shipped english path is required" if path.nil? || path.to_s.strip.empty?
+
+      expanded = File.expand_path(path.to_s)
+      SHIPPED_ENGLISH_MUTEX.synchronize do
+        paths = (@registered_shipped_english_paths ||= [])
+        paths << expanded unless paths.include?(expanded)
+        @shipped_english = nil
+      end
+    end
+
+    # Deep-frozen flat map of gem English under `recording_studio.*`, merged
+    # from base `config/locales/en.yml` and every path registered via
+    # {register_shipped_english}. Eager-loaded from the engine initializer;
+    # reset on Rails code reload. Independent of the I18n backend so a pruned
+    # host load path still has text.
     def shipped_english
       return @shipped_english if @shipped_english
 
@@ -101,16 +124,39 @@ module RecordingStudio
     end
 
     def load_shipped_english
-      tree = YAML.safe_load_file(shipped_english_path, aliases: true)
-                 .fetch("en")
-                 .fetch("recording_studio")
+      tree = load_english_recording_studio_tree(shipped_english_path)
+      registered_shipped_english_paths.each do |path|
+        tree = deep_merge_hashes(tree, load_english_recording_studio_tree(path))
+      end
       flatten_locale_keys(tree, ["recording_studio"])
+    end
+
+    def registered_shipped_english_paths
+      @registered_shipped_english_paths ||= []
+    end
+
+    def load_english_recording_studio_tree(path)
+      data = YAML.safe_load_file(path, aliases: true)
+      tree = data.is_a?(Hash) ? data.dig("en", "recording_studio") : nil
+      return {} unless tree.is_a?(Hash)
+
+      tree
     rescue Errno::ENOENT
       {}
     end
 
     def shipped_english_path
       File.expand_path("../../config/locales/en.yml", __dir__)
+    end
+
+    def deep_merge_hashes(left, right)
+      left.merge(right) do |_key, left_value, right_value|
+        if left_value.is_a?(Hash) && right_value.is_a?(Hash)
+          deep_merge_hashes(left_value, right_value)
+        else
+          right_value
+        end
+      end
     end
 
     def deep_freeze(object)

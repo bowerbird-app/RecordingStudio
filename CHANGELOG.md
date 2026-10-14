@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.7.0] - 2026-10-14
+
+### Added
+
+* `RecordingStudio::Translation.register_shipped_english(path)` so addon
+  engines can contribute their own `config/locales/en.yml` to the final
+  shipped-English fallback table (deep-merged with base, de-duplicated by
+  expanded path; missing or malformed files skipped; registrations persist
+  across reload; boot-time registration only)
+* README / API docs for engine initializer usage, RecordingStudio `>= 4.7`,
+  and an optional `respond_to?(:register_shipped_english)` guard
+
+### Upgrade notes
+
+- No migration is required. Host apps need no change.
+- Addon engines that ship `recording_studio.<gem>.*` English should call
+  `RecordingStudio::Translation.register_shipped_english` from an engine
+  initializer at boot (typically
+  `before: "recording_studio.load_shipped_english"`), not at request time, so
+  keys remain available after the loaded `:en` backend is pruned. Pin
+  RecordingStudio `>= 4.7`, or guard with
+  `respond_to?(:register_shipped_english)`.
+- Fallback order is unchanged: loaded `:en`, then caller `default:`, then the
+  merged shipped table. Present keys stay byte-identical to `I18n.t`.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-470).
+
 ## [4.6.1] - 2026-10-14
 
 ### Added
@@ -406,7 +432,8 @@ fetch at Build.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
-[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.1...HEAD
+[Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.7.0...HEAD
+[4.7.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.1...v4.7.0
 [4.6.1]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.0...v4.6.1
 [4.6.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.5.0...v4.6.0
 [4.5.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.4.0...v4.5.0
