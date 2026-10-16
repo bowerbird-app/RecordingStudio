@@ -17,6 +17,10 @@ module RecordingStudio
       RecordingStudio::Translation.shipped_english
     end
 
+    initializer "recording_studio.flatpack_english_fallback" do
+      RecordingStudio::FlatpackEnglishFallback.install!
+    end
+
     initializer "recording_studio.before_initialize", before: "recording_studio.load_config" do |_app|
       RecordingStudio::Hooks.run(:before_initialize, self)
     end

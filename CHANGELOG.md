@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+* Missing `flatpack.*` keys in a non-English locale use the loaded English
+  string instead of rendering "Translation missing". A translation that is
+  already present in the active locale stays as written. Other missing keys
+  are unchanged.
+
 ## [4.7.0] - 2026-10-14
 
 ### Added

@@ -1,5 +1,15 @@
 # Upgrade Guide
 
+## Unreleased
+
+FlatPack copy such as `flatpack.page_nav.label` and `flatpack.top_nav.more`
+is looked up through I18n. When the active locale has no entry for a
+`flatpack.*` key, Recording Studio returns the loaded English string. A
+present translation in the active locale still wins. Keys outside `flatpack.*`
+keep the previous missing-translation behavior.
+
+No migration is required.
+
 ## Upgrading To 4.7.0
 
 This is a minor upgrade. Default English interface text is unchanged.
