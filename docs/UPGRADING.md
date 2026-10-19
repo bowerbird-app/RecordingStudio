@@ -2,11 +2,10 @@
 
 ## Unreleased
 
-FlatPack copy such as `flatpack.page_nav.label` and `flatpack.top_nav.more`
-is looked up through I18n. When the active locale has no entry for a
-`flatpack.*` key, Recording Studio returns the loaded English string. A
-present translation in the active locale still wins. Keys outside `flatpack.*`
-keep the previous missing-translation behavior.
+The development and test pin for `flat_pack` is tag v0.1.256
+(`https://github.com/bowerbird-app/flatpack.git`). Flatpack falls back to
+English for missing `flatpack.*` keys inside `FlatPack::Copy.t`. Host I18n
+settings are unchanged.
 
 No migration is required.
 

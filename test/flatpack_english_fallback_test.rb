@@ -6,45 +6,54 @@ class FlatpackEnglishFallbackTest < ActiveSupport::TestCase
   setup do
     @previous_locales = I18n.available_locales
     I18n.available_locales = (@previous_locales + %i[en de]).uniq
-    RecordingStudio::FlatpackEnglishFallback.install!
   end
 
   teardown do
     I18n.locale = I18n.default_locale
     I18n.available_locales = @previous_locales if @previous_locales
-    I18n.reload!
   end
 
-  test "missing flatpack key in another locale uses loaded english" do
+  test "missing flatpack key in a non-english locale returns the english string" do
     I18n.with_locale(:de) do
       refute I18n.exists?("flatpack.page_nav.label", :de)
-      refute I18n.exists?("flatpack.top_nav.more", :de)
 
-      assert_equal "Page navigation", I18n.t("flatpack.page_nav.label")
-      assert_equal "More navigation items", I18n.t("flatpack.top_nav.more")
+      assert_equal "Page navigation", FlatPack::Copy.t("page_nav.label")
     end
   end
 
-  test "a translated flatpack key in the active locale stays" do
-    I18n.backend.store_translations(:de, flatpack: { page_nav: { label: "Seitennavigation" } })
+  test "raise_on_missing_translations still raises for a non-flatpack key" do
+    with_raise_on_missing_translations do
+      I18n.with_locale(:de) do
+        error = assert_raises(I18n::MissingTranslationData) { I18n.t("not_a_flatpack_key") }
 
-    I18n.with_locale(:de) do
-      assert_equal "Seitennavigation", I18n.t("flatpack.page_nav.label")
+        assert_match(/not_a_flatpack_key/, error.message)
+        assert_equal "Page navigation", FlatPack::Copy.t("page_nav.label")
+      end
     end
   end
 
-  test "a missing key outside flatpack still reports translation missing" do
-    I18n.with_locale(:de) do
-      message = I18n.t("not_a_flatpack_key")
+  private
 
-      assert_match(/translation missing/i, message)
+  # Same gate as I18n::Railtie: raise_on_missing_translations replaces only
+  # the default exception handler. A custom handler would leave this raise off.
+  def with_raise_on_missing_translations
+    previous_handler = I18n.exception_handler
+    previous_raise = Rails.application.config.i18n.raise_on_missing_translations
+    previous_view_raise = ActionView::Helpers::TranslationHelper.raise_on_missing_translations
+
+    Rails.application.config.i18n.raise_on_missing_translations = true
+    ActionView::Helpers::TranslationHelper.raise_on_missing_translations = true
+    if I18n.exception_handler.is_a?(I18n::ExceptionHandler)
+      I18n.exception_handler = lambda { |exception, *|
+        exception = exception.to_exception if exception.is_a?(I18n::MissingTranslation)
+        raise exception
+      }
     end
-  end
 
-  test "install keeps the same handler when called twice" do
-    handler = I18n.exception_handler
-    RecordingStudio::FlatpackEnglishFallback.install!
-
-    assert_same handler, I18n.exception_handler
+    yield
+  ensure
+    I18n.exception_handler = previous_handler
+    Rails.application.config.i18n.raise_on_missing_translations = previous_raise
+    ActionView::Helpers::TranslationHelper.raise_on_missing_translations = previous_view_raise
   end
 end
