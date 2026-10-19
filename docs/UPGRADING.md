@@ -1,5 +1,14 @@
 # Upgrade Guide
 
+## Unreleased
+
+The development and test pin for `flat_pack` is tag v0.1.256
+(`https://github.com/bowerbird-app/flatpack.git`). Flatpack falls back to
+English for missing `flatpack.*` keys inside `FlatPack::Copy.t`. Host I18n
+settings are unchanged.
+
+No migration is required.
+
 ## Upgrading To 4.7.0
 
 This is a minor upgrade. Default English interface text is unchanged.

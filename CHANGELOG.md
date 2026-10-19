@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Development and test pin `flat_pack` to tag v0.1.256. Flatpack falls back
+  to English for missing `flatpack.*` keys inside `FlatPack::Copy.t`.
+
 ## [4.7.0] - 2026-10-14
 
 ### Added
