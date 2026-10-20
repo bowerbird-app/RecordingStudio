@@ -7,10 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.7.1] - 2026-10-20
+
+### Fixed
+
+* The default layout page nav uses Flatpack's ordered row API (`with_back`,
+  `with_close`, `with_item`). `page_nav_back_url` is the back control's href.
+  Slot labels are tooltips. This requires `flat_pack` >= 0.1.274.
+* The dummy sign-in card uses `FlatPack::Card` style `:shaded`. Flatpack
+  0.1.275 rejects `:elevated`.
+
+### Added
+
+* `RecordingStudio.configuration.layout` sets the layout for core controllers
+  that serve views. A String is a layout name. A lambda or proc is called with
+  `controller:`. Leave it unset to keep the current layout.
+
 ### Changed
 
-* Development and test pin `flat_pack` to tag v0.1.256. Flatpack falls back
-  to English for missing `flatpack.*` keys inside `FlatPack::Copy.t`.
+* Development and test pin `flat_pack` to tag v0.1.275.
+
+### Upgrade notes
+
+- No migration is required. Host apps need no change unless they override a
+  core layout or the page nav partial.
+- Hosts that copy `recording_studio/shared/_default_layout` or pass removed
+  `FlatPack::PageNav` keywords (`back_icon`, `back_label`, `back_style`,
+  `back_size`, `anchor_icon`, `anchor_label`, `anchor_href`, `right_slot`)
+  must use the Flatpack >= 0.1.274 row API.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-471).
 
 ## [4.7.0] - 2026-10-14
 

@@ -1119,6 +1119,22 @@ Set a custom app name for `<title>` and `og:site_name` fallback:
 RecordingStudio.configure { |config| config.app_name = "My App" }
 ```
 
+Set the layout for core controllers that serve views. Leave it unset to keep
+the current layout (`recording_studio/default_layout` via `UsesDefaultLayout`,
+`"application"` on `RecordingStudio::ApplicationController`).
+
+```ruby
+RecordingStudio.configure do |config|
+  config.layout = "application"
+end
+```
+
+```ruby
+RecordingStudio.configure do |config|
+  config.layout = ->(controller:) { "recording_studio/default_layout" }
+end
+```
+
 A `data-theme="rounded"` attribute is applied to `<body>` by default; override
 it per-view with `content_for(:body_theme, "your-theme")`.
 

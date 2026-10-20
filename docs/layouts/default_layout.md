@@ -40,7 +40,31 @@ This applies:
 > controller. If your controller inherits from `ApplicationController`
 > which sets `layout "application"`, including `UsesDefaultLayout` will
 > override it. All actions in the controller will use
-> `recording_studio/default_layout`.
+> `recording_studio/default_layout` unless `RecordingStudio.configuration.layout`
+> is set.
+
+## Choosing the layout
+
+`RecordingStudio.configuration.layout` applies wherever a core controller
+serves a view.
+
+- `nil` (the default) keeps the current layout. `UsesDefaultLayout` still
+  renders `recording_studio/default_layout`. `RecordingStudio::ApplicationController`
+  still renders `application`.
+- A String is a layout name, for example `"application"`.
+- A lambda or proc is called with `controller:` and must return a layout name.
+
+```ruby
+RecordingStudio.configure do |config|
+  config.layout = "application"
+end
+```
+
+```ruby
+RecordingStudio.configure do |config|
+  config.layout = ->(controller:) { "recording_studio/default_layout" }
+end
+```
 
 To apply the layout only to specific actions:
 
@@ -105,15 +129,15 @@ If no nav config is provided:
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
 | `page_nav_back_icon` | `"chevron-left"` |
-| `page_nav_back_label` | `t("recording_studio.core.navigation.go_back", default: "Go back")` → `"Go back"` |
+| `page_nav_back_label` | `RecordingStudio.t("recording_studio.core.navigation.go_back")` → `"Go back"` (tooltip and accessible name) |
 | `page_nav_back_style` | `:"secondary"` |
 | `page_nav_back_size` | `:"md"` |
-| `page_nav_back_url` | `nil` (back button always shown; when URL is absent, uses `history.back()` via button onclick) |
+| `page_nav_back_url` | `nil` (back control is always shown; a URL becomes its `href`; with no URL, Flatpack uses history back and `page_nav_anchor_url` as `fallback_url`) |
 | `page_nav_anchor_icon` | `"x-mark"` |
-| `page_nav_anchor_label` | `t("recording_studio.core.navigation.close", default: "Close")` → `"Close"` |
-| Anchor action | Hidden (no `page_nav_anchor_url` provided) |
-| Right slot | Empty |
-| Back action | Always rendered; uses `page_nav_back_url` when set, otherwise falls back to `history.back()` via a button |
+| `page_nav_anchor_label` | `RecordingStudio.t("recording_studio.core.navigation.close")` → `"Close"` (tooltip and accessible name) |
+| Close action | Hidden unless `page_nav_anchor_url` is set. That URL is the close `href`. The layout does not read `params`. |
+| Right slot | Empty. When set, `page_nav_right` renders in a trailing `ml-auto` row item. |
+| Back action | Always rendered via `with_back`. |
 
 ## Migration Example
 
@@ -193,13 +217,13 @@ or custom right-slot actions on the same page:
 ) %>
 ```
 
-- **Left side (back):** Configured via `page_nav_back_*` slots. Rendered
-  automatically by `FlatPack::PageNav::Component`. Use this for the
-  primary navigation action (e.g., browser-history back).
-- **Right side (anchor + right slot):** Configured via `page_nav_anchor_*`
-  slots and `recording_studio_page_nav_right`. The anchor button only
-  appears when `page_nav_anchor_url` is set. Use the anchor for close,
-  home, or a secondary navigation target.
+- **Back:** `page_nav_back_*` slots. The layout calls `with_back`. The label
+  is the tooltip. `page_nav_back_url` is the href.
+- **Close:** `page_nav_anchor_*` slots. The layout calls `with_close` only
+  when `page_nav_anchor_url` is present. The label is the tooltip.
+- **Trailing actions:** `recording_studio_page_nav_right` renders inside
+  `with_item`, in a `ml-auto` wrapper, so those controls sit at the end of
+  the row.
 
 Both sides are independent — use the back button, the anchor, and the
 right slot together on the same page if needed.
