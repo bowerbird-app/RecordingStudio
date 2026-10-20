@@ -2,12 +2,57 @@
 
 ## Unreleased
 
-The development and test pin for `flat_pack` is tag v0.1.256
-(`https://github.com/bowerbird-app/flatpack.git`). Flatpack falls back to
-English for missing `flatpack.*` keys inside `FlatPack::Copy.t`. Host I18n
-settings are unchanged.
+No unreleased changes.
 
-No migration is required.
+## Upgrading To 4.7.1
+
+This is a patch upgrade. The default layout name is unchanged.
+
+### What Changed
+
+- The shared default layout renders `FlatPack::PageNav` with the ordered row
+  API: `with_back`, `with_close`, and `with_item`. `page_nav_back_url` is the
+  back control href. `page_nav_back_label` and `page_nav_anchor_label` are
+  tooltips. The right-hand cluster is a `with_item` block pushed with
+  `ml-auto`.
+- Development and test depend on `flat_pack` tag v0.1.275. Page nav keywords
+  removed in Flatpack 0.1.274 raise if a host still passes them. The dummy
+  sign-in card uses style `:shaded` because `:elevated` is no longer a card
+  style.
+- `RecordingStudio.configuration.layout` lets a host set the layout used by
+  core controllers. A String names the layout. A lambda or proc is called as
+  `call(controller:)`. `nil` keeps the previous layout: `"application"` on
+  `RecordingStudio::ApplicationController`, and
+  `"recording_studio/default_layout"` when a controller includes
+  `RecordingStudio::UsesDefaultLayout`.
+
+### Upgrade Steps
+
+No migration is required. Hosts that use the shared layouts as-is need no
+change.
+
+Hosts that override the core layout or the page nav partial must render
+`FlatPack::PageNav` with the Flatpack >= 0.1.274 API. Do not pass `back_icon`,
+`back_label`, `back_style`, `back_size`, `anchor_icon`, `anchor_label`,
+`anchor_href`, or `right_slot` into `FlatPack::PageNav::Component`. Do not
+pass raw `params` into `with_close`. A close href comes from
+`page_nav_anchor_url`. When a screen needs the safe return URL, use
+`flat_pack_return_to` or `FlatPack::ReturnTo.origin_url`.
+
+To select a layout from the host, set `layout` in the Recording Studio
+initializer:
+
+```ruby
+RecordingStudio.configure do |config|
+  config.layout = "application"
+end
+```
+
+```ruby
+RecordingStudio.configure do |config|
+  config.layout = ->(controller:) { "recording_studio/default_layout" }
+end
+```
 
 ## Upgrading To 4.7.0
 

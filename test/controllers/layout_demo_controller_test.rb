@@ -17,7 +17,11 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "body[data-theme='rounded']", count: 1
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
     assert_select "nav[aria-label='Page navigation']", count: 1
-    assert_select "a[href='#{workspaces_path}']", count: 1
+    assert_select "nav[data-flat-pack--page-nav-fallback-url-value='#{workspaces_path}']", count: 1
+    assert_select "nav button[aria-label='Go back']", count: 1
+    assert_select "nav a[aria-label='Go back']", count: 0
+    assert_select "a[href='#{workspaces_path}'][aria-label='Close demo']", count: 1
+    assert_select "nav .ml-auto a[href='#{new_workspace_path}']", count: 1
     assert_includes @response.body, I18n.t("recording_studio.core.navigation.go_back")
     assert_includes @response.body, "Go back"
     assert_includes @response.body, "Close demo"

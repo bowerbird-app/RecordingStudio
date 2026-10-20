@@ -17,6 +17,7 @@ module RecordingStudio
     )
     attr_reader :recordable_types,
                 :hooks,
+                :layout,
                 :recordable_dup_strategies,
                 :require_recordable_declarations,
                 :authorize_write,
@@ -43,6 +44,30 @@ module RecordingStudio
       @recordable_dup_strategies = {}
       @hooks = Hooks.new
       @app_name = "RecordingStudio"
+      @layout = nil
+    end
+
+    def layout=(value)
+      case value
+      when nil
+        @layout = nil
+      when String
+        raise ArgumentError, "layout must be a layout name" if value.strip.empty?
+
+        @layout = value
+      else
+        raise ArgumentError, "layout must be a String or respond to call" unless value.respond_to?(:call)
+
+        @layout = value
+      end
+    end
+
+    def resolved_layout(controller:, default:)
+      configured = layout
+      return default if configured.nil?
+      return configured.call(controller: controller) if configured.respond_to?(:call)
+
+      configured
     end
 
     def instrumentation_enabled

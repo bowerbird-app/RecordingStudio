@@ -242,6 +242,8 @@ Use `RecordingStudio.configure` to access these settings.
 | `recordable_dup_strategy_for(recordable_or_type)` | instance, class, or class name | callable or symbol | Resolves the effective duplication strategy for a type. |
 | `merge!(hash)` | hash-like object | merged configuration | Applies compatible keys from a hash, ignoring removed ones with a warning. |
 | `app_name` / `app_name=` | `String` | `String` | Application name used for `<title>` and `og:site_name` fallbacks in the default layout. Defaults to `"RecordingStudio"`. |
+| `layout` / `layout=` | `nil`, layout name `String`, or a callable | the stored value | Layout for core controllers that serve views. A callable is invoked as `call(controller:)`. `nil` keeps the controller default. A blank string or a value that is neither a String nor callable raises `ArgumentError`. |
+| `resolved_layout(controller:, default:)` | controller and default layout name | layout name | Returns the configured layout, the callable's result, or `default` when unset. |
 
 Important behavior:
 
@@ -249,6 +251,7 @@ Important behavior:
 - `impersonator` defaults to `-> { Current.impersonator }` when `Current` exists.
 - `idempotency_mode = :return_existing` is retry-friendly and usually correct for HTTP or job retries.
 - `recordable_dup_strategy = :dup` duplicates the recordable and clears known counter caches.
+- `layout` left unset keeps `"application"` on `RecordingStudio::ApplicationController` and `"recording_studio/default_layout"` for controllers that include `UsesDefaultLayout`.
 
 ## Translation: `RecordingStudio.t`
 

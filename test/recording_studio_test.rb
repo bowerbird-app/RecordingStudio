@@ -34,6 +34,31 @@ class RecordingStudioTest < Minitest::Test
     assert_equal "RecordingStudio", RecordingStudio.configuration.app_name
   end
 
+  def test_layout_configuration_rejects_a_blank_name_and_a_non_callable
+    assert_nil RecordingStudio.configuration.layout
+
+    assert_raises(ArgumentError) { RecordingStudio.configuration.layout = "" }
+    assert_raises(ArgumentError) { RecordingStudio.configuration.layout = 1 }
+    assert_nil RecordingStudio.configuration.layout
+  end
+
+  def test_resolved_layout_uses_the_default_a_string_or_a_callable
+    controller = Object.new
+    configuration = RecordingStudio.configuration
+
+    assert_equal "application", configuration.resolved_layout(controller: controller, default: "application")
+
+    configuration.layout = "recording_studio/action_layout"
+    resolved = configuration.resolved_layout(controller: controller, default: "application")
+    assert_equal "recording_studio/action_layout", resolved
+
+    configuration.layout = ->(controller:) { controller.object_id.to_s }
+    resolved = configuration.resolved_layout(controller: controller, default: "application")
+    assert_equal controller.object_id.to_s, resolved
+  ensure
+    RecordingStudio.configuration.layout = nil
+  end
+
   def test_app_name_configuration_configured
     original = RecordingStudio.configuration.app_name
     RecordingStudio.configure { |c| c.app_name = "My Custom App" }
