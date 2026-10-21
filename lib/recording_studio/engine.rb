@@ -13,6 +13,12 @@ module RecordingStudio
       RecordingStudio::Engine.apply_registered_extensions!
     end
 
+    initializer "recording_studio.controller_layout" do
+      ActiveSupport.on_load(:action_controller_base) do
+        include RecordingStudio::ControllerLayout
+      end
+    end
+
     initializer "recording_studio.load_shipped_english" do
       RecordingStudio::Translation.shipped_english
     end

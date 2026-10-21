@@ -2,6 +2,8 @@
 
 require "monitor"
 require "recording_studio/version"
+require "recording_studio/layout"
+require "recording_studio/controller_layout"
 require "recording_studio/engine"
 require "recording_studio/warnings"
 require "recording_studio/configuration"

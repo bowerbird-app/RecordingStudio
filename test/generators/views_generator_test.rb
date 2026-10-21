@@ -18,13 +18,12 @@ class ViewsGeneratorTest < Rails::Generators::TestCase
 
     assert_file "app/views/posts/index.html.erb", /recording_studio_page_nav\(title: "Posts"\)/
     assert_file "app/views/posts/index.html.erb", /FlatPack::PageTitle::Component/
-    assert_file "app/views/posts/show.html.erb", /content_for :top_nav_left do/
-    assert_file "app/views/posts/show.html.erb", %r{recording_studio/shared/page_nav}
-    assert_file "app/views/posts/show.html.erb", /content_for :top_nav_center do/
+    assert_file "app/views/posts/show.html.erb", /recording_studio_page_nav\(/
+    assert_file "app/views/posts/show.html.erb", /page_nav_back_url: posts_path/
     assert_file "app/views/posts/new.html.erb", /render "form", post: @post/
-    assert_file "app/views/posts/new.html.erb", /content_for :top_nav_center do/
+    assert_file "app/views/posts/new.html.erb", /page_nav_back_url: posts_path/
     assert_file "app/views/posts/edit.html.erb", /render "form", post: @post/
-    assert_file "app/views/posts/edit.html.erb", /content_for :top_nav_center do/
+    assert_file "app/views/posts/edit.html.erb", /page_nav_back_url: post_path\(@post\)/
     assert_file "app/views/posts/_form.html.erb", /FlatPack::TextInput::Component/
     assert_file "app/views/posts/_form.html.erb", /FlatPack::Button::Component/
   end

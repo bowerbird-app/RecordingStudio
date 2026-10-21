@@ -1,5 +1,5 @@
 class WorkspacesController < ApplicationController
-  include RecordingStudio::UsesDefaultLayout
+  recording_studio_layout
 
   def index
     @workspaces = Workspace.order(created_at: :desc)

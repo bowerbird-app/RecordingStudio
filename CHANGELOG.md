@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-10-21
+
+### Breaking
+
+* `RecordingStudio::UsesDefaultLayout` is removed. Engine and host controllers
+  call `recording_studio_layout { Gem.configuration.layout }`. The macro defines
+  `recording_studio_resolved_layout` and declares
+  `layout :recording_studio_resolved_layout`, so subclasses inherit it through
+  Rails. `include` no longer has to run again on each subclass.
+* Lookup order is the block's setting when it is not `nil`, then
+  `RecordingStudio.configuration.layout` when that is not `nil`, then
+  `RecordingStudio::DEFAULT_LAYOUT` (`"recording_studio/default_layout"`).
+  `RecordingStudio::ApplicationController` uses that same default. It no longer
+  falls back to `"application"`.
+* A layout callable is invoked as `call(controller:)` only. It returns a
+  String (that layout), `nil` (try the next level), or `false` (no layout).
+  A positional parameter raises `ArgumentError`. `configuration.layout = false`
+  is allowed and means no layout.
+* `layout "name"` or `layout false` on a controller still replaces the
+  inherited resolver.
+* `recording_studio/action_layout` is removed, along with
+  `recording_studio/shared/page_nav` and the dummy action-layout demo.
+  Show, new, and edit screens use the default layout.
+* The default layout keeps back and anchor only. It no longer reads
+  `:body_theme`, `:seo_image`, or page-nav icon, style, and size slots.
+  `recording_studio_seo_image` is removed. `:title`, `:head`,
+  `:seo_description`, back and anchor URL and label, `:page_nav_right`,
+  Flatpack stylesheets, and flash alerts stay, because gem views set them.
+* `flat_pack` (>= 0.1.275) is a required dependency. The default layout
+  renders `FlatPack::PageNav::Component` for back and anchor and drops the
+  no-Flatpack fallback. `flat_pack` is not on RubyGems. The gemspec declares
+  the dependency; the Gemfile pins
+  `https://github.com/bowerbird-app/flatpack.git` tag `v0.1.275`.
+
+### Added
+
+* `RecordingStudio::Layout.hardcoded_layout_paths(root, ignore: [])` and
+  `rake recording_studio:check_layouts` report controllers that hard-code
+  `layout "recording_studio/..."`.
+* Host layout contract in `docs/layouts/default_layout.md`: `content_for`
+  slots, Flatpack stylesheets, and flash alerts gem views rely on.
+  `FlatPack::SidebarLayout` is the application shell. Flatpack does not ship
+  a `PageLayout` component; the page shell is `recording_studio/default_layout`.
+
+### Upgrade notes
+
+- Replace `include RecordingStudio::UsesDefaultLayout` with
+  `recording_studio_layout`. See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-500).
+
 ## [4.7.1] - 2026-10-20
 
 ### Fixed
@@ -187,27 +236,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* `recording_studio/action_layout` — FlatPack TopNav shell for focused
-  show/new/edit flows, with `:top_nav_left`, `:top_nav_center`,
-  `:top_nav_right`, and `:before_body_end` slots, sharing the default layout
-  SEO / asset / theme contract
 * Shared layout shells under `app/views/recording_studio/shared/` —
   `default_layout` is now a thin public wrapper over
   `shared/_default_layout` (rendered output unchanged from 4.2.x)
-* `recording_studio/shared/page_nav` partial for action-layout TopNav left
-  content (explicit locals; FlatPack buttons/links)
 * `rails g recording_studio:views RESOURCE` FlatPack scaffold templates
-  (`index` → default layout; `show`/`new`/`edit` → action layout)
 
 ### Upgrade notes
 
-- Opt into action layout per controller:
-  `layout "recording_studio/action_layout"` plus
-  `helper RecordingStudio::LayoutHelper`
-- Prefer `UsesDefaultLayout` / PageNav for most screens; use action layout
-  only when you need left/center/right TopNav regions
-- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-430) and
-  [docs/layouts/action_layout.md](docs/layouts/action_layout.md)
+- 5.0.0 removes the TopNav layout added in this release. See
+  [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-500).
 
 ## [4.2.1] - 2026-09-02
 

@@ -23,7 +23,7 @@ Rails.application.routes.draw do
   get :capabilities, to: "capabilities#index"
   get :layout_demo, to: "layout_demo#show"
   get :layout_demo_chrome_defaults, to: "layout_demo#chrome_defaults"
-  get :action_layout_demo, to: "action_layout_demo#show"
+  get :layout_demo_contract, to: "layout_demo#contract"
   resources :recordings, only: [ :index, :show ] do
     post :log_event, on: :member
     post :revert, on: :member
