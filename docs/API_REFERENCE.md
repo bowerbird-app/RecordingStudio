@@ -242,8 +242,8 @@ Use `RecordingStudio.configure` to access these settings.
 | `recordable_dup_strategy_for(recordable_or_type)` | instance, class, or class name | callable or symbol | Resolves the effective duplication strategy for a type. |
 | `merge!(hash)` | hash-like object | merged configuration | Applies compatible keys from a hash, ignoring removed ones with a warning. |
 | `app_name` / `app_name=` | `String` | `String` | Application name used for `<title>` and `og:site_name` fallbacks in the default layout. Defaults to `"RecordingStudio"`. |
-| `layout` / `layout=` | `nil`, layout name `String`, or a callable | the stored value | Layout for core controllers that serve views. A callable is invoked as `call(controller:)`. `nil` keeps the controller default. A blank string or a value that is neither a String nor callable raises `ArgumentError`. |
-| `resolved_layout(controller:, default:)` | controller and default layout name | layout name | Returns the configured layout, the callable's result, or `default` when unset. |
+| `layout` / `layout=` | `nil`, `false`, layout name `String`, or a callable | the stored value | Host layout used when a gem's `recording_studio_layout` block returns `nil`. A callable is invoked as `call(controller:)`. `nil` means `RecordingStudio::DEFAULT_LAYOUT`. `false` means no layout. A blank string, a positional callable, or any other value raises `ArgumentError`. |
+| `resolved_layout(controller:, default:)` | `controller:` keyword; optional `default:` | layout name or `false` | Resolves `configuration.layout` for one controller. `nil` (including a callable that returns `nil`) returns `default`, which defaults to `RecordingStudio::DEFAULT_LAYOUT`. `false` is returned as `false`. A positional call raises `ArgumentError`. |
 
 Important behavior:
 
@@ -251,7 +251,10 @@ Important behavior:
 - `impersonator` defaults to `-> { Current.impersonator }` when `Current` exists.
 - `idempotency_mode = :return_existing` is retry-friendly and usually correct for HTTP or job retries.
 - `recordable_dup_strategy = :dup` duplicates the recordable and clears known counter caches.
-- `layout` left unset keeps `"application"` on `RecordingStudio::ApplicationController` and `"recording_studio/default_layout"` for controllers that include `UsesDefaultLayout`.
+- `RecordingStudio::DEFAULT_LAYOUT` is `"recording_studio/default_layout"`. It is the layout when both the gem block and `configuration.layout` are `nil`.
+- Controllers call `recording_studio_layout { Gem.configuration.layout }`. The block is evaluated in the controller with no arguments. Lookup is that setting when it is not `nil`, then `configuration.layout`, then `RecordingStudio::DEFAULT_LAYOUT`. The macro defines `recording_studio_resolved_layout` and declares `layout :recording_studio_resolved_layout`, so subclasses inherit it. It also adds `helper RecordingStudio::LayoutHelper`.
+- A layout callable accepts `controller:` only and returns a String, `nil` (try the next level), or `false` (no layout). `layout "name"` or `layout false` on a subclass still wins.
+- `RecordingStudio::Layout.hardcoded_layout_paths(root, ignore: [])` lists controllers that hard-code `layout "recording_studio/..."`. `rake recording_studio:check_layouts` fails when the host tree has one.
 
 ## Translation: `RecordingStudio.t`
 
@@ -560,8 +563,8 @@ publish_events = root.events_query(
 
 ## Layout Helpers: `RecordingStudio::LayoutHelper`
 
-Available in views when controllers include `RecordingStudio::UsesDefaultLayout`
-or manually add `helper RecordingStudio::LayoutHelper`.
+Available in views when the controller calls `recording_studio_layout` (the
+macro adds the helper) or manually adds `helper RecordingStudio::LayoutHelper`.
 
 Public layout entrypoints:
 

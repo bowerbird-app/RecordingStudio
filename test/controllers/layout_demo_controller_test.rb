@@ -80,4 +80,38 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     FlatPack::PageNav.const_set(:Component, page_nav_component) if page_nav_component
     FlatPack::Button.const_set(:Component, button_component) if button_component
   end
+
+  test "default layout template keeps the host contract slots, assets, and alerts" do
+    source = File.read(
+      RecordingStudio::Engine.root.join("app/views/recording_studio/shared/_default_layout.html.erb")
+    )
+    %w[
+      head title body_theme seo_description seo_image
+      page_nav_anchor_url page_nav_anchor_icon page_nav_anchor_label
+      page_nav_back_icon page_nav_back_label page_nav_back_style
+      page_nav_back_size page_nav_back_url page_nav_right
+    ].each { |slot| assert_includes source, slot }
+    assert_includes source, "flat_pack/variables"
+    assert_includes source, "flat_pack/rich_text"
+    assert_includes source, "FlatPack::Alert::Component"
+
+    host_shell = File.read(Rails.root.join("app/views/layouts/application.html.erb"))
+    assert_includes host_shell, "FlatPack::SidebarLayout::Component"
+    assert_includes host_shell, "FlatPack::Alert::Component"
+    assert_includes host_shell, "flat_pack/variables"
+  end
+
+  test "default layout renders flatpack assets, alerts, and content_for slots" do
+    get layout_demo_contract_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "body[data-recording-studio-default-layout='true']", count: 1
+    assert_select "link[rel=stylesheet][href*='flat_pack/variables']", minimum: 1
+    assert_select "link[rel=stylesheet][href*='flat_pack/rich_text']", minimum: 1
+    assert_includes @response.body, "Saved the page"
+    assert_includes @response.body, "Could not save the page"
+    assert_select "title", text: "Default Layout Demo"
+    assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
+    assert_not_includes @response.body, "flat-pack--sidebar-layout"
+  end
 end

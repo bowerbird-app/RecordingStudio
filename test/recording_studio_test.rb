@@ -39,13 +39,22 @@ class RecordingStudioTest < Minitest::Test
 
     assert_raises(ArgumentError) { RecordingStudio.configuration.layout = "" }
     assert_raises(ArgumentError) { RecordingStudio.configuration.layout = 1 }
+    positional = ->(controller) { controller.class.name }
+    error = assert_raises(ArgumentError) { RecordingStudio.configuration.layout = positional }
+    assert_match(/controller:/, error.message)
     assert_nil RecordingStudio.configuration.layout
+
+    RecordingStudio.configuration.layout = false
+    assert_equal false, RecordingStudio.configuration.layout
+  ensure
+    RecordingStudio.configuration.layout = nil
   end
 
   def test_resolved_layout_uses_the_default_a_string_or_a_callable
     controller = Object.new
     configuration = RecordingStudio.configuration
 
+    assert_equal RecordingStudio::DEFAULT_LAYOUT, configuration.resolved_layout(controller: controller)
     assert_equal "application", configuration.resolved_layout(controller: controller, default: "application")
 
     configuration.layout = "recording_studio/action_layout"
@@ -55,6 +64,15 @@ class RecordingStudioTest < Minitest::Test
     configuration.layout = ->(controller:) { controller.object_id.to_s }
     resolved = configuration.resolved_layout(controller: controller, default: "application")
     assert_equal controller.object_id.to_s, resolved
+
+    configuration.layout = ->(controller:) { controller && nil }
+    assert_equal "application", configuration.resolved_layout(controller: controller, default: "application")
+
+    configuration.layout = ->(controller:) { controller && false }
+    assert_equal false, configuration.resolved_layout(controller: controller, default: "application")
+
+    error = assert_raises(ArgumentError) { configuration.resolved_layout(controller, default: "application") }
+    assert_match(/controller/, error.message)
   ensure
     RecordingStudio.configuration.layout = nil
   end

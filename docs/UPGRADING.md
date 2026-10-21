@@ -4,6 +4,78 @@
 
 No unreleased changes.
 
+## Upgrading To 5.0.0
+
+This is a breaking upgrade. `RecordingStudio::UsesDefaultLayout` is removed.
+There is no compatibility shim.
+
+### What Changed
+
+- Controllers opt in with the class macro `recording_studio_layout`. The block
+  returns that gem's layout setting and is evaluated in the controller with no
+  arguments. The macro defines `recording_studio_resolved_layout`, declares
+  `layout :recording_studio_resolved_layout`, and adds
+  `helper RecordingStudio::LayoutHelper`. Subclasses inherit the declaration
+  through Rails, including when a parent class already opted in.
+- Lookup order: the block's setting when it is not `nil`, then
+  `RecordingStudio.configuration.layout` when that is not `nil`, then
+  `RecordingStudio::DEFAULT_LAYOUT` (`"recording_studio/default_layout"`).
+- A setting may be a layout name, `false` (no layout), `nil` (try the next
+  level), or a callable. Call the callable as `call(controller:)`. It returns
+  a String, `nil`, or `false` with the same meaning. A positional parameter
+  raises `ArgumentError`. A callable that returns `nil` now falls through; it
+  no longer selects a nil layout.
+- `layout "name"` or `layout false` on a gem or host subclass still wins.
+- `RecordingStudio::ApplicationController` uses the same lookup. An unset
+  `configuration.layout` selects `RecordingStudio::DEFAULT_LAYOUT`, not
+  `"application"`.
+- Host layouts that replace the default must still render the `content_for`
+  slots, Flatpack stylesheets, and flash alerts listed in
+  [docs/layouts/default_layout.md](layouts/default_layout.md#host-layout-contract).
+  Compose the application shell with `FlatPack::SidebarLayout`. Flatpack does
+  not ship a `PageLayout` component. The page shell is the shared default
+  layout (PageNav, alerts, and those slots).
+
+### Upgrade Steps
+
+On the gem's base controller, replace the concern and any hard-coded
+`layout "recording_studio/default_layout"`:
+
+```ruby
+class ApplicationController < ActionController::Base
+  recording_studio_layout { RecordingStudioX.configuration.layout }
+end
+```
+
+Leave the block returning `nil` when the gem has no layout of its own. Core
+`configuration.layout` and then `RecordingStudio::DEFAULT_LAYOUT` apply.
+
+To force the host application layout for every controller that reaches core:
+
+```ruby
+RecordingStudio.configure do |config|
+  config.layout = "application"
+end
+```
+
+A controller that needs the TopNav shell, or no layout, declares that itself:
+
+```ruby
+class PostsController < ApplicationController
+  layout "recording_studio/action_layout"
+end
+
+class PreviewsController < ApplicationController
+  layout false
+end
+```
+
+`RecordingStudio::Layout.hardcoded_layout_paths(root)` lists remaining
+`layout "recording_studio/..."` calls. `rake recording_studio:check_layouts`
+exits non-zero when the app tree still has one. An intentional action-layout
+override is reported too; pass `ignore:` from the gem's test if that file
+should stay.
+
 ## Upgrading To 4.7.1
 
 This is a patch upgrade. The default layout name is unchanged.

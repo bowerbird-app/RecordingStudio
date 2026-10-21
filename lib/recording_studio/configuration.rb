@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "hooks"
+require_relative "layout"
 
 module RecordingStudio
   class Configuration
@@ -48,26 +49,12 @@ module RecordingStudio
     end
 
     def layout=(value)
-      case value
-      when nil
-        @layout = nil
-      when String
-        raise ArgumentError, "layout must be a layout name" if value.strip.empty?
-
-        @layout = value
-      else
-        raise ArgumentError, "layout must be a String or respond to call" unless value.respond_to?(:call)
-
-        @layout = value
-      end
+      @layout = RecordingStudio::Layout.accept(value)
     end
 
-    def resolved_layout(controller:, default:)
-      configured = layout
-      return default if configured.nil?
-      return configured.call(controller: controller) if configured.respond_to?(:call)
-
-      configured
+    def resolved_layout(controller:, default: RecordingStudio::DEFAULT_LAYOUT)
+      resolved = RecordingStudio::Layout.resolve(layout, controller: controller)
+      resolved.nil? ? default : resolved
     end
 
     def instrumentation_enabled

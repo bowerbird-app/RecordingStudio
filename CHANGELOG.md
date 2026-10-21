@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-10-21
+
+### Breaking
+
+* `RecordingStudio::UsesDefaultLayout` is removed. Engine and host controllers
+  call `recording_studio_layout { Gem.configuration.layout }`. The macro defines
+  `recording_studio_resolved_layout` and declares
+  `layout :recording_studio_resolved_layout`, so subclasses inherit it through
+  Rails. `include` no longer has to run again on each subclass.
+* Lookup order is the block's setting when it is not `nil`, then
+  `RecordingStudio.configuration.layout` when that is not `nil`, then
+  `RecordingStudio::DEFAULT_LAYOUT` (`"recording_studio/default_layout"`).
+  `RecordingStudio::ApplicationController` uses that same default. It no longer
+  falls back to `"application"`.
+* A layout callable is invoked as `call(controller:)` only. It returns a
+  String (that layout), `nil` (try the next level), or `false` (no layout).
+  A positional parameter raises `ArgumentError`. `configuration.layout = false`
+  is allowed and means no layout.
+* `layout "name"` or `layout false` on a controller still replaces the
+  inherited resolver.
+
+### Added
+
+* `RecordingStudio::Layout.hardcoded_layout_paths(root, ignore: [])` and
+  `rake recording_studio:check_layouts` report controllers that hard-code
+  `layout "recording_studio/..."`.
+* Host layout contract in `docs/layouts/default_layout.md`: `content_for`
+  slots, Flatpack stylesheets, and flash alerts gem views rely on.
+  `FlatPack::SidebarLayout` is the application shell. Flatpack does not ship
+  a `PageLayout` component; the page shell is `recording_studio/default_layout`.
+
+### Upgrade notes
+
+- Replace `include RecordingStudio::UsesDefaultLayout` with
+  `recording_studio_layout`. See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-500).
+
 ## [4.7.1] - 2026-10-20
 
 ### Fixed

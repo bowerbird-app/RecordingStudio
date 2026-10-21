@@ -25,34 +25,52 @@ For TopNav-based show/new/edit flows, see `docs/layouts/action_layout.md`.
 
 ## Opting in from a controller
 
-Include the concern:
+Call the class macro on the gem's base controller. Subclasses inherit it
+through Rails layout inheritance, including when the parent already opted in.
 
 ```ruby
-include RecordingStudio::UsesDefaultLayout
+class ApplicationController < ActionController::Base
+  recording_studio_layout { RecordingStudioX.configuration.layout }
+end
 ```
 
-This applies:
+The macro does three things:
 
-- `layout "recording_studio/default_layout"`
-- `helper RecordingStudio::LayoutHelper`
+- Stores the block. It is evaluated in the controller, with no arguments, on
+  each request. Return that gem's layout setting.
+- Defines `recording_studio_resolved_layout` and declares
+  `layout :recording_studio_resolved_layout`.
+- Adds `helper RecordingStudio::LayoutHelper`.
 
-> **Note:** `layout` replaces any previously declared layout for this
-> controller. If your controller inherits from `ApplicationController`
-> which sets `layout "application"`, including `UsesDefaultLayout` will
-> override it. All actions in the controller will use
-> `recording_studio/default_layout` unless `RecordingStudio.configuration.layout`
-> is set.
+`recording_studio_layout` is available on `ActionController::Base` after the
+engine loads. `RecordingStudio::ApplicationController` calls it with no block,
+so core screens use the same lookup.
+
+The macro replaces `RecordingStudio::UsesDefaultLayout`. Do not hard-code
+`layout "recording_studio/default_layout"`.
 
 ## Choosing the layout
 
-`RecordingStudio.configuration.layout` applies wherever a core controller
-serves a view.
+`recording_studio_resolved_layout` checks three levels. The first value that
+is not `nil` wins.
 
-- `nil` (the default) keeps the current layout. `UsesDefaultLayout` still
-  renders `recording_studio/default_layout`. `RecordingStudio::ApplicationController`
-  still renders `application`.
-- A String is a layout name, for example `"application"`.
-- A lambda or proc is called with `controller:` and must return a layout name.
+1. The block's setting (the gem).
+2. `RecordingStudio.configuration.layout` (the host, for every gem that falls
+   through).
+3. `RecordingStudio::DEFAULT_LAYOUT`, which is `"recording_studio/default_layout"`.
+
+A setting at either of the first two levels may be:
+
+| Setting | Result |
+| --- | --- |
+| String | That layout name. A blank string raises `ArgumentError`. |
+| `false` | No layout. This does not fall through. |
+| `nil` | Try the next level. |
+| Callable | Invoked as `call(controller:)`. The return value uses the same three rules. |
+
+```ruby
+recording_studio_layout { RecordingStudioX.configuration.layout }
+```
 
 ```ruby
 RecordingStudio.configure do |config|
@@ -62,30 +80,64 @@ end
 
 ```ruby
 RecordingStudio.configure do |config|
-  config.layout = ->(controller:) { "recording_studio/default_layout" }
+  config.layout = ->(controller:) { controller.action_name == "index" ? nil : false }
 end
 ```
 
-To apply the layout only to specific actions:
+The callable takes the `controller:` keyword only. A positional parameter
+raises `ArgumentError` with a message that names `controller:`. Returning
+`nil` tries the next level. Returning `false` renders with no layout.
+
+A controller-level declaration still wins over the inherited resolver:
 
 ```ruby
-class WorkspacesController < ApplicationController
-  include RecordingStudio::UsesDefaultLayout
+class PostsController < ApplicationController
+  layout "recording_studio/action_layout"
+end
 
-  # Override per-action if some views still need the app layout
-  layout "recording_studio/default_layout", only: [:index, :show]
-  layout "application", only: [:settings]
+class PreviewsController < ApplicationController
+  layout false
 end
 ```
 
-Alternatively, skip the concern and set the layout + helper directly:
+`layout` with `only:` or `except:` is a normal Rails override and also wins.
 
-```ruby
-class WorkspacesController < ApplicationController
-  layout "recording_studio/default_layout"
-  helper RecordingStudio::LayoutHelper
-end
-```
+To find hard-coded `layout "recording_studio/..."` calls, use
+`RecordingStudio::Layout.hardcoded_layout_paths(root)` or
+`rake recording_studio:check_layouts`. The rake task scans the host
+`app/controllers` tree and exits non-zero when it finds one. Pass `ignore:`
+to the Ruby method for a controller that intentionally selects the action
+layout.
+
+## Host layout contract
+
+Gem views render Flatpack components and set `content_for` slots. They do not
+render the application shell. Whatever layout the resolver picks has to
+provide the surroundings below, or navigation, type, and flash messages
+disappear.
+
+`recording_studio/default_layout` is the reference page shell:
+
+- **Slots.** `:head`, `:title`, `:body_theme`, `:seo_description`,
+  `:seo_image`, the `page_nav_*` slots listed under Supported slot contract,
+  and `:page_nav_right`.
+- **Flatpack assets.** Stylesheets `flat_pack/variables` and
+  `flat_pack/rich_text`, plus the importmap when the host defines
+  `javascript_importmap_tags`. Gem views look unstyled without those
+  stylesheets.
+- **Alerts.** `flash[:notice]` and `flash[:alert]` rendered with
+  `FlatPack::Alert::Component`.
+
+Flatpack shells:
+
+- `FlatPack::SidebarLayout::Component` is the application shell: sidebar,
+  optional top nav, and main. The dummy `application` layout uses it. Put the
+  page, including alerts, in the `main` slot.
+- Flatpack does not ship a `PageLayout` component. The page shell is this
+  default layout: PageNav, the alerts, and the slots above. A host that sets
+  `configuration.layout` to its own layout should keep that page contract
+  inside `SidebarLayout`'s main slot, or keep rendering
+  `RecordingStudio::DEFAULT_LAYOUT` for gem screens.
 
 ## Supported slot contract
 
@@ -313,9 +365,12 @@ Empty Labels markers use `recording_studio.core.labels.empty` through
 
 ## Addon Author Guidance
 
-- Prefer `include RecordingStudio::UsesDefaultLayout` over a custom layout for
-  consistent page chrome across all RecordingStudio addons.
-- If your addon needs a sidebar, create a layout that wraps
-  `recording_studio/default_layout` rather than duplicating the PageNav shell.
-- Use `recording_studio_page_nav` in your views to configure back/close
-  navigation and page titles — avoid setting `content_for` slots directly.
+- Call `recording_studio_layout` on the gem base controller and return that
+  gem's layout setting from the block. `nil` lets the host and then
+  `RecordingStudio::DEFAULT_LAYOUT` decide.
+- Do not hard-code `layout "recording_studio/default_layout"`. A screen that
+  needs TopNav can declare `layout "recording_studio/action_layout"` on that
+  controller only.
+- If the addon needs a sidebar, wrap the page in `FlatPack::SidebarLayout`
+  and keep the host layout contract. Do not duplicate the PageNav shell.
+- Use `recording_studio_page_nav` in views for back/close and the page title.

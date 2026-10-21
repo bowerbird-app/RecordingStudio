@@ -1056,13 +1056,21 @@ shells under `app/views/recording_studio/shared/`.
 shell, flash alerts, automatic OpenGraph meta tags, and yields page content
 directly.
 
-Opt in from any controller with a single concern:
+Opt in from the gem's base controller. Subclasses inherit the layout
+through Rails:
 
 ```ruby
-class WorkspacesController < ApplicationController
-  include RecordingStudio::UsesDefaultLayout
+class ApplicationController < ActionController::Base
+  recording_studio_layout { RecordingStudioX.configuration.layout }
 end
 ```
+
+The block returns that gem's layout setting (`nil`, `false`, a layout name,
+or a callable invoked as `call(controller:)`). Lookup uses the first value
+that is not `nil`: the block, then `RecordingStudio.configuration.layout`,
+then `RecordingStudio::DEFAULT_LAYOUT` (`"recording_studio/default_layout"`).
+`false` renders with no layout. A subclass `layout "name"` or `layout false`
+still wins. The macro also adds `helper RecordingStudio::LayoutHelper`.
 
 Configure page navigation, SEO metadata, and `<head>` content from your views
 with `RecordingStudio::LayoutHelper`:
@@ -1119,9 +1127,8 @@ Set a custom app name for `<title>` and `og:site_name` fallback:
 RecordingStudio.configure { |config| config.app_name = "My App" }
 ```
 
-Set the layout for core controllers that serve views. Leave it unset to keep
-the current layout (`recording_studio/default_layout` via `UsesDefaultLayout`,
-`"application"` on `RecordingStudio::ApplicationController`).
+Set the host layout for every controller whose gem block returns `nil`.
+Leave it unset to use `RecordingStudio::DEFAULT_LAYOUT`.
 
 ```ruby
 RecordingStudio.configure do |config|
@@ -1134,6 +1141,12 @@ RecordingStudio.configure do |config|
   config.layout = ->(controller:) { "recording_studio/default_layout" }
 end
 ```
+
+A host layout that replaces the default still has to render the `content_for`
+slots, Flatpack stylesheets (`flat_pack/variables`, `flat_pack/rich_text`),
+and `flash` alerts that gem views rely on. `FlatPack::SidebarLayout` is the
+application shell. Flatpack does not ship a `PageLayout` component; the page
+shell is `recording_studio/default_layout`. See `docs/layouts/default_layout.md`.
 
 A `data-theme="rounded"` attribute is applied to `<body>` by default; override
 it per-view with `content_for(:body_theme, "your-theme")`.

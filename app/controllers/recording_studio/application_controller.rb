@@ -2,13 +2,10 @@
 
 module RecordingStudio
   class ApplicationController < ActionController::Base
+    include ControllerLayout
+
     protect_from_forgery with: :exception
-    layout :recording_studio_layout
 
-    private
-
-    def recording_studio_layout
-      RecordingStudio.configuration.resolved_layout(controller: self, default: "application")
-    end
+    recording_studio_layout
   end
 end

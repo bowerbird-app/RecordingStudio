@@ -20,15 +20,18 @@ regions instead of PageNav.
 
 ## Opting in from a controller
 
+Declare the layout on the controller that needs TopNav. That declaration
+replaces an inherited `recording_studio_layout` resolver. The base controller
+should still call the macro so other actions keep the shared lookup.
+`RecordingStudio::LayoutHelper` comes from the macro; add it yourself only
+when this controller does not inherit the macro.
+
 ```ruby
 class PostsController < ApplicationController
   layout "recording_studio/action_layout"
   helper RecordingStudio::LayoutHelper
 end
 ```
-
-Use `RecordingStudio::LayoutHelper` for SEO helpers. There is no separate
-action-layout concern; set the layout explicitly when you need TopNav.
 
 ## Supported slots
 
@@ -75,7 +78,7 @@ looked up through `RecordingStudio.t` (missing locales fall back to the loaded
 | Chrome | `FlatPack::PageNav` | `FlatPack::TopNav` |
 | Primary use | Index and most addon screens | Focused show/new/edit flows |
 | SEO slots | `:title`, `:seo_description`, `:seo_image`, `:head` | Same |
-| Helper concern | `UsesDefaultLayout` | Set `layout` + `helper` explicitly |
+| How to opt in | `recording_studio_layout` on the base controller | `layout "recording_studio/action_layout"` on that controller |
 
 Public entrypoints live under `app/views/layouts/recording_studio/` and render
 shared shells from `app/views/recording_studio/shared/`.
