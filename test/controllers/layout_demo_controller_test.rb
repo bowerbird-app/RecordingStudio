@@ -46,41 +46,6 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "meta[property='og:site_name'][content='Custom App Name']", count: 1
   end
 
-  test "non-FlatPack page nav fallback renders literal english" do
-    page_nav_component = FlatPack::PageNav::Component
-    FlatPack::PageNav.send(:remove_const, :Component)
-
-    get layout_demo_path, headers: modern_headers
-
-    assert_response :success
-    assert_select "nav[aria-label='Page navigation']", count: 1
-    assert_select "#recording-studio-back-button", count: 1
-    assert_includes @response.body, 'aria-label="Go back"'
-    assert_includes @response.body, "Close demo"
-    assert_not_includes @response.body, "flat-pack--page-nav"
-  ensure
-    FlatPack::PageNav.const_set(:Component, page_nav_component) if page_nav_component
-  end
-
-  test "pure HTML page nav fallback renders default Close english" do
-    page_nav_component = FlatPack::PageNav::Component
-    button_component = FlatPack::Button::Component
-    FlatPack::PageNav.send(:remove_const, :Component)
-    FlatPack::Button.send(:remove_const, :Component)
-
-    get layout_demo_chrome_defaults_path, headers: modern_headers
-
-    assert_response :success
-    assert_select "nav[aria-label='Page navigation']", count: 1
-    assert_select "#recording-studio-back-button", count: 0
-    assert_includes @response.body, "Go back"
-    assert_includes @response.body, "Close"
-    assert_not_includes @response.body, "Close demo"
-  ensure
-    FlatPack::PageNav.const_set(:Component, page_nav_component) if page_nav_component
-    FlatPack::Button.const_set(:Component, button_component) if button_component
-  end
-
   test "default layout template keeps the host contract slots, assets, and alerts" do
     source = File.read(
       RecordingStudio::Engine.root.join("app/views/recording_studio/shared/_default_layout.html.erb")
@@ -95,7 +60,11 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     end
     assert_includes source, "flat_pack/variables"
     assert_includes source, "flat_pack/rich_text"
+    assert_includes source, "FlatPack::PageNav::Component"
     assert_includes source, "FlatPack::Alert::Component"
+    refute_includes source, "defined?(FlatPack"
+    refute_includes source, "recording-studio-back-button"
+    refute_includes source, "history.back"
 
     host_shell = File.read(Rails.root.join("app/views/layouts/application.html.erb"))
     assert_includes host_shell, "FlatPack::SidebarLayout::Component"

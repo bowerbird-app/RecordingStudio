@@ -13,6 +13,7 @@ PATH
   remote: .
   specs:
     recording_studio (5.0.0)
+      flat_pack (>= 0.1.275)
       rails (>= 8.1.0)
 
 GEM

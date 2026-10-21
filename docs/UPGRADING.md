@@ -45,6 +45,14 @@ There is no compatibility shim.
 - Give each gem surface its own setting (default `nil`) and its own base
   controller block. A host sets `RecordingStudio.configuration.layout` for
   every nil block, or sets one gem setting to override that surface.
+- `flat_pack` (>= 0.1.275) is a required runtime dependency. The default
+  layout renders `FlatPack::PageNav::Component` for back and anchor and no
+  longer includes a Button, plain-link, or hand-built history-back fallback.
+  `flat_pack` is not on RubyGems. Add the git source in the host Gemfile:
+
+  ```ruby
+  gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.275"
+  ```
 
 ### Upgrade Steps
 
@@ -738,11 +746,11 @@ RecordingStudio `3.0.1` ships a reusable layout for addon gems at
 safe defaults. Addon controllers can opt in with a single concern include and
 a lightweight helper API to configure page nav metadata.
 
-> **Prerequisite:** The default layout depends on `FlatPack::PageNav::Component`
-> and `FlatPack::Alert::Component`. These are bundled with RecordingStudio's
-> FlatPack dependency — no additional gem installation is needed. The layout
-> includes automatic fallbacks when FlatPack components are unavailable, so
-> pages won't break if FlatPack hasn't been wired up yet.
+> **Prerequisite:** `flat_pack` (>= 0.1.275) is a required RecordingStudio
+> dependency. The layout renders `FlatPack::PageNav::Component` and
+> `FlatPack::Alert::Component`. It does not fall back when Flatpack is
+> missing. The gem is not on RubyGems; point the host Gemfile at
+> `https://github.com/bowerbird-app/flatpack.git` tag `v0.1.275`.
 >
 > The demo route at `/layout_demo` in the dummy app shows a complete working
 > example (see `test/dummy/app/controllers/layout_demo_controller.rb` and
@@ -757,7 +765,6 @@ a lightweight helper API to configure page nav metadata.
 - Automatic OpenGraph tags (og:title, og:type, og:url, og:description,
   og:site_name) for SEO, plus optional `<meta name="description">`.
 - Flash notice/alert rendering with `FlatPack::Alert::Component`.
-- Automatic fallbacks when FlatPack components are unavailable.
 - Configurable app name via `RecordingStudio.configuration.app_name`
   (defaults to `"RecordingStudio"`) used as the `<title>` and `og:site_name`
   fallback.

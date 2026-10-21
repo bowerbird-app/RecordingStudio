@@ -35,14 +35,9 @@ class CoreI18nFrenchHostOverrideTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "boot-loaded host french Close renders on pure HTML chrome defaults page" do
+  test "boot-loaded host french Close renders on the page nav" do
     assert_boot_loaded_french_override_preconditions!
     assert I18n.exists?("recording_studio.core.navigation.close", :fr)
-
-    page_nav_component = FlatPack::PageNav::Component
-    button_component = FlatPack::Button::Component
-    FlatPack::PageNav.send(:remove_const, :Component)
-    FlatPack::Button.send(:remove_const, :Component)
 
     I18n.with_locale(:fr) do
       get layout_demo_chrome_defaults_path, headers: modern_headers
@@ -52,9 +47,6 @@ class CoreI18nFrenchHostOverrideTest < ActionDispatch::IntegrationTest
       refute_match(/(?<!HOST )Close/, response.body)
       refute_match(/translation missing/i, response.body)
     end
-  ensure
-    FlatPack::PageNav.const_set(:Component, page_nav_component) if page_nav_component
-    FlatPack::Button.const_set(:Component, button_component) if button_component
   end
 
   private

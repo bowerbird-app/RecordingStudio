@@ -35,6 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `recording_studio_seo_image` is removed. `:title`, `:head`,
   `:seo_description`, back and anchor URL and label, `:page_nav_right`,
   Flatpack stylesheets, and flash alerts stay, because gem views set them.
+* `flat_pack` (>= 0.1.275) is a required dependency. The default layout
+  renders `FlatPack::PageNav::Component` for back and anchor and drops the
+  no-Flatpack fallback. `flat_pack` is not on RubyGems. The gemspec declares
+  the dependency; the Gemfile pins
+  `https://github.com/bowerbird-app/flatpack.git` tag `v0.1.275`.
 
 ### Added
 

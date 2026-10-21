@@ -32,41 +32,6 @@ class CoreI18nEnglishFallbackTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "missing locale without translations renders gem english on non-FlatPack page nav fallback" do
-    page_nav_component = FlatPack::PageNav::Component
-    FlatPack::PageNav.send(:remove_const, :Component)
-
-    I18n.with_locale(:de) do
-      get layout_demo_path, headers: modern_headers
-
-      assert_response :success
-      assert_select "nav[aria-label='Page navigation']", count: 1
-      assert_includes @response.body, 'aria-label="Go back"'
-      refute_match(/translation missing/i, @response.body)
-    end
-  ensure
-    FlatPack::PageNav.const_set(:Component, page_nav_component) if page_nav_component
-  end
-
-  test "missing locale without translations renders gem english Close on pure HTML fallback" do
-    page_nav_component = FlatPack::PageNav::Component
-    button_component = FlatPack::Button::Component
-    FlatPack::PageNav.send(:remove_const, :Component)
-    FlatPack::Button.send(:remove_const, :Component)
-
-    I18n.with_locale(:de) do
-      get layout_demo_chrome_defaults_path, headers: modern_headers
-
-      assert_response :success
-      assert_includes @response.body, "Go back"
-      assert_includes @response.body, "Close"
-      refute_match(/translation missing/i, @response.body)
-    end
-  ensure
-    FlatPack::PageNav.const_set(:Component, page_nav_component) if page_nav_component
-    FlatPack::Button.const_set(:Component, button_component) if button_component
-  end
-
   test "missing locale without translations resolves Labels empty marker to gem english" do
     I18n.with_locale(:de) do
       refute I18n.exists?("recording_studio.core.labels.empty", :de)

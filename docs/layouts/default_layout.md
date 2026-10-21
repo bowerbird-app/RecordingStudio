@@ -9,10 +9,12 @@ The page nav is back and anchor only. Back is always shown. The anchor
 style, and button size are fixed: back is `chevron-left` / secondary / md,
 and the anchor is `x-mark`.
 
-> **Prerequisite:** The layout renders `FlatPack::PageNav::Component` and
-> `FlatPack::Alert::Component` from the FlatPack dependency. When those
-> components are not loaded, the same back and anchor controls render as
-> buttons or links.
+> **Prerequisite:** `flat_pack` is a required dependency (`>= 0.1.275`).
+> The layout renders `FlatPack::PageNav::Component` and
+> `FlatPack::Alert::Component`. There is no fallback when Flatpack is
+> missing. `flat_pack` is not on RubyGems. The gemspec declares the
+> dependency, and the host Gemfile supplies the git source
+> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.275`).
 
 ## What it provides
 
@@ -189,7 +191,7 @@ or size slots. No gem view sets those. Back and anchor icons stay
 | Description | Omitted when blank |
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
-| Back | Always shown. Icon `chevron-left`, style secondary, size md. Label is `page_nav_back_label` or "Go back". `page_nav_back_url` is the href; with no URL, Flatpack uses history back and the anchor URL as `fallback_url`. |
+| Back | Always shown through `FlatPack::PageNav` `with_back`. Icon `chevron-left`, style secondary, size md. Label is `page_nav_back_label` or "Go back". `page_nav_back_url` is the href. With no URL, PageNav renders a history-back button (`click->flat-pack--page-nav#back`) and uses `page_nav_anchor_url` as `fallback_url` when that URL is set. |
 | Anchor | Hidden unless `page_nav_anchor_url` is set. Icon `x-mark`. Label is `page_nav_anchor_label` or "Close". The layout does not read `params`. |
 | Right slot | Empty until `page_nav_right` is set. Then it sits in a trailing `ml-auto` row item. |
 
