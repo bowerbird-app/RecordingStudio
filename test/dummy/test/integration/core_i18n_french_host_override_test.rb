@@ -32,12 +32,6 @@ class CoreI18nFrenchHostOverrideTest < ActionDispatch::IntegrationTest
       assert_includes response.body, "HOST Retour"
       refute_match(/(?<!HOST )Go back/, response.body)
       refute_match(/translation missing/i, response.body)
-
-      get action_layout_demo_path, headers: modern_headers
-
-      assert_response :success
-      assert_includes response.body, "HOST Retour court"
-      assert_select "nav[aria-label='HOST Action page navigation FR']", count: 1
     end
   end
 

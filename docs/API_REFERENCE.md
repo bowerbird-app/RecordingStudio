@@ -566,19 +566,15 @@ publish_events = root.events_query(
 Available in views when the controller calls `recording_studio_layout` (the
 macro adds the helper) or manually adds `helper RecordingStudio::LayoutHelper`.
 
-Public layout entrypoints:
+Public layout:
 
-- `recording_studio/default_layout` — PageNav shell (see `docs/layouts/default_layout.md`)
-- `recording_studio/action_layout` — TopNav shell for focused flows (see `docs/layouts/action_layout.md`)
-
-Both layouts honor the same SEO helpers below. Action layout additionally reads
-`:top_nav_left`, `:top_nav_center`, `:top_nav_right`, and `:before_body_end`.
+- `recording_studio/default_layout` — back and anchor page shell (see `docs/layouts/default_layout.md`)
 
 ### Page nav helpers
 
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
-| `recording_studio_page_nav(title:, **slot_values)` | optional title and page-nav slot keys | `nil` | Sets `content_for` slots for `FlatPack::PageNav::Component` configuration. |
+| `recording_studio_page_nav(title:, **slot_values)` | optional title plus `page_nav_back_url`, `page_nav_back_label`, `page_nav_anchor_url`, `page_nav_anchor_label` | `nil` | Sets `content_for` slots for the back and anchor buttons. |
 | `recording_studio_page_nav_right(&block)` | block | `nil` | Renders block content into the PageNav right slot. |
 | `default_layout_head(&block)` | block | `nil` | Adds block content to `<head>` via `yield :head`. |
 
@@ -587,7 +583,6 @@ Both layouts honor the same SEO helpers below. Action layout additionally reads
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
 | `recording_studio_seo_description(text)` | description string | `nil` | Sets `<meta name="description">` and `og:description` tags. |
-| `recording_studio_seo_image(url)` | image URL string | `nil` | Sets `<meta property="og:image">` tag. |
 
 ### Example
 
@@ -595,12 +590,10 @@ Both layouts honor the same SEO helpers below. Action layout additionally reads
 <% recording_studio_page_nav(
   title: "Workspaces",
   page_nav_anchor_url: root_path,
-  page_nav_anchor_icon: "home",
   page_nav_anchor_label: "Home"
 ) %>
 
 <% recording_studio_seo_description("Browse and manage your workspaces") %>
-<% recording_studio_seo_image("https://example.com/workspaces-og.png") %>
 
 <% recording_studio_page_nav_right do %>
   <%= render FlatPack::Button::Component.new(

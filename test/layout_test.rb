@@ -57,7 +57,7 @@ class LayoutTest < Minitest::Test
       )
       File.write(
         File.join(controllers, "action_controller.rb"),
-        "class ActionController\n  layout 'recording_studio/action_layout'\nend\n"
+        "class ActionController\n  layout 'recording_studio/library'\nend\n"
       )
 
       action_controller = File.join(controllers, "action_controller.rb")

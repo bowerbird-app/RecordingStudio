@@ -11,7 +11,6 @@ module RecordingStudio
       RecordingStudio::DelegatedTypeRegistrar.apply!
       RecordingStudio.apply_capabilities!
       RecordingStudio::Engine.apply_registered_extensions!
-      ActionController::Base.include(RecordingStudio::ControllerLayout)
     end
 
     initializer "recording_studio.controller_layout" do

@@ -57,9 +57,9 @@ class RecordingStudioTest < Minitest::Test
     assert_equal RecordingStudio::DEFAULT_LAYOUT, configuration.resolved_layout(controller: controller)
     assert_equal "application", configuration.resolved_layout(controller: controller, default: "application")
 
-    configuration.layout = "recording_studio/action_layout"
+    configuration.layout = "host_pages"
     resolved = configuration.resolved_layout(controller: controller, default: "application")
-    assert_equal "recording_studio/action_layout", resolved
+    assert_equal "host_pages", resolved
 
     configuration.layout = ->(controller:) { controller.object_id.to_s }
     resolved = configuration.resolved_layout(controller: controller, default: "application")

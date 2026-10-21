@@ -19,6 +19,20 @@ class LayoutResolutionNoLayoutController < LayoutResolutionParentController
   layout false
 end
 
+module LayoutResolutionSurfaces
+  class << self
+    attr_accessor :library_layout, :editor_layout
+  end
+end
+
+class LayoutResolutionLibraryController < ActionController::Base
+  recording_studio_layout { LayoutResolutionSurfaces.library_layout }
+end
+
+class LayoutResolutionEditorController < ActionController::Base
+  recording_studio_layout { LayoutResolutionSurfaces.editor_layout }
+end
+
 class LayoutResolutionTest < ActiveSupport::TestCase
   setup do
     @original_layout = RecordingStudio.configuration.layout
@@ -96,6 +110,28 @@ class LayoutResolutionTest < ActiveSupport::TestCase
 
     assert_equal "host_pages", LayoutResolutionOverrideController._layout
     assert_equal "host_pages", rendered_layout(LayoutResolutionOverrideController)
+  end
+
+  test "sibling base controllers resolve their own settings" do
+    LayoutResolutionSurfaces.library_layout = "library_pages"
+    LayoutResolutionSurfaces.editor_layout = "editor_pages"
+    RecordingStudio.configuration.layout = "core_pages"
+
+    assert_equal "library_pages", resolved(LayoutResolutionLibraryController)
+    assert_equal "editor_pages", resolved(LayoutResolutionEditorController)
+
+    LayoutResolutionSurfaces.library_layout = "host_library"
+
+    assert_equal "host_library", resolved(LayoutResolutionLibraryController)
+    assert_equal "editor_pages", resolved(LayoutResolutionEditorController)
+
+    LayoutResolutionSurfaces.editor_layout = nil
+
+    assert_equal "core_pages", resolved(LayoutResolutionEditorController)
+    assert_equal "host_library", resolved(LayoutResolutionLibraryController)
+  ensure
+    LayoutResolutionSurfaces.library_layout = nil
+    LayoutResolutionSurfaces.editor_layout = nil
   end
 
   test "layout false on a controller overrides the inherited resolver" do

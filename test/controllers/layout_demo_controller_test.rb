@@ -33,7 +33,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "meta[property='og:title'][content='Default Layout Demo']", count: 1
     assert_select "meta[property='og:type'][content='website']", count: 1
     assert_select "meta[name='description'][content*='SEO']", count: 1
-    assert_select "meta[property='og:image'][content='https://example.com/og-image.png']", count: 1
+    assert_select "meta[property='og:image']", count: 0
     assert_select "meta[property='og:site_name'][content='Custom App Name']", count: 1
     assert_select "meta[property='og:description'][content*='SEO']", count: 1
   end
@@ -86,11 +86,13 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
       RecordingStudio::Engine.root.join("app/views/recording_studio/shared/_default_layout.html.erb")
     )
     %w[
-      head title body_theme seo_description seo_image
-      page_nav_anchor_url page_nav_anchor_icon page_nav_anchor_label
-      page_nav_back_icon page_nav_back_label page_nav_back_style
-      page_nav_back_size page_nav_back_url page_nav_right
+      head title seo_description
+      page_nav_anchor_url page_nav_anchor_label
+      page_nav_back_label page_nav_back_url page_nav_right
     ].each { |slot| assert_includes source, slot }
+    %w[body_theme seo_image page_nav_back_icon page_nav_anchor_icon].each do |slot|
+      refute_includes source, slot
+    end
     assert_includes source, "flat_pack/variables"
     assert_includes source, "flat_pack/rich_text"
     assert_includes source, "FlatPack::Alert::Component"

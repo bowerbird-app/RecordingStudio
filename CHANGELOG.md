@@ -27,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   is allowed and means no layout.
 * `layout "name"` or `layout false` on a controller still replaces the
   inherited resolver.
+* `recording_studio/action_layout` is removed, along with
+  `recording_studio/shared/page_nav` and the dummy action-layout demo.
+  Show, new, and edit screens use the default layout.
+* The default layout keeps back and anchor only. It no longer reads
+  `:body_theme`, `:seo_image`, or page-nav icon, style, and size slots.
+  `recording_studio_seo_image` is removed. `:title`, `:head`,
+  `:seo_description`, back and anchor URL and label, `:page_nav_right`,
+  Flatpack stylesheets, and flash alerts stay, because gem views set them.
 
 ### Added
 
@@ -223,27 +231,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* `recording_studio/action_layout` — FlatPack TopNav shell for focused
-  show/new/edit flows, with `:top_nav_left`, `:top_nav_center`,
-  `:top_nav_right`, and `:before_body_end` slots, sharing the default layout
-  SEO / asset / theme contract
 * Shared layout shells under `app/views/recording_studio/shared/` —
   `default_layout` is now a thin public wrapper over
   `shared/_default_layout` (rendered output unchanged from 4.2.x)
-* `recording_studio/shared/page_nav` partial for action-layout TopNav left
-  content (explicit locals; FlatPack buttons/links)
 * `rails g recording_studio:views RESOURCE` FlatPack scaffold templates
-  (`index` → default layout; `show`/`new`/`edit` → action layout)
 
 ### Upgrade notes
 
-- Opt into action layout per controller:
-  `layout "recording_studio/action_layout"` plus
-  `helper RecordingStudio::LayoutHelper`
-- Prefer `UsesDefaultLayout` / PageNav for most screens; use action layout
-  only when you need left/center/right TopNav regions
-- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-430) and
-  [docs/layouts/action_layout.md](docs/layouts/action_layout.md)
+- 5.0.0 removes the TopNav layout added in this release. See
+  [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-500).
 
 ## [4.2.1] - 2026-09-02
 

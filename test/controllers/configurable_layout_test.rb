@@ -20,16 +20,14 @@ class ConfigurableLayoutTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
-    assert_select "body[data-recording-studio-action-layout='true']", count: 0
   end
 
   test "string layout config selects that layout" do
-    RecordingStudio.configuration.layout = "recording_studio/action_layout"
+    RecordingStudio.configuration.layout = "application"
 
     get layout_demo_path, headers: modern_headers
 
     assert_response :success
-    assert_select "body[data-recording-studio-action-layout='true']", count: 1
     assert_select "body[data-recording-studio-default-layout='true']", count: 0
     assert_includes @response.body, "Default Layout Demo"
   end
@@ -38,13 +36,13 @@ class ConfigurableLayoutTest < ActionDispatch::IntegrationTest
     seen = nil
     RecordingStudio.configuration.layout = lambda { |controller:|
       seen = controller
-      "recording_studio/action_layout"
+      "application"
     }
 
     get layout_demo_path, headers: modern_headers
 
     assert_response :success
     assert_equal "LayoutDemoController", seen.class.name
-    assert_select "body[data-recording-studio-action-layout='true']", count: 1
+    assert_select "body[data-recording-studio-default-layout='true']", count: 0
   end
 end

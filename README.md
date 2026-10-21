@@ -972,13 +972,12 @@ The migrations generator installs the current core schema for fresh host apps.
 
 The views generator scaffolds FlatPack resource templates:
 
-- `index` intended for `recording_studio/default_layout` with `recording_studio_page_nav`
-- `show` / `new` / `edit` intended for `recording_studio/action_layout` with TopNav slots
+- `index`, `show`, `new`, and `edit` intended for `recording_studio/default_layout` with `recording_studio_page_nav`
 - `_form` using FlatPack inputs and buttons
 
-Generated action templates demonstrate `:top_nav_left`, `:top_nav_center`, and `:top_nav_right`, plus the shared
-`recording_studio/shared/page_nav` partial and the existing SEO helpers (`recording_studio_seo_description`,
-`recording_studio_seo_image`, `default_layout_head`).
+Generated templates use `recording_studio_page_nav` and the SEO helpers
+(`recording_studio_seo_description`, `default_layout_head`). The resolver
+picks the layout. The templates do not hard-code one.
 
 If you are upgrading an older host app that previously depended on RecordingStudio's historical migration chain, use:
 
@@ -1038,88 +1037,51 @@ already usable. Fetch-skills always runs last. `.cursor/start.sh` starts
 PostgreSQL on each boot. Rebuild with Draft off to load a new pack. See
 [Cursor skills in Cloud Agents](docs/cursor-skills.md).
 
-## Shared Layouts
+## Shared Layout
 
-RecordingStudio provides two public layout entrypoints for addon gems:
+RecordingStudio ships one public layout:
 
-- `recording_studio/default_layout` — PageNav shell (primary shared layout)
-- `recording_studio/action_layout` — TopNav shell for focused create/show/edit flows
+- `recording_studio/default_layout` — minimal page shell with back and anchor
 
-Both layouts share the same SEO slot contract (`:title`, `:seo_description`,
-`:seo_image`, `:head`), stylesheet/importmap wiring, flash alerts, and
-`data-theme` defaults. Public layout files are thin wrappers around shared
-shells under `app/views/recording_studio/shared/`.
+The public file wraps `app/views/recording_studio/shared/_default_layout.html.erb`.
+It does not assume a sidebar or a page kind. `<body>` is `data-theme="rounded"`.
 
-### Default layout (PageNav)
-
-`recording_studio/default_layout` renders a `FlatPack::PageNav::Component`
-shell, flash alerts, automatic OpenGraph meta tags, and yields page content
-directly.
-
-Opt in from the gem's base controller. Subclasses inherit the layout
-through Rails:
+Give each gem surface its own setting, defaulting to `nil`, and its own base
+controller:
 
 ```ruby
-class ApplicationController < ActionController::Base
-  recording_studio_layout { RecordingStudioX.configuration.layout }
+class Library::ApplicationController < ActionController::Base
+  recording_studio_layout { RecordingStudioLibrary.configuration.library_layout }
+end
+
+class Editor::ApplicationController < ActionController::Base
+  recording_studio_layout { RecordingStudioLibrary.configuration.editor_layout }
 end
 ```
 
-The block returns that gem's layout setting (`nil`, `false`, a layout name,
-or a callable invoked as `call(controller:)`). Lookup uses the first value
-that is not `nil`: the block, then `RecordingStudio.configuration.layout`,
-then `RecordingStudio::DEFAULT_LAYOUT` (`"recording_studio/default_layout"`).
+The block returns that surface's setting (`nil`, `false`, a layout name, or
+a callable invoked as `call(controller:)`). Lookup uses the first value that
+is not `nil`: the block, then `RecordingStudio.configuration.layout`, then
+`RecordingStudio::DEFAULT_LAYOUT` (`"recording_studio/default_layout"`).
 `false` renders with no layout. A subclass `layout "name"` or `layout false`
 still wins. The macro also adds `helper RecordingStudio::LayoutHelper`.
 
-Configure page navigation, SEO metadata, and `<head>` content from your views
-with `RecordingStudio::LayoutHelper`:
-
-- `recording_studio_page_nav(title:, **slots)` — set the page title and PageNav slots
-- `recording_studio_page_nav_right { ... }` — render content into the PageNav right slot
-- `default_layout_head { ... }` — append content to `<head>`
-- `recording_studio_seo_description(text)` — set `<meta name="description">` and `og:description`
-- `recording_studio_seo_image(url)` — set `og:image`
-
-### Action layout (TopNav)
-
-`recording_studio/action_layout` is optional for show/new/edit-style screens that
-need left/center/right TopNav regions instead of PageNav:
+A host sets the core default for every nil block, or overrides one surface:
 
 ```ruby
-class PostsController < ApplicationController
-  layout "recording_studio/action_layout"
-  helper RecordingStudio::LayoutHelper
-
-  def show
-  end
+RecordingStudio.configure do |config|
+  config.layout = "application"
 end
+
+RecordingStudioLibrary.configuration.library_layout = "library"
 ```
 
-Action-layout TopNav slots:
+Configure page navigation and `<head>` content from views:
 
-- `:top_nav_left`
-- `:top_nav_center`
-- `:top_nav_right`
-- `:before_body_end` (optional markup before `</body>`)
-
-Recommended left-slot pattern:
-
-```erb
-<% content_for :top_nav_left do %>
-  <%= render "recording_studio/shared/page_nav",
-        title: "Page title",
-        back_path: some_path,
-        items: [{ label: "Overview", href: overview_path }],
-        resource: "ResourceName",
-        context: "Workspace A" %>
-<% end %>
-```
-
-Suggested action mapping for scaffolded controllers:
-
-- `index` → `recording_studio/default_layout`
-- `show` / `new` / `edit` → `recording_studio/action_layout`
+- `recording_studio_page_nav(title:, page_nav_back_url:, page_nav_back_label:, page_nav_anchor_url:, page_nav_anchor_label:)`
+- `recording_studio_page_nav_right { ... }` — PageNav right slot
+- `default_layout_head { ... }` — append content to `<head>`
+- `recording_studio_seo_description(text)` — description and `og:description`
 
 Set a custom app name for `<title>` and `og:site_name` fallback:
 
@@ -1127,34 +1089,11 @@ Set a custom app name for `<title>` and `og:site_name` fallback:
 RecordingStudio.configure { |config| config.app_name = "My App" }
 ```
 
-Set the host layout for every controller whose gem block returns `nil`.
-Leave it unset to use `RecordingStudio::DEFAULT_LAYOUT`.
-
-```ruby
-RecordingStudio.configure do |config|
-  config.layout = "application"
-end
-```
-
-```ruby
-RecordingStudio.configure do |config|
-  config.layout = ->(controller:) { "recording_studio/default_layout" }
-end
-```
-
 A host layout that replaces the default still has to render the `content_for`
 slots, Flatpack stylesheets (`flat_pack/variables`, `flat_pack/rich_text`),
 and `flash` alerts that gem views rely on. `FlatPack::SidebarLayout` is the
 application shell. Flatpack does not ship a `PageLayout` component; the page
 shell is `recording_studio/default_layout`. See `docs/layouts/default_layout.md`.
-
-A `data-theme="rounded"` attribute is applied to `<body>` by default; override
-it per-view with `content_for(:body_theme, "your-theme")`.
-
-Full layout details are documented in:
-
-- `docs/layouts/default_layout.md`
-- `docs/layouts/action_layout.md`
 
 ## Testing Guidance
 
