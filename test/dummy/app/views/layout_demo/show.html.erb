@@ -1,7 +1,7 @@
-<% recording_studio_page_nav(
-  title: "Default Layout Demo",
-  page_nav_anchor_url: workspaces_path,
-  page_nav_anchor_label: "Close demo"
+<% content_for :title, "Default Layout Demo" %>
+<% flat_pack_page_nav(
+  anchor_href: workspaces_path,
+  anchor_tooltip: "Close demo"
 ) %>
 
 <% default_layout_head do %>
@@ -10,9 +10,7 @@
 
 <% recording_studio_seo_description("RecordingStudio layout demo page with PageNav, SEO, and OpenGraph support") %>
 
-<% recording_studio_page_nav_right do %>
-  <%= render FlatPack::Button::Component.new(text: "Create workspace", style: :secondary, href: new_workspace_path) %>
-<% end %>
+<% page_action "Create workspace", new_workspace_path, role: :secondary %>
 
 <div class="space-y-3 p-4">
   <h1 class="text-lg font-semibold">Default Layout Demo</h1>

@@ -2,8 +2,10 @@
 
 require "test_helper"
 
-# Proves a host nested `recording_studio.core.*` override wins over gem English
-# on a real page and at the Labels call site. The YAML lives outside
+# Proves a host nested `recording_studio.core.*` override wins at the Labels
+# call site. The default layout reads Flatpack copy for back and close, so a
+# host override of `recording_studio.core.navigation.go_back` does not change
+# the page nav. The YAML lives outside
 # config/locales so the default dummy UI keeps gem English; the test applies it
 # through the I18n backend (no runtime load_path append).
 class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
@@ -24,7 +26,7 @@ class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
                  "tests must not leave I18n.load_path modified"
   end
 
-  test "host locale file overrides gem english on layout demo and labels" do
+  test "host locale file overrides labels and does not replace Flatpack nav copy" do
     assert File.exist?(HOST_OVERRIDE_LOCALE), "expected test-only host override at #{HOST_OVERRIDE_LOCALE}"
     refute_includes File.expand_path(HOST_OVERRIDE_LOCALE), "/config/locales/"
 
@@ -43,8 +45,9 @@ class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
     get layout_demo_path, headers: modern_headers
 
     assert_response :success
-    assert_includes response.body, "HOST Go back"
-    refute_match(/(?<!HOST )Go back/, response.body)
+    assert_includes response.body, "Go back"
+    assert_includes response.body, "Close demo"
+    refute_includes response.body, "HOST Go back"
   ensure
     I18n.reload!
   end

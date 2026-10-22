@@ -1,8 +1,8 @@
 <%%# Intended layout: recording_studio/default_layout %>
-<%% recording_studio_page_nav(
-  title: "<%= human_name %>",
-  page_nav_back_url: <%= plural_route_helper %>_path,
-  page_nav_back_label: "<%= plural_name.humanize %>"
+<%% content_for :title, "<%= human_name %>" %>
+<%% flat_pack_page_nav(
+  back_href: <%= plural_route_helper %>_path,
+  back_tooltip: "<%= plural_name.humanize %>"
 ) %>
 <%%# Optional SEO / head helpers:
     recording_studio_seo_description("<%= human_name %> details")

@@ -21,12 +21,10 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "nav button[aria-label='Go back']", count: 1
     assert_select "nav a[aria-label='Go back']", count: 0
     assert_select "a[href='#{workspaces_path}'][aria-label='Close demo']", count: 1
-    assert_select "nav .ml-auto a[href='#{new_workspace_path}']", count: 1
-    assert_includes @response.body, I18n.t("recording_studio.core.navigation.go_back")
+    assert_select "nav a[href='#{new_workspace_path}']", count: 0
+    assert_select "a[href='#{new_workspace_path}']", text: "Create workspace"
     assert_includes @response.body, "Go back"
     assert_includes @response.body, "Close demo"
-
-    assert_includes @response.body, "Create workspace"
     assert_not_includes @response.body, "flat-pack--sidebar-group"
 
     # SEO / OpenGraph meta tags
@@ -50,14 +48,17 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     source = File.read(
       RecordingStudio::Engine.root.join("app/views/recording_studio/shared/_default_layout.html.erb")
     )
+    %w[head title seo_description].each { |slot| assert_includes source, slot }
     %w[
-      head title seo_description
-      page_nav_anchor_url page_nav_anchor_label
-      page_nav_back_label page_nav_back_url page_nav_right
-    ].each { |slot| assert_includes source, slot }
-    %w[body_theme seo_image page_nav_back_icon page_nav_anchor_icon].each do |slot|
+      body_theme seo_image page_nav_back_url page_nav_back_label
+      page_nav_anchor_url page_nav_anchor_label page_nav_right
+      recording_studio_page_nav return_to with_close fallback_url
+    ].each do |slot|
       refute_includes source, slot
     end
+    assert_includes source, "flat_pack_page_nav_tag"
+    assert_includes source, "page_actions(:header)"
+    assert_includes source, "with_back"
     assert_includes source, "flat_pack/variables"
     assert_includes source, "flat_pack/rich_text"
     assert_includes source, "FlatPack::PageNav::Component"
@@ -84,5 +85,44 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "title", text: "Default Layout Demo"
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
     assert_not_includes @response.body, "flat-pack--sidebar-layout"
+  end
+
+  test "default back renders when nothing is registered and there is no return_to" do
+    get layout_demo_plain_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "title", text: "Plain Layout"
+    assert_select "nav[aria-label='Page navigation']", count: 1
+    assert_select "nav button[aria-label='Go back']", count: 1
+    assert_select "nav[data-controller='flat-pack--page-nav']", count: 1
+    assert_select "nav[data-flat-pack--page-nav-fallback-url-value]", count: 0
+    assert_select "a[aria-label='Close']", count: 0
+  end
+
+  test "return_to fills the anchor when the view registers no page nav" do
+    get layout_demo_plain_path, params: { return_to: workspaces_path }, headers: modern_headers
+
+    assert_response :success
+    assert_select "nav button[aria-label='Go back']", count: 1
+    assert_select "nav[data-flat-pack--page-nav-fallback-url-value='#{workspaces_path}']", count: 1
+    assert_select "a[href='#{workspaces_path}'][aria-label='Close']", count: 1
+  end
+
+  test "an unsafe return_to does not add an anchor" do
+    get layout_demo_plain_path, params: { return_to: "https://evil.example/phish" }, headers: modern_headers
+
+    assert_response :success
+    assert_select "nav button[aria-label='Go back']", count: 1
+    assert_select "nav[data-flat-pack--page-nav-fallback-url-value]", count: 0
+    assert_select "a[aria-label='Close']", count: 0
+    assert_select "nav", text: /evil\.example/, count: 0
+  end
+
+  test "a registered anchor wins over return_to" do
+    get layout_demo_path, params: { return_to: root_path }, headers: modern_headers
+
+    assert_response :success
+    assert_select "a[href='#{workspaces_path}'][aria-label='Close demo']", count: 1
+    assert_select "a[href='#{root_path}'][aria-label='Close']", count: 0
   end
 end

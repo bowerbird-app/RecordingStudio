@@ -18,7 +18,8 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_select "body[data-theme='rounded']", count: 1
     assert_select "nav[aria-label='Page navigation']", count: 1
     assert_select "a[href='#{root_path}'][aria-label='Home']", count: 1
-    assert_select "a[href='#{new_workspace_path}'][aria-label='Add workspace']", count: 1
+    assert_select "a[href='#{new_workspace_path}']", text: "Add workspace"
+    assert_select "nav a[href='#{new_workspace_path}']", count: 0
     assert_includes @response.body, @workspace.name
     assert_not_includes @response.body, "New Workspace"
     long_class = "rounded-lg overflow-visible h-full flex flex-col text-[var(--surface-content-color)] " \

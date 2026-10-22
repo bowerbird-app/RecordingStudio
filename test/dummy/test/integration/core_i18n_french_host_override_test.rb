@@ -2,8 +2,10 @@
 
 require "test_helper"
 
-# Host French overrides win over the gem English fallback on real renders.
-# Fixture is boot-loaded from config/locales/zz_core_host_override.fr.yml.
+# Host French overrides win over the gem English fallback for Labels and
+# I18n.t. The default layout reads Flatpack copy for back and close, so those
+# overrides do not change the page nav. Fixture is boot-loaded from
+# config/locales/zz_core_host_override.fr.yml.
 class CoreI18nFrenchHostOverrideTest < ActionDispatch::IntegrationTest
   HOST_OVERRIDE_LOCALE = Rails.root.join("config/locales/zz_core_host_override.fr.yml").to_s.freeze
 
@@ -19,7 +21,7 @@ class CoreI18nFrenchHostOverrideTest < ActionDispatch::IntegrationTest
     I18n.available_locales = @previous_locales if @previous_locales
   end
 
-  test "boot-loaded host french locale file wins over gem english fallback on layout and labels" do
+  test "boot-loaded host french locale file wins for labels and leaves Flatpack nav copy" do
     assert_boot_loaded_french_override_preconditions!
 
     I18n.with_locale(:fr) do
@@ -29,22 +31,24 @@ class CoreI18nFrenchHostOverrideTest < ActionDispatch::IntegrationTest
       get layout_demo_path, headers: modern_headers
 
       assert_response :success
-      assert_includes response.body, "HOST Retour"
-      refute_match(/(?<!HOST )Go back/, response.body)
+      assert_includes response.body, "Go back"
+      assert_includes response.body, "Close demo"
+      refute_includes response.body, "HOST Retour"
       refute_match(/translation missing/i, response.body)
     end
   end
 
-  test "boot-loaded host french Close renders on the page nav" do
+  test "page nav close uses Flatpack copy when the view sets no tooltip" do
     assert_boot_loaded_french_override_preconditions!
     assert I18n.exists?("recording_studio.core.navigation.close", :fr)
+    assert_equal "HOST Fermer", I18n.t("recording_studio.core.navigation.close", locale: :fr)
 
     I18n.with_locale(:fr) do
       get layout_demo_chrome_defaults_path, headers: modern_headers
 
       assert_response :success
-      assert_includes response.body, "HOST Fermer"
-      refute_match(/(?<!HOST )Close/, response.body)
+      assert_select "a[aria-label='Close']", count: 1
+      refute_includes response.body, "HOST Fermer"
       refute_match(/translation missing/i, response.body)
     end
   end

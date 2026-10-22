@@ -40,31 +40,21 @@
         <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-4") %>
       <% end %>
 
-      <% back_label = content_for(:page_nav_back_label).presence || RecordingStudio.t("recording_studio.core.navigation.go_back") %>
-      <% anchor_label = content_for(:page_nav_anchor_label).presence || RecordingStudio.t("recording_studio.core.navigation.close") %>
-      <% back_url = content_for(:page_nav_back_url).presence %>
-      <% anchor_url = content_for(:page_nav_anchor_url).presence %>
-
       <div class="mt-4 mb-8">
-        <%= render FlatPack::PageNav::Component.new do |page_nav| %>
-          <% page_nav.with_back(
-            href: back_url,
-            icon: "chevron-left",
-            tooltip: back_label,
-            style: :secondary,
-            size: :md,
-            fallback_url: anchor_url
-          ) %>
-          <% if anchor_url.present? %>
-            <% page_nav.with_close(href: anchor_url, icon: "x-mark", tooltip: anchor_label) %>
-          <% end %>
-          <% if content_for?(:page_nav_right) %>
-            <% page_nav.with_item do %>
-              <div class="ml-auto flex items-center gap-2"><%= yield :page_nav_right %></div>
-            <% end %>
+        <% page_nav = flat_pack_page_nav_tag %>
+        <% if page_nav %>
+          <%= page_nav %>
+        <% else %>
+          <%= render FlatPack::PageNav::Component.new do |nav| %>
+            <% nav.with_back %>
           <% end %>
         <% end %>
       </div>
+
+      <% header_actions = page_actions(:header) %>
+      <% if header_actions %>
+        <div class="mb-8"><%= header_actions %></div>
+      <% end %>
 
       <%= yield %>
     </main>

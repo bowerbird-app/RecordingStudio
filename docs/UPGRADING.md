@@ -4,6 +4,65 @@
 
 No unreleased changes.
 
+## Upgrading To 6.0.0
+
+This is a breaking upgrade. `recording_studio_page_nav` and
+`recording_studio_page_nav_right` are removed. There is no compatibility
+shim. Other gems that still call them will fail until they switch.
+
+### What Changed
+
+- The default layout renders page nav with `flat_pack_page_nav_tag`. A view
+  registers the row with `flat_pack_page_nav`. A valid `params[:return_to]`
+  fills a blank anchor (`FlatPack::ReturnTo`). The tag returns nil when the
+  view registered nothing and there is no valid `return_to`. The layout then
+  renders `FlatPack::PageNav` with only a history back button.
+- Core does not choose the anchor and does not read `return_to` itself.
+  There is no hide-back option.
+- Page buttons use `page_action`. The layout renders them with
+  `page_actions(:header)` under the nav row, in place of `:page_nav_right`.
+- Removed slots: `:page_nav_back_url`, `:page_nav_back_label`,
+  `:page_nav_anchor_url`, `:page_nav_anchor_label`, `:page_nav_right`.
+- `:title`, `:head`, and `:seo_description` stay. Set the title with
+  `content_for :title`. `default_layout_head` and
+  `recording_studio_seo_description` stay.
+- Back and close copy come from Flatpack, or from `back_tooltip` and
+  `anchor_tooltip`. Overriding `recording_studio.core.navigation.go_back`
+  or `close` no longer changes the default layout buttons.
+- `flat_pack` (>= 0.1.294) is required. Pin tag `v0.1.294`.
+
+### Upgrade Steps
+
+In the host Gemfile, and in each app Gemfile that pins the git source:
+
+```ruby
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.294"
+```
+
+Replace a page nav registration:
+
+```erb
+<% content_for :title, "Workspaces" %>
+<% flat_pack_page_nav(
+  back_href: workspaces_path,
+  back_tooltip: "Workspaces",
+  anchor_href: root_path,
+  anchor_tooltip: "Home"
+) %>
+<% page_action "Add workspace", new_workspace_path, role: :primary, icon: :plus %>
+```
+
+| Removed | Replacement |
+| --- | --- |
+| `recording_studio_page_nav(title:, page_nav_back_url:, page_nav_back_label:, page_nav_anchor_url:, page_nav_anchor_label:)` | `content_for :title` plus `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)` |
+| `recording_studio_page_nav_right { ... }` | `page_action(label, href, role:, icon:)` |
+| `:page_nav_right` inside the nav row | `page_actions(:header)` under the nav row |
+
+A host layout that replaces `recording_studio/default_layout` must call
+`flat_pack_page_nav_tag`, render `FlatPack::PageNav` with `with_back` when
+that tag returns nil, and call `page_actions(:header)`. See
+[docs/layouts/default_layout.md](layouts/default_layout.md#host-layout-contract).
+
 ## Upgrading To 5.0.0
 
 This is a breaking upgrade. `RecordingStudio::UsesDefaultLayout` is removed.
@@ -740,17 +799,19 @@ boundary.
 
 ## Adopting the Shared Default Layout
 
-RecordingStudio `3.0.1` ships a reusable layout for addon gems at
+RecordingStudio ships a reusable layout for addon gems at
 `app/views/layouts/recording_studio/default_layout.html.erb`. It provides a
-`FlatPack::PageNav::Component` shell with standard Rails layout structure and
-safe defaults. Addon controllers can opt in with a single concern include and
-a lightweight helper API to configure page nav metadata.
+Flatpack page nav shell with standard Rails layout structure and safe
+defaults. Addon controllers opt in with `recording_studio_layout`. Views
+register page nav with `flat_pack_page_nav` and page buttons with
+`page_action`.
 
-> **Prerequisite:** `flat_pack` (>= 0.1.275) is a required RecordingStudio
-> dependency. The layout renders `FlatPack::PageNav::Component` and
-> `FlatPack::Alert::Component`. It does not fall back when Flatpack is
-> missing. The gem is not on RubyGems; point the host Gemfile at
-> `https://github.com/bowerbird-app/flatpack.git` tag `v0.1.275`.
+> **Prerequisite:** `flat_pack` (>= 0.1.294) is a required RecordingStudio
+> dependency. The layout renders `flat_pack_page_nav_tag`, `FlatPack::PageNav`
+> when that tag returns nil, `page_actions(:header)`, and
+> `FlatPack::Alert`. It does not fall back when Flatpack is missing. The gem
+> is not on RubyGems; point the host Gemfile at
+> `https://github.com/bowerbird-app/flatpack.git` tag `v0.1.294`.
 >
 > The demo route at `/layout_demo` in the dummy app shows a complete working
 > example (see `test/dummy/app/controllers/layout_demo_controller.rb` and
@@ -758,7 +819,7 @@ a lightweight helper API to configure page nav metadata.
 
 ### What the Layout Provides
 
-- `FlatPack::PageNav::Component` rendered at the top of every page.
+- Flatpack page nav at the top of every page. History back when the view registers nothing.
 - Direct page body rendering (no extra content wrapper).
 - Standard `yield :head` support for metadata, plus optional
   `default_layout_head` partial auto-detection.
@@ -768,8 +829,9 @@ a lightweight helper API to configure page nav metadata.
 - Configurable app name via `RecordingStudio.configuration.app_name`
   (defaults to `"RecordingStudio"`) used as the `<title>` and `og:site_name`
   fallback.
-- Safe defaults: no anchor action, empty right slot, title falls back to
-  `RecordingStudio`.
+- Safe defaults: history back when nothing is registered, no anchor unless
+  Flatpack supplies one, page actions only when a view calls `page_action`.
+  The title falls back to `RecordingStudio.configuration.app_name`.
 
 ### Opting In
 
@@ -829,25 +891,15 @@ _Before (manual FlatPack breadcrumb and button slots):_
 <% end %>
 ```
 
-_After (PageNav with helper API):_
+_After (`flat_pack_page_nav` and `page_action`):_
 
 ```erb
-<% recording_studio_page_nav(
-  title: "Workspaces",
-  page_nav_anchor_url: root_path,
-  page_nav_anchor_label: "Home"
+<% content_for :title, "Workspaces" %>
+<% flat_pack_page_nav(
+  anchor_href: root_path,
+  anchor_tooltip: "Home"
 ) %>
-
-<% recording_studio_page_nav_right do %>
-  <%= render FlatPack::Button::Component.new(
-    icon: "plus",
-    icon_only: true,
-    style: :secondary,
-    size: :md,
-    url: new_workspace_path,
-    aria: { label: "Add workspace" }
-  ) %>
-<% end %>
+<% page_action "Add workspace", new_workspace_path, role: :primary, icon: :plus %>
 
 <%= render FlatPack::PageTitle::Component.new(
   title: "Workspaces",
@@ -855,27 +907,26 @@ _After (PageNav with helper API):_
 ) %>
 ```
 
-For a back-navigation pattern (e.g., a "New" form that navigates back to the
-parent list), use `page_nav_back_url` to set the left-side back button:
+For a back link (a "New" form that returns to the parent list), pass
+`back_href`:
 
 ```erb
-<% recording_studio_page_nav(
-  title: "New Workspace",
-  page_nav_back_url: workspaces_path,
-  page_nav_back_label: "Workspaces"
+<% content_for :title, "New Workspace" %>
+<% flat_pack_page_nav(
+  back_href: workspaces_path,
+  back_tooltip: "Workspaces"
 ) %>
 ```
 
-You can also combine both sides — the back button on the left and an anchor
-or custom actions on the right — they are independent:
+Back and anchor together:
 
 ```erb
-<% recording_studio_page_nav(
-  title: "New Workspace",
-  page_nav_back_url: workspaces_path,
-  page_nav_back_label: "Workspaces",
-  page_nav_anchor_url: root_path,
-  page_nav_anchor_label: "Home"
+<% content_for :title, "New Workspace" %>
+<% flat_pack_page_nav(
+  back_href: workspaces_path,
+  back_tooltip: "Workspaces",
+  anchor_href: root_path,
+  anchor_tooltip: "Home"
 ) %>
 ```
 
@@ -888,26 +939,25 @@ shared default.
 
 | Method | Purpose |
 | --- | --- |
-| `recording_studio_page_nav(title:, **slots)` | Sets the page `<title>` and configures PageNav slots. |
-| `recording_studio_page_nav_right { ... }` | Renders block content into the PageNav right slot. |
+| `content_for :title` | Sets the page `<title>`. |
+| `flat_pack_page_nav(...)` | Registers the back and anchor row. |
+| `page_action(label, href, role:, icon:)` | Registers one page button. |
 | `default_layout_head { ... }` | Appends block content to the `<head>` element. |
 | `recording_studio_seo_description(text)` | Sets `<meta name="description">` and `og:description` tags. |
 
-### Supported Slot Keys
+### Page nav arguments
 
-Pass any of these as keyword arguments to `recording_studio_page_nav`:
+Pass these to `flat_pack_page_nav`. Unknown keys raise `ArgumentError`.
 
-- `title` — Sets `<title>`. Falls back to `RecordingStudio.configuration.app_name`
-  and then to `"RecordingStudio"`.
-- `page_nav_anchor_url` — URL for the anchor (close) button. Omit to hide.
-  The icon is `x-mark`.
-- `page_nav_anchor_label` — Accessible name for the anchor (default: `"Close"`).
-- `page_nav_back_url` — URL for the back button. Omit to use browser history
-  back. The back button is always rendered, with icon `chevron-left`, style
-  secondary, and size md.
-- `page_nav_back_label` — Label for the back button (default: `"Go back"`).
-- `seo_description` — Set via `recording_studio_seo_description(text)`; renders
-  `<meta name="description">` and `og:description` when present.
+- `back_href` — Back link. Omit it for history back.
+- `back_tooltip` — Accessible name for back. Flatpack's default is "Go back".
+- `anchor_href` — Close link. Omit it unless a valid `return_to` should fill it.
+- `anchor_tooltip` — Accessible name for the anchor. Flatpack's default is "Close".
+
+`content_for :title` sets `<title>`. It falls back to
+`RecordingStudio.configuration.app_name` and then to
+`"CHANGE_APP_NAME_IN_DEFAULT_LAYOUT"`. `recording_studio_seo_description(text)`
+sets the description meta tags.
 
 ### Testing Your Layout Adoption
 
@@ -927,17 +977,17 @@ end
 ```
 
 The `data-recording-studio-default-layout="true"` attribute on `<body>` confirms
-the layout is active. Assert on your specific nav links, titles, and right-slot
-actions as needed.
+the layout is active. Assert on your nav links, titles, and `page_action`
+buttons as needed.
 
 ### Before / After Summary
 
 | Concern | Before (manual) | After (default layout) |
 | --- | --- | --- |
 | Layout source | Custom per-addon layout or no shared layout | `recording_studio/default_layout` |
-| Page chrome | Manual `FlatPack::Breadcrumb::Component` | `FlatPack::PageNav::Component` (automatic) |
-| Page nav config | `content_for` scattered across views | `recording_studio_page_nav(...)` helper |
-| Right actions | Embedded in `PageTitle` actions slot | `recording_studio_page_nav_right { ... }` |
+| Page chrome | Manual `FlatPack::Breadcrumb::Component` | `flat_pack_page_nav_tag`, with history back when that returns nil |
+| Page nav config | Slots scattered across views | `flat_pack_page_nav(...)` |
+| Page buttons | Embedded in a `PageTitle` actions slot | `page_action`, rendered by `page_actions(:header)` |
 | Head metadata | Manual `content_for :head` | `default_layout_head { ... }` |
 | Flash messages | Per-view or per-layout | Rendered automatically by layout |
 | SEO description | Not available | `recording_studio_seo_description(...)` helper |
@@ -978,8 +1028,8 @@ end
 The title fallback chain is:
 
 1. `content_for(:title)` — set per-view
-2. `RecordingStudio.configuration.app_name` — configurable globally
-3. `"RecordingStudio"` — final hardcoded default
+2. `RecordingStudio.configuration.app_name` — `"RecordingStudio"` unless a host sets it
+3. `"CHANGE_APP_NAME_IN_DEFAULT_LAYOUT"` — used when `app_name` is blank
 
 Full documentation is at `docs/layouts/default_layout.md`. A working demo is
 available in the dummy app at `/layout_demo`.

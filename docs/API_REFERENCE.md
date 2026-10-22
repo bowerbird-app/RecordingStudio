@@ -570,12 +570,16 @@ Public layout:
 
 - `recording_studio/default_layout` — back and anchor page shell (see `docs/layouts/default_layout.md`)
 
-### Page nav helpers
+### Page shell helpers
+
+Page nav and page buttons are Flatpack helpers. Recording Studio's layout
+renders `flat_pack_page_nav_tag` and `page_actions(:header)`.
 
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
-| `recording_studio_page_nav(title:, **slot_values)` | optional title plus `page_nav_back_url`, `page_nav_back_label`, `page_nav_anchor_url`, `page_nav_anchor_label` | `nil` | Sets `content_for` slots for the back and anchor buttons. |
-| `recording_studio_page_nav_right(&block)` | block | `nil` | Renders block content into the PageNav right slot. |
+| `content_for :title` | title string | slot HTML | Sets the page `<title>`. |
+| `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:, ...)` | Flatpack page nav arguments | `nil` | Registers the back and anchor row for this request. |
+| `page_action(label, href, role:, icon:)` | label, path, role, icon | `nil` | Registers one page button. The layout renders the group. |
 | `default_layout_head(&block)` | block | `nil` | Adds block content to `<head>` via `yield :head`. |
 
 ### SEO helpers
@@ -587,21 +591,15 @@ Public layout:
 ### Example
 
 ```erb
-<% recording_studio_page_nav(
-  title: "Workspaces",
-  page_nav_anchor_url: root_path,
-  page_nav_anchor_label: "Home"
+<% content_for :title, "Workspaces" %>
+<% flat_pack_page_nav(
+  anchor_href: root_path,
+  anchor_tooltip: "Home"
 ) %>
 
 <% recording_studio_seo_description("Browse and manage your workspaces") %>
 
-<% recording_studio_page_nav_right do %>
-  <%= render FlatPack::Button::Component.new(
-    text: "New Workspace",
-    style: :primary,
-    url: new_workspace_path
-  ) %>
-<% end %>
+<% page_action "New Workspace", new_workspace_path, role: :primary, icon: :plus %>
 ```
 
 ## What Not To Depend On

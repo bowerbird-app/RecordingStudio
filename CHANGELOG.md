@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-10-22
+
+### Breaking
+
+* The default layout uses Flatpack page nav and page actions.
+  `recording_studio_page_nav` and `recording_studio_page_nav_right` are
+  removed, along with `:page_nav_back_url`, `:page_nav_back_label`,
+  `:page_nav_anchor_url`, `:page_nav_anchor_label`, and `:page_nav_right`.
+  There is no compatibility shim.
+* Views register the row with `flat_pack_page_nav`. The layout renders
+  `flat_pack_page_nav_tag`. A valid `return_to` fills a blank anchor. When
+  nothing is registered and there is no `return_to`, the layout renders
+  `FlatPack::PageNav` with a history back button only. Core does not choose
+  the anchor and has no hide-back option.
+* Views register buttons with `page_action`. The layout renders
+  `page_actions(:header)` under the nav row.
+* `:title`, `:head`, and `:seo_description` stay. Set the title with
+  `content_for :title`.
+* `flat_pack` (>= 0.1.294) is required. Gemfiles pin
+  `https://github.com/bowerbird-app/flatpack.git` tag `v0.1.294`.
+* `FlatPack::PageLayout` is Flatpack's public page shell. Gem screens that
+  are not inside Sidebar Layout or Page Layout still use
+  `recording_studio/default_layout`.
+
+### Upgrade notes
+
+- Replace `recording_studio_page_nav` with `content_for :title` and
+  `flat_pack_page_nav`. Replace `recording_studio_page_nav_right` with
+  `page_action`. Pin `flat_pack` tag `v0.1.294`. See
+  [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-600).
+
 ## [5.0.0] - 2026-10-21
 
 ### Breaking

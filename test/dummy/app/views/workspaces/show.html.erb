@@ -1,9 +1,9 @@
-<% recording_studio_page_nav(
-  title: @workspace.name,
-  page_nav_back_url: workspaces_path,
-  page_nav_back_label: "Workspaces",
-  page_nav_anchor_url: root_path,
-  page_nav_anchor_label: "Home"
+<% content_for :title, @workspace.name %>
+<% flat_pack_page_nav(
+  back_href: workspaces_path,
+  back_tooltip: "Workspaces",
+  anchor_href: root_path,
+  anchor_tooltip: "Home"
 ) %>
 
 <%= render FlatPack::PageTitle::Component.new(

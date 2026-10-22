@@ -4,22 +4,30 @@
 assume a sidebar, a host application layout, or a page kind. The public
 layout file wraps `app/views/recording_studio/shared/_default_layout.html.erb`.
 
-The page nav is back and anchor only. Back is always shown. The anchor
-(close) is shown when the view sets `page_nav_anchor_url`. Icons, button
-style, and button size are fixed: back is `chevron-left` / secondary / md,
-and the anchor is `x-mark`.
+Page navigation is Flatpack's. A view calls `flat_pack_page_nav`. The layout
+calls `flat_pack_page_nav_tag`. That tag renders the registered row and fills
+a blank anchor from a valid `params[:return_to]` (`FlatPack::ReturnTo`). It
+returns nil when the view registered nothing and there is no valid
+`return_to`. In that case the layout renders `FlatPack::PageNav` with only a
+history back button. Core does not choose an anchor, does not read
+`return_to` itself, and has no way to hide the back button.
 
-> **Prerequisite:** `flat_pack` is a required dependency (`>= 0.1.275`).
-> The layout renders `FlatPack::PageNav::Component` and
-> `FlatPack::Alert::Component`. There is no fallback when Flatpack is
-> missing. `flat_pack` is not on RubyGems. The gemspec declares the
-> dependency, and the host Gemfile supplies the git source
-> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.275`).
+Page buttons are separate. A view calls `page_action`. The layout renders
+`page_actions(:header)` under the page nav row.
+
+> **Prerequisite:** `flat_pack` is a required dependency (`>= 0.1.294`).
+> The layout renders `flat_pack_page_nav_tag`, `FlatPack::PageNav`,
+> `page_actions(:header)`, and `FlatPack::Alert`. There is no fallback when
+> Flatpack is missing. `flat_pack` is not on RubyGems. The gemspec declares
+> the dependency, and the host Gemfile supplies the git source
+> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.294`).
 
 ## What it provides
 
-- Back and anchor page nav, plus an optional right-hand slot.
-- Flash notice and alert via `FlatPack::Alert::Component`.
+- Back and anchor page nav through `flat_pack_page_nav_tag`, with a history
+  back button when that tag returns nil.
+- Registered page buttons through `page_actions(:header)`, under the nav row.
+- Flash notice and alert via `FlatPack::Alert`.
 - The page body via `yield`, with no extra content card.
 - `<title>`, optional description, and OpenGraph title, type, url,
   description, and site name.
@@ -139,48 +147,68 @@ end
 
 ## Host layout contract
 
-Gem views set `content_for` slots and render Flatpack components. They do
-not draw the application shell. A host layout that replaces the default
-has to provide the same surroundings, or titles, navigation, and flashes
-disappear.
+Gem views set `content_for` slots and register Flatpack page nav and page
+actions. They do not draw the application shell. A host layout that replaces
+the default has to provide the same surroundings, or titles, navigation,
+actions, and flashes disappear.
 
 Slots gem views set:
 
 | Slot | How views set it | Who uses it |
 | --- | --- | --- |
-| `:title` | `recording_studio_page_nav(title:)` or `content_for :title` | Library, pages, admin, API, brands, broadcasts, company, embargo, messages, orderable, publishable, stripe, support, trashable, users, embeddable, OAuth, notifications |
+| `:title` | `content_for :title` | Library, pages, admin, API, brands, broadcasts, company, embargo, messages, orderable, publishable, stripe, support, trashable, users, embeddable, OAuth, notifications |
 | `:head` | `default_layout_head` or `content_for :head` | Moveable (meta tags), stripe billing (stylesheet), embeddable (`recording_studio/_default_layout_head`) |
 | `:seo_description` | `recording_studio_seo_description` | Support public pages |
-| `:page_nav_back_url` | `recording_studio_page_nav` | Embeddable, OAuth, API, company, embargo, library, pages, publishable, stripe, support, and others |
-| `:page_nav_back_label` | `recording_studio_page_nav` | Company, embargo, pages, support, and others |
-| `:page_nav_anchor_url` | `recording_studio_page_nav` | Embeddable, library, moveable, orderable, publishable, stripe, support, trashable, users |
-| `:page_nav_anchor_label` | `recording_studio_page_nav` | Embeddable, library, moveable, orderable, publishable, support, trashable, users |
-| `:page_nav_right` | `recording_studio_page_nav_right` | Admin section and screen pages, API scalar docs, publishable job nav |
+
+Flatpack request state the host layout must render:
+
+| Call | How views set it | What the layout renders |
+| --- | --- | --- |
+| `flat_pack_page_nav` | back href and tooltip, anchor href and tooltip | `flat_pack_page_nav_tag`. A valid `return_to` fills a blank anchor. Nil means nothing was registered and there is no `return_to`. |
+| history back | nothing registered | `FlatPack::PageNav` with `with_back` only |
+| `page_action` | label, href, role, icon | `page_actions(:header)`, under the nav row |
 
 Also required:
 
 - Stylesheets `flat_pack/variables` and `flat_pack/rich_text`, plus the
   importmap when the host defines `javascript_importmap_tags`.
-- `flash[:notice]` and `flash[:alert]` rendered with
-  `FlatPack::Alert::Component`. OAuth, brands, embargo, features, library,
-  messages, notifications, pages, publishable, stripe, support, and users
-  set flash and rely on the layout to show it.
+- `flash[:notice]` and `flash[:alert]` rendered with `FlatPack::Alert`.
+  OAuth, brands, embargo, features, library, messages, notifications, pages,
+  publishable, stripe, support, and users set flash and rely on the layout
+  to show it.
 
-`FlatPack::SidebarLayout::Component` is the application shell (sidebar,
-optional top nav, and main). The dummy `application` layout uses it. Put
-the page, including alerts, in the `main` slot. Flatpack does not ship a
-`PageLayout` component. This default layout is the page shell.
+`FlatPack::SidebarLayout` is the application shell with a rail.
+`FlatPack::PageLayout` is Flatpack's public page shell: a top bar, one
+column, and a footer. The dummy `application` layout uses Sidebar Layout.
+Put the page, including alerts, in the `main` slot. Gem screens that are
+not inside those shells use `recording_studio/default_layout`.
 
-The layout does not read `:body_theme`, `:seo_image`, page-nav icon, style,
-or size slots. No gem view sets those. Back and anchor icons stay
-`chevron-left` and `x-mark`.
+The layout does not read `:body_theme`, `:seo_image`, or the removed page
+nav slots (`:page_nav_back_url`, `:page_nav_back_label`,
+`:page_nav_anchor_url`, `:page_nav_anchor_label`, `:page_nav_right`).
 
 ## Helper API
 
-- `recording_studio_page_nav(title: nil, page_nav_back_url:, page_nav_back_label:, page_nav_anchor_url:, page_nav_anchor_label:)`
-- `recording_studio_page_nav_right { ... }`
+Recording Studio still provides:
+
 - `default_layout_head { ... }`
 - `recording_studio_seo_description(text)`
+
+Page nav and page buttons are Flatpack helpers, available in every view:
+
+- `content_for :title, "Workspaces"`
+- `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:, ...)`
+- `page_action(label, href, role:, icon:)`
+
+`flat_pack_page_nav` returns nil. The last call replaces the previous one.
+With no block, the tag renders history back (or a back link when `back_href`
+is set) and, when an anchor is present, a close control. `anchor_href` is
+also the history back fallback. A block replaces that default row. A block
+does not gain a close control when `return_to` fills a blank anchor.
+
+`page_action` returns nil. `role` is `:primary`, `:secondary`, or
+`:destructive`. The layout places the group. The view does not pass a CSS
+class or a button style.
 
 ## Defaults
 
@@ -191,40 +219,42 @@ or size slots. No gem view sets those. Back and anchor icons stay
 | Description | Omitted when blank |
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
-| Back | Always shown through `FlatPack::PageNav` `with_back`. Icon `chevron-left`, style secondary, size md. Label is `page_nav_back_label` or "Go back". `page_nav_back_url` is the href. With no URL, PageNav renders a history-back button (`click->flat-pack--page-nav#back`) and uses `page_nav_anchor_url` as `fallback_url` when that URL is set. |
-| Anchor | Hidden unless `page_nav_anchor_url` is set. Icon `x-mark`. Label is `page_nav_anchor_label` or "Close". The layout does not read `params`. |
-| Right slot | Empty until `page_nav_right` is set. Then it sits in a trailing `ml-auto` row item. |
+| Back | Always shown. A registered `flat_pack_page_nav` uses that spec. With nothing registered and no valid `return_to`, the layout renders `FlatPack::PageNav` `with_back` (history back, icon `chevron-left`, Flatpack tooltip "Go back"). |
+| Anchor | Comes only from Flatpack: the view's `anchor_href`, or a valid `return_to` when the view left the anchor blank. Core adds no anchor of its own. The close icon is `x-mark`. The default tooltip is Flatpack's "Close". |
+| Page actions | Empty until the view calls `page_action`. Then `page_actions(:header)` renders under the nav row. |
 
 ## Page nav example
 
 ```erb
-<% recording_studio_page_nav(
-  title: "Workspaces",
-  page_nav_anchor_url: root_path,
-  page_nav_anchor_label: "Home"
+<% content_for :title, "Workspaces" %>
+<% flat_pack_page_nav(
+  anchor_href: root_path,
+  anchor_tooltip: "Home"
 ) %>
-
-<% recording_studio_page_nav_right do %>
-  <%= render FlatPack::Button::Component.new(
-    icon: "plus",
-    icon_only: true,
-    style: :secondary,
-    size: :md,
-    url: new_workspace_path,
-    aria: { label: "Add workspace" }
-  ) %>
-<% end %>
+<% page_action "Add workspace", new_workspace_path, role: :primary, icon: :plus %>
 ```
 
 Back and anchor together:
 
 ```erb
-<% recording_studio_page_nav(
-  title: "New Workspace",
-  page_nav_back_url: workspaces_path,
-  page_nav_back_label: "Workspaces",
-  page_nav_anchor_url: root_path,
-  page_nav_anchor_label: "Home"
+<% content_for :title, "New Workspace" %>
+<% flat_pack_page_nav(
+  back_href: workspaces_path,
+  back_tooltip: "Workspaces",
+  anchor_href: root_path,
+  anchor_tooltip: "Home"
+) %>
+```
+
+A later screen can carry the anchor forward. Flatpack appends it as
+`return_to`, and the next page's `flat_pack_page_nav_tag` uses that value
+when the view did not set `anchor_href`.
+
+```erb
+<%= render FlatPack::Button::Component.new(
+  text: "Next",
+  style: :primary,
+  href: flat_pack_return_to_url(next_step_path)
 ) %>
 ```
 
@@ -253,12 +283,10 @@ Embeddable uses that partial for shared head markup. Moveable calls
 
 ## Interface text
 
-Back and close labels and the nav `aria-label` ship as English keys under
-`recording_studio.core.navigation` in `config/locales/en.yml`, looked up
-through `RecordingStudio.t`. A missing locale falls back to the loaded `:en`
-translation and then the gem-shipped table. Hosts can override
-`go_back`, `close`, and `page`. A view that passes
-`page_nav_back_label` or `page_nav_anchor_label` uses that string.
+Back and close copy come from Flatpack (`flatpack.page_nav.back` is "Go
+back", `flatpack.page_nav.close` is "Close") unless the view passes
+`back_tooltip` or `anchor_tooltip`. The default layout does not look up
+`recording_studio.core.navigation`.
 
 The developer placeholder `CHANGE_APP_NAME_IN_DEFAULT_LAYOUT` is not
 translated.

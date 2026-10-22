@@ -1,19 +1,9 @@
-<% recording_studio_page_nav(
-  title: "Workspaces",
-  page_nav_anchor_url: root_path,
-  page_nav_anchor_label: "Home"
+<% content_for :title, "Workspaces" %>
+<% flat_pack_page_nav(
+  anchor_href: root_path,
+  anchor_tooltip: "Home"
 ) %>
-
-<% recording_studio_page_nav_right do %>
-  <%= render FlatPack::Button::Component.new(
-    icon: "plus",
-    icon_only: true,
-    style: :secondary,
-    size: :md,
-    href: new_workspace_path,
-    aria: { label: "Add workspace" }
-  ) %>
-<% end %>
+<% page_action "Add workspace", new_workspace_path, role: :secondary, icon: :plus %>
 
 <%= render FlatPack::PageTitle::Component.new(
   title: "Workspaces",

@@ -1,5 +1,6 @@
 <%%# Intended layout: recording_studio/default_layout (typically used by index actions) %>
-<%% recording_studio_page_nav(title: "<%= plural_name.humanize %>") %>
+<%% content_for :title, "<%= plural_name.humanize %>" %>
+<%% flat_pack_page_nav %>
 <%%# Optional SEO / head helpers:
     recording_studio_seo_description("Browse <%= plural_name.humanize.downcase %>")
     default_layout_head do
