@@ -40,7 +40,7 @@
         <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-4") %>
       <% end %>
 
-      <div class="mt-4 mb-8">
+      <div class="mt-4 mb-6">
         <% page_nav = flat_pack_page_nav_tag %>
         <% if page_nav %>
           <%= page_nav %>
@@ -51,9 +51,18 @@
         <% end %>
       </div>
 
+      <% heading = content_for(:title).presence %>
+      <% subtitle = content_for(:subtitle).presence %>
       <% header_actions = page_actions(:header) %>
+      <% if heading %>
+        <%= render FlatPack::PageTitle::Component.new(
+              title: heading,
+              subtitle: subtitle,
+              **(header_actions ? { class: "mb-0" } : {})
+            ) %>
+      <% end %>
       <% if header_actions %>
-        <div class="mb-8"><%= header_actions %></div>
+        <div class="mt-4 mb-8"><%= header_actions %></div>
       <% end %>
 
       <%= yield %>

@@ -975,7 +975,7 @@ The views generator scaffolds FlatPack resource templates:
 - `index`, `show`, `new`, and `edit` intended for `recording_studio/default_layout` with `flat_pack_page_nav`
 - `_form` using FlatPack inputs and buttons
 
-Generated templates use `content_for :title`, `flat_pack_page_nav`, and the SEO helpers
+Generated templates use `content_for :title`, `content_for :subtitle`, `flat_pack_page_nav`, and the SEO helpers
 (`recording_studio_seo_description`, `default_layout_head`). The resolver
 picks the layout. The templates do not hard-code one.
 
@@ -1085,9 +1085,10 @@ RecordingStudioLibrary.configuration.library_layout = "library"
 
 Configure the title, page navigation, page buttons, and `<head>` content from views:
 
-- `content_for :title, "..."` — page `<title>`
+- `content_for :title, "..."` — document `<title>` and the layout's `PageTitle`
+- `content_for :subtitle, "..."` — optional subtitle on that header
 - `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)` — Flatpack page nav
-- `page_action(label, href, role:, icon:)` — a button the layout renders with `page_actions(:header)`
+- `page_action(label, href, role:, icon:)` — a page-level button the layout renders with `page_actions(:header)` under the title
 - `default_layout_head { ... }` — append content to `<head>`
 - `recording_studio_seo_description(text)` — description and `og:description`
 
@@ -1098,8 +1099,9 @@ RecordingStudio.configure { |config| config.app_name = "My App" }
 ```
 
 A host layout that replaces the default still has to render `flat_pack_page_nav_tag`
-(and a history-back `FlatPack::PageNav` when that returns nil), `page_actions(:header)`,
-the `:title`, `:head`, and `:seo_description` slots, Flatpack stylesheets
+(and a history-back `FlatPack::PageNav` when that returns nil), `FlatPack::PageTitle`
+from `:title` and `:subtitle` when a title is set, `page_actions(:header)` under
+that header, the `:head` and `:seo_description` slots, Flatpack stylesheets
 (`flat_pack/variables`, `flat_pack/rich_text`), and `flash` alerts that gem
 views rely on. `FlatPack::SidebarLayout` is the application shell with a rail.
 `FlatPack::PageLayout` is Flatpack's public page shell. Gem screens that are

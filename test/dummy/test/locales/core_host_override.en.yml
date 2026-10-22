@@ -4,7 +4,7 @@ en:
   recording_studio:
     core:
       navigation:
-        go_back: "HOST Go back"
+        back: "HOST Back"
         page: "HOST Page navigation"
       labels:
         empty: "HOST —"

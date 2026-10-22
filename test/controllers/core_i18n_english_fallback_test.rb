@@ -20,7 +20,7 @@ class CoreI18nEnglishFallbackTest < ActionDispatch::IntegrationTest
 
   test "missing locale without translations renders gem english on default layout" do
     I18n.with_locale(:de) do
-      refute I18n.exists?("recording_studio.core.navigation.go_back", :de)
+      refute I18n.exists?("recording_studio.core.navigation.back", :de)
 
       get layout_demo_path, headers: modern_headers
 

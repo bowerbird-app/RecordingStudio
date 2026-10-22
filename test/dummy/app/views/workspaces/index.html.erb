@@ -1,14 +1,10 @@
 <% content_for :title, "Workspaces" %>
+<% content_for :subtitle, "Choose a workspace explicitly before browsing or creating workspace-rooted pages." %>
 <% flat_pack_page_nav(
   anchor_href: root_path,
   anchor_tooltip: "Home"
 ) %>
-<% page_action "Add workspace", new_workspace_path, role: :secondary, icon: :plus %>
-
-<%= render FlatPack::PageTitle::Component.new(
-  title: "Workspaces",
-  subtitle: "Choose a workspace explicitly before browsing or creating workspace-rooted pages."
-) %>
+<% page_action "Add workspace", new_workspace_path, role: :primary, icon: :plus %>
 
 <div class="mt-8">
   <% if @workspaces&.any? %>

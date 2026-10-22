@@ -6,8 +6,6 @@ require "yaml"
 class LocalesTest < ActiveSupport::TestCase
   NAVIGATION_KEYS = {
     "back" => "Back",
-    "go_back" => "Go back",
-    "close" => "Close",
     "page" => "Page navigation",
     "action_page" => "Action page navigation"
   }.freeze

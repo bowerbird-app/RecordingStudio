@@ -1,16 +1,8 @@
 <% content_for :title, "New Workspace" %>
-<% flat_pack_page_nav(
-  back_href: workspaces_path,
-  back_tooltip: "Workspaces"
-) %>
+<% content_for :subtitle, "Create a container for recordings." %>
+<% flat_pack_page_nav %>
 
 <%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg, class: "") do %>
-  <%= render FlatPack::PageTitle::Component.new(
-    title: "New Workspace",
-    subtitle: "Create a container for recordings.",
-    class: "mb-0"
-  ) %>
-
   <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
     <% card.body do %>
       <%= render "form", workspace: @workspace %>

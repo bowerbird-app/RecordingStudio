@@ -1,5 +1,6 @@
 <%%# Intended layout: recording_studio/default_layout %>
 <%% content_for :title, "<%= human_name %>" %>
+<%% content_for :subtitle, "Render your <%= human_name.downcase %> attributes here." %>
 <%% flat_pack_page_nav(
   back_href: <%= plural_route_helper %>_path,
   back_tooltip: "<%= plural_name.humanize %>"
@@ -10,8 +11,3 @@
       stylesheet_link_tag "custom/<%= file_name %>", "data-turbo-track": "reload"
     end
 %>
-
-<%%= render FlatPack::PageTitle::Component.new(
-  title: "<%= human_name %>",
-  subtitle: "Render your <%= human_name.downcase %> attributes here."
-) %>

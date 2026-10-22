@@ -11,5 +11,4 @@
     end
 %>
 
-<%%= render FlatPack::PageTitle::Component.new(title: "New <%= human_name %>") %>
 <%%= render "form", <%= file_name %>: @<%= file_name %> %>

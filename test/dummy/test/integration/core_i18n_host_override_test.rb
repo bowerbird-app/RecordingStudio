@@ -4,7 +4,7 @@ require "test_helper"
 
 # Proves a host nested `recording_studio.core.*` override wins at the Labels
 # call site. The default layout reads Flatpack copy for back and close, so a
-# host override of `recording_studio.core.navigation.go_back` does not change
+# host override of `recording_studio.core.navigation.back` does not change
 # the page nav. The YAML lives outside
 # config/locales so the default dummy UI keeps gem English; the test applies it
 # through the I18n backend (no runtime load_path append).
@@ -30,7 +30,7 @@ class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
     assert File.exist?(HOST_OVERRIDE_LOCALE), "expected test-only host override at #{HOST_OVERRIDE_LOCALE}"
     refute_includes File.expand_path(HOST_OVERRIDE_LOCALE), "/config/locales/"
 
-    assert_equal "Go back", I18n.t("recording_studio.core.navigation.go_back"),
+    assert_equal "Back", I18n.t("recording_studio.core.navigation.back"),
                  "default dummy UI must keep gem English before the override is applied"
     assert_equal "—", RecordingStudio::Labels.name_for(nil)
 
@@ -38,7 +38,7 @@ class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
 
     assert_equal @original_load_path, I18n.load_path,
                  "host override must not append I18n.load_path"
-    assert_equal "HOST Go back", I18n.t("recording_studio.core.navigation.go_back")
+    assert_equal "HOST Back", I18n.t("recording_studio.core.navigation.back")
     assert_equal "HOST —", RecordingStudio::Labels.name_for(nil)
     assert_equal "HOST —", RecordingStudio::Labels.empty_label
 
@@ -47,7 +47,7 @@ class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, "Go back"
     assert_includes response.body, "Close demo"
-    refute_includes response.body, "HOST Go back"
+    refute_includes response.body, "HOST Back"
   ensure
     I18n.reload!
   end
@@ -57,7 +57,7 @@ class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "Go back"
-    refute_includes response.body, "HOST Go back"
+    refute_includes response.body, "HOST Back"
     assert_equal "—", RecordingStudio::Labels.name_for(nil)
     assert_equal @original_load_path, I18n.load_path
   end

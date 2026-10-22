@@ -1,22 +1,14 @@
 <% content_for :title, @workspace.name %>
+<% content_for :subtitle, "A workspace root recording with explicit page routes and its full recording tree." %>
 <% flat_pack_page_nav(
   back_href: workspaces_path,
   back_tooltip: "Workspaces",
   anchor_href: root_path,
   anchor_tooltip: "Home"
 ) %>
-
-<%= render FlatPack::PageTitle::Component.new(
-  title: @workspace.name,
-  subtitle: "A workspace root recording with explicit page routes and its full recording tree."
-) do |page_title| %>
-  <% page_title.actions do %>
-    <%= render FlatPack::Button::Component.new(text: "Back to Workspaces", style: :secondary, href: workspaces_path) %>
-    <%= render FlatPack::Button::Component.new(text: "Browse Pages", style: :secondary, href: workspace_pages_path(@workspace)) %>
-    <%= render FlatPack::Button::Component.new(text: "New Page", style: :primary, href: new_workspace_page_path(@workspace)) %>
-    <%= render FlatPack::Button::Component.new(text: "Browse Recordings", style: :secondary, href: recordings_path) %>
-  <% end %>
-<% end %>
+<% page_action "Browse Pages", workspace_pages_path(@workspace), role: :secondary %>
+<% page_action "New Page", new_workspace_page_path(@workspace), role: :primary %>
+<% page_action "Browse Recordings", recordings_path, role: :secondary %>
 
 <%= render FlatPack::Card::Component.new(class: "mb-6", padding: :none) do |card| %>
   <% card.header(divider: false) do %>

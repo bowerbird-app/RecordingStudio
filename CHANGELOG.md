@@ -21,10 +21,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   nothing is registered and there is no `return_to`, the layout renders
   `FlatPack::PageNav` with a history back button only. Core does not choose
   the anchor and has no hide-back option.
-* Views register buttons with `page_action`. The layout renders
-  `page_actions(:header)` under the nav row.
-* `:title`, `:head`, and `:seo_description` stay. Set the title with
-  `content_for :title`.
+* Views register page-level buttons with `page_action`. The layout renders
+  `page_actions(:header)` under the title and subtitle. Form submit and
+  cancel stay in the form.
+* `:title` drives the document `<title>` and a `FlatPack::PageTitle` the
+  layout renders when the title is present. `:subtitle` is an optional
+  slot on that header. Views do not render their own page title.
+* `:head` and `:seo_description` stay.
+* `recording_studio.core.navigation.go_back` and `close` are removed.
+  Back and close copy come from Flatpack.
 * `flat_pack` (>= 0.1.294) is required. Gemfiles pin
   `https://github.com/bowerbird-app/flatpack.git` tag `v0.1.294`.
   `FlatPack::Card` takes `background:` and rejects `style:`.
@@ -34,9 +39,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Upgrade notes
 
-- Replace `recording_studio_page_nav` with `content_for :title` and
-  `flat_pack_page_nav`. Replace `recording_studio_page_nav_right` with
-  `page_action`. Pin `flat_pack` tag `v0.1.294`. See
+- Replace `recording_studio_page_nav` with `content_for :title`, optional
+  `content_for :subtitle`, and `flat_pack_page_nav`. Replace
+  `recording_studio_page_nav_right` and page-title action slots with
+  `page_action`. Drop a view's own `PageTitle`; the layout renders it.
+  Pin `flat_pack` tag `v0.1.294`. See
   [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-600).
 
 ## [5.0.0] - 2026-10-21

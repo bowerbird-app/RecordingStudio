@@ -22,7 +22,6 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "nav a[aria-label='Go back']", count: 0
     assert_select "a[href='#{workspaces_path}'][aria-label='Close demo']", count: 1
     assert_select "nav a[href='#{new_workspace_path}']", count: 0
-    assert_select "a[href='#{new_workspace_path}']", text: "Create workspace"
     assert_includes @response.body, "Go back"
     assert_includes @response.body, "Close demo"
     assert_not_includes @response.body, "flat-pack--sidebar-group"
@@ -30,10 +29,24 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     # SEO / OpenGraph meta tags
     assert_select "meta[property='og:title'][content='Default Layout Demo']", count: 1
     assert_select "meta[property='og:type'][content='website']", count: 1
-    assert_select "meta[name='description'][content*='SEO']", count: 1
+    assert_select "meta[name='description'][content*='OpenGraph']", count: 1
     assert_select "meta[property='og:image']", count: 0
     assert_select "meta[property='og:site_name'][content='Custom App Name']", count: 1
-    assert_select "meta[property='og:description'][content*='SEO']", count: 1
+    assert_select "meta[property='og:description'][content*='OpenGraph']", count: 1
+  end
+
+  test "show renders the title then the page actions" do
+    get layout_demo_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "h1", text: "Default Layout Demo"
+    assert_includes @response.body, "Title, subtitle, then the page actions."
+    assert_select "a[href='#{new_workspace_path}']", text: "Add workspace"
+    assert_select "a[href='#{workspaces_path}']", text: "Browse workspaces"
+    main = @response.body.split("<main", 2).last
+    assert_operator main.index("Default Layout Demo"), :<, main.index("Add workspace")
+    assert_operator main.index("Add workspace"), :<, main.index("Browse workspaces")
+    refute_includes @response.body, "PageNav above direct page content"
   end
 
   test "show falls back to configured app_name when no title content_for is set" do
@@ -53,19 +66,15 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
       body_theme seo_image page_nav_back_url page_nav_back_label
       page_nav_anchor_url page_nav_anchor_label page_nav_right
       recording_studio_page_nav return_to with_close fallback_url
-    ].each do |slot|
-      refute_includes source, slot
-    end
-    assert_includes source, "flat_pack_page_nav_tag"
-    assert_includes source, "page_actions(:header)"
-    assert_includes source, "with_back"
-    assert_includes source, "flat_pack/variables"
-    assert_includes source, "flat_pack/rich_text"
-    assert_includes source, "FlatPack::PageNav::Component"
-    assert_includes source, "FlatPack::Alert::Component"
+      recording-studio-back-button history.back
+    ].each { |slot| refute_includes source, slot }
     refute_includes source, "defined?(FlatPack"
-    refute_includes source, "recording-studio-back-button"
-    refute_includes source, "history.back"
+    %w[
+      flat_pack_page_nav_tag page_actions(:header) with_back
+      flat_pack/variables flat_pack/rich_text
+      FlatPack::PageNav::Component FlatPack::PageTitle::Component
+      content_for(:subtitle) FlatPack::Alert::Component
+    ].each { |piece| assert_includes source, piece }
 
     host_shell = File.read(Rails.root.join("app/views/layouts/application.html.erb"))
     assert_includes host_shell, "FlatPack::SidebarLayout::Component"

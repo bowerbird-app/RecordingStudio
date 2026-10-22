@@ -5,8 +5,6 @@ require "test_helper"
 class TranslationTest < ActiveSupport::TestCase
   GEM_KEYS = {
     "recording_studio.core.navigation.back" => "Back",
-    "recording_studio.core.navigation.go_back" => "Go back",
-    "recording_studio.core.navigation.close" => "Close",
     "recording_studio.core.navigation.page" => "Page navigation",
     "recording_studio.core.navigation.action_page" => "Action page navigation",
     "recording_studio.core.labels.empty" => "—"
@@ -93,10 +91,10 @@ class TranslationTest < ActiveSupport::TestCase
   test "does not raise for missing locale when callers use raise-on-missing style lookups" do
     I18n.with_locale(:de) do
       assert_raises(I18n::MissingTranslationData) do
-        I18n.t("recording_studio.core.navigation.go_back", locale: :de, raise: true)
+        I18n.t("recording_studio.core.navigation.back", locale: :de, raise: true)
       end
 
-      assert_equal "Go back", RecordingStudio.t("recording_studio.core.navigation.go_back")
+      assert_equal "Back", RecordingStudio.t("recording_studio.core.navigation.back")
     end
   end
 
@@ -106,14 +104,14 @@ class TranslationTest < ActiveSupport::TestCase
       aliases: true
     )
     gem_english = en_yml.fetch("en").fetch("recording_studio").fetch("core")
-                        .fetch("navigation").fetch("go_back")
+                        .fetch("navigation").fetch("back")
 
     source = File.read(File.expand_path("../lib/recording_studio/translation.rb", __dir__))
     refute_includes source, gem_english,
                     "Translation helper must not hard-code English; it must read loaded :en"
 
     I18n.with_locale(:de) do
-      assert_equal gem_english, RecordingStudio.t("recording_studio.core.navigation.go_back")
+      assert_equal gem_english, RecordingStudio.t("recording_studio.core.navigation.back")
     end
   end
 
@@ -149,7 +147,7 @@ class TranslationTest < ActiveSupport::TestCase
   end
 
   test "parity matrix gem keys cover missing default raise nil empty hash and related options" do
-    key = "recording_studio.core.navigation.go_back"
+    key = "recording_studio.core.navigation.back"
     missing = "recording_studio.core.navigation.missing_key_for_parity"
 
     I18n.backend.store_translations(:en, {
@@ -169,11 +167,11 @@ class TranslationTest < ActiveSupport::TestCase
 
     I18n.with_locale(:en) do
       assert_equal I18n.t(key), RecordingStudio.t(key)
-      assert_equal "Go back", RecordingStudio.t(key, default: "Ignored when present")
+      assert_equal "Back", RecordingStudio.t(key, default: "Ignored when present")
     end
 
     I18n.with_locale(:de) do
-      assert_equal "Go back", RecordingStudio.t(key),
+      assert_equal "Back", RecordingStudio.t(key),
                    "missing active locale uses loaded English"
       assert_match(/translation missing/i, I18n.t(key))
 
@@ -182,7 +180,7 @@ class TranslationTest < ActiveSupport::TestCase
       assert_raise_parity(missing, raise: true)
 
       I18n.backend.store_translations(:de, {
-                                        recording_studio: { core: { navigation: { go_back: "DE Zurück" } } }
+                                        recording_studio: { core: { navigation: { back: "DE Zurück" } } }
                                       })
       assert_equal "DE Zurück", RecordingStudio.t(key)
       assert_equal I18n.t(key), RecordingStudio.t(key),
@@ -207,20 +205,20 @@ class TranslationTest < ActiveSupport::TestCase
         RecordingStudio.t("recording_studio.core.navigation.greet", name: "M")
       )
 
-      assert_equal "DE Zurück", RecordingStudio.t(:"recording_studio.core.navigation.go_back")
+      assert_equal "DE Zurück", RecordingStudio.t(:"recording_studio.core.navigation.back")
       assert_equal(
-        ["DE Zurück", "Close"],
+        ["DE Zurück", "Page navigation"],
         RecordingStudio.t(%w[
-                            recording_studio.core.navigation.go_back
-                            recording_studio.core.navigation.close
+                            recording_studio.core.navigation.back
+                            recording_studio.core.navigation.page
                           ])
       )
-      assert_equal "DE Zurück", RecordingStudio.t(:go_back, scope: "recording_studio.core.navigation")
+      assert_equal "DE Zurück", RecordingStudio.t(:back, scope: "recording_studio.core.navigation")
 
       # scope: when the active locale lacks the key → English / shipped fallback
       assert_equal(
-        "Close",
-        RecordingStudio.t(:close, scope: "recording_studio.core.navigation"),
+        "Page navigation",
+        RecordingStudio.t(:page, scope: "recording_studio.core.navigation"),
         "scope: gem key missing in :de must fall back to English"
       )
 
@@ -244,7 +242,7 @@ class TranslationTest < ActiveSupport::TestCase
       end
       assert_match(/Translation missing: de\.recording_studio/, error.message)
 
-      assert_equal "Go back", RecordingStudio.t(key, locale: :en)
+      assert_equal "Back", RecordingStudio.t(key, locale: :en)
     end
   end
 

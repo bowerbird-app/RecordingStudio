@@ -1,5 +1,6 @@
 <%%# Intended layout: recording_studio/default_layout (typically used by index actions) %>
 <%% content_for :title, "<%= plural_name.humanize %>" %>
+<%% content_for :subtitle, "Replace this list with your collection UI." %>
 <%% flat_pack_page_nav %>
 <%%# Optional SEO / head helpers:
     recording_studio_seo_description("Browse <%= plural_name.humanize.downcase %>")
@@ -7,11 +8,6 @@
       stylesheet_link_tag "custom/<%= file_name %>", "data-turbo-track": "reload"
     end
 %>
-
-<%%= render FlatPack::PageTitle::Component.new(
-  title: "<%= plural_name.humanize %>",
-  subtitle: "Replace this list with your collection UI."
-) %>
 
 <%%= render FlatPack::EmptyState::Component.new(
   title: "No <%= plural_name.humanize.downcase %> yet",

@@ -18,6 +18,8 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_select "body[data-theme='rounded']", count: 1
     assert_select "nav[aria-label='Page navigation']", count: 1
     assert_select "a[href='#{root_path}'][aria-label='Home']", count: 1
+    assert_select "h1", text: "Workspaces"
+    assert_includes @response.body, "Choose a workspace explicitly before browsing or creating workspace-rooted pages."
     assert_select "a[href='#{new_workspace_path}']", text: "Add workspace"
     assert_select "nav a[href='#{new_workspace_path}']", count: 0
     assert_includes @response.body, @workspace.name
@@ -48,16 +50,27 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_select "nav[aria-label='Page navigation']", count: 1
     assert_select "a[href='#{workspaces_path}'][aria-label='Workspaces']", count: 1
     assert_select "a[href='#{root_path}'][aria-label='Home']", count: 1
+    assert_select "h1", text: @workspace.name
+    assert_includes @response.body, "explicit page routes and its full recording tree."
+    assert_select "a[href='#{workspace_pages_path(@workspace)}']", text: "Browse Pages"
+    assert_select "a[href='#{new_workspace_page_path(@workspace)}']", text: "New Page"
+    assert_select "a[href='#{recordings_path}']", text: "Browse Recordings"
+    assert_select "nav a[href='#{workspace_pages_path(@workspace)}']", count: 0
+    assert_not_includes @response.body, "Back to Workspaces"
     assert_not_includes @response.body, "flat-pack--breadcrumb"
   end
 
-  test "new renders page nav with workspaces anchor" do
+  test "new uses history back and keeps submit in the form" do
     get new_workspace_path, headers: modern_headers
 
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
     assert_select "nav[aria-label='Page navigation']", count: 1
-    assert_select "a[href='#{workspaces_path}'][aria-label='Workspaces']", count: 1
+    assert_select "nav button[aria-label='Go back']", count: 1
+    assert_select "a[aria-label='Workspaces']", count: 0
+    assert_select "h1", text: "New Workspace"
     assert_includes @response.body, "Create a container for recordings."
+    assert_select "form button", text: "Create Workspace"
+    assert_select "form a[href='#{workspaces_path}']", text: "Cancel"
   end
 end
