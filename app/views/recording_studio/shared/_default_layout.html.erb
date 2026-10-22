@@ -42,22 +42,24 @@
       <% end %>
 
       <% page_nav = flat_pack_page_nav_tag %>
-      <% if page_nav %>
-        <div class="mt-4 mb-6"><%= page_nav %></div>
+      <% top_nav_actions = render_page_nav(:top_nav) %>
+      <% if page_nav || top_nav_actions %>
+        <div class="mt-4 mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <% if page_nav %>
+            <div class="min-w-0"><%= page_nav %></div>
+          <% end %>
+          <% if top_nav_actions %>
+            <div class="ml-auto min-w-0 max-w-full [&_.fp-page-nav-buttons]:max-w-full [&_.fp-page-nav-buttons]:flex-wrap [&_.fp-page-nav-buttons]:justify-end [&_.inline-flex]:max-w-full [&_.inline-flex]:flex-wrap [&_.inline-flex]:justify-end">
+              <%= top_nav_actions %>
+            </div>
+          <% end %>
+        </div>
       <% end %>
 
       <% heading = content_for(:title).presence %>
       <% subtitle = content_for(:subtitle).presence %>
-      <% header_actions = render_page_nav(:header) %>
       <% if heading %>
-        <%= render FlatPack::PageTitle::Component.new(
-              title: heading,
-              subtitle: subtitle,
-              **(header_actions ? { class: "mb-0" } : {})
-            ) %>
-      <% end %>
-      <% if header_actions %>
-        <div class="mt-4 mb-8"><%= header_actions %></div>
+        <%= render FlatPack::PageTitle::Component.new(title: heading, subtitle: subtitle) %>
       <% end %>
 
       <%= yield %>

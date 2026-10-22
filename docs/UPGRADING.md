@@ -22,11 +22,12 @@ shim. Other gems that still call them will fail until they switch.
   There is no hide-back option.
 - Page buttons use `register_page_nav` with a required `role:`
   (`:primary`, `:secondary`, or `:destructive`). The layout renders them
-  with `render_page_nav(:header)` under the title and subtitle, in place of
-  `:page_nav_right`. `register_page_nav` is not `flat_pack_page_nav`. There
+  with `render_page_nav(:top_nav)` on the same row as the back and anchor,
+  right-aligned, in place of `:page_nav_right`. The title and subtitle stay
+  below that row. `register_page_nav` is not `flat_pack_page_nav`. There
   is no alias. These are page-level buttons. Form submit and cancel stay in
-  the form. The header style map is Flatpack's default: primary is a solid
-  button, secondary is subtle.
+  the form. The top nav style map is Flatpack's default: primary is subtle,
+  secondary is ghost.
 - Removed slots: `:page_nav_back_url`, `:page_nav_back_label`,
   `:page_nav_anchor_url`, `:page_nav_anchor_label`, `:page_nav_right`.
 - `:title`, `:head`, and `:seo_description` stay. Set the title with
@@ -71,12 +72,13 @@ Replace a page nav registration:
 | --- | --- |
 | `recording_studio_page_nav(title:, page_nav_back_url:, page_nav_back_label:, page_nav_anchor_url:, page_nav_anchor_label:)` | `content_for :title`, optional `content_for :subtitle`, and `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)` |
 | `recording_studio_page_nav_right { ... }` | `register_page_nav(label, href, role:, icon:)` |
-| `:page_nav_right` inside the nav row | `render_page_nav(:header)` under the title and subtitle |
+| `:page_nav_right` inside the nav row | `render_page_nav(:top_nav)` on the same row as back and anchor, right-aligned |
 | A view's own `FlatPack::PageTitle` | The layout's `PageTitle`, from `:title` and `:subtitle` |
 
 A host layout that replaces `recording_studio/default_layout` must call
-`flat_pack_page_nav_tag`, render `FlatPack::PageTitle` when `:title` is set,
-and call `render_page_nav(:header)` under that header. Link
+`flat_pack_page_nav_tag`, call `render_page_nav(:top_nav)` on that same row
+(right-aligned), and render `FlatPack::PageTitle` when `:title` is set.
+Link
 `flat_pack/variables`, `flat_pack/application`, and `flat_pack/rich_text`.
 See
 [docs/layouts/default_layout.md](layouts/default_layout.md#host-layout-contract).
@@ -825,9 +827,9 @@ register the back and anchor row with `flat_pack_page_nav` and page buttons
 with `register_page_nav`.
 
 > **Prerequisite:** `flat_pack` (>= 0.1.296) is a required RecordingStudio
-> dependency. The layout renders `flat_pack_page_nav_tag`,
-> `FlatPack::PageTitle` when `:title` is set, `render_page_nav(:header)`
-> under that header, and `FlatPack::Alert`. It links `flat_pack/variables`,
+> dependency. The layout renders `flat_pack_page_nav_tag` and
+> `render_page_nav(:top_nav)` on one row, then `FlatPack::PageTitle` when
+> `:title` is set, and `FlatPack::Alert`. It links `flat_pack/variables`,
 > `flat_pack/application`, and `flat_pack/rich_text`. It does not fall back
 > when Flatpack is missing, and it does not draw an icon row when
 > `flat_pack_page_nav_tag` returns nil. The gem is not on RubyGems; point
@@ -842,7 +844,7 @@ with `register_page_nav`.
 
 - Flatpack page nav at the top when the view calls `flat_pack_page_nav`, or when a valid `return_to` fills the anchor.
 - `FlatPack::PageTitle` from `content_for :title` and optional `content_for :subtitle`, only when a title is set.
-- `render_page_nav(:header)` directly under that title when the view registers page-level buttons.
+- `render_page_nav(:top_nav)` on the nav row, right-aligned, when the view registers page-level buttons. The title has no actions row.
 - Direct page body rendering (no extra content wrapper).
 - Standard `yield :head` support for metadata, plus optional
   `default_layout_head` partial auto-detection.
@@ -964,7 +966,7 @@ shared default.
 | `content_for :title` | Sets the document `<title>` and the layout's `PageTitle`. |
 | `content_for :subtitle` | Optional subtitle on that header. |
 | `flat_pack_page_nav(...)` | Registers the back and anchor row. |
-| `register_page_nav(label, href, role:, icon:)` | Registers one page-level button. `role:` is required. The layout places it under the title. |
+| `register_page_nav(label, href, role:, icon:)` | Registers one page-level button. `role:` is required. The layout places it on the nav row. |
 | `default_layout_head { ... }` | Appends block content to the `<head>` element. |
 | `recording_studio_seo_description(text)` | Sets `<meta name="description">` and `og:description` tags. |
 
@@ -1013,7 +1015,7 @@ buttons as needed.
 | Page chrome | Manual `FlatPack::Breadcrumb::Component` | `flat_pack_page_nav_tag` |
 | Page nav config | Slots scattered across views | `flat_pack_page_nav(...)` |
 | Page title | A view's own `FlatPack::PageTitle` | Layout `PageTitle` from `content_for :title` and `:subtitle` |
-| Page buttons | Embedded in a `PageTitle` actions slot | `register_page_nav`, rendered by `render_page_nav(:header)` under the title |
+| Page buttons | Embedded in a `PageTitle` actions slot | `register_page_nav`, rendered by `render_page_nav(:top_nav)` on the nav row |
 | Head metadata | Manual `content_for :head` | `default_layout_head { ... }` |
 | Flash messages | Per-view or per-layout | Rendered automatically by layout |
 | SEO description | Not available | `recording_studio_seo_description(...)` helper |

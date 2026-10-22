@@ -20,8 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   layout renders `flat_pack_page_nav_tag`. A valid `return_to` fills a blank
   anchor. When that tag returns nil, the layout adds no icon row of its own.
 * Views register page buttons with `register_page_nav` and a required
-  `role:`. The layout renders `render_page_nav(:header)` under the title and
-  subtitle. `register_page_nav` is not `flat_pack_page_nav`. There is no
+  `role:`. The layout renders `render_page_nav(:top_nav)` on the same row
+  as the back and anchor, right-aligned. The title and subtitle stay below
+  that row. `register_page_nav` is not `flat_pack_page_nav`. There is no
   alias. Form submit and cancel stay in the form.
 * `:title` drives the document `<title>` and a `FlatPack::PageTitle` the
   layout renders when the title is present. `:subtitle` is an optional

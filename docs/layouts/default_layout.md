@@ -17,16 +17,17 @@ layout renders `FlatPack::PageTitle` with that title and an optional
 `content_for :subtitle`. It skips the header when the title is blank. The
 same `:title` value is the document `<title>`.
 
-Page buttons are separate from form buttons, and separate from the icon
-row. A view calls `register_page_nav` for the row that belongs with the page
-(Browse, New, and the like). The layout renders `render_page_nav(:header)`
-directly under the title and subtitle, and only when at least one item is
-registered. Submit and cancel stay in the form. `register_page_nav` is not
+Page buttons are separate from form buttons. A view calls
+`register_page_nav` for the buttons that belong with the page (Browse, New,
+and the like). The layout renders them with `render_page_nav(:top_nav)` on
+the same row as the back and anchor, right-aligned. That row shows when
+either side has content. The title and subtitle stay below it, with no
+actions row. Submit and cancel stay in the form. `register_page_nav` is not
 `flat_pack_page_nav`.
 
 > **Prerequisite:** `flat_pack` is a required dependency (`>= 0.1.296`).
-> The layout renders `flat_pack_page_nav_tag`, `FlatPack::PageTitle`,
-> `render_page_nav(:header)`, and `FlatPack::Alert`. It links
+> The layout renders `flat_pack_page_nav_tag`, `render_page_nav(:top_nav)`,
+> `FlatPack::PageTitle`, and `FlatPack::Alert`. It links
 > `flat_pack/variables`, `flat_pack/application`, and `flat_pack/rich_text`.
 > There is no fallback when Flatpack is missing. `flat_pack` is not on
 > RubyGems. The gemspec declares the dependency, and the host Gemfile
@@ -35,11 +36,10 @@ registered. Submit and cancel stay in the form. `register_page_nav` is not
 
 ## What it provides
 
-- Back and anchor page nav through `flat_pack_page_nav_tag`.
+- Back and anchor page nav through `flat_pack_page_nav_tag`, on the left of one row.
+- Registered page buttons through `render_page_nav(:top_nav)`, right-aligned on that row. The row wraps when the buttons do not fit.
 - A `FlatPack::PageTitle` when `content_for :title` is set, with an optional
-  subtitle from `content_for :subtitle`.
-- Registered page buttons through `render_page_nav(:header)`, under that title
-  and subtitle.
+  subtitle from `content_for :subtitle`. No actions row under the title.
 - Flatpack kit CSS (`flat_pack/application`) so those buttons take their style.
 - Flash notice and alert via `FlatPack::Alert`.
 - The page body via `yield`, with no extra content card.
@@ -163,10 +163,11 @@ end
 
 Gem views set `content_for` slots and register Flatpack page nav and page
 actions. They do not draw the application shell or their own page title.
-A host layout that replaces the default renders, in order, page nav,
-`FlatPack::PageTitle` from `:title` and `:subtitle` when a title is set,
-then `render_page_nav(:header)` when actions are registered. Without those
-pieces, titles, navigation, actions, and flashes disappear. Link
+A host layout that replaces the default renders one row: `flat_pack_page_nav_tag`
+on the left and `render_page_nav(:top_nav)` on the right. The row shows when
+either side has content. Then `FlatPack::PageTitle` from `:title` and
+`:subtitle` when a title is set. Without those pieces, titles, navigation,
+actions, and flashes disappear. Link
 `flat_pack/application` so button fills paint.
 
 Slots gem views set:
@@ -183,7 +184,7 @@ Flatpack request state the host layout must render:
 | Call | How views set it | What the layout renders |
 | --- | --- | --- |
 | `flat_pack_page_nav` | back href and tooltip, anchor href and tooltip | `flat_pack_page_nav_tag`. A valid `return_to` fills a blank anchor. Nil means nothing was registered and there is no `return_to`. The layout leaves that nil alone. |
-| `register_page_nav` | label, href, role, icon | `render_page_nav(:header)`, under the title and subtitle |
+| `register_page_nav` | label, href, role, icon | `render_page_nav(:top_nav)`, right-aligned on the nav row |
 
 Also required:
 
@@ -224,13 +225,14 @@ is set) and, when an anchor is present, a close control. A call with no
 arguments still stores that history-back spec. `anchor_href` is also the
 history back fallback. A block replaces that default row. A block does not
 gain a close control when `return_to` fills a blank anchor. Omit the call,
-and pass no `return_to`, and the layout renders no icon row.
+and pass no `return_to`, and the icon side of the row is empty. Registered
+page buttons still render, right-aligned, on that row.
 
 `register_page_nav` returns nil. `role` is required: `:primary`,
 `:secondary`, or `:destructive`. The layout places the group with
-`render_page_nav(:header)`. The view does not pass a CSS class or a button
-style. Flatpack's header map paints `:primary` as a solid button and
-`:secondary` as a subtle button.
+`render_page_nav(:top_nav)`. The view does not pass a CSS class or a button
+style. Flatpack's top nav map paints `:primary` as a subtle button and
+`:secondary` as a ghost button.
 
 ## Defaults
 
@@ -244,7 +246,7 @@ style. Flatpack's header map paints `:primary` as a solid button and
 | Back | Shown when the view calls `flat_pack_page_nav`, including a call with no arguments (history back, icon `chevron-left`, Flatpack tooltip "Go back"). A registered spec uses that spec. With nothing registered and no valid `return_to`, the layout renders no icon row. |
 | Anchor | Comes only from Flatpack: the view's `anchor_href`, or a valid `return_to` when the view left the anchor blank. Core adds no anchor of its own. The close icon is `x-mark`. The default tooltip is Flatpack's "Close". |
 | Header | Rendered only when `content_for(:title)` is present. `FlatPack::PageTitle` uses that title and `content_for(:subtitle)` when the subtitle is present. |
-| Page actions | Empty until the view calls `register_page_nav`. Then `render_page_nav(:header)` renders under the title and subtitle. Form submit and cancel stay in the form. |
+| Page actions | Empty until the view calls `register_page_nav`. Then `render_page_nav(:top_nav)` renders on the nav row, right-aligned. Form submit and cancel stay in the form. |
 
 ## Page nav example
 

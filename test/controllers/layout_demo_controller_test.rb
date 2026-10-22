@@ -35,17 +35,18 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "meta[property='og:description'][content*='OpenGraph']", count: 1
   end
 
-  test "show renders the title then the page actions" do
+  test "show renders page buttons on the nav row, then the title" do
     get layout_demo_path, headers: modern_headers
 
     assert_response :success
     assert_select "h1", text: "Default Layout Demo"
-    assert_includes @response.body, "Title, subtitle, then the page actions."
-    assert_select "a[href='#{new_workspace_path}']", text: "Add workspace"
-    assert_select "a[href='#{workspaces_path}']", text: "Browse workspaces"
+    assert_includes @response.body, "Page buttons sit on the nav row."
+    assert_select "a[href='#{new_workspace_path}'][data-fp-style='secondary']", text: "Add workspace"
+    assert_select "a[href='#{workspaces_path}'][data-fp-style='ghost']", text: "Browse workspaces"
+    assert_select "nav a[href='#{new_workspace_path}']", count: 0
     main = @response.body.split("<main", 2).last
-    assert_operator main.index("Default Layout Demo"), :<, main.index("Add workspace")
-    assert_operator main.index("Add workspace"), :<, main.index("Browse workspaces")
+    assert_operator main.index("Add workspace"), :<, main.index("Default Layout Demo")
+    assert_operator main.index("Browse workspaces"), :<, main.index("Default Layout Demo")
     refute_includes @response.body, "PageNav above direct page content"
   end
 
@@ -70,10 +71,10 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     ].each { |slot| refute_includes source, slot }
     refute_includes source, "defined?(FlatPack"
     %w[
-      with_back FlatPack::PageNav page_actions page_action
+      with_back FlatPack::PageNav page_actions page_action render_page_nav(:header)
     ].each { |slot| refute_includes source, slot }
     %w[
-      flat_pack_page_nav_tag render_page_nav(:header)
+      flat_pack_page_nav_tag render_page_nav(:top_nav)
       flat_pack/variables flat_pack/application flat_pack/rich_text
       FlatPack::PageTitle::Component
       content_for(:subtitle) FlatPack::Alert::Component

@@ -53,8 +53,10 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: @workspace.name
     assert_includes @response.body, "explicit page routes and its full recording tree."
     assert_select "a[href='#{workspace_pages_path(@workspace)}']", text: "Browse Pages"
-    assert_select "a[href='#{new_workspace_page_path(@workspace)}'][data-fp-style='primary']", text: "New Page"
-    assert_select "a[href='#{workspace_pages_path(@workspace)}'][data-fp-style='secondary']", text: "Browse Pages"
+    assert_select "a[href='#{new_workspace_page_path(@workspace)}'][data-fp-style='secondary']", text: "New Page"
+    assert_select "a[href='#{workspace_pages_path(@workspace)}'][data-fp-style='ghost']", text: "Browse Pages"
+    assert_select "a[href='#{recordings_path}'][data-fp-style='ghost']", text: "Browse Recordings"
+    assert_operator @response.body.index("New Page"), :<, @response.body.index("<h1")
     assert_select "a[href='#{recordings_path}']", text: "Browse Recordings"
     assert_select "nav a[href='#{workspace_pages_path(@workspace)}']", count: 0
     assert_not_includes @response.body, "Back to Workspaces"
