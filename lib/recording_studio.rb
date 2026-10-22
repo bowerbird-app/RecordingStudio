@@ -582,7 +582,8 @@ module RecordingStudio
         actor_id: event.actor_id,
         impersonator_type: event.impersonator_type,
         impersonator_id: event.impersonator_id,
-        occurred_at: event.occurred_at
+        occurred_at: event.occurred_at,
+        metadata: event.metadata
       )
     end
   end

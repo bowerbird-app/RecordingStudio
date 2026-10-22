@@ -2,7 +2,10 @@
 
 ## Unreleased
 
-No unreleased changes.
+`recordings.event_created` payloads include `metadata`, the hash stored on the event (`{}` when the
+write stored none). Existing keys, `schema_version`, and actor and impersonator semantics are
+unchanged. No host change is required. Read `payload[:metadata]` for fields a caller stored there,
+such as `authorized_by_type` and `authorized_by_id`.
 
 ## Upgrading To 5.0.0
 
