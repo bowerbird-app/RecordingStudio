@@ -35,14 +35,21 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "meta[property='og:description'][content*='OpenGraph']", count: 1
   end
 
-  test "show renders page buttons on the nav row, then the title" do
+  test "show renders page buttons in the top nav, then the title" do
     get layout_demo_path, headers: modern_headers
 
     assert_response :success
     assert_select "h1", text: "Default Layout Demo"
-    assert_includes @response.body, "Page buttons sit on the nav row."
-    assert_select "a[href='#{new_workspace_path}'][data-fp-style='secondary']", text: "Add workspace"
-    assert_select "a[href='#{workspaces_path}'][data-fp-style='ghost']", text: "Browse workspaces"
+    assert_includes @response.body, "On a phone, page buttons fold into the menu."
+    assert_select "header[data-controller='flat-pack--top-nav']", count: 1
+    assert_select "[data-flat-pack-top-nav-section='left'][data-flat-pack-top-nav-collapsible='false']", count: 1
+    desktop_nav = "[data-fp-page-nav='top_nav']"
+    menu_nav = "[data-fp-page-nav='menu']"
+    assert_select "#{desktop_nav} a[href='#{new_workspace_path}'][data-fp-style='secondary']", text: "Add workspace"
+    assert_select "#{desktop_nav} a[href='#{workspaces_path}'][data-fp-style='ghost']", text: "Browse workspaces"
+    assert_select "#{menu_nav} a[href='#{new_workspace_path}'][data-fp-style='secondary']", text: "Add workspace"
+    assert_select "#{desktop_nav} #{menu_nav}", count: 0
+    assert_select "[data-fp-page-nav='top_nav'] [data-fp-page-nav='menu']", count: 0
     assert_select "nav a[href='#{new_workspace_path}']", count: 0
     main = @response.body.split("<main", 2).last
     assert_operator main.index("Add workspace"), :<, main.index("Default Layout Demo")
@@ -66,25 +73,34 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     %w[
       body_theme seo_image page_nav_back_url page_nav_back_label
       page_nav_anchor_url page_nav_anchor_label page_nav_right
-      recording_studio_page_nav return_to with_close fallback_url
-      recording-studio-back-button history.back
+      recording_studio_page_nav return_to with_close fallback_url recording-studio-back-button history.back
     ].each { |slot| refute_includes source, slot }
     refute_includes source, "defined?(FlatPack"
     %w[
-      with_back FlatPack::PageNav page_actions page_action render_page_nav(:header)
+      with_back FlatPack::PageNav page_actions page_action render_page_nav(:header) flex-wrap justify-between
     ].each { |slot| refute_includes source, slot }
+    assert_includes source, "place: :menu"
     %w[
-      flat_pack_page_nav_tag render_page_nav(:top_nav)
-      flat_pack/variables flat_pack/application flat_pack/rich_text
-      FlatPack::PageTitle::Component
+      flat_pack_page_nav_tag render_page_nav(:top_nav) FlatPack::TopNav::Component
+      always_display fp-page-nav--desktop javascript_importmap_tags
+      flat_pack/variables flat_pack/application flat_pack/rich_text FlatPack::PageTitle::Component
       content_for(:subtitle) FlatPack::Alert::Component
     ].each { |piece| assert_includes source, piece }
-
     host_shell = File.read(Rails.root.join("app/views/layouts/application.html.erb"))
     assert_includes host_shell, "FlatPack::SidebarLayout::Component"
     assert_includes host_shell, "FlatPack::Alert::Component"
     assert_includes host_shell, "flat_pack/variables"
     assert_includes host_shell, "flat_pack/application"
+  end
+
+  test "dummy tailwind does not redefine Flatpack color tokens" do
+    source = File.read(Rails.root.join("app/assets/tailwind/application.css"))
+
+    refute_match(/--color-primary\s*:/, source)
+    refute_match(/--color-fp-/, source)
+    refute_match(/--shadow-fp-/, source)
+    refute_match(/0\.375rem/, source)
+    assert_match(/--radius-md:\s*0\.5rem/, source)
   end
 
   test "default layout renders flatpack assets, alerts, and content_for slots" do
@@ -110,6 +126,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: "Plain Layout"
     assert_select "nav[aria-label='Page navigation']", count: 0
     assert_select "a[aria-label='Close']", count: 0
+    assert_select "[data-controller='flat-pack--top-nav']", count: 0
   end
 
   test "return_to fills the anchor when the view registers no page nav" do

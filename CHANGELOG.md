@@ -20,10 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   layout renders `flat_pack_page_nav_tag`. A valid `return_to` fills a blank
   anchor. When that tag returns nil, the layout adds no icon row of its own.
 * Views register page buttons with `register_page_nav` and a required
-  `role:`. The layout renders `render_page_nav(:top_nav)` on the same row
-  as the back and anchor, right-aligned. The title and subtitle stay below
-  that row. `register_page_nav` is not `flat_pack_page_nav`. There is no
-  alias. Form submit and cancel stay in the form.
+  `role:`. The layout renders `FlatPack::TopNav`. Back and anchor stay in
+  the left slot. `render_page_nav(:top_nav)` is the desktop group in the
+  right slot. `render_page_nav(:top_nav, place: :menu)` is the phone menu.
+  The title and subtitle stay below that bar. `register_page_nav` is not
+  `flat_pack_page_nav`. There is no alias. Form submit and cancel stay in
+  the form.
 * `:title` drives the document `<title>` and a `FlatPack::PageTitle` the
   layout renders when the title is present. `:subtitle` is an optional
   slot on that header. Views do not render their own page title.
@@ -35,6 +37,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Layouts link `flat_pack/application` after `flat_pack/variables` so
   button styles paint. `FlatPack::Card` takes `background:` and rejects
   `style:`.
+* The dummy Tailwind file no longer redefines `--color-primary`,
+  `--color-fp-*`, or `--radius-md`. Those tokens come from
+  `flat_pack/variables`. The file re-sets the kit radius scale on
+  unlayered `:root` so Tailwind's `0.375rem` `--radius-md` does not win.
 * `FlatPack::PageLayout` is Flatpack's public page shell. Gem screens that
   are not inside Sidebar Layout or Page Layout still use
   `recording_studio/default_layout`.

@@ -40,9 +40,10 @@ The dummy app is the best current reference for asset setup.
 
 - imports Tailwind
 - scans FlatPack component templates from Bundler paths
-- defines FlatPack design-token CSS variables
 - scans dummy app views
 - scans the engine's `app/views/**/*.erb`
+- leaves color tokens to `flat_pack/variables` (no `--color-primary` or `--color-fp-*`)
+- re-sets the kit `--radius-*` scale and `--font-sans` on unlayered `:root`, so Tailwind's `--radius-md: 0.375rem` does not win
 
 The development watcher is wired through `test/dummy/Procfile.dev`:
 

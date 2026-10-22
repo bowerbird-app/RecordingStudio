@@ -21,13 +21,16 @@ shim. Other gems that still call them will fail until they switch.
 - Core does not choose the anchor and does not read `return_to` itself.
   There is no hide-back option.
 - Page buttons use `register_page_nav` with a required `role:`
-  (`:primary`, `:secondary`, or `:destructive`). The layout renders them
-  with `render_page_nav(:top_nav)` on the same row as the back and anchor,
-  right-aligned, in place of `:page_nav_right`. The title and subtitle stay
-  below that row. `register_page_nav` is not `flat_pack_page_nav`. There
-  is no alias. These are page-level buttons. Form submit and cancel stay in
-  the form. The top nav style map is Flatpack's default: primary is subtle,
-  secondary is ghost.
+  (`:primary`, `:secondary`, or `:destructive`). The layout renders
+  `FlatPack::TopNav`. Back and anchor stay in the left slot. The desktop
+  group is `render_page_nav(:top_nav)` in the right slot, inside
+  `.fp-page-nav--desktop`, which Flatpack hides below 768px. Phone rows are
+  `render_page_nav(:top_nav, place: :menu)` in the hamburger. The title and
+  subtitle stay below that bar. `register_page_nav` is not
+  `flat_pack_page_nav`. There is no alias. These are page-level buttons.
+  Form submit and cancel stay in the form. The top nav style map is
+  Flatpack's default: primary is subtle, secondary is ghost. Do not wrap
+  the group in a flex row.
 - Removed slots: `:page_nav_back_url`, `:page_nav_back_label`,
   `:page_nav_anchor_url`, `:page_nav_anchor_label`, `:page_nav_right`.
 - `:title`, `:head`, and `:seo_description` stay. Set the title with
@@ -42,6 +45,10 @@ shim. Other gems that still call them will fail until they switch.
 - `flat_pack` (>= 0.1.296) is required. Pin tag `v0.1.296`. Link
   `flat_pack/application` as well as `flat_pack/variables` and
   `flat_pack/rich_text`. The application sheet paints button fills.
+- Do not copy `--color-primary` or `--color-fp-*` into the host Tailwind
+  file. Delete a host `@theme` block that sets them. Re-set the kit
+  `--radius-*` scale on unlayered `:root` (`--radius-md: 0.5rem`). A value
+  inside `@theme` does not replace Tailwind's `0.375rem` default.
 - `FlatPack::Card` takes `background:` (`:shaded`, `:default`, and the rest).
   It rejects `style:`, `theme:`, and `tone:`.
 
@@ -72,14 +79,16 @@ Replace a page nav registration:
 | --- | --- |
 | `recording_studio_page_nav(title:, page_nav_back_url:, page_nav_back_label:, page_nav_anchor_url:, page_nav_anchor_label:)` | `content_for :title`, optional `content_for :subtitle`, and `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)` |
 | `recording_studio_page_nav_right { ... }` | `register_page_nav(label, href, role:, icon:)` |
-| `:page_nav_right` inside the nav row | `render_page_nav(:top_nav)` on the same row as back and anchor, right-aligned |
+| `:page_nav_right` inside the nav row | `render_page_nav(:top_nav)` in the top nav's right slot, and `render_page_nav(:top_nav, place: :menu)` in the hamburger |
 | A view's own `FlatPack::PageTitle` | The layout's `PageTitle`, from `:title` and `:subtitle` |
 
-A host layout that replaces `recording_studio/default_layout` must call
-`flat_pack_page_nav_tag`, call `render_page_nav(:top_nav)` on that same row
-(right-aligned), and render `FlatPack::PageTitle` when `:title` is set.
-Link
-`flat_pack/variables`, `flat_pack/application`, and `flat_pack/rich_text`.
+A host layout that replaces `recording_studio/default_layout` must render
+`FlatPack::TopNav` with `flat_pack_page_nav_tag` in the left slot,
+`render_page_nav(:top_nav)` in `.fp-page-nav--desktop` on the right, and
+`render_page_nav(:top_nav, place: :menu)` as the hamburger section. Render
+`FlatPack::PageTitle` when `:title` is set. Link
+`flat_pack/variables`, `flat_pack/application`, and `flat_pack/rich_text`,
+and render the importmap so `flat-pack--top-nav` connects.
 See
 [docs/layouts/default_layout.md](layouts/default_layout.md#host-layout-contract).
 
@@ -827,8 +836,8 @@ register the back and anchor row with `flat_pack_page_nav` and page buttons
 with `register_page_nav`.
 
 > **Prerequisite:** `flat_pack` (>= 0.1.296) is a required RecordingStudio
-> dependency. The layout renders `flat_pack_page_nav_tag` and
-> `render_page_nav(:top_nav)` on one row, then `FlatPack::PageTitle` when
+> dependency. The layout renders `FlatPack::TopNav` with
+> `flat_pack_page_nav_tag` and `render_page_nav(:top_nav)`, then `FlatPack::PageTitle` when
 > `:title` is set, and `FlatPack::Alert`. It links `flat_pack/variables`,
 > `flat_pack/application`, and `flat_pack/rich_text`. It does not fall back
 > when Flatpack is missing, and it does not draw an icon row when
@@ -844,7 +853,7 @@ with `register_page_nav`.
 
 - Flatpack page nav at the top when the view calls `flat_pack_page_nav`, or when a valid `return_to` fills the anchor.
 - `FlatPack::PageTitle` from `content_for :title` and optional `content_for :subtitle`, only when a title is set.
-- `render_page_nav(:top_nav)` on the nav row, right-aligned, when the view registers page-level buttons. The title has no actions row.
+- `render_page_nav(:top_nav)` in the top nav's right slot, and `render_page_nav(:top_nav, place: :menu)` in the hamburger, when the view registers page-level buttons. The title has no actions row.
 - Direct page body rendering (no extra content wrapper).
 - Standard `yield :head` support for metadata, plus optional
   `default_layout_head` partial auto-detection.
@@ -966,7 +975,7 @@ shared default.
 | `content_for :title` | Sets the document `<title>` and the layout's `PageTitle`. |
 | `content_for :subtitle` | Optional subtitle on that header. |
 | `flat_pack_page_nav(...)` | Registers the back and anchor row. |
-| `register_page_nav(label, href, role:, icon:)` | Registers one page-level button. `role:` is required. The layout places it on the nav row. |
+| `register_page_nav(label, href, role:, icon:)` | Registers one page-level button. `role:` is required. The layout places it in the top nav. |
 | `default_layout_head { ... }` | Appends block content to the `<head>` element. |
 | `recording_studio_seo_description(text)` | Sets `<meta name="description">` and `og:description` tags. |
 
@@ -1015,7 +1024,7 @@ buttons as needed.
 | Page chrome | Manual `FlatPack::Breadcrumb::Component` | `flat_pack_page_nav_tag` |
 | Page nav config | Slots scattered across views | `flat_pack_page_nav(...)` |
 | Page title | A view's own `FlatPack::PageTitle` | Layout `PageTitle` from `content_for :title` and `:subtitle` |
-| Page buttons | Embedded in a `PageTitle` actions slot | `register_page_nav`, rendered by `render_page_nav(:top_nav)` on the nav row |
+| Page buttons | Embedded in a `PageTitle` actions slot | `register_page_nav`, rendered by `render_page_nav(:top_nav)` in the top nav |
 | Head metadata | Manual `content_for :head` | `default_layout_head { ... }` |
 | Flash messages | Per-view or per-layout | Rendered automatically by layout |
 | SEO description | Not available | `recording_studio_seo_description(...)` helper |

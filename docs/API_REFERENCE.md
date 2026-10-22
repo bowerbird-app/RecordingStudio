@@ -573,15 +573,15 @@ Public layout:
 ### Page shell helpers
 
 Page nav, the page header, and page buttons are Flatpack. Recording Studio's
-layout renders `flat_pack_page_nav_tag` and `render_page_nav(:top_nav)` on
-one row, then `FlatPack::PageTitle` when `:title` is set.
+layout renders `FlatPack::TopNav` with `flat_pack_page_nav_tag` and
+`render_page_nav(:top_nav)`, then `FlatPack::PageTitle` when `:title` is set.
 
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
 | `content_for :title` | title string | slot HTML | Sets the document `<title>` and the `PageTitle` heading. The header is omitted when this is blank. |
 | `content_for :subtitle` | subtitle string | slot HTML | Optional `PageTitle` subtitle. |
 | `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:, ...)` | Flatpack page nav arguments | `nil` | Registers the back and anchor row for this request. |
-| `register_page_nav(label, href, role:, icon:)` | label, path, required role, icon | `nil` | Registers one page-level button. The layout renders it with `render_page_nav(:top_nav)` on the nav row. Form submit and cancel stay in the form. |
+| `register_page_nav(label, href, role:, icon:)` | label, path, required role, icon | `nil` | Registers one page-level button. The layout renders it with `render_page_nav(:top_nav)` in the top nav, and in the hamburger below 768px. Form submit and cancel stay in the form. |
 | `default_layout_head(&block)` | block | `nil` | Adds block content to `<head>` via `yield :head`. |
 
 ### SEO helpers

@@ -33,36 +33,45 @@
   </head>
 
   <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true" data-theme="rounded">
-    <main class="mx-auto min-h-screen w-full max-w-6xl p-6">
-      <% if flash[:notice].present? %>
-        <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-4") %>
-      <% end %>
-      <% if flash[:alert].present? %>
-        <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-4") %>
-      <% end %>
-
+    <main class="mx-auto min-h-screen w-full max-w-6xl">
       <% page_nav = flat_pack_page_nav_tag %>
-      <% top_nav_actions = render_page_nav(:top_nav) %>
-      <% if page_nav || top_nav_actions %>
-        <div class="mt-4 mb-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <% if page_nav %>
-            <div class="min-w-0"><%= page_nav %></div>
+      <% desktop_actions = render_page_nav(:top_nav) %>
+      <% menu_actions = render_page_nav(:top_nav, place: :menu) %>
+      <% if page_nav.present? || desktop_actions.present? %>
+        <% top_nav = render FlatPack::TopNav::Component.new do |nav| %>
+          <% if page_nav.present? %>
+            <% nav.left(always_display: true) do %>
+              <%= page_nav %>
+            <% end %>
           <% end %>
-          <% if top_nav_actions %>
-            <div class="ml-auto min-w-0 max-w-full [&_.fp-page-nav-buttons]:max-w-full [&_.fp-page-nav-buttons]:flex-wrap [&_.fp-page-nav-buttons]:justify-end [&_.inline-flex]:max-w-full [&_.inline-flex]:flex-wrap [&_.inline-flex]:justify-end">
-              <%= top_nav_actions %>
-            </div>
+          <% if desktop_actions.present? %>
+            <% nav.right(always_display: true) do %>
+              <div class="fp-page-nav fp-page-nav--desktop" data-fp-page-nav="top_nav"><%= desktop_actions %></div>
+            <% end %>
           <% end %>
-        </div>
+        <% end %>
+        <% if menu_actions.present? %>
+          <% top_nav = top_nav.sub(/(<[^>]*data-flat-pack--top-nav-target="menu")/) { "#{menu_actions}#{Regexp.last_match(1)}" }.html_safe %>
+        <% end %>
+        <%= top_nav %>
       <% end %>
 
-      <% heading = content_for(:title).presence %>
-      <% subtitle = content_for(:subtitle).presence %>
-      <% if heading %>
-        <%= render FlatPack::PageTitle::Component.new(title: heading, subtitle: subtitle) %>
-      <% end %>
+      <div class="p-6">
+        <% if flash[:notice].present? %>
+          <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-4") %>
+        <% end %>
+        <% if flash[:alert].present? %>
+          <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-4") %>
+        <% end %>
 
-      <%= yield %>
+        <% heading = content_for(:title).presence %>
+        <% subtitle = content_for(:subtitle).presence %>
+        <% if heading %>
+          <%= render FlatPack::PageTitle::Component.new(title: heading, subtitle: subtitle) %>
+        <% end %>
+
+        <%= yield %>
+      </div>
     </main>
   </body>
 </html>
