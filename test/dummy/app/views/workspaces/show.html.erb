@@ -10,7 +10,7 @@
 <% register_page_nav "New Page", new_workspace_page_path(@workspace), role: :primary %>
 <% register_page_nav "Browse Recordings", recordings_path, role: :secondary %>
 
-<%= render FlatPack::Card::Component.new(class: "mb-6", padding: :none) do |card| %>
+<%= render FlatPack::Card::Component.new(class: "mb-6") do |card| %>
   <% card.header(divider: false) do %>
     <%= render FlatPack::SectionTitle::Component.new(
       title: "Recording hierarchy",

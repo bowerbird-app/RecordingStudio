@@ -3,10 +3,8 @@
 /* Scan FlatPack ViewComponents so Tailwind emits their utility classes.
  * Color tokens stay in flat_pack/variables. Do not fork them into this file.
  */
-@source "../../../vendor/bundle/**/bundler/gems/flatpack-*/app/components/**/*.rb";
-@source "../../../vendor/bundle/**/bundler/gems/flatpack-*/app/components/**/*.erb";
-@source "../../../../../../usr/local/bundle/**/bundler/gems/flatpack-*/app/components/**/*.rb";
-@source "../../../../../../usr/local/bundle/**/bundler/gems/flatpack-*/app/components/**/*.erb";
+@source "../../../vendor/bundle/ruby/3.3.0/bundler/gems/flatpack-eaf15af05bae/app/components";
+@source "../../../vendor/bundle/ruby/3.3.0/bundler/gems/flatpack-eaf15af05bae/app/helpers";
 
 /* Include dummy app views */
 @source "../../views/**/*.erb";

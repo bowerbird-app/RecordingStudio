@@ -17,7 +17,7 @@
   ) %>
 
   <% child_recordings = @recording.child_recordings.recent %>
-  <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+  <%= render FlatPack::Card::Component.new do |card| %>
     <% card.header do %>
       <%= render FlatPack::SectionTitle::Component.new(
         title: "Child recordings",
@@ -53,7 +53,7 @@
     { label: "Root Recording ID", value: @recording.root_recording_id },
     { label: "Root Recordable", value: @recording.root_recording&.name || "—" }
   ] %>
-  <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+  <%= render FlatPack::Card::Component.new do |card| %>
     <% card.header do %>
       <%= render FlatPack::SectionTitle::Component.new(
         title: "Recording Snapshot",
@@ -69,7 +69,7 @@
   <% end %>
 
   <%= render FlatPack::Grid::Component.new(cols: 2, gap: :lg, align: :start) do %>
-    <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+    <%= render FlatPack::Card::Component.new do |card| %>
       <% card.header do %>
         <%= render FlatPack::SectionTitle::Component.new(
           title: "History",
@@ -141,7 +141,7 @@
       <% end %>
     <% end %>
 
-    <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+    <%= render FlatPack::Card::Component.new do |card| %>
       <% card.header do %>
         <%= render FlatPack::SectionTitle::Component.new(
           title: "Recordables",

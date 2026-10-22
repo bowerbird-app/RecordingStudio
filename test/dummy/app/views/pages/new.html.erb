@@ -15,7 +15,7 @@
     class: "mb-0"
   ) %>
 
-  <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+  <%= render FlatPack::Card::Component.new do |card| %>
     <% card.body do %>
       <%= render "form", recordable: @recordable, form_url: workspace_pages_path(@workspace), form_method: :post, submit_label: "Create Page", cancel_url: workspace_pages_path(@workspace) %>
     <% end %>

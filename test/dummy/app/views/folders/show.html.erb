@@ -16,7 +16,7 @@
   <% end %>
 <% end %>
 
-<%= render FlatPack::Card::Component.new(class: "mt-8", padding: :none) do |card| %>
+<%= render FlatPack::Card::Component.new(class: "mt-8") do |card| %>
   <% card.body do %>
     <% if @children.any? %>
       <%= render FlatPack::Table::Component.new(data: @children) do |table| %>

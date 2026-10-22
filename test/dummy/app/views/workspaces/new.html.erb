@@ -3,7 +3,7 @@
 <% flat_pack_page_nav %>
 
 <%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg, class: "") do %>
-  <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+  <%= render FlatPack::Card::Component.new do |card| %>
     <% card.body do %>
       <%= render "form", workspace: @workspace %>
     <% end %>

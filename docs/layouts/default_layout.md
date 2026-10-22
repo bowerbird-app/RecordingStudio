@@ -19,14 +19,13 @@ same `:title` value is the document `<title>`.
 
 Page buttons are separate from form buttons. A view calls
 `register_page_nav` for the buttons that belong with the page (Browse, New,
-and the like). The layout renders `FlatPack::TopNav`. Back and anchor stay
-in the left slot (`always_display: true`). `render_page_nav(:top_nav)` sits
-in the right slot, inside Flatpack's `.fp-page-nav.fp-page-nav--desktop`,
-which hides that group below 768px. `render_page_nav(:top_nav, place: :menu)`
-is its own collapsible section, and the top nav controller moves those rows
-into the hamburger. The bar shows when either side has content. The title
-and subtitle stay below it, with no actions row. Submit and cancel stay in
-the form. `register_page_nav` is not `flat_pack_page_nav`.
+and the like). The layout renders one `FlatPack::TopNav` when either side
+has content. `flat_pack_page_nav_tag` goes in `nav.left`.
+`render_page_nav(:top_nav)` goes in `nav.right`. No wrapper, no class, and
+no `styles:` map. TopNav's right section collapses into the hamburger on a
+phone by default, and so does the left. The title and subtitle stay below
+that bar, with no actions row. Submit and cancel stay in the form.
+`register_page_nav` is not `flat_pack_page_nav`.
 
 > **Prerequisite:** `flat_pack` is a required dependency (`>= 0.1.296`).
 > The layout renders `flat_pack_page_nav_tag`, `render_page_nav(:top_nav)`,
@@ -39,8 +38,8 @@ the form. `register_page_nav` is not `flat_pack_page_nav`.
 
 ## What it provides
 
-- Back and anchor page nav through `flat_pack_page_nav_tag`, in the top nav's left slot, kept on screen at both widths.
-- Registered page buttons through `render_page_nav(:top_nav)` in the right slot on a wide screen, and through `render_page_nav(:top_nav, place: :menu)` in the hamburger below 768px.
+- Back and anchor page nav through `flat_pack_page_nav_tag`, in the top nav's left slot.
+- Registered page buttons through `render_page_nav(:top_nav)` in the right slot. That section folds into the hamburger below 768px.
 - A `FlatPack::PageTitle` when `content_for :title` is set, with an optional
   subtitle from `content_for :subtitle`. No actions row under the title.
 - Flatpack kit CSS (`flat_pack/application`) so those buttons take their style.
@@ -167,14 +166,24 @@ end
 Gem views set `content_for` slots and register Flatpack page nav and page
 actions. They do not draw the application shell or their own page title.
 A host layout that replaces the default renders `FlatPack::TopNav` when
-either side has content. Put `flat_pack_page_nav_tag` in `left(always_display: true)`.
-Put `render_page_nav(:top_nav)` in `right(always_display: true)`, wrapped in
-`.fp-page-nav.fp-page-nav--desktop`. Insert `render_page_nav(:top_nav, place: :menu)`
-before the hamburger target so it is its own section, not a child of the right
-slot. Then `FlatPack::PageTitle` from `:title` and `:subtitle` when a title is
+either side has content:
+
+```erb
+<%= render FlatPack::TopNav::Component.new do |nav| %>
+  <% nav.left do %>
+    <%= flat_pack_page_nav_tag %>
+  <% end %>
+  <% nav.right do %>
+    <%= render_page_nav(:top_nav) %>
+  <% end %>
+<% end %>
+```
+
+Then `FlatPack::PageTitle` from `:title` and `:subtitle` when a title is
 set. Without those pieces, titles, navigation, actions, and flashes disappear.
 Link `flat_pack/application` and render `javascript_importmap_tags` so the
-top nav controller can connect. Do not add a flex wrapper around the group.
+top nav controller can connect. Do not pass `place: :menu`, `always_display`,
+or a `styles:` map. Do not wrap the group or insert HTML into the hamburger.
 
 Slots gem views set:
 
@@ -190,7 +199,7 @@ Flatpack request state the host layout must render:
 | Call | How views set it | What the layout renders |
 | --- | --- | --- |
 | `flat_pack_page_nav` | back href and tooltip, anchor href and tooltip | `flat_pack_page_nav_tag`. A valid `return_to` fills a blank anchor. Nil means nothing was registered and there is no `return_to`. The layout leaves that nil alone. |
-| `register_page_nav` | label, href, role, icon | `render_page_nav(:top_nav)` in the desktop slot, and `render_page_nav(:top_nav, place: :menu)` in the hamburger |
+| `register_page_nav` | label, href, role, icon | `render_page_nav(:top_nav)` in the top nav's right slot. The right section folds into the hamburger on a phone. |
 
 Also required:
 
@@ -232,15 +241,15 @@ arguments still stores that history-back spec. `anchor_href` is also the
 history back fallback. A block replaces that default row. A block does not
 gain a close control when `return_to` fills a blank anchor. Omit the call,
 and pass no `return_to`, and the left slot is empty. Registered page buttons
-still render in the right slot, and in the hamburger below 768px.
+still render in the right slot. On a phone that section moves into the hamburger.
 
 `register_page_nav` returns nil. `role` is required: `:primary`,
 `:secondary`, or `:destructive`. The layout places the group with
-`render_page_nav(:top_nav)` and the phone rows with
-`render_page_nav(:top_nav, place: :menu)`. The view does not pass a CSS class
-or a button style. Flatpack's top nav map paints `:primary` as a subtle
-button and `:secondary` as a ghost button. A solid primary is the `:header`
-context. This layout does not pass a style map.
+`render_page_nav(:top_nav)` and leaves Flatpack's default role styles in
+place. The view does not pass a CSS class or a button style. Flatpack's top
+nav map paints `:primary` as a subtle button and `:secondary` as a ghost
+button. A solid primary is the `:header` context. This layout does not pass
+a style map.
 
 ## Defaults
 
@@ -254,7 +263,7 @@ context. This layout does not pass a style map.
 | Back | Shown when the view calls `flat_pack_page_nav`, including a call with no arguments (history back, icon `chevron-left`, Flatpack tooltip "Go back"). A registered spec uses that spec. With nothing registered and no valid `return_to`, the layout renders no icon row. |
 | Anchor | Comes only from Flatpack: the view's `anchor_href`, or a valid `return_to` when the view left the anchor blank. Core adds no anchor of its own. The close icon is `x-mark`. The default tooltip is Flatpack's "Close". |
 | Header | Rendered only when `content_for(:title)` is present. `FlatPack::PageTitle` uses that title and `content_for(:subtitle)` when the subtitle is present. |
-| Page actions | Empty until the view calls `register_page_nav`. Then the desktop group and the phone menu render. Form submit and cancel stay in the form. |
+| Page actions | Empty until the view calls `register_page_nav`. Then the right slot renders, and it folds into the hamburger on a phone. Form submit and cancel stay in the form. |
 
 ## Page nav example
 

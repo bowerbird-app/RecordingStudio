@@ -21,16 +21,15 @@ shim. Other gems that still call them will fail until they switch.
 - Core does not choose the anchor and does not read `return_to` itself.
   There is no hide-back option.
 - Page buttons use `register_page_nav` with a required `role:`
-  (`:primary`, `:secondary`, or `:destructive`). The layout renders
-  `FlatPack::TopNav`. Back and anchor stay in the left slot. The desktop
-  group is `render_page_nav(:top_nav)` in the right slot, inside
-  `.fp-page-nav--desktop`, which Flatpack hides below 768px. Phone rows are
-  `render_page_nav(:top_nav, place: :menu)` in the hamburger. The title and
-  subtitle stay below that bar. `register_page_nav` is not
-  `flat_pack_page_nav`. There is no alias. These are page-level buttons.
-  Form submit and cancel stay in the form. The top nav style map is
-  Flatpack's default: primary is subtle, secondary is ghost. Do not wrap
-  the group in a flex row.
+  (`:primary`, `:secondary`, or `:destructive`). The layout renders one
+  `FlatPack::TopNav`. `flat_pack_page_nav_tag` is the left slot.
+  `render_page_nav(:top_nav)` is the right slot. The right section collapses
+  into the hamburger on a phone. The title and subtitle stay below that bar.
+  `register_page_nav` is not `flat_pack_page_nav`. There is no alias. These
+  are page-level buttons. Form submit and cancel stay in the form. The top
+  nav style map is Flatpack's default: primary is subtle, secondary is
+  ghost. Do not pass `place: :menu`, `always_display`, or a `styles:` map.
+  Do not wrap the group or insert markup into the hamburger.
 - Removed slots: `:page_nav_back_url`, `:page_nav_back_label`,
   `:page_nav_anchor_url`, `:page_nav_anchor_label`, `:page_nav_right`.
 - `:title`, `:head`, and `:seo_description` stay. Set the title with
@@ -49,8 +48,12 @@ shim. Other gems that still call them will fail until they switch.
   file. Delete a host `@theme` block that sets them. Re-set the kit
   `--radius-*` scale on unlayered `:root` (`--radius-md: 0.5rem`). A value
   inside `@theme` does not replace Tailwind's `0.375rem` default.
-- `FlatPack::Card` takes `background:` (`:shaded`, `:default`, and the rest).
-  It rejects `style:`, `theme:`, and `tone:`.
+- `FlatPack::Card` takes `background:`, `border:`, `shadow:`, `radius:`, and
+  `padding:`. It rejects `style:`, `theme:`, and `tone:`. Container padding
+  applies only when the card has no slots. When a card uses any slot, put
+  the content in `card.body` (body padding defaults to `:md`). A header
+  inherits the card's `padding:`, so `padding: :none` on a slotted card
+  removes the header padding.
 
 ### Upgrade Steps
 
@@ -79,13 +82,12 @@ Replace a page nav registration:
 | --- | --- |
 | `recording_studio_page_nav(title:, page_nav_back_url:, page_nav_back_label:, page_nav_anchor_url:, page_nav_anchor_label:)` | `content_for :title`, optional `content_for :subtitle`, and `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)` |
 | `recording_studio_page_nav_right { ... }` | `register_page_nav(label, href, role:, icon:)` |
-| `:page_nav_right` inside the nav row | `render_page_nav(:top_nav)` in the top nav's right slot, and `render_page_nav(:top_nav, place: :menu)` in the hamburger |
+| `:page_nav_right` inside the nav row | `render_page_nav(:top_nav)` in the top nav's right slot. That section folds into the hamburger on a phone. |
 | A view's own `FlatPack::PageTitle` | The layout's `PageTitle`, from `:title` and `:subtitle` |
 
 A host layout that replaces `recording_studio/default_layout` must render
-`FlatPack::TopNav` with `flat_pack_page_nav_tag` in the left slot,
-`render_page_nav(:top_nav)` in `.fp-page-nav--desktop` on the right, and
-`render_page_nav(:top_nav, place: :menu)` as the hamburger section. Render
+`FlatPack::TopNav` with `flat_pack_page_nav_tag` in `nav.left` and
+`render_page_nav(:top_nav)` in `nav.right`. Render
 `FlatPack::PageTitle` when `:title` is set. Link
 `flat_pack/variables`, `flat_pack/application`, and `flat_pack/rich_text`,
 and render the importmap so `flat-pack--top-nav` connects.
@@ -853,7 +855,7 @@ with `register_page_nav`.
 
 - Flatpack page nav at the top when the view calls `flat_pack_page_nav`, or when a valid `return_to` fills the anchor.
 - `FlatPack::PageTitle` from `content_for :title` and optional `content_for :subtitle`, only when a title is set.
-- `render_page_nav(:top_nav)` in the top nav's right slot, and `render_page_nav(:top_nav, place: :menu)` in the hamburger, when the view registers page-level buttons. The title has no actions row.
+- `render_page_nav(:top_nav)` in the top nav's right slot when the view registers page-level buttons. That section folds into the hamburger on a phone. The title has no actions row.
 - Direct page body rendering (no extra content wrapper).
 - Standard `yield :head` support for metadata, plus optional
   `default_layout_head` partial auto-detection.

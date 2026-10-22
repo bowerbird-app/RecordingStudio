@@ -39,7 +39,7 @@ The dummy app is the best current reference for asset setup.
 `test/dummy/app/assets/tailwind/application.css` currently:
 
 - imports Tailwind
-- scans FlatPack component templates from Bundler paths
+- scans the installed Flatpack gem's `app/components` and `app/helpers` at the dummy bundle path (`vendor/bundle/ruby/3.3.0/bundler/gems/flatpack-eaf15af05bae`)
 - scans dummy app views
 - scans the engine's `app/views/**/*.erb`
 - leaves color tokens to `flat_pack/variables` (no `--color-primary` or `--color-fp-*`)

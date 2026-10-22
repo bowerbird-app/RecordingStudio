@@ -35,25 +35,16 @@
   <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true" data-theme="rounded">
     <main class="mx-auto min-h-screen w-full max-w-6xl">
       <% page_nav = flat_pack_page_nav_tag %>
-      <% desktop_actions = render_page_nav(:top_nav) %>
-      <% menu_actions = render_page_nav(:top_nav, place: :menu) %>
-      <% if page_nav.present? || desktop_actions.present? %>
-        <% top_nav = render FlatPack::TopNav::Component.new do |nav| %>
-          <% if page_nav.present? %>
-            <% nav.left(always_display: true) do %>
-              <%= page_nav %>
-            <% end %>
+      <% page_buttons = render_page_nav(:top_nav) %>
+      <% if page_nav.present? || page_buttons.present? %>
+        <%= render FlatPack::TopNav::Component.new do |nav| %>
+          <% nav.left do %>
+            <%= page_nav %>
           <% end %>
-          <% if desktop_actions.present? %>
-            <% nav.right(always_display: true) do %>
-              <div class="fp-page-nav fp-page-nav--desktop" data-fp-page-nav="top_nav"><%= desktop_actions %></div>
-            <% end %>
+          <% nav.right do %>
+            <%= page_buttons %>
           <% end %>
         <% end %>
-        <% if menu_actions.present? %>
-          <% top_nav = top_nav.sub(/(<[^>]*data-flat-pack--top-nav-target="menu")/) { "#{menu_actions}#{Regexp.last_match(1)}" }.html_safe %>
-        <% end %>
-        <%= top_nav %>
       <% end %>
 
       <div class="p-6">
