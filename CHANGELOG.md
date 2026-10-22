@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-* `recordings.event_created` payloads include `metadata`, the hash stored on the event. It is `{}`
-  when the write stored none. Existing payload keys, `schema_version`, and actor and impersonator
-  semantics are unchanged.
+* `recordings.event_created` payloads include `metadata`, a frozen copy of the event's metadata with
+  string keys. It is `{}` when that metadata is nil or empty. Existing payload keys,
+  `schema_version`, and actor and impersonator semantics are unchanged.
 
 ## [5.0.0] - 2026-10-21
 

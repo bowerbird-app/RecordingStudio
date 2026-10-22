@@ -301,7 +301,12 @@ class RecordingApiTest < ActiveSupport::TestCase
   def test_event_notification_payload_includes_metadata
     _, root = create_workspace_root
     events = []
-    metadata = { "authorized_by_type" => "User", "authorized_by_id" => "user-1" }
+    metadata = { authorized_by_type: "User", authorized_by_id: "user-1", note: { source: "oauth" } }
+    expected = {
+      "authorized_by_type" => "User",
+      "authorized_by_id" => "user-1",
+      "note" => { "source" => "oauth" }
+    }
 
     subscriber = ActiveSupport::Notifications.subscribe("recordings.event_created") do |*args|
       events << ActiveSupport::Notifications::Event.new(*args)
@@ -316,8 +321,13 @@ class RecordingApiTest < ActiveSupport::TestCase
     )
 
     payload = events.first.payload
-    assert_equal metadata, event.metadata
-    assert_equal metadata, payload[:metadata]
+    assert_equal expected, event.metadata
+    assert_equal expected, payload[:metadata]
+    assert_predicate payload[:metadata], :frozen?
+    refute_same event.metadata, payload[:metadata]
+    assert_raises(FrozenError) { payload[:metadata]["extra"] = "nope" }
+    payload[:metadata]["note"]["source"] = "changed"
+    assert_equal "oauth", event.metadata["note"]["source"]
     assert_equal %i[
       schema_version
       event_id
@@ -363,6 +373,13 @@ class RecordingApiTest < ActiveSupport::TestCase
 
     assert_equal({}, event.metadata)
     assert_equal({}, events.first.payload[:metadata])
+    assert_predicate events.first.payload[:metadata], :frozen?
+
+    event.define_singleton_method(:metadata) { nil }
+    RecordingStudio.send(:instrument_event, event)
+
+    assert_equal({}, events.last.payload[:metadata])
+    assert_predicate events.last.payload[:metadata], :frozen?
   ensure
     ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
   end

@@ -583,7 +583,7 @@ module RecordingStudio
         impersonator_type: event.impersonator_type,
         impersonator_id: event.impersonator_id,
         occurred_at: event.occurred_at,
-        metadata: event.metadata
+        metadata: (event.metadata || {}).deep_dup.deep_stringify_keys.freeze
       )
     end
   end
