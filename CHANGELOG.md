@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `content_for :title`.
 * `flat_pack` (>= 0.1.294) is required. Gemfiles pin
   `https://github.com/bowerbird-app/flatpack.git` tag `v0.1.294`.
+  `FlatPack::Card` takes `background:` and rejects `style:`.
 * `FlatPack::PageLayout` is Flatpack's public page shell. Gem screens that
   are not inside Sidebar Layout or Page Layout still use
   `recording_studio/default_layout`.

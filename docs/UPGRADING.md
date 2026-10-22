@@ -30,6 +30,8 @@ shim. Other gems that still call them will fail until they switch.
   `anchor_tooltip`. Overriding `recording_studio.core.navigation.go_back`
   or `close` no longer changes the default layout buttons.
 - `flat_pack` (>= 0.1.294) is required. Pin tag `v0.1.294`.
+- `FlatPack::Card` takes `background:` (`:shaded`, `:default`, and the rest).
+  It rejects `style:`, `theme:`, and `tone:`.
 
 ### Upgrade Steps
 
