@@ -1039,11 +1039,11 @@ PostgreSQL on each boot. Rebuild with Draft off to load a new pack. See
 
 ## Shared Layout
 
-`flat_pack` (>= 0.1.294) is a required dependency. It is not published on
+`flat_pack` (>= 0.1.296) is a required dependency. It is not published on
 RubyGems. The gemspec declares it, and the Gemfile supplies the git source:
 
 ```ruby
-gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.294"
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.296"
 ```
 
 RecordingStudio ships one public layout:
@@ -1087,8 +1087,8 @@ Configure the title, page navigation, page buttons, and `<head>` content from vi
 
 - `content_for :title, "..."` — document `<title>` and the layout's `PageTitle`
 - `content_for :subtitle, "..."` — optional subtitle on that header
-- `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)` — Flatpack page nav
-- `page_action(label, href, role:, icon:)` — a page-level button the layout renders with `page_actions(:header)` under the title
+- `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)` — Flatpack back and anchor row
+- `register_page_nav(label, href, role:, icon:)` — a page-level button the layout renders with `render_page_nav(:header)` under the title
 - `default_layout_head { ... }` — append content to `<head>`
 - `recording_studio_seo_description(text)` — description and `og:description`
 
@@ -1098,11 +1098,11 @@ Set a custom app name for `<title>` and `og:site_name` fallback:
 RecordingStudio.configure { |config| config.app_name = "My App" }
 ```
 
-A host layout that replaces the default still has to render `flat_pack_page_nav_tag`
-(and a history-back `FlatPack::PageNav` when that returns nil), `FlatPack::PageTitle`
-from `:title` and `:subtitle` when a title is set, `page_actions(:header)` under
-that header, the `:head` and `:seo_description` slots, Flatpack stylesheets
-(`flat_pack/variables`, `flat_pack/rich_text`), and `flash` alerts that gem
+A host layout that replaces the default still has to render `flat_pack_page_nav_tag`,
+`FlatPack::PageTitle` from `:title` and `:subtitle` when a title is set,
+`render_page_nav(:header)` under that header, the `:head` and `:seo_description`
+slots, Flatpack stylesheets (`flat_pack/variables`, `flat_pack/application`,
+`flat_pack/rich_text`), and `flash` alerts that gem
 views rely on. `FlatPack::SidebarLayout` is the application shell with a rail.
 `FlatPack::PageLayout` is Flatpack's public page shell. Gem screens that are
 not inside those shells use `recording_studio/default_layout`. See

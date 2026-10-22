@@ -16,23 +16,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   removed, along with `:page_nav_back_url`, `:page_nav_back_label`,
   `:page_nav_anchor_url`, `:page_nav_anchor_label`, and `:page_nav_right`.
   There is no compatibility shim.
-* Views register the row with `flat_pack_page_nav`. The layout renders
-  `flat_pack_page_nav_tag`. A valid `return_to` fills a blank anchor. When
-  nothing is registered and there is no `return_to`, the layout renders
-  `FlatPack::PageNav` with a history back button only. Core does not choose
-  the anchor and has no hide-back option.
-* Views register page-level buttons with `page_action`. The layout renders
-  `page_actions(:header)` under the title and subtitle. Form submit and
-  cancel stay in the form.
+* Views register the back and anchor row with `flat_pack_page_nav`. The
+  layout renders `flat_pack_page_nav_tag`. A valid `return_to` fills a blank
+  anchor. When that tag returns nil, the layout adds no icon row of its own.
+* Views register page buttons with `register_page_nav` and a required
+  `role:`. The layout renders `render_page_nav(:header)` under the title and
+  subtitle. `register_page_nav` is not `flat_pack_page_nav`. There is no
+  alias. Form submit and cancel stay in the form.
 * `:title` drives the document `<title>` and a `FlatPack::PageTitle` the
   layout renders when the title is present. `:subtitle` is an optional
   slot on that header. Views do not render their own page title.
 * `:head` and `:seo_description` stay.
 * `recording_studio.core.navigation.go_back` and `close` are removed.
   Back and close copy come from Flatpack.
-* `flat_pack` (>= 0.1.294) is required. Gemfiles pin
-  `https://github.com/bowerbird-app/flatpack.git` tag `v0.1.294`.
-  `FlatPack::Card` takes `background:` and rejects `style:`.
+* `flat_pack` (>= 0.1.296) is required. Gemfiles pin
+  `https://github.com/bowerbird-app/flatpack.git` tag `v0.1.296`.
+  Layouts link `flat_pack/application` after `flat_pack/variables` so
+  button styles paint. `FlatPack::Card` takes `background:` and rejects
+  `style:`.
 * `FlatPack::PageLayout` is Flatpack's public page shell. Gem screens that
   are not inside Sidebar Layout or Page Layout still use
   `recording_studio/default_layout`.
@@ -42,8 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replace `recording_studio_page_nav` with `content_for :title`, optional
   `content_for :subtitle`, and `flat_pack_page_nav`. Replace
   `recording_studio_page_nav_right` and page-title action slots with
-  `page_action`. Drop a view's own `PageTitle`; the layout renders it.
-  Pin `flat_pack` tag `v0.1.294`. See
+  `register_page_nav`. Drop a view's own `PageTitle`; the layout renders it.
+  Link `flat_pack/application`. Pin `flat_pack` tag `v0.1.296`. See
   [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-600).
 
 ## [5.0.0] - 2026-10-21

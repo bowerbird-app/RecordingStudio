@@ -4,7 +4,7 @@
   anchor_href: root_path,
   anchor_tooltip: "Home"
 ) %>
-<% page_action "Add workspace", new_workspace_path, role: :primary, icon: :plus %>
+<% register_page_nav "Add workspace", new_workspace_path, role: :primary, icon: :plus %>
 
 <div class="mt-8">
   <% if @workspaces&.any? %>

@@ -4,12 +4,12 @@
 assume a sidebar, a host application layout, or a page kind. The public
 layout file wraps `app/views/recording_studio/shared/_default_layout.html.erb`.
 
-Page navigation is Flatpack's. A view calls `flat_pack_page_nav`. The layout
-calls `flat_pack_page_nav_tag`. That tag renders the registered row and fills
-a blank anchor from a valid `params[:return_to]` (`FlatPack::ReturnTo`). It
-returns nil when the view registered nothing and there is no valid
-`return_to`. In that case the layout renders `FlatPack::PageNav` with only a
-history back button. Core does not choose an anchor, does not read
+Page navigation is Flatpack's. A view calls `flat_pack_page_nav` for the
+back and anchor row. The layout calls `flat_pack_page_nav_tag`. That tag
+renders the registered row and fills a blank anchor from a valid
+`params[:return_to]` (`FlatPack::ReturnTo`). It returns nil when the view
+registered nothing and there is no valid `return_to`. The layout does not
+add an icon row of its own. Core does not choose an anchor, does not read
 `return_to` itself, and has no way to hide the back button.
 
 The page header is separate. When the view sets `content_for :title`, the
@@ -17,34 +17,37 @@ layout renders `FlatPack::PageTitle` with that title and an optional
 `content_for :subtitle`. It skips the header when the title is blank. The
 same `:title` value is the document `<title>`.
 
-Page buttons are separate from form buttons. A view calls `page_action` for
-the row that belongs with the page (Browse, New, and the like). The layout
-renders `page_actions(:header)` directly under the title and subtitle, and
-only when at least one action is registered. Submit and cancel stay in the
-form.
+Page buttons are separate from form buttons, and separate from the icon
+row. A view calls `register_page_nav` for the row that belongs with the page
+(Browse, New, and the like). The layout renders `render_page_nav(:header)`
+directly under the title and subtitle, and only when at least one item is
+registered. Submit and cancel stay in the form. `register_page_nav` is not
+`flat_pack_page_nav`.
 
-> **Prerequisite:** `flat_pack` is a required dependency (`>= 0.1.294`).
-> The layout renders `flat_pack_page_nav_tag`, `FlatPack::PageNav`,
-> `FlatPack::PageTitle`, `page_actions(:header)`, and `FlatPack::Alert`. There is no fallback when
-> Flatpack is missing. `flat_pack` is not on RubyGems. The gemspec declares
-> the dependency, and the host Gemfile supplies the git source
-> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.294`).
+> **Prerequisite:** `flat_pack` is a required dependency (`>= 0.1.296`).
+> The layout renders `flat_pack_page_nav_tag`, `FlatPack::PageTitle`,
+> `render_page_nav(:header)`, and `FlatPack::Alert`. It links
+> `flat_pack/variables`, `flat_pack/application`, and `flat_pack/rich_text`.
+> There is no fallback when Flatpack is missing. `flat_pack` is not on
+> RubyGems. The gemspec declares the dependency, and the host Gemfile
+> supplies the git source
+> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.296`).
 
 ## What it provides
 
-- Back and anchor page nav through `flat_pack_page_nav_tag`, with a history
-  back button when that tag returns nil.
+- Back and anchor page nav through `flat_pack_page_nav_tag`.
 - A `FlatPack::PageTitle` when `content_for :title` is set, with an optional
   subtitle from `content_for :subtitle`.
-- Registered page buttons through `page_actions(:header)`, under that title
+- Registered page buttons through `render_page_nav(:header)`, under that title
   and subtitle.
+- Flatpack kit CSS (`flat_pack/application`) so those buttons take their style.
 - Flash notice and alert via `FlatPack::Alert`.
 - The page body via `yield`, with no extra content card.
 - `<title>`, optional description, and OpenGraph title, type, url,
   description, and site name.
 - `yield :head`, and `recording_studio/_default_layout_head` when that
   partial is on the view path.
-- Flatpack stylesheets `flat_pack/variables` and `flat_pack/rich_text`.
+- Flatpack stylesheets `flat_pack/variables`, `flat_pack/application`, and `flat_pack/rich_text`.
 - `data-theme="rounded"` on `<body>`.
 - Title and site-name fallback from `RecordingStudio.configuration.app_name`.
 
@@ -162,8 +165,9 @@ Gem views set `content_for` slots and register Flatpack page nav and page
 actions. They do not draw the application shell or their own page title.
 A host layout that replaces the default renders, in order, page nav,
 `FlatPack::PageTitle` from `:title` and `:subtitle` when a title is set,
-then `page_actions(:header)` when actions are registered. Without those
-pieces, titles, navigation, actions, and flashes disappear.
+then `render_page_nav(:header)` when actions are registered. Without those
+pieces, titles, navigation, actions, and flashes disappear. Link
+`flat_pack/application` so button fills paint.
 
 Slots gem views set:
 
@@ -178,13 +182,12 @@ Flatpack request state the host layout must render:
 
 | Call | How views set it | What the layout renders |
 | --- | --- | --- |
-| `flat_pack_page_nav` | back href and tooltip, anchor href and tooltip | `flat_pack_page_nav_tag`. A valid `return_to` fills a blank anchor. Nil means nothing was registered and there is no `return_to`. |
-| history back | nothing registered | `FlatPack::PageNav` with `with_back` only |
-| `page_action` | label, href, role, icon | `page_actions(:header)`, under the title and subtitle |
+| `flat_pack_page_nav` | back href and tooltip, anchor href and tooltip | `flat_pack_page_nav_tag`. A valid `return_to` fills a blank anchor. Nil means nothing was registered and there is no `return_to`. The layout leaves that nil alone. |
+| `register_page_nav` | label, href, role, icon | `render_page_nav(:header)`, under the title and subtitle |
 
 Also required:
 
-- Stylesheets `flat_pack/variables` and `flat_pack/rich_text`, plus the
+- Stylesheets `flat_pack/variables`, `flat_pack/application`, and `flat_pack/rich_text`, plus the
   importmap when the host defines `javascript_importmap_tags`.
 - `flash[:notice]` and `flash[:alert]` rendered with `FlatPack::Alert`.
   OAuth, brands, embargo, features, library, messages, notifications, pages,
@@ -213,17 +216,21 @@ Page nav and page buttons are Flatpack helpers, available in every view:
 - `content_for :title, "Workspaces"`
 - `content_for :subtitle, "Choose a workspace."`
 - `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:, ...)`
-- `page_action(label, href, role:, icon:)`
+- `register_page_nav(label, href, role:, icon:)`
 
 `flat_pack_page_nav` returns nil. The last call replaces the previous one.
 With no block, the tag renders history back (or a back link when `back_href`
-is set) and, when an anchor is present, a close control. `anchor_href` is
-also the history back fallback. A block replaces that default row. A block
-does not gain a close control when `return_to` fills a blank anchor.
+is set) and, when an anchor is present, a close control. A call with no
+arguments still stores that history-back spec. `anchor_href` is also the
+history back fallback. A block replaces that default row. A block does not
+gain a close control when `return_to` fills a blank anchor. Omit the call,
+and pass no `return_to`, and the layout renders no icon row.
 
-`page_action` returns nil. `role` is `:primary`, `:secondary`, or
-`:destructive`. The layout places the group. The view does not pass a CSS
-class or a button style.
+`register_page_nav` returns nil. `role` is required: `:primary`,
+`:secondary`, or `:destructive`. The layout places the group with
+`render_page_nav(:header)`. The view does not pass a CSS class or a button
+style. Flatpack's header map paints `:primary` as a solid button and
+`:secondary` as a subtle button.
 
 ## Defaults
 
@@ -234,10 +241,10 @@ class or a button style.
 | Description | Omitted when blank |
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
-| Back | Always shown. A registered `flat_pack_page_nav` uses that spec. With nothing registered and no valid `return_to`, the layout renders `FlatPack::PageNav` `with_back` (history back, icon `chevron-left`, Flatpack tooltip "Go back"). |
+| Back | Shown when the view calls `flat_pack_page_nav`, including a call with no arguments (history back, icon `chevron-left`, Flatpack tooltip "Go back"). A registered spec uses that spec. With nothing registered and no valid `return_to`, the layout renders no icon row. |
 | Anchor | Comes only from Flatpack: the view's `anchor_href`, or a valid `return_to` when the view left the anchor blank. Core adds no anchor of its own. The close icon is `x-mark`. The default tooltip is Flatpack's "Close". |
 | Header | Rendered only when `content_for(:title)` is present. `FlatPack::PageTitle` uses that title and `content_for(:subtitle)` when the subtitle is present. |
-| Page actions | Empty until the view calls `page_action`. Then `page_actions(:header)` renders under the title and subtitle. Form submit and cancel stay in the form. |
+| Page actions | Empty until the view calls `register_page_nav`. Then `render_page_nav(:header)` renders under the title and subtitle. Form submit and cancel stay in the form. |
 
 ## Page nav example
 
@@ -248,8 +255,8 @@ class or a button style.
   anchor_href: root_path,
   anchor_tooltip: "Home"
 ) %>
-<% page_action "Add workspace", new_workspace_path, role: :primary, icon: :plus %>
-<% page_action "Browse recordings", recordings_path, role: :secondary %>
+<% register_page_nav "Add workspace", new_workspace_path, role: :primary, icon: :plus %>
+<% register_page_nav "Browse recordings", recordings_path, role: :secondary %>
 ```
 
 Back and anchor together:

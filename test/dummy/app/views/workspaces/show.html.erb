@@ -6,9 +6,9 @@
   anchor_href: root_path,
   anchor_tooltip: "Home"
 ) %>
-<% page_action "Browse Pages", workspace_pages_path(@workspace), role: :secondary %>
-<% page_action "New Page", new_workspace_page_path(@workspace), role: :primary %>
-<% page_action "Browse Recordings", recordings_path, role: :secondary %>
+<% register_page_nav "Browse Pages", workspace_pages_path(@workspace), role: :secondary %>
+<% register_page_nav "New Page", new_workspace_page_path(@workspace), role: :primary %>
+<% register_page_nav "Browse Recordings", recordings_path, role: :secondary %>
 
 <%= render FlatPack::Card::Component.new(class: "mb-6", padding: :none) do |card| %>
   <% card.header(divider: false) do %>

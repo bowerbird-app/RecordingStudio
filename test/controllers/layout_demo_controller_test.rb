@@ -70,9 +70,12 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     ].each { |slot| refute_includes source, slot }
     refute_includes source, "defined?(FlatPack"
     %w[
-      flat_pack_page_nav_tag page_actions(:header) with_back
-      flat_pack/variables flat_pack/rich_text
-      FlatPack::PageNav::Component FlatPack::PageTitle::Component
+      with_back FlatPack::PageNav page_actions page_action
+    ].each { |slot| refute_includes source, slot }
+    %w[
+      flat_pack_page_nav_tag render_page_nav(:header)
+      flat_pack/variables flat_pack/application flat_pack/rich_text
+      FlatPack::PageTitle::Component
       content_for(:subtitle) FlatPack::Alert::Component
     ].each { |piece| assert_includes source, piece }
 
@@ -80,6 +83,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_includes host_shell, "FlatPack::SidebarLayout::Component"
     assert_includes host_shell, "FlatPack::Alert::Component"
     assert_includes host_shell, "flat_pack/variables"
+    assert_includes host_shell, "flat_pack/application"
   end
 
   test "default layout renders flatpack assets, alerts, and content_for slots" do
@@ -88,6 +92,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
     assert_select "link[rel=stylesheet][href*='flat_pack/variables']", minimum: 1
+    assert_select "link[rel=stylesheet][href*='flat_pack/application']", minimum: 1
     assert_select "link[rel=stylesheet][href*='flat_pack/rich_text']", minimum: 1
     assert_includes @response.body, "Saved the page"
     assert_includes @response.body, "Could not save the page"
@@ -96,15 +101,13 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes @response.body, "flat-pack--sidebar-layout"
   end
 
-  test "default back renders when nothing is registered and there is no return_to" do
+  test "nothing registered and no return_to renders no page nav" do
     get layout_demo_plain_path, headers: modern_headers
 
     assert_response :success
     assert_select "title", text: "Plain Layout"
-    assert_select "nav[aria-label='Page navigation']", count: 1
-    assert_select "nav button[aria-label='Go back']", count: 1
-    assert_select "nav[data-controller='flat-pack--page-nav']", count: 1
-    assert_select "nav[data-flat-pack--page-nav-fallback-url-value]", count: 0
+    assert_select "h1", text: "Plain Layout"
+    assert_select "nav[aria-label='Page navigation']", count: 0
     assert_select "a[aria-label='Close']", count: 0
   end
 
@@ -121,10 +124,9 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     get layout_demo_plain_path, params: { return_to: "https://evil.example/phish" }, headers: modern_headers
 
     assert_response :success
-    assert_select "nav button[aria-label='Go back']", count: 1
-    assert_select "nav[data-flat-pack--page-nav-fallback-url-value]", count: 0
+    assert_select "nav[aria-label='Page navigation']", count: 0
     assert_select "a[aria-label='Close']", count: 0
-    assert_select "nav", text: /evil\.example/, count: 0
+    assert_select "a[href*='evil.example']", count: 0
   end
 
   test "a registered anchor wins over return_to" do

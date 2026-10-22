@@ -8,7 +8,7 @@ class LayoutDemoController < ApplicationController
   def chrome_defaults
   end
 
-  # No page nav registration and no return_to. The layout renders history back.
+  # No page nav registration and no return_to. Flatpack renders no icon row.
   def plain
   end
 

@@ -574,14 +574,14 @@ Public layout:
 
 Page nav, the page header, and page buttons are Flatpack. Recording Studio's
 layout renders `flat_pack_page_nav_tag`, then `FlatPack::PageTitle` when
-`:title` is set, then `page_actions(:header)` under that header.
+`:title` is set, then `render_page_nav(:header)` under that header.
 
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
 | `content_for :title` | title string | slot HTML | Sets the document `<title>` and the `PageTitle` heading. The header is omitted when this is blank. |
 | `content_for :subtitle` | subtitle string | slot HTML | Optional `PageTitle` subtitle. |
 | `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:, ...)` | Flatpack page nav arguments | `nil` | Registers the back and anchor row for this request. |
-| `page_action(label, href, role:, icon:)` | label, path, role, icon | `nil` | Registers one page-level button. The layout renders the group under the title. Form submit and cancel stay in the form. |
+| `register_page_nav(label, href, role:, icon:)` | label, path, required role, icon | `nil` | Registers one page-level button. The layout renders the group under the title. Form submit and cancel stay in the form. |
 | `default_layout_head(&block)` | block | `nil` | Adds block content to `<head>` via `yield :head`. |
 
 ### SEO helpers
@@ -602,8 +602,8 @@ layout renders `flat_pack_page_nav_tag`, then `FlatPack::PageTitle` when
 
 <% recording_studio_seo_description("Browse and manage your workspaces") %>
 
-<% page_action "New Workspace", new_workspace_path, role: :primary, icon: :plus %>
-<% page_action "Browse recordings", recordings_path, role: :secondary %>
+<% register_page_nav "New Workspace", new_workspace_path, role: :primary, icon: :plus %>
+<% register_page_nav "Browse recordings", recordings_path, role: :secondary %>
 ```
 
 ## What Not To Depend On

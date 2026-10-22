@@ -13,6 +13,7 @@
     <%= csp_meta_tag %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "flat_pack/variables", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "flat_pack/application", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "flat_pack/rich_text", "data-turbo-track": "reload" %>
     <% if lookup_context.exists?("recording_studio/default_layout_head", [], true) %>
       <%= render "recording_studio/default_layout_head" %>
@@ -40,20 +41,14 @@
         <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-4") %>
       <% end %>
 
-      <div class="mt-4 mb-6">
-        <% page_nav = flat_pack_page_nav_tag %>
-        <% if page_nav %>
-          <%= page_nav %>
-        <% else %>
-          <%= render FlatPack::PageNav::Component.new do |nav| %>
-            <% nav.with_back %>
-          <% end %>
-        <% end %>
-      </div>
+      <% page_nav = flat_pack_page_nav_tag %>
+      <% if page_nav %>
+        <div class="mt-4 mb-6"><%= page_nav %></div>
+      <% end %>
 
       <% heading = content_for(:title).presence %>
       <% subtitle = content_for(:subtitle).presence %>
-      <% header_actions = page_actions(:header) %>
+      <% header_actions = render_page_nav(:header) %>
       <% if heading %>
         <%= render FlatPack::PageTitle::Component.new(
               title: heading,

@@ -11,5 +11,5 @@
 
 <% recording_studio_seo_description("Recording Studio layout demo with a title, page actions, and OpenGraph tags") %>
 
-<% page_action "Add workspace", new_workspace_path, role: :primary, icon: :plus %>
-<% page_action "Browse workspaces", workspaces_path, role: :secondary %>
+<% register_page_nav "Add workspace", new_workspace_path, role: :primary, icon: :plus %>
+<% register_page_nav "Browse workspaces", workspaces_path, role: :secondary %>
