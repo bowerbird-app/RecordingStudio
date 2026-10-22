@@ -42,11 +42,13 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: "Default Layout Demo"
     assert_includes @response.body, "On a phone, page buttons fold into the menu."
     assert_select "header[data-controller='flat-pack--top-nav']", count: 1
-    assert_select "[data-flat-pack-top-nav-section='left'][data-flat-pack-top-nav-collapsible='true']", count: 1
-    right = "[data-flat-pack-top-nav-section='right']"
-    assert_select "#{right} a[href='#{new_workspace_path}'][data-fp-style='secondary']", text: "Add workspace"
-    assert_select "#{right} a[href='#{workspaces_path}'][data-fp-style='ghost']", text: "Browse workspaces"
-    assert_select "[data-fp-page-nav='menu']", count: 0
+    assert_select "[data-flat-pack-top-nav-section='left'][data-flat-pack-top-nav-collapsible='false']", count: 1
+    desktop = "[data-fp-page-nav='header']"
+    menu = "[data-fp-page-nav='menu']"
+    assert_select "#{desktop} a[href='#{new_workspace_path}'][data-fp-style='primary']", text: "Add workspace"
+    assert_select "#{desktop} a[href='#{workspaces_path}'][data-fp-style='secondary']", text: "Browse workspaces"
+    assert_select "#{menu} a[href='#{new_workspace_path}'][data-fp-style='primary']", text: "Add workspace"
+    assert_select "#{menu} a[href='#{workspaces_path}'][data-fp-style='secondary']", text: "Browse workspaces"
     assert_select "nav a[href='#{new_workspace_path}']", count: 0
     main = @response.body.split("<main", 2).last
     assert_operator main.index("Add workspace"), :<, main.index("Default Layout Demo")
@@ -75,12 +77,13 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     refute_includes source, "defined?(FlatPack"
     refute_includes source, "place: :menu"
     %w[
-      with_back FlatPack::PageNav page_actions page_action render_page_nav(:header) flex-wrap justify-between
-      html_safe always_display fp-page-nav--desktop
+      with_back FlatPack::PageNav page_actions page_action render_page_nav flex-wrap justify-between
+      html_safe fp-page-nav
     ].each { |slot| refute_includes source, slot }
     %w[
-      flat_pack_page_nav_tag render_page_nav(:top_nav) FlatPack::TopNav::Component nav.left nav.right
-      javascript_importmap_tags flat_pack/variables flat_pack/application flat_pack/rich_text
+      FlatPack::PageLayout::Component layout.top_nav FlatPack::TopNav::Component
+      flat_pack_page_nav_tag nav.left always_display javascript_importmap_tags
+      flat_pack/variables flat_pack/application flat_pack/rich_text
       FlatPack::PageTitle::Component content_for(:subtitle) FlatPack::Alert::Component
     ].each { |piece| assert_includes source, piece }
     host_shell = File.read(Rails.root.join("app/views/layouts/application.html.erb"))
@@ -100,14 +103,14 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "dummy tailwind scans the installed flatpack components and helpers" do
-    css = Rails.root.join("app/assets/tailwind/application.css")
-    base = css.dirname
-    sources = File.read(css).scan(/@source "([^"]+)"/).flatten
-    flatpack = sources.map { |entry| base.join(entry).cleanpath }.select { |path| path.to_s.include?("/flatpack-") }
+    css = File.read(Rails.root.join("app/assets/tailwind/application.css"))
+    components = Rails.root.glob("vendor/bundle/**/flatpack-*/app/components").select(&:directory?)
+    helpers = Rails.root.glob("vendor/bundle/**/flatpack-*/app/helpers").select(&:directory?)
 
-    assert(flatpack.any? { |path| path.directory? && path.to_s.end_with?("/app/components") })
-    assert(flatpack.any? { |path| path.directory? && path.to_s.end_with?("/app/helpers") })
-    refute_includes File.read(css), "usr/local/bundle"
+    refute_includes css, "eaf15af05bae"
+    assert components.any?
+    assert helpers.any?
+    assert_includes css, "flatpack-*"
   end
 
   test "dummy cards keep default slot padding" do

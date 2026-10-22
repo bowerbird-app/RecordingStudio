@@ -53,13 +53,14 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: @workspace.name
     assert_includes @response.body, "explicit page routes and its full recording tree."
     assert_select "header[data-controller='flat-pack--top-nav']", count: 1
-    right = "[data-flat-pack-top-nav-section='right']"
+    desktop = "[data-fp-page-nav='header']"
     pages = workspace_pages_path(@workspace)
     new_page = new_workspace_page_path(@workspace)
-    assert_select "#{right} a[href='#{pages}'][data-fp-style='ghost']", text: "Browse Pages"
-    assert_select "#{right} a[href='#{new_page}'][data-fp-style='secondary']", text: "New Page"
-    assert_select "#{right} a[href='#{recordings_path}'][data-fp-style='ghost']", text: "Browse Recordings"
-    assert_select "[data-fp-page-nav='menu']", count: 0
+    assert_select "#{desktop} a[href='#{pages}'][data-fp-style='secondary']", text: "Browse Pages"
+    assert_select "#{desktop} a[href='#{new_page}'][data-fp-style='primary']", text: "New Page"
+    menu_recordings = "[data-fp-page-nav='menu'] a[href='#{recordings_path}']"
+    assert_select "#{menu_recordings}[data-fp-style='secondary']", text: "Browse Recordings"
+    assert_select "[data-flat-pack-top-nav-section='left'][data-flat-pack-top-nav-collapsible='false']", count: 1
     assert_select "[data-fp-card-padding='md']", minimum: 1
     assert_includes @response.body, "p-[var(--card-padding-md)]"
     assert_operator @response.body.index("New Page"), :<, @response.body.index("<h1")

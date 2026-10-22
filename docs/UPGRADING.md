@@ -21,15 +21,18 @@ shim. Other gems that still call them will fail until they switch.
 - Core does not choose the anchor and does not read `return_to` itself.
   There is no hide-back option.
 - Page buttons use `register_page_nav` with a required `role:`
-  (`:primary`, `:secondary`, or `:destructive`). The layout renders one
-  `FlatPack::TopNav`. `flat_pack_page_nav_tag` is the left slot.
-  `render_page_nav(:top_nav)` is the right slot. The right section collapses
-  into the hamburger on a phone. The title and subtitle stay below that bar.
+  (`:primary`, `:secondary`, or `:destructive`). The layout renders
+  `FlatPack::PageLayout`. The shell places the desktop group with
+  `render_page_nav(:header)` and the phone rows with
+  `render_page_nav(:top_nav, place: :menu)`. The layout does not call
+  `render_page_nav`. `flat_pack_page_nav_tag` sits in the top nav's left
+  slot with `always_display: true`, so back and anchor stay in the bar on
+  a phone. The title, subtitle, flashes, and page body are the column.
   `register_page_nav` is not `flat_pack_page_nav`. There is no alias. These
-  are page-level buttons. Form submit and cancel stay in the form. The top
-  nav style map is Flatpack's default: primary is subtle, secondary is
-  ghost. Do not pass `place: :menu`, `always_display`, or a `styles:` map.
-  Do not wrap the group or insert markup into the hamburger.
+  are page-level buttons. Form submit and cancel stay in the form. The
+  column group uses the `:header` map: primary is solid, secondary stays
+  secondary. Phone rows use the `:top_nav` map unless the host sets
+  `FlatPack.configuration.page_nav_styles`. A gem does not set that map.
 - Removed slots: `:page_nav_back_url`, `:page_nav_back_label`,
   `:page_nav_anchor_url`, `:page_nav_anchor_label`, `:page_nav_right`.
 - `:title`, `:head`, and `:seo_description` stay. Set the title with
@@ -82,13 +85,13 @@ Replace a page nav registration:
 | --- | --- |
 | `recording_studio_page_nav(title:, page_nav_back_url:, page_nav_back_label:, page_nav_anchor_url:, page_nav_anchor_label:)` | `content_for :title`, optional `content_for :subtitle`, and `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)` |
 | `recording_studio_page_nav_right { ... }` | `register_page_nav(label, href, role:, icon:)` |
-| `:page_nav_right` inside the nav row | `render_page_nav(:top_nav)` in the top nav's right slot. That section folds into the hamburger on a phone. |
+| `:page_nav_right` inside the nav row | `register_page_nav`. Page Layout renders the desktop group and the phone menu. |
 | A view's own `FlatPack::PageTitle` | The layout's `PageTitle`, from `:title` and `:subtitle` |
 
 A host layout that replaces `recording_studio/default_layout` must render
-`FlatPack::TopNav` with `flat_pack_page_nav_tag` in `nav.left` and
-`render_page_nav(:top_nav)` in `nav.right`. Render
-`FlatPack::PageTitle` when `:title` is set. Link
+`FlatPack::PageLayout` with `flat_pack_page_nav_tag` in
+`nav.left(always_display: true)`. Leave the page buttons to the shell.
+Render `FlatPack::PageTitle` when `:title` is set. Link
 `flat_pack/variables`, `flat_pack/application`, and `flat_pack/rich_text`,
 and render the importmap so `flat-pack--top-nav` connects.
 See
@@ -838,8 +841,8 @@ register the back and anchor row with `flat_pack_page_nav` and page buttons
 with `register_page_nav`.
 
 > **Prerequisite:** `flat_pack` (>= 0.1.296) is a required RecordingStudio
-> dependency. The layout renders `FlatPack::TopNav` with
-> `flat_pack_page_nav_tag` and `render_page_nav(:top_nav)`, then `FlatPack::PageTitle` when
+> dependency. The layout renders `FlatPack::PageLayout` with
+> `flat_pack_page_nav_tag` pinned in the top nav, then `FlatPack::PageTitle` when
 > `:title` is set, and `FlatPack::Alert`. It links `flat_pack/variables`,
 > `flat_pack/application`, and `flat_pack/rich_text`. It does not fall back
 > when Flatpack is missing, and it does not draw an icon row when
@@ -855,7 +858,7 @@ with `register_page_nav`.
 
 - Flatpack page nav at the top when the view calls `flat_pack_page_nav`, or when a valid `return_to` fills the anchor.
 - `FlatPack::PageTitle` from `content_for :title` and optional `content_for :subtitle`, only when a title is set.
-- `render_page_nav(:top_nav)` in the top nav's right slot when the view registers page-level buttons. That section folds into the hamburger on a phone. The title has no actions row.
+- Page Layout's desktop group and phone menu when the view registers page-level buttons. The title has no actions row.
 - Direct page body rendering (no extra content wrapper).
 - Standard `yield :head` support for metadata, plus optional
   `default_layout_head` partial auto-detection.

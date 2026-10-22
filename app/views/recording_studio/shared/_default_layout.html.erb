@@ -33,36 +33,32 @@
   </head>
 
   <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true" data-theme="rounded">
-    <main class="mx-auto min-h-screen w-full max-w-6xl">
-      <% page_nav = flat_pack_page_nav_tag %>
-      <% page_buttons = render_page_nav(:top_nav) %>
-      <% if page_nav.present? || page_buttons.present? %>
-        <%= render FlatPack::TopNav::Component.new do |nav| %>
-          <% nav.left do %>
-            <%= page_nav %>
-          <% end %>
-          <% nav.right do %>
-            <%= page_buttons %>
+    <% page_nav = flat_pack_page_nav_tag %>
+    <%= render FlatPack::PageLayout::Component.new(width: :default) do |layout| %>
+      <% if page_nav.present? %>
+        <% layout.top_nav do %>
+          <%= render FlatPack::TopNav::Component.new do |nav| %>
+            <% nav.left(always_display: true) do %>
+              <%= page_nav %>
+            <% end %>
           <% end %>
         <% end %>
       <% end %>
 
-      <div class="p-6">
-        <% if flash[:notice].present? %>
-          <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-4") %>
-        <% end %>
-        <% if flash[:alert].present? %>
-          <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-4") %>
-        <% end %>
+      <% if flash[:notice].present? %>
+        <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-4") %>
+      <% end %>
+      <% if flash[:alert].present? %>
+        <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-4") %>
+      <% end %>
 
-        <% heading = content_for(:title).presence %>
-        <% subtitle = content_for(:subtitle).presence %>
-        <% if heading %>
-          <%= render FlatPack::PageTitle::Component.new(title: heading, subtitle: subtitle) %>
-        <% end %>
+      <% heading = content_for(:title).presence %>
+      <% subtitle = content_for(:subtitle).presence %>
+      <% if heading %>
+        <%= render FlatPack::PageTitle::Component.new(title: heading, subtitle: subtitle) %>
+      <% end %>
 
-        <%= yield %>
-      </div>
-    </main>
+      <%= yield %>
+    <% end %>
   </body>
 </html>

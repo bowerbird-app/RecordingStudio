@@ -1088,7 +1088,7 @@ Configure the title, page navigation, page buttons, and `<head>` content from vi
 - `content_for :title, "..."` — document `<title>` and the layout's `PageTitle`
 - `content_for :subtitle, "..."` — optional subtitle on that header
 - `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)` — Flatpack back and anchor row
-- `register_page_nav(label, href, role:, icon:)` — a page-level button the layout renders with `render_page_nav(:top_nav)` in the top nav
+- `register_page_nav(label, href, role:, icon:)` — a page-level button Page Layout renders in the column and in the phone menu
 - `default_layout_head { ... }` — append content to `<head>`
 - `recording_studio_seo_description(text)` — description and `og:description`
 
@@ -1098,8 +1098,8 @@ Set a custom app name for `<title>` and `og:site_name` fallback:
 RecordingStudio.configure { |config| config.app_name = "My App" }
 ```
 
-A host layout that replaces the default still has to render `FlatPack::TopNav`
-with `flat_pack_page_nav_tag` and `render_page_nav(:top_nav)`, `FlatPack::PageTitle` from `:title`
+A host layout that replaces the default still has to render `FlatPack::PageLayout`
+with `flat_pack_page_nav_tag` pinned in the top nav, `FlatPack::PageTitle` from `:title`
 and `:subtitle` when a title is set, the `:head` and `:seo_description`
 slots, Flatpack stylesheets (`flat_pack/variables`, `flat_pack/application`,
 `flat_pack/rich_text`), and `flash` alerts that gem

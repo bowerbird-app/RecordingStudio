@@ -3,6 +3,7 @@
 return unless defined?(FlatPack) && FlatPack.respond_to?(:configure)
 
 FlatPack.configure do |config|
+
   # === Admin Layout ===
   # Layout file used by all flatpack admin pages
   # Generate a custom layout with: bin/rails generate flatpack:layout
@@ -44,4 +45,16 @@ FlatPack.configure do |config|
   #   "dashboard" => "data_display",
   #   "custom_component" => "misc"
   # }
+end
+
+# Phone rows use the top nav map. Primary stays solid. Secondary stays secondary.
+# Flatpack loads PageNavStyles after this file, so the assignment waits for boot.
+# A gem does not own this map. The host does.
+Rails.application.config.after_initialize do
+  FlatPack.configuration.page_nav_styles = {
+    top_nav: {
+      primary: {style: :primary},
+      secondary: {style: :secondary}
+    }
+  }
 end
