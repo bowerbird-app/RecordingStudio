@@ -10,11 +10,7 @@
   title: @recording.title,
   subtitle: "Folder recording details and children.",
   class: "mb-6"
-) do |page_title| %>
-  <% page_title.slot do %>
-    <%= render FlatPack::Button::Component.new(text: "Back to Folders", style: :secondary, href: folders_path) %>
-  <% end %>
-<% end %>
+) %>
 
 <%= render FlatPack::Card::Component.new(class: "mt-8", padding: :none) do |card| %>
   <% card.body do %>

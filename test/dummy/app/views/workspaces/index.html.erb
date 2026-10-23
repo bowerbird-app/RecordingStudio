@@ -1,24 +1,7 @@
-<% recording_studio_page_nav(
-  title: "Workspaces",
-  page_nav_anchor_url: root_path,
-  page_nav_anchor_label: "Home"
-) %>
-
-<% recording_studio_page_nav_right do %>
-  <%= render FlatPack::Button::Component.new(
-    icon: "plus",
-    icon_only: true,
-    style: :secondary,
-    size: :md,
-    href: new_workspace_path,
-    aria: { label: "Add workspace" }
-  ) %>
-<% end %>
-
-<%= render FlatPack::PageTitle::Component.new(
-  title: "Workspaces",
-  subtitle: "Choose a workspace explicitly before browsing or creating workspace-rooted pages."
-) %>
+<% content_for :title, "Workspaces" %>
+<% content_for :subtitle, "Choose a workspace explicitly before browsing or creating workspace-rooted pages." %>
+<% flat_pack_page_nav(anchor_href: root_path, anchor_tooltip: "Home") %>
+<% register_page_nav "Add workspace", new_workspace_path, role: :primary, icon: :plus %>
 
 <div class="mt-8">
   <% if @workspaces&.any? %>

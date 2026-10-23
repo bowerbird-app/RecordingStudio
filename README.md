@@ -972,10 +972,11 @@ The migrations generator installs the current core schema for fresh host apps.
 
 The views generator scaffolds FlatPack resource templates:
 
-- `index`, `show`, `new`, and `edit` intended for `recording_studio/default_layout` with `recording_studio_page_nav`
+- `index`, `show`, `new`, and `edit` intended for `recording_studio/default_layout` with `flat_pack_page_nav` and `register_page_nav`
 - `_form` using FlatPack inputs and buttons
 
-Generated templates use `recording_studio_page_nav` and the SEO helpers
+Generated templates set `:title`, call `flat_pack_page_nav`, and register a
+primary action on the index. SEO helpers stay
 (`recording_studio_seo_description`, `default_layout_head`). The resolver
 picks the layout. The templates do not hard-code one.
 
@@ -1049,19 +1050,19 @@ PostgreSQL on each boot. Rebuild with Draft off to load a new pack. See
 
 ## Shared Layout
 
-`flat_pack` (>= 0.1.275) is a required dependency. It is not published on
+`flat_pack` (>= 0.1.307) is a required dependency. It is not published on
 RubyGems. The gemspec declares it, and the Gemfile supplies the git source:
 
 ```ruby
-gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.275"
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.307"
 ```
 
 RecordingStudio ships one public layout:
 
-- `recording_studio/default_layout` — minimal page shell with back and anchor
+- `recording_studio/default_layout` — `FlatPack::PageLayout` with back, close, and page actions
 
 The public file wraps `app/views/recording_studio/shared/_default_layout.html.erb`.
-It does not assume a sidebar or a page kind. `<body>` is `data-theme="rounded"`.
+It does not assume a sidebar or a page kind. `<html>` is `data-theme="rounded"`.
 
 Give each gem surface its own setting, defaulting to `nil`, and its own base
 controller:
@@ -1093,10 +1094,11 @@ end
 RecordingStudioLibrary.configuration.library_layout = "library"
 ```
 
-Configure page navigation and `<head>` content from views:
+Configure the page from the view:
 
-- `recording_studio_page_nav(title:, page_nav_back_url:, page_nav_back_label:, page_nav_anchor_url:, page_nav_anchor_label:)`
-- `recording_studio_page_nav_right { ... }` — PageNav right slot
+- `content_for :title` and `content_for :subtitle` — document title and `FlatPack::PageTitle`
+- `flat_pack_page_nav(...)` — back and close. The layout renders `flat_pack_page_nav_tag` on the left of `TopNav`.
+- `register_page_nav "Label", path, role: :primary` — page actions. The layout renders one `page_nav_button_group` (`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) on the right of `TopNav` (`mobile_menu: false`). `PageLayout` uses `floating_top_nav: true` and `content_scroll: :below`, so that row shares the content column and sits above it.
 - `default_layout_head { ... }` — append content to `<head>`
 - `recording_studio_seo_description(text)` — description and `og:description`
 
@@ -1106,11 +1108,11 @@ Set a custom app name for `<title>` and `og:site_name` fallback:
 RecordingStudio.configure { |config| config.app_name = "My App" }
 ```
 
-A host layout that replaces the default still has to render the `content_for`
-slots, Flatpack stylesheets (`flat_pack/variables`, `flat_pack/rich_text`),
-and `flash` alerts that gem views rely on. `FlatPack::SidebarLayout` is the
-application shell. Flatpack does not ship a `PageLayout` component; the page
-shell is `recording_studio/default_layout`. See `docs/layouts/default_layout.md`.
+A host layout that replaces the default still has to render those helpers,
+Flatpack stylesheets (`flat_pack/variables`, `flat_pack/application`,
+`flat_pack/rich_text`), and `flash` alerts. `FlatPack::SidebarLayout` is the
+application shell when the host wants a sidebar. See
+`docs/layouts/default_layout.md`.
 
 ## Testing Guidance
 

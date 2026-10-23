@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="rounded">
   <head>
     <title><%= content_for(:title) || "RecordingStudio Sandbox" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -21,12 +21,13 @@
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
       <%= stylesheet_link_tag "flat_pack/variables", "data-turbo-track": "reload" %>
+      <%= stylesheet_link_tag "flat_pack/application", "data-turbo-track": "reload" %>
       <%= stylesheet_link_tag "flat_pack/rich_text", "data-turbo-track": "reload" %>
       <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
 
     </head>
 
-  <body data-theme="rounded" class="bg-(--surface-page-background-color) text-(--surface-content-color)">
+  <body class="bg-(--surface-page-background-color) text-(--surface-content-color)">
     <%= turbo_stream_from "recording_studio_toasts" if respond_to?(:turbo_stream_from) %>
     <% if user_signed_in? %>
       <%= render FlatPack::SidebarLayout::Component.new do |layout| %>
@@ -46,6 +47,7 @@
             <% if flash[:alert].present? %>
               <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-6") %>
             <% end %>
+            <%= page_nav_button_group(styles: FlatPack::PageNavRoleStyles::SOLID, collapse: :menu) %>
             <%= yield %>
           </main>
         <% end %>

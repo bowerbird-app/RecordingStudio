@@ -5,26 +5,9 @@ require "test_helper"
 class LayoutHelperTest < ActionView::TestCase
   include RecordingStudio::LayoutHelper
 
-  def test_recording_studio_page_nav_sets_supported_slots
-    recording_studio_page_nav(
-      title: "Demo",
-      page_nav_anchor_url: "/workspaces",
-      page_nav_anchor_label: "Close",
-      page_nav_back_url: "/previous",
-      page_nav_back_label: "Back"
-    )
-
-    assert_equal "Demo", content_for(:title)
-    assert_equal "/workspaces", content_for(:page_nav_anchor_url)
-    assert_equal "Close", content_for(:page_nav_anchor_label)
-    assert_equal "/previous", content_for(:page_nav_back_url)
-    assert_equal "Back", content_for(:page_nav_back_label)
-  end
-
-  def test_recording_studio_page_nav_right_sets_right_slot_content
-    recording_studio_page_nav_right { "Right slot action" }
-
-    assert_includes content_for(:page_nav_right), "Right slot action"
+  def test_page_nav_is_flatpack_not_a_core_helper
+    refute_respond_to self, :recording_studio_page_nav
+    refute_respond_to self, :recording_studio_page_nav_right
   end
 
   def test_default_layout_head_sets_head_slot_content
