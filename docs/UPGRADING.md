@@ -794,9 +794,10 @@ boundary.
 ## Adopting the Shared Default Layout
 
 The page shell is `recording_studio/default_layout`. It renders
-`FlatPack::PageLayout` (`width: :default`, `floating_top_nav: true`), a `TopNav` with `mobile_menu: false`, back and close
-on the left, and one page-action button group on the right. The title sits
-below the bar.
+`FlatPack::PageLayout` (`width: :default`, `floating_top_nav: true`) and a
+`TopNav` with `mobile_menu: false`. Back and close sit on the left. One
+page-action button group sits on the right. That floating bar shares the
+column. The title sits below the bar.
 
 `flat_pack` >= 0.1.307 is required. It is not on RubyGems. Pin
 `https://github.com/bowerbird-app/flatpack.git` tag `v0.1.307`.
