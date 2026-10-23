@@ -159,6 +159,9 @@ Behavior summary:
 - On success, the return value is always the new or reused `RecordingStudio::Event`.
 - If `idempotency_key:` matches an existing event for the same recording, behavior depends on
   `config.idempotency_mode`.
+- When `event_notifications_enabled` is true, a newly created event emits `recordings.event_created`.
+  The payload includes `metadata`, a frozen copy of the event metadata with string keys (`{}` when nil).
+  Existing payload keys stay as they are. See the Instrumentation section in the README.
 
 ## Recordable Declarations
 

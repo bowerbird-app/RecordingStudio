@@ -999,6 +999,16 @@ ActiveSupport::Notifications.subscribe("recordings.event_created") do |*args|
 end
 ```
 
+`schema_version` stays `1`. The payload keeps the existing keys: `event_id`, `recording_id`,
+`root_recording_id`, `action`, `recordable_type`, `recordable_id`, `previous_recordable_type`,
+`previous_recordable_id`, `actor_type`, `actor_id`, `impersonator_type`, `impersonator_id`, and
+`occurred_at`. It also includes `metadata`, a frozen copy of the event's metadata with string keys.
+That copy is `{}` when the event's metadata is nil or empty. Actor and impersonator stay the write's
+actor and impersonator. Callers that need
+an extra fact, such as `authorized_by_type` and `authorized_by_id` for the person who authorized an
+OAuth client's write, put it in `metadata`. `record!`, `revise`, and `log_event!` already accept and
+persist that hash.
+
 ## Dummy Sandbox
 
 The dummy app in `test/dummy` showcases the architecture with `Workspace` root recordings, `Page` recordables, folders,

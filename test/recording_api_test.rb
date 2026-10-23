@@ -298,6 +298,92 @@ class RecordingApiTest < ActiveSupport::TestCase
     ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
   end
 
+  def test_event_notification_payload_includes_metadata
+    _, root = create_workspace_root
+    events = []
+    metadata = { authorized_by_type: "User", authorized_by_id: "user-1", note: { source: "oauth" } }
+    expected = {
+      "authorized_by_type" => "User",
+      "authorized_by_id" => "user-1",
+      "note" => { "source" => "oauth" }
+    }
+
+    subscriber = ActiveSupport::Notifications.subscribe("recordings.event_created") do |*args|
+      events << ActiveSupport::Notifications::Event.new(*args)
+    end
+
+    event = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Hello"),
+      root_recording: root,
+      parent_recording: root,
+      metadata: metadata
+    )
+
+    payload = events.first.payload
+    assert_equal expected, event.metadata
+    assert_equal expected, payload[:metadata]
+    assert_predicate payload[:metadata], :frozen?
+    refute_same event.metadata, payload[:metadata]
+    assert_raises(FrozenError) { payload[:metadata]["extra"] = "nope" }
+    payload[:metadata]["note"]["source"] = "changed"
+    assert_equal "oauth", event.metadata["note"]["source"]
+    assert_equal %i[
+      schema_version
+      event_id
+      recording_id
+      root_recording_id
+      action
+      recordable_type
+      recordable_id
+      previous_recordable_type
+      previous_recordable_id
+      actor_type
+      actor_id
+      impersonator_type
+      impersonator_id
+      occurred_at
+      metadata
+    ].sort, payload.keys.sort
+    assert_equal 1, payload[:schema_version]
+    assert_equal event.id, payload[:event_id]
+    assert_equal event.recording_id, payload[:recording_id]
+    assert_equal root.id, payload[:root_recording_id]
+    assert_equal "created", payload[:action]
+    assert_equal event.recordable_type, payload[:recordable_type]
+    assert_equal event.recordable_id, payload[:recordable_id]
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
+  end
+
+  def test_event_notification_payload_metadata_is_empty_when_omitted
+    _, root = create_workspace_root
+    events = []
+
+    subscriber = ActiveSupport::Notifications.subscribe("recordings.event_created") do |*args|
+      events << ActiveSupport::Notifications::Event.new(*args)
+    end
+
+    event = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "Hello"),
+      root_recording: root,
+      parent_recording: root
+    )
+
+    assert_equal({}, event.metadata)
+    assert_equal({}, events.first.payload[:metadata])
+    assert_predicate events.first.payload[:metadata], :frozen?
+
+    event.define_singleton_method(:metadata) { nil }
+    RecordingStudio.send(:instrument_event, event)
+
+    assert_equal({}, events.last.payload[:metadata])
+    assert_predicate events.last.payload[:metadata], :frozen?
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscriber) if subscriber
+  end
+
   def test_event_notifications_skip_when_disabled
     _, root = create_workspace_root
     RecordingStudio.configuration.event_notifications_enabled = false
