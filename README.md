@@ -1062,8 +1062,7 @@ RecordingStudio ships one public layout:
 - `recording_studio/default_layout` — `FlatPack::PageLayout` with back, close, and page actions
 
 The public file wraps `app/views/recording_studio/shared/_default_layout.html.erb`.
-It does not assume a sidebar or a page kind. `<html>` and `<body>` are
-`data-theme="rounded"`.
+It does not assume a sidebar or a page kind. `<html>` is `data-theme="rounded"`.
 
 Give each gem surface its own setting, defaulting to `nil`, and its own base
 controller:
@@ -1099,7 +1098,7 @@ Configure the page from the view:
 
 - `content_for :title` and `content_for :subtitle` — document title and `FlatPack::PageTitle`
 - `flat_pack_page_nav(...)` — back and close. The layout renders `flat_pack_page_nav_tag` on the left of `TopNav`.
-- `register_page_nav "Label", path, role: :primary` — page actions. The layout renders one `page_nav_button_group` (`SOLID`, `collapse: :menu`) on the right of `TopNav` (`mobile_menu: false`). `PageLayout` uses `floating_top_nav: true`, so that row shares the content column.
+- `register_page_nav "Label", path, role: :primary` — page actions. The layout renders one `page_nav_button_group` (`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) on the right of `TopNav` (`mobile_menu: false`). `PageLayout` uses `floating_top_nav: true` and `content_scroll: :below`, so that row shares the content column and sits above it.
 - `default_layout_head { ... }` — append content to `<head>`
 - `recording_studio_seo_description(text)` — description and `og:description`
 

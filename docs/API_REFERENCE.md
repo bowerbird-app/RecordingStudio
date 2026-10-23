@@ -590,10 +590,11 @@ Flatpack owns page nav. Call these from the view. The layout renders them.
 | `flat_pack_page_nav` | `back_href`, `back_tooltip`, `anchor_href`, `anchor_tooltip` | `nil` | Stores the back and close row. |
 | `register_page_nav` | label, path, `role:`, optional `icon:`, `overflow:` | `nil` | Records one page action. `role` is `:primary`, `:secondary`, or `:destructive`. |
 
-The layout is `FlatPack::PageLayout` (`width: :default`, `floating_top_nav: true`).
-It calls `flat_pack_page_nav_tag` and one
-`page_nav_button_group(styles: FlatPack::PageNavRoleStyles::SOLID, collapse: :menu)`
-inside `TopNav` (`mobile_menu: false`). The floating bar shares the column.
+The layout is `FlatPack::PageLayout` (`width: :default`, `floating_top_nav: true`,
+`content_scroll: :below`). It calls `flat_pack_page_nav_tag` and one
+`page_nav_button_group` (`variant: :outlined`, ghost `sm` for every role,
+`collapse: :menu`) inside `TopNav` (`mobile_menu: false`). The floating bar
+shares the column and sits above it. `<html>` is `data-theme="rounded"`.
 
 ### Example
 

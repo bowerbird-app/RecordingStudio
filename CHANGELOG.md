@@ -12,14 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Breaking
 
 * The default layout is `FlatPack::PageLayout` (`width: :default`,
-  `floating_top_nav: true`) with one
+  `floating_top_nav: true`, `content_scroll: :below`) with one
   `FlatPack::TopNav` (`mobile_menu: false`). The floating bar shares the
-  column's edges. Back and close come from
+  column's edges and sits above the column. Back and close come from
   `flat_pack_page_nav` / `flat_pack_page_nav_tag`. Page actions come from
   `register_page_nav` and one `page_nav_button_group`
-  (`FlatPack::PageNavRoleStyles::SOLID`, `collapse: :menu`) on the right.
-  Below 768px that group is the only phone menu. The title and subtitle
-  render as `FlatPack::PageTitle` under the bar.
+  (`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) on
+  the right. Below 768px that group is the only phone menu. The title and
+  subtitle render as `FlatPack::PageTitle` under the bar. `<html>` is
+  `data-theme="rounded"`.
 * `recording_studio_page_nav`, `recording_studio_page_nav_right`, and the
   `page_nav_*` content_for slots are removed. Views set `content_for :title`
   and `content_for :subtitle`.

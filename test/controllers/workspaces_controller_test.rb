@@ -14,8 +14,8 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     get workspaces_path, headers: modern_headers
 
     assert_response :success
-    assert_select "body[data-recording-studio-default-layout='true']", count: 1
-    assert_select "body[data-theme='rounded']", count: 1
+    assert_select "html[data-theme=rounded] body[data-recording-studio-default-layout=true]", count: 1
+    assert_select "body[data-theme]", count: 0
     assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "a[href='#{root_path}'][aria-label='Home']", count: 1
     assert_select "header .fp-button-group-menu", count: 1
@@ -46,16 +46,16 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
-    assert_select "[data-flat-pack-top-nav-floating=behind] > header.fp-top-nav", count: 1
+    assert_select "[data-flat-pack-top-nav-floating=below] > header.fp-top-nav", count: 1
     assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
     assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "header nav a[href='#{workspaces_path}'][aria-label='Workspaces']", count: 1
     assert_select "header nav a[href='#{root_path}'][aria-label='Home']", count: 1
-    assert_select "header .fp-button-group-menu[data-controller='flat-pack--button-group-menu']", count: 1
+    assert_select "header .fp-button-group-menu[data-variant=outlined]", count: 1
     assert_select "header .fp-button-group-menu__trigger", count: 1
     assert_select "header .fp-button-group-menu__row" do
       assert_select "a[href='#{workspace_pages_path(@workspace)}']", text: "Browse Pages", count: 1
-      assert_select "a[href='#{new_workspace_page_path(@workspace)}']", text: "New Page", count: 1
+      assert_select "a[href='#{new_workspace_page_path(@workspace)}'][data-fp-style=ghost]", text: "New Page", count: 1
       assert_select "a[href='#{recordings_path}']", text: "Browse Recordings", count: 1
     end
     assert_select "header .fp-button-group-menu__panel" do
@@ -74,7 +74,7 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "body > .fp-page-layout[data-fp-page-layout-width=default]", count: 1
-    assert_select "[data-flat-pack-top-nav-floating=behind]", count: 1
+    assert_select "[data-flat-pack-top-nav-floating=below]", count: 1
     assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "a[href='#{workspaces_path}'][aria-label='Workspaces']", count: 1
     assert_select ".fp-button-group-menu", count: 0

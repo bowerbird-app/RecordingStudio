@@ -10,13 +10,15 @@ top nav, and page-nav registry. There is no compatibility shim.
 ### What changed
 
 - The shell is `FlatPack::PageLayout` (`width: :default`,
-  `floating_top_nav: true`). When the view sets
+  `floating_top_nav: true`, `content_scroll: :below`). When the view sets
   back, close, or page actions, the layout renders `FlatPack::TopNav` with
-  `mobile_menu: false`. The floating bar shares the column's edges. Back and close are on the left
-  (`flat_pack_page_nav_tag`). Page actions are one button group on the right
-  (`page_nav_button_group` with `FlatPack::PageNavRoleStyles::SOLID` and
-  `collapse: :menu`). Below 768px that group is the phone menu. Back and
-  close stay visible.
+  `mobile_menu: false`. The floating bar shares the column's edges and sits
+  above the column, so the title keeps the column's block padding. Back and
+  close are on the left (`flat_pack_page_nav_tag`). Page actions are one
+  button group on the right (`page_nav_button_group` with `variant: :outlined`,
+  ghost `sm` for every role, and `collapse: :menu`). Below 768px that group
+  is the phone menu. Back and close stay visible. `<html>` is
+  `data-theme="rounded"`.
 - `FlatPack::PageTitle` reads `content_for :title` and `content_for :subtitle`.
   Flash alerts render above the title.
 - `recording_studio_page_nav` and `recording_studio_page_nav_right` are
@@ -794,10 +796,11 @@ boundary.
 ## Adopting the Shared Default Layout
 
 The page shell is `recording_studio/default_layout`. It renders
-`FlatPack::PageLayout` (`width: :default`, `floating_top_nav: true`) and a
-`TopNav` with `mobile_menu: false`. Back and close sit on the left. One
-page-action button group sits on the right. That floating bar shares the
-column. The title sits below the bar.
+`FlatPack::PageLayout` (`width: :default`, `floating_top_nav: true`,
+`content_scroll: :below`) and a `TopNav` with `mobile_menu: false`. Back and
+close sit on the left. One outlined page-action button group sits on the
+right. That floating bar shares the column and sits above it. The title sits
+below the bar. `<html>` is `data-theme="rounded"`.
 
 `flat_pack` >= 0.1.307 is required. It is not on RubyGems. Pin
 `https://github.com/bowerbird-app/flatpack.git` tag `v0.1.307`.

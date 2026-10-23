@@ -5,11 +5,12 @@ assume a sidebar or a page kind. The public layout file wraps
 `app/views/recording_studio/shared/_default_layout.html.erb`.
 
 The shell is `FlatPack::PageLayout` (`width: :default`,
-`floating_top_nav: true`). Nothing else wraps that component. When the view
-sets back, close, or page actions, the layout draws one `FlatPack::TopNav`
-with `mobile_menu: false`. Back and close sit on the left. Page actions sit
-on the right. The floating bar shares the column's edges. The title is
-below that bar.
+`floating_top_nav: true`, `content_scroll: :below`). Nothing else wraps that
+component. When the view sets back, close, or page actions, the layout draws
+one `FlatPack::TopNav` with `mobile_menu: false`. Back and close sit on the
+left. Page actions sit on the right. The floating bar shares the column's
+edges and sits above the column, so the title keeps the column's block
+padding.
 
 > **Prerequisite:** `flat_pack` >= 0.1.307 is required. The layout renders
 > Flatpack components directly. `flat_pack` is not on RubyGems. The gemspec
@@ -19,9 +20,11 @@ below that bar.
 ## What it provides
 
 - Back and close from `flat_pack_page_nav` / `flat_pack_page_nav_tag`.
-- One `page_nav_button_group` (`FlatPack::PageNavRoleStyles::SOLID`,
-  `collapse: :menu`) for `register_page_nav` entries. An empty bucket
-  renders nothing.
+  Flatpack's floating left section is one card, so those two controls share it.
+- One `page_nav_button_group` (`variant: :outlined`, ghost `sm` for every
+  role, `collapse: :menu`) for `register_page_nav` entries. An empty bucket
+  renders nothing. Outlined does not restyle the children, so primary stays
+  ghost, the same as the other roles.
 - `TopNav` `mobile_menu: false`, so the button group is the only phone menu.
   Below 768px the group collapses into its dropdown. Back and close stay
   visible.
@@ -35,7 +38,7 @@ below that bar.
 - Stylesheets `flat_pack/variables`, `flat_pack/application`, and
   `flat_pack/rich_text`, plus the importmap when the host defines
   `javascript_importmap_tags`.
-- `data-theme="rounded"` on `<html>` and `<body>`.
+- `data-theme="rounded"` on `<html>`.
 - Document title and site-name fallback from
   `RecordingStudio.configuration.app_name`.
 
@@ -150,7 +153,7 @@ Flatpack provides the page nav:
 
 - `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)`
 - `register_page_nav "Label", path, role:, icon:, overflow:`
-- `page_nav_button_group(styles:, collapse:)` — the layout calls this
+- `page_nav_button_group(styles:, variant:, collapse:)` — the layout calls this
 
 `recording_studio_page_nav` and `recording_studio_page_nav_right` are removed.
 

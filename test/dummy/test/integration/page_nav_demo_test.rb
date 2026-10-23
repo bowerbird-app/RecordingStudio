@@ -18,6 +18,8 @@ class PageNavDemoTest < ActionDispatch::IntegrationTest
     assert_select ".fp-button-group-menu__panel a[href='#{workspaces_path}']", text: "Workspaces", count: 1
     assert_select ".fp-button-group-menu__row a[href='#{layout_demo_path}']", text: "Layout Demo", count: 1
     assert_select "link[rel=stylesheet][href*='flat_pack/application']", minimum: 1
+    assert_select "html[data-theme=rounded]", count: 1
+    assert_select "body[data-theme]", count: 0
   end
 
   test "folder show registers nothing and renders no empty button group" do

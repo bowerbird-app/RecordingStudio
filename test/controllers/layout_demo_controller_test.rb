@@ -13,18 +13,20 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "title", text: "Default Layout Demo"
-    assert_select "body[data-recording-studio-default-layout='true']", count: 1
-    assert_select "body[data-theme='rounded']", count: 1
+    assert_select "html[data-theme=rounded] body[data-recording-studio-default-layout=true]", count: 1
+    assert_select "body[data-theme]", count: 0
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
     assert_select "body > .fp-page-layout[data-fp-page-layout-width=default]", count: 1
-    assert_select "[data-flat-pack-top-nav-floating=behind]", count: 1
+    assert_select "[data-flat-pack-top-nav-floating=below]", count: 1
     assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "nav[data-flat-pack--page-nav-fallback-url-value='#{workspaces_path}']", count: 1
     assert_select "nav button[aria-label='Go back']", count: 1
     assert_select "nav a[aria-label='Go back']", count: 0
     assert_select "a[href='#{workspaces_path}'][aria-label='Close demo']", count: 1
     assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
-    assert_select "header .fp-button-group-menu[data-controller='flat-pack--button-group-menu']", count: 1
+    assert_select "header .fp-button-group-menu[data-variant=outlined]", count: 1
+    assert_select "header .fp-button-group-menu__row.fp-button-group--outlined a[data-fp-style=ghost]", minimum: 1
+    assert_select "header a[data-fp-style=primary]", count: 0
     assert_select "header .fp-button-group-menu__trigger", count: 1
     assert_registered_page_action(new_workspace_path, "Create workspace")
     assert_select "main .fp-button-group-menu", count: 0
@@ -65,12 +67,15 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     removed.each { |snippet| refute_includes source, snippet }
     kept = [
       "flat_pack_page_nav_tag", "page_nav_button_group", "collapse: :menu", "mobile_menu: false",
-      "floating_top_nav: true",
-      "FlatPack::PageNavRoleStyles::SOLID", "FlatPack::PageLayout::Component",
+      "floating_top_nav: true", "content_scroll: :below", "variant: :outlined", "style: :ghost",
+      "FlatPack::PageLayout::Component",
       "FlatPack::TopNav::Component", "FlatPack::PageTitle::Component", "FlatPack::Alert::Component",
-      "flat_pack/variables", "flat_pack/application", "flat_pack/rich_text"
+      "flat_pack/variables", "flat_pack/application", "flat_pack/rich_text",
+      "<html data-theme=\"rounded\">"
     ]
     kept.each { |snippet| assert_includes source, snippet }
+    refute_includes source, "PageNavRoleStyles::SOLID"
+    refute_includes source, "data-recording-studio-default-layout=\"true\" data-theme"
   end
 
   test "host shell stays on the sidebar layout" do
@@ -81,6 +86,8 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_includes host_shell, "flat_pack/variables"
     assert_includes host_shell, "flat_pack/application"
     assert_includes host_shell, "page_nav_button_group"
+    assert_includes host_shell, "<html data-theme=\"rounded\">"
+    refute_match(/<body[^>]*data-theme/, host_shell)
   end
 
   test "default layout renders flatpack assets, alerts, and content_for slots" do

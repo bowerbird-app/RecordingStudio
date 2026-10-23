@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html data-theme="rounded">
   <head>
     <title><%= content_for(:title) || "RecordingStudio Sandbox" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -27,7 +27,7 @@
 
     </head>
 
-  <body data-theme="rounded" class="bg-(--surface-page-background-color) text-(--surface-content-color)">
+  <body class="bg-(--surface-page-background-color) text-(--surface-content-color)">
     <%= turbo_stream_from "recording_studio_toasts" if respond_to?(:turbo_stream_from) %>
     <% if user_signed_in? %>
       <%= render FlatPack::SidebarLayout::Component.new do |layout| %>

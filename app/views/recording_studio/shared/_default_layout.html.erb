@@ -5,7 +5,15 @@
   subtitle = content_for(:subtitle).to_s.strip.presence
   document_title = heading || app_name
   back_row = flat_pack_page_nav_tag
-  page_buttons = page_nav_button_group(styles: FlatPack::PageNavRoleStyles::SOLID, collapse: :menu)
+  page_buttons = page_nav_button_group(
+    styles: {
+      primary: {style: :ghost, size: :sm},
+      secondary: {style: :ghost, size: :sm},
+      destructive: {style: :ghost, size: :sm}
+    },
+    variant: :outlined,
+    collapse: :menu
+  )
 %>
 <!DOCTYPE html>
 <html data-theme="rounded">
@@ -38,8 +46,8 @@
     <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
   </head>
 
-  <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true" data-theme="rounded">
-    <%= render FlatPack::PageLayout::Component.new(width: :default, floating_top_nav: true) do |layout| %>
+  <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true">
+    <%= render FlatPack::PageLayout::Component.new(width: :default, floating_top_nav: true, content_scroll: :below) do |layout| %>
       <% if back_row || page_buttons %>
         <% layout.top_nav do %>
           <%= render FlatPack::TopNav::Component.new(mobile_menu: false) do |nav| %>
