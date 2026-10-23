@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Development and test pin `flat_pack` to tag v0.1.307. The gemspec requires `flat_pack` >= 0.1.307. The dummy sign-in card passes `background: :shaded`, and page titles use `slot`.
+
 ## [5.1.0] - 2026-10-23
 
 ### Added
