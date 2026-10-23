@@ -8,5 +8,6 @@ class SignInPageTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes @response.body, "Log in"
+    assert_includes @response.body, 'data-background="shaded"'
   end
 end
