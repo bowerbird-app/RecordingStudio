@@ -11,8 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
-* The default layout is `FlatPack::PageLayout` (`width: :default`) with one
-  `FlatPack::TopNav` (`mobile_menu: false`). Back and close come from
+* The default layout is `FlatPack::PageLayout` (`width: :default`,
+  `floating_top_nav: true`) with one
+  `FlatPack::TopNav` (`mobile_menu: false`). The floating bar shares the
+  column's edges. Back and close come from
   `flat_pack_page_nav` / `flat_pack_page_nav_tag`. Page actions come from
   `register_page_nav` and one `page_nav_button_group`
   (`FlatPack::PageNavRoleStyles::SOLID`, `collapse: :menu`) on the right.

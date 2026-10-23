@@ -39,7 +39,7 @@
   </head>
 
   <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true" data-theme="rounded">
-    <%= render FlatPack::PageLayout::Component.new(width: :default) do |layout| %>
+    <%= render FlatPack::PageLayout::Component.new(width: :default, floating_top_nav: true) do |layout| %>
       <% if back_row || page_buttons %>
         <% layout.top_nav do %>
           <%= render FlatPack::TopNav::Component.new(mobile_menu: false) do |nav| %>

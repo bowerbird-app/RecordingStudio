@@ -46,7 +46,7 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
-    assert_select "header.fp-top-nav", count: 1
+    assert_select "[data-flat-pack-top-nav-floating=behind] > header.fp-top-nav", count: 1
     assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
     assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "header nav a[href='#{workspaces_path}'][aria-label='Workspaces']", count: 1
@@ -73,7 +73,8 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     get new_workspace_path, headers: modern_headers
 
     assert_response :success
-    assert_select "body[data-recording-studio-default-layout='true']", count: 1
+    assert_select "body > .fp-page-layout[data-fp-page-layout-width=default]", count: 1
+    assert_select "[data-flat-pack-top-nav-floating=behind]", count: 1
     assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "a[href='#{workspaces_path}'][aria-label='Workspaces']", count: 1
     assert_select ".fp-button-group-menu", count: 0

@@ -9,9 +9,10 @@ top nav, and page-nav registry. There is no compatibility shim.
 
 ### What changed
 
-- The shell is `FlatPack::PageLayout` (`width: :default`). When the view sets
+- The shell is `FlatPack::PageLayout` (`width: :default`,
+  `floating_top_nav: true`). When the view sets
   back, close, or page actions, the layout renders `FlatPack::TopNav` with
-  `mobile_menu: false`. Back and close are on the left
+  `mobile_menu: false`. The floating bar shares the column's edges. Back and close are on the left
   (`flat_pack_page_nav_tag`). Page actions are one button group on the right
   (`page_nav_button_group` with `FlatPack::PageNavRoleStyles::SOLID` and
   `collapse: :menu`). Below 768px that group is the phone menu. Back and
@@ -793,7 +794,7 @@ boundary.
 ## Adopting the Shared Default Layout
 
 The page shell is `recording_studio/default_layout`. It renders
-`FlatPack::PageLayout`, a `TopNav` with `mobile_menu: false`, back and close
+`FlatPack::PageLayout` (`width: :default`, `floating_top_nav: true`), a `TopNav` with `mobile_menu: false`, back and close
 on the left, and one page-action button group on the right. The title sits
 below the bar.
 

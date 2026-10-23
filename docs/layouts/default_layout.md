@@ -4,10 +4,12 @@
 assume a sidebar or a page kind. The public layout file wraps
 `app/views/recording_studio/shared/_default_layout.html.erb`.
 
-The shell is `FlatPack::PageLayout` (`width: :default`). When the view sets
-back, close, or page actions, the layout draws one `FlatPack::TopNav` with
-`mobile_menu: false`. Back and close sit on the left. Page actions sit on
-the right. The title is below that bar.
+The shell is `FlatPack::PageLayout` (`width: :default`,
+`floating_top_nav: true`). Nothing else wraps that component. When the view
+sets back, close, or page actions, the layout draws one `FlatPack::TopNav`
+with `mobile_menu: false`. Back and close sit on the left. Page actions sit
+on the right. The floating bar shares the column's edges. The title is
+below that bar.
 
 > **Prerequisite:** `flat_pack` >= 0.1.307 is required. The layout renders
 > Flatpack components directly. `flat_pack` is not on RubyGems. The gemspec

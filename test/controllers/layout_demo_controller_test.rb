@@ -16,6 +16,8 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
     assert_select "body[data-theme='rounded']", count: 1
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
+    assert_select "body > .fp-page-layout[data-fp-page-layout-width=default]", count: 1
+    assert_select "[data-flat-pack-top-nav-floating=behind]", count: 1
     assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "nav[data-flat-pack--page-nav-fallback-url-value='#{workspaces_path}']", count: 1
     assert_select "nav button[aria-label='Go back']", count: 1
@@ -63,6 +65,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     removed.each { |snippet| refute_includes source, snippet }
     kept = [
       "flat_pack_page_nav_tag", "page_nav_button_group", "collapse: :menu", "mobile_menu: false",
+      "floating_top_nav: true",
       "FlatPack::PageNavRoleStyles::SOLID", "FlatPack::PageLayout::Component",
       "FlatPack::TopNav::Component", "FlatPack::PageTitle::Component", "FlatPack::Alert::Component",
       "flat_pack/variables", "flat_pack/application", "flat_pack/rich_text"

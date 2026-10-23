@@ -1099,7 +1099,7 @@ Configure the page from the view:
 
 - `content_for :title` and `content_for :subtitle` — document title and `FlatPack::PageTitle`
 - `flat_pack_page_nav(...)` — back and close. The layout renders `flat_pack_page_nav_tag` on the left of `TopNav`.
-- `register_page_nav "Label", path, role: :primary` — page actions. The layout renders one `page_nav_button_group` (`SOLID`, `collapse: :menu`) on the right. `TopNav` uses `mobile_menu: false`.
+- `register_page_nav "Label", path, role: :primary` — page actions. The layout renders one `page_nav_button_group` (`SOLID`, `collapse: :menu`) on the right of `TopNav` (`mobile_menu: false`). `PageLayout` uses `floating_top_nav: true`, so that row shares the content column.
 - `default_layout_head { ... }` — append content to `<head>`
 - `recording_studio_seo_description(text)` — description and `og:description`
 
