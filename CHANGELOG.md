@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.0] - 2026-10-23
+
 ### Added
 
 * `recordings.event_created` payloads include `metadata`, a frozen copy of the event's metadata with
