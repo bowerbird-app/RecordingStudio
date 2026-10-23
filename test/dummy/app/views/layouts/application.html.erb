@@ -21,6 +21,7 @@
     <%# Includes all stylesheet files in app/assets/stylesheets %>
     <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
       <%= stylesheet_link_tag "flat_pack/variables", "data-turbo-track": "reload" %>
+      <%= stylesheet_link_tag "flat_pack/application", "data-turbo-track": "reload" %>
       <%= stylesheet_link_tag "flat_pack/rich_text", "data-turbo-track": "reload" %>
       <%= javascript_importmap_tags if respond_to?(:javascript_importmap_tags) %>
 
@@ -46,6 +47,7 @@
             <% if flash[:alert].present? %>
               <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-6") %>
             <% end %>
+            <%= page_nav_button_group(styles: FlatPack::PageNavRoleStyles::SOLID, collapse: :menu) %>
             <%= yield %>
           </main>
         <% end %>

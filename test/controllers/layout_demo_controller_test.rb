@@ -16,20 +16,26 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
     assert_select "body[data-theme='rounded']", count: 1
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
-    assert_select "nav[aria-label='Page navigation']", count: 1
+    assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "nav[data-flat-pack--page-nav-fallback-url-value='#{workspaces_path}']", count: 1
     assert_select "nav button[aria-label='Go back']", count: 1
     assert_select "nav a[aria-label='Go back']", count: 0
     assert_select "a[href='#{workspaces_path}'][aria-label='Close demo']", count: 1
-    assert_select "nav .ml-auto a[href='#{new_workspace_path}']", count: 1
-    assert_includes @response.body, I18n.t("recording_studio.core.navigation.go_back")
+    assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
+    assert_select "header .fp-button-group-menu[data-controller='flat-pack--button-group-menu']", count: 1
+    assert_select "header .fp-button-group-menu__trigger", count: 1
+    assert_registered_page_action(new_workspace_path, "Create workspace")
+    assert_select "main .fp-button-group-menu", count: 0
     assert_includes @response.body, "Go back"
     assert_includes @response.body, "Close demo"
-
     assert_includes @response.body, "Create workspace"
     assert_not_includes @response.body, "flat-pack--sidebar-group"
+  end
 
-    # SEO / OpenGraph meta tags
+  test "show publishes open graph tags from the layout" do
+    get layout_demo_path, headers: modern_headers
+
+    assert_response :success
     assert_select "meta[property='og:title'][content='Default Layout Demo']", count: 1
     assert_select "meta[property='og:type'][content='website']", count: 1
     assert_select "meta[name='description'][content*='SEO']", count: 1
@@ -47,29 +53,31 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "default layout template keeps the host contract slots, assets, and alerts" do
-    source = File.read(
-      RecordingStudio::Engine.root.join("app/views/recording_studio/shared/_default_layout.html.erb")
-    )
-    %w[
-      head title seo_description
-      page_nav_anchor_url page_nav_anchor_label
-      page_nav_back_label page_nav_back_url page_nav_right
-    ].each { |slot| assert_includes source, slot }
-    %w[body_theme seo_image page_nav_back_icon page_nav_anchor_icon].each do |slot|
-      refute_includes source, slot
-    end
-    assert_includes source, "flat_pack/variables"
-    assert_includes source, "flat_pack/rich_text"
-    assert_includes source, "FlatPack::PageNav::Component"
-    assert_includes source, "FlatPack::Alert::Component"
-    refute_includes source, "defined?(FlatPack"
-    refute_includes source, "recording-studio-back-button"
-    refute_includes source, "history.back"
+    source = default_layout_source
+    %w[head title subtitle seo_description].each { |slot| assert_includes source, slot }
+    removed = %w[
+      body_theme seo_image page_nav_right page_nav_back_url page_nav_anchor_url
+      recording_studio_page_nav mobile_actions: config.page_nav_styles render_page_nav
+      FlatPack::PageNavStyles defined?(FlatPack recording-studio-back-button history.back
+    ]
+    removed.each { |snippet| refute_includes source, snippet }
+    kept = [
+      "flat_pack_page_nav_tag", "page_nav_button_group", "collapse: :menu", "mobile_menu: false",
+      "FlatPack::PageNavRoleStyles::SOLID", "FlatPack::PageLayout::Component",
+      "FlatPack::TopNav::Component", "FlatPack::PageTitle::Component", "FlatPack::Alert::Component",
+      "flat_pack/variables", "flat_pack/application", "flat_pack/rich_text"
+    ]
+    kept.each { |snippet| assert_includes source, snippet }
+  end
 
+  test "host shell stays on the sidebar layout" do
     host_shell = File.read(Rails.root.join("app/views/layouts/application.html.erb"))
+
     assert_includes host_shell, "FlatPack::SidebarLayout::Component"
     assert_includes host_shell, "FlatPack::Alert::Component"
     assert_includes host_shell, "flat_pack/variables"
+    assert_includes host_shell, "flat_pack/application"
+    assert_includes host_shell, "page_nav_button_group"
   end
 
   test "default layout renders flatpack assets, alerts, and content_for slots" do
@@ -78,11 +86,23 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
     assert_select "link[rel=stylesheet][href*='flat_pack/variables']", minimum: 1
+    assert_select "link[rel=stylesheet][href*='flat_pack/application']", minimum: 1
     assert_select "link[rel=stylesheet][href*='flat_pack/rich_text']", minimum: 1
     assert_includes @response.body, "Saved the page"
     assert_includes @response.body, "Could not save the page"
     assert_select "title", text: "Default Layout Demo"
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
     assert_not_includes @response.body, "flat-pack--sidebar-layout"
+  end
+
+  private
+
+  def default_layout_source
+    File.read(RecordingStudio::Engine.root.join("app/views/recording_studio/shared/_default_layout.html.erb"))
+  end
+
+  def assert_registered_page_action(href, text)
+    assert_select "header .fp-button-group-menu__row a[href='#{href}']", text: text, count: 1
+    assert_select "header .fp-button-group-menu__panel a[href='#{href}']", text: text, count: 1
   end
 end

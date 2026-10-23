@@ -571,40 +571,36 @@ macro adds the helper) or manually adds `helper RecordingStudio::LayoutHelper`.
 
 Public layout:
 
-- `recording_studio/default_layout` — back and anchor page shell (see `docs/layouts/default_layout.md`)
+- `recording_studio/default_layout` — page shell (see `docs/layouts/default_layout.md`)
 
-### Page nav helpers
+### Head and SEO
 
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
-| `recording_studio_page_nav(title:, **slot_values)` | optional title plus `page_nav_back_url`, `page_nav_back_label`, `page_nav_anchor_url`, `page_nav_anchor_label` | `nil` | Sets `content_for` slots for the back and anchor buttons. |
-| `recording_studio_page_nav_right(&block)` | block | `nil` | Renders block content into the PageNav right slot. |
 | `default_layout_head(&block)` | block | `nil` | Adds block content to `<head>` via `yield :head`. |
+| `recording_studio_seo_description(text)` | description string | `nil` | Sets `<meta name="description">` and `og:description`. |
 
-### SEO helpers
+### Page nav
+
+Flatpack owns page nav. Call these from the view. The layout renders them.
 
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
-| `recording_studio_seo_description(text)` | description string | `nil` | Sets `<meta name="description">` and `og:description` tags. |
+| `content_for :title` / `:subtitle` | string |  | Document title and `FlatPack::PageTitle`. |
+| `flat_pack_page_nav` | `back_href`, `back_tooltip`, `anchor_href`, `anchor_tooltip` | `nil` | Stores the back and close row. |
+| `register_page_nav` | label, path, `role:`, optional `icon:`, `overflow:` | `nil` | Records one page action. `role` is `:primary`, `:secondary`, or `:destructive`. |
+
+The layout calls `flat_pack_page_nav_tag` and one
+`page_nav_button_group(styles: FlatPack::PageNavRoleStyles::SOLID, collapse: :menu)`.
 
 ### Example
 
 ```erb
-<% recording_studio_page_nav(
-  title: "Workspaces",
-  page_nav_anchor_url: root_path,
-  page_nav_anchor_label: "Home"
-) %>
-
+<% content_for :title, "Workspaces" %>
+<% content_for :subtitle, "Pick one to open." %>
+<% flat_pack_page_nav(anchor_href: root_path, anchor_tooltip: "Home") %>
 <% recording_studio_seo_description("Browse and manage your workspaces") %>
-
-<% recording_studio_page_nav_right do %>
-  <%= render FlatPack::Button::Component.new(
-    text: "New Workspace",
-    style: :primary,
-    url: new_workspace_path
-  ) %>
-<% end %>
+<% register_page_nav "New workspace", new_workspace_path, role: :primary, icon: :plus %>
 ```
 
 ## What Not To Depend On

@@ -16,9 +16,11 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
     assert_select "body[data-theme='rounded']", count: 1
-    assert_select "nav[aria-label='Page navigation']", count: 1
+    assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "a[href='#{root_path}'][aria-label='Home']", count: 1
-    assert_select "a[href='#{new_workspace_path}'][aria-label='Add workspace']", count: 1
+    assert_select "header .fp-button-group-menu", count: 1
+    assert_select "header .fp-button-group-menu__row a[href='#{new_workspace_path}']", text: "Add workspace", count: 1
+    assert_select "header .fp-button-group-menu__panel a[href='#{new_workspace_path}']", text: "Add workspace", count: 1
     assert_includes @response.body, @workspace.name
     assert_not_includes @response.body, "New Workspace"
     long_class = "rounded-lg overflow-visible h-full flex flex-col text-[var(--surface-content-color)] " \
@@ -39,24 +41,43 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_equal created_workspace, created_root.recordable
   end
 
-  test "show uses default layout page nav instead of breadcrumbs" do
+  test "show registers page actions once inside the top nav" do
     get workspace_path(@workspace), headers: modern_headers
 
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
-    assert_select "nav[aria-label='Page navigation']", count: 1
-    assert_select "a[href='#{workspaces_path}'][aria-label='Workspaces']", count: 1
-    assert_select "a[href='#{root_path}'][aria-label='Home']", count: 1
+    assert_select "header.fp-top-nav", count: 1
+    assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
+    assert_select "header nav[aria-label='Page navigation']", count: 1
+    assert_select "header nav a[href='#{workspaces_path}'][aria-label='Workspaces']", count: 1
+    assert_select "header nav a[href='#{root_path}'][aria-label='Home']", count: 1
+    assert_select "header .fp-button-group-menu[data-controller='flat-pack--button-group-menu']", count: 1
+    assert_select "header .fp-button-group-menu__trigger", count: 1
+    assert_select "header .fp-button-group-menu__row" do
+      assert_select "a[href='#{workspace_pages_path(@workspace)}']", text: "Browse Pages", count: 1
+      assert_select "a[href='#{new_workspace_page_path(@workspace)}']", text: "New Page", count: 1
+      assert_select "a[href='#{recordings_path}']", text: "Browse Recordings", count: 1
+    end
+    assert_select "header .fp-button-group-menu__panel" do
+      assert_select "a[href='#{workspace_pages_path(@workspace)}']", text: "Browse Pages", count: 1
+      assert_select "a[href='#{new_workspace_page_path(@workspace)}']", text: "New Page", count: 1
+      assert_select "a[href='#{recordings_path}']", text: "Browse Recordings", count: 1
+    end
+    assert_select "main .fp-button-group-menu", count: 0
+    assert_select "main h1", text: @workspace.name
+    assert_select "a", text: "Delete", count: 0
     assert_not_includes @response.body, "flat-pack--breadcrumb"
   end
 
-  test "new renders page nav with workspaces anchor" do
+  test "new shows only the back button when nothing is registered" do
     get new_workspace_path, headers: modern_headers
 
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
-    assert_select "nav[aria-label='Page navigation']", count: 1
+    assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "a[href='#{workspaces_path}'][aria-label='Workspaces']", count: 1
+    assert_select ".fp-button-group-menu", count: 0
+    assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
     assert_includes @response.body, "Create a container for recordings."
   end
 end

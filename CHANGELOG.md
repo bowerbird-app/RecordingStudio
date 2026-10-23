@@ -7,9 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-10-23
+
+### Breaking
+
+* The default layout is `FlatPack::PageLayout` (`width: :default`) with one
+  `FlatPack::TopNav` (`mobile_menu: false`). Back and close come from
+  `flat_pack_page_nav` / `flat_pack_page_nav_tag`. Page actions come from
+  `register_page_nav` and one `page_nav_button_group`
+  (`FlatPack::PageNavRoleStyles::SOLID`, `collapse: :menu`) on the right.
+  Below 768px that group is the only phone menu. The title and subtitle
+  render as `FlatPack::PageTitle` under the bar.
+* `recording_studio_page_nav`, `recording_studio_page_nav_right`, and the
+  `page_nav_*` content_for slots are removed. Views set `content_for :title`
+  and `content_for :subtitle`.
+* Requires `flat_pack` >= 0.1.307. There is no compatibility shim.
+
 ### Changed
 
-* Development and test pin `flat_pack` to tag v0.1.307. The gemspec requires `flat_pack` >= 0.1.307. The dummy sign-in card passes `background: :shaded`, and page titles use `slot`.
+* Development and test pin `flat_pack` to tag v0.1.307. The dummy sign-in
+  card passes `background: :shaded`, and page titles use `slot`. The dummy
+  Tailwind file sources Flatpack components and helpers and does not fork
+  `--color-fp-*`.
+
+### Upgrade notes
+
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-600).
 
 ## [5.1.0] - 2026-10-23
 
