@@ -13,9 +13,13 @@
     rows: 5
   ) %>
 
-  <%= render FlatPack::Grid::Component.new(cols: 2, gap: :md, align: :center) do %>
-    <%= render FlatPack::Button::Component.new(text: submit_label, type: "submit", style: :primary) %>
-    <%= render FlatPack::Button::Component.new(text: "Cancel", href: cancel_url, style: :ghost) %>
+  <%= render FlatPack::Collection::Component.new(layout: :wrap, gap: :sm) do |actions| %>
+    <% actions.with_item do %>
+      <%= render FlatPack::Button::Component.new(text: submit_label, type: "submit", style: :primary) %>
+    <% end %>
+    <% actions.with_item do %>
+      <%= render FlatPack::Button::Component.new(text: "Cancel", href: cancel_url, style: :secondary) %>
+    <% end %>
   <% end %>
   <% end %>
 <% end %>

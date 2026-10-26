@@ -11,8 +11,8 @@
       <% prefill_password = prefill_credentials ? ENV.fetch("DUMMY_SEED_PASSWORD", "change-me-please") : nil %>
       <% seed_account_ready = prefill_email.present? && User.exists?(email: prefill_email) %>
 
+      <%= render FlatPack::Grid::Component.new(cols: 1, gap: :md) do %>
       <% if prefill_credentials %>
-        <%# TODO: Alert has no spacing prop. %>
         <%= render FlatPack::Alert::Component.new(
           description: "#{seed_account_ready ? 'Seed account ready' : 'Seed account not found'} Use #{prefill_email} with password #{prefill_password}.",
           style: seed_account_ready ? :success : :warning
@@ -38,19 +38,23 @@
           autocomplete: "current-password"
         ) %>
 
-        <%= render FlatPack::Grid::Component.new(cols: 1, gap: :md) do %>
+        <%= render FlatPack::Collection::Component.new(layout: :stack, gap: :md) do |actions| %>
           <% if devise_mapping.rememberable? %>
-            <%= render FlatPack::Checkbox::Component.new(
-              name: "#{resource_name}[remember_me]",
-              label: "Remember me",
-              value: "1",
-              checked: resource&.remember_me
-            ) %>
+            <% actions.with_item do %>
+              <%= render FlatPack::Checkbox::Component.new(
+                name: "#{resource_name}[remember_me]",
+                label: "Remember me",
+                value: "1",
+                checked: resource&.remember_me
+              ) %>
+            <% end %>
           <% end %>
-
-          <%= render FlatPack::Button::Component.new(text: "Log in", type: "submit", style: :primary) %>
+          <% actions.with_item do %>
+            <%= render FlatPack::Button::Component.new(text: "Log in", type: "submit", style: :primary) %>
+          <% end %>
         <% end %>
         <% end %>
+      <% end %>
       <% end %>
     <% end %>
   <% end %>

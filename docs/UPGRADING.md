@@ -19,8 +19,9 @@ layout shell is unchanged: `PageLayout` (`width: :default`), `TopNav`
   `turbo:load`.
 - A card header uses the card padding. `padding: :none` insets nothing in
   the header. Section titles inside a card use `size: :md, spacing: :none`.
-- Flashes are plain `FlatPack::Alert` calls. Alert has no spacing prop, so
-  hosts do not pass a margin class.
+- Flashes are plain `FlatPack::Alert` calls. Stack them with `Grid`
+  `gap: :lg`. Alert has no spacing prop, so hosts do not pass a margin class.
+  Form actions use `Collection` `layout: :wrap, gap: :sm`.
 
 ### Upgrade steps
 

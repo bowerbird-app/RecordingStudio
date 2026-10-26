@@ -17,8 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   leaves font and radius tokens in `flat_pack/variables`. `application.js`
   calls `initLocalTimes`.
 * Dummy cards use Flatpack's default card padding. Section titles inside a
-  card use `size: :md` and `spacing: :none`. Flashes, breadcrumbs, and other
-  Flatpack components no longer take margin utilities such as `mb-4`.
+  card use `size: :md` and `spacing: :none`. Stacked blocks use `Grid` or
+  `Collection` gap. Flatpack components do not take margin utilities such
+  as `mb-4`. Form actions use `Collection` `layout: :wrap`.
 
 ### Upgrade notes
 

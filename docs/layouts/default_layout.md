@@ -37,8 +37,9 @@ two round buttons. Page actions sit on the right.
   `flat_pack/rich_text`, then the host Tailwind sheet, plus the importmap
   when the host defines `javascript_importmap_tags`.
 - Viewport meta `width=device-width,initial-scale=1,viewport-fit=cover`.
-- Flash notice and alert are plain `FlatPack::Alert` calls. Alert has no
-  spacing prop, so the layout does not add a margin class.
+- Flash notice and alert are plain `FlatPack::Alert` calls. When a flash
+  is present, `Grid` `gap: :lg` separates the flash, the title, and the
+  page. Alert has no spacing prop.
 - `data-theme="rounded"` on `<html>`.
 - Document title and site-name fallback from
   `RecordingStudio.configuration.app_name`.

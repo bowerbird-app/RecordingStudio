@@ -84,7 +84,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     source = default_layout_source
 
     assert_includes source, "viewport-fit=cover"
-    assert_includes source, "Alert has no spacing prop"
+    assert_includes source, "gap: :lg"
     refute_includes source, 'class: "mb-4"'
     assert source.index("flat_pack/variables") < source.index("flat_pack/application")
     assert source.index("flat_pack/application") < source.index("flat_pack/rich_text")
@@ -97,7 +97,8 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_includes host_shell, "FlatPack::SidebarLayout::Component"
     assert_includes host_shell, "FlatPack::Alert::Component"
     assert_includes host_shell, "FlatPack::SkipLink::Component"
-    refute_includes host_shell, "FlatPack::Grid::Component"
+    assert_includes host_shell, "FlatPack::Grid::Component"
+    assert_includes host_shell, "gap: :lg"
     assert_includes host_shell, "fp-layout-content"
     assert_includes host_shell, 'id="main"'
     assert_includes host_shell, "viewport-fit=cover"
@@ -122,6 +123,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "Could not save the page"
     assert_select ".mb-4", text: /Saved the page/, count: 0
     assert_select ".mb-4", text: /Could not save the page/, count: 0
+    assert_select ".grid.gap-6", minimum: 1
     assert_select "title", text: "Default Layout Demo"
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
     assert_not_includes @response.body, "flat-pack--sidebar-layout"

@@ -57,19 +57,26 @@
         <% end %>
       <% end %>
 
-      <%# TODO: Alert has no spacing prop. PageLayout main has no id, so SkipLink cannot target it. %>
-      <% if flash[:notice].present? %>
-        <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success) %>
+      <%# TODO: PageLayout main has no id, so SkipLink cannot target it. %>
+      <% if flash[:notice].present? || flash[:alert].present? %>
+        <%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg) do %>
+          <% if flash[:notice].present? %>
+            <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success) %>
+          <% end %>
+          <% if flash[:alert].present? %>
+            <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger) %>
+          <% end %>
+          <% if heading %>
+            <%= render FlatPack::PageTitle::Component.new(title: heading, subtitle: subtitle) %>
+          <% end %>
+          <%= yield %>
+        <% end %>
+      <% else %>
+        <% if heading %>
+          <%= render FlatPack::PageTitle::Component.new(title: heading, subtitle: subtitle) %>
+        <% end %>
+        <%= yield %>
       <% end %>
-      <% if flash[:alert].present? %>
-        <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger) %>
-      <% end %>
-
-      <% if heading %>
-        <%= render FlatPack::PageTitle::Component.new(title: heading, subtitle: subtitle) %>
-      <% end %>
-
-      <%= yield %>
     <% end %>
   </body>
 </html>

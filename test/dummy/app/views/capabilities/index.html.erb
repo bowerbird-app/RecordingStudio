@@ -1,6 +1,6 @@
 <% content_for :title, "Capabilities" %>
 
-<%# TODO: Breadcrumb has no spacing prop. %>
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :md) do %>
 <%= render FlatPack::Breadcrumb::Component.new do |breadcrumb| %>
   <% breadcrumb.item(text: "Home", href: root_path) %>
   <% breadcrumb.item(text: "Capabilities") %>
@@ -12,3 +12,4 @@
 ) %>
 
 <%= render "shared/method_catalog", method_catalog: @method_catalog %>
+<% end %>

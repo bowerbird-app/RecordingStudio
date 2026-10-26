@@ -90,5 +90,8 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_select ".fp-button-group-menu", count: 0
     assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
     assert_includes @response.body, "Create a container for recordings."
+    assert_select "ul.flex.flex-wrap.gap-2 button", text: "Create Workspace", count: 1
+    assert_select "ul.flex.flex-wrap.gap-2 a", text: "Cancel", count: 1
+    assert_select ".md\\:grid-cols-2", count: 0
   end
 end

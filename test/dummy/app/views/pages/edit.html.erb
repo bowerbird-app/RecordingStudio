@@ -1,6 +1,6 @@
 <% content_for :title, "Edit Page" %>
 
-<%# TODO: Breadcrumb has no spacing prop. %>
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :md) do %>
 <%= render FlatPack::Breadcrumb::Component.new do |breadcrumb| %>
   <% breadcrumb.item(text: "Home", href: root_path) %>
   <% breadcrumb.item(text: "Workspaces", href: workspaces_path) %>
@@ -22,4 +22,5 @@
       <%= render "form", recordable: @recordable, form_url: workspace_page_path(@workspace, @recording), form_method: :patch, submit_label: "Save Revision", cancel_url: workspace_page_path(@workspace, @recording) %>
     <% end %>
   <% end %>
+<% end %>
 <% end %>
