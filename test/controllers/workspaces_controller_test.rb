@@ -69,6 +69,16 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes @response.body, "flat-pack--breadcrumb"
   end
 
+  test "show pads the hierarchy card header" do
+    get workspace_path(@workspace), headers: modern_headers
+
+    assert_response :success
+    assert_select ".fp-card .fp-section-title", text: /Recording hierarchy/
+    assert_includes @response.body, "p-[var(--card-padding-md)]"
+    assert_not_includes @response.body, 'data-fp-card-padding="none"'
+    assert_not_includes @response.body, "my-8"
+  end
+
   test "new shows only the back button when nothing is registered" do
     get new_workspace_path, headers: modern_headers
 

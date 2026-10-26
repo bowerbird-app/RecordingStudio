@@ -42,21 +42,14 @@
 
   <% sidebar.footer do %>
     <%= render FlatPack::Sidebar::Footer::Component.new do %>
-      <% logout_button_classes = [
-        "w-full inline-flex items-center justify-center gap-2",
-        "rounded-[var(--button-border-radius)] font-medium cursor-pointer transition-colors duration-base",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--button-focus-ring-color)]",
-        "focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--button-focus-ring-offset-color)]",
-        "disabled:pointer-events-none disabled:opacity-[var(--button-disabled-opacity)]",
-        FlatPack::Button::Component::SIZES.fetch(:md),
-        FlatPack::Button::Component::SCHEMES.fetch(:ghost)
-      ].join(" ") %>
-      <%= button_to destroy_user_session_path,
-            method: :delete,
-            form: { class: "w-full", data: { turbo: false } },
-            class: logout_button_classes do %>
-        <%= render FlatPack::Shared::IconComponent.new(name: "arrow-left-on-rectangle", size: :md) %>
-        <span>Log out</span>
+      <%= form_with url: destroy_user_session_path, method: :delete, data: { turbo: false } do %>
+        <%= render FlatPack::Button::Component.new(
+          text: "Log out",
+          type: "submit",
+          style: :ghost,
+          icon: "arrow-left-on-rectangle",
+          class: "w-full"
+        ) %>
       <% end %>
     <% end %>
   <% end %>

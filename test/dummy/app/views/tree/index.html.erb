@@ -8,10 +8,9 @@
 <%= render FlatPack::PageTitle::Component.new(
   title: "Tree",
   subtitle: "Browse the dummy app recording hierarchy as a Flatpack tree of workspaces, folders, and pages.",
-  class: "mb-6"
 ) %>
 
-<%= render FlatPack::Card::Component.new(class: "max-w-3xl", padding: :none) do |card| %>
+<%= render FlatPack::Card::Component.new(class: "max-w-3xl") do |card| %>
   <% card.body do %>
     <% if @recordings.any? %>
       <%= render FlatPack::Tree::Component.new(compact: true, class: "w-full") do |tree| %>

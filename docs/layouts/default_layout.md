@@ -27,7 +27,6 @@ two round buttons. Page actions sit on the right.
 - `TopNav` does not fold. Below 768px the button group is the only phone
   menu. Back and close stay visible. Omit `menu_label`, so the trigger is
   the bars glyph.
-- Flash notice and alert via `FlatPack::Alert::Component`.
 - `FlatPack::PageTitle` from `:title` and `:subtitle`.
 - The page body via `yield`.
 - `<title>`, optional description, and OpenGraph title, type, url,
@@ -35,8 +34,11 @@ two round buttons. Page actions sit on the right.
 - `yield :head`, and `recording_studio/_default_layout_head` when that
   partial is on the view path.
 - Stylesheets `flat_pack/variables`, `flat_pack/application`, and
-  `flat_pack/rich_text`, plus the importmap when the host defines
-  `javascript_importmap_tags`.
+  `flat_pack/rich_text`, then the host Tailwind sheet, plus the importmap
+  when the host defines `javascript_importmap_tags`.
+- Viewport meta `width=device-width,initial-scale=1,viewport-fit=cover`.
+- Flash notice and alert are `FlatPack::Alert` with `class: "mb-4"`, the
+  same spacing the Flatpack demo uses. Alert has no spacing prop.
 - `data-theme="rounded"` on `<html>`.
 - Document title and site-name fallback from
   `RecordingStudio.configuration.app_name`.
@@ -102,12 +104,15 @@ end
 
 A callable is invoked as `call(controller:)`.
 
-The dummy app loads Flatpack the way the install generator does: Tailwind
-`@source` globs for Flatpack components and helpers, stylesheets
-`flat_pack/variables`, `flat_pack/application`, and `flat_pack/rich_text`,
-and the Flatpack importmap pins. Do not fork `--color-fp-*` in the host
-Tailwind file. Re-set kit radii on unlayered `:root` so Tailwind's
-`--radius-md` default does not win.
+The dummy app loads Flatpack the way the install generator and
+`docs/theming.md` describe. Tailwind `@source` globs scan Flatpack
+components and helpers. The layout links `flat_pack/variables`,
+`flat_pack/application`, and `flat_pack/rich_text`, then the host Tailwind
+sheet. Do not fork `--color-fp-*` in the host Tailwind file. Re-set
+`--font-sans`, `--font-mono`, and `--radius-xs` through `--radius-xxxl`
+on unlayered `:root` so Tailwind's theme layer does not replace the kit
+face or `--radius-md`. The viewport meta includes `viewport-fit=cover`.
+`app/javascript/application.js` calls `initLocalTimes`.
 
 ## Host layout contract
 

@@ -13,12 +13,12 @@
   <% register_page_nav "Delete", delete_path, role: :destructive, icon: :trash, overflow: true, data: { turbo_method: :delete } %>
 <% end %>
 
-<%= render FlatPack::Card::Component.new(class: "mb-6", padding: :none) do |card| %>
+<%= render FlatPack::Card::Component.new do |card| %>
   <% card.header(divider: false) do %>
     <%= render FlatPack::SectionTitle::Component.new(
       title: "Recording hierarchy",
       subtitle: "Child recordings nested under their parents.",
-      class: "my-0"
+      size: :md, spacing: :none
     ) %>
   <% end %>
 

@@ -2,8 +2,9 @@
 
 /* Scan Flatpack components and helpers so Tailwind emits their utilities.
  * Tokens load from flat_pack/variables. Do not fork --color-fp-* here.
- * Tailwind's theme layer still emits --radius-md: 0.375rem. Re-set kit radii
- * on unlayered :root, the same way `flat_pack:install` does.
+ * This sheet loads after the kit. Unlayered :root re-sets the kit face and
+ * the full radius scale so Tailwind @layer theme cannot leave --font-sans
+ * on ui-sans-serif or --radius-md on 0.375rem. See Flatpack docs/theming.md.
  */
 @source "../../../vendor/bundle/**/flatpack-*/app/components/**/*.rb";
 @source "../../../vendor/bundle/**/flatpack-*/app/components/**/*.erb";
@@ -16,12 +17,24 @@
 @source "../../../../../../usr/local/lib/ruby/gems/**/flatpack-*/app/helpers/**/*.rb";
 
 :root {
+  --font-sans: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
   --radius-xs: 0.125rem;
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1.25rem;
+  --radius-xxl: 2rem;
+  --radius-xxxl: 2.5rem;
   --radius-full: 9999px;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
 @source "../../views/**/*.erb";

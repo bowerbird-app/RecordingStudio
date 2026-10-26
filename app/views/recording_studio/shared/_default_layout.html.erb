@@ -19,16 +19,16 @@
 <html data-theme="rounded">
   <head>
     <title><%= document_title %></title>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <link rel="icon" href="/icon.png" type="image/png">
     <link rel="icon" href="/icon.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/icon.png">
     <%= csrf_meta_tags %>
     <%= csp_meta_tag %>
-    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "flat_pack/variables", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "flat_pack/application", "data-turbo-track": "reload" %>
     <%= stylesheet_link_tag "flat_pack/rich_text", "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
     <% if lookup_context.exists?("recording_studio/default_layout_head", [], true) %>
       <%= render "recording_studio/default_layout_head" %>
     <% end %>
@@ -58,10 +58,10 @@
       <% end %>
 
       <% if flash[:notice].present? %>
-        <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success) %>
+        <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success, class: "mb-4") %>
       <% end %>
       <% if flash[:alert].present? %>
-        <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger) %>
+        <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger, class: "mb-4") %>
       <% end %>
 
       <% if heading %>

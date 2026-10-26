@@ -8,20 +8,19 @@
 
 <% summary = @recording.summary %>
 
-<div class="space-y-6">
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg) do %>
   <%= render FlatPack::PageTitle::Component.new(
     title: @recording.title,
     subtitle: summary.presence,
-    class: "mb-0",
     variant: :h1
   ) %>
 
   <% child_recordings = @recording.child_recordings.recent %>
-  <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+  <%= render FlatPack::Card::Component.new do |card| %>
     <% card.header do %>
       <%= render FlatPack::SectionTitle::Component.new(
         title: "Child recordings",
-        class: "my-0"
+        size: :md, spacing: :none
       ) %>
     <% end %>
     <% card.body do %>
@@ -53,11 +52,11 @@
     { label: "Root Recording ID", value: @recording.root_recording_id },
     { label: "Root Recordable", value: @recording.root_recording&.name || "—" }
   ] %>
-  <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+  <%= render FlatPack::Card::Component.new do |card| %>
     <% card.header do %>
       <%= render FlatPack::SectionTitle::Component.new(
         title: "Recording Snapshot",
-        class: "my-0"
+        size: :md, spacing: :none
       ) %>
     <% end %>
     <% card.body do %>
@@ -69,12 +68,12 @@
   <% end %>
 
   <%= render FlatPack::Grid::Component.new(cols: 2, gap: :lg, align: :start) do %>
-    <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+    <%= render FlatPack::Card::Component.new do |card| %>
       <% card.header do %>
         <%= render FlatPack::SectionTitle::Component.new(
           title: "History",
           subtitle: "Timeline entries for this recording and its related recordables.",
-          class: "my-0"
+          size: :md, spacing: :none
         ) %>
       <% end %>
       <% card.body do %>
@@ -141,12 +140,12 @@
       <% end %>
     <% end %>
 
-    <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+    <%= render FlatPack::Card::Component.new do |card| %>
       <% card.header do %>
         <%= render FlatPack::SectionTitle::Component.new(
           title: "Recordables",
           subtitle: "All snapshots referenced by this recording, including previous versions.",
-          class: "my-0"
+          size: :md, spacing: :none
         ) %>
       <% end %>
       <% card.body do %>
@@ -181,4 +180,4 @@
       <% end %>
     <% end %>
   <% end %>
-</div>
+<% end %>

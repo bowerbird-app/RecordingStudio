@@ -20,6 +20,11 @@ class PageNavDemoTest < ActionDispatch::IntegrationTest
     assert_select "link[rel=stylesheet][href*='flat_pack/application']", minimum: 1
     assert_select "html[data-theme=rounded]", count: 1
     assert_select "body[data-theme]", count: 0
+    assert_select "a.fp-skip-link[href='#main']", count: 1
+    assert_select "main#main.fp-layout-content .grid.gap-6", count: 1
+    assert_select "meta[name=viewport][content*='viewport-fit=cover']", count: 1
+    assert @response.body.index("flat_pack/variables") < @response.body.index("flat_pack/application")
+    assert @response.body.index("flat_pack/rich_text") < @response.body.index("/tailwind")
   end
 
   test "folder show registers nothing and renders no empty button group" do

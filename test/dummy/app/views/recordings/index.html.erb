@@ -8,10 +8,8 @@
 <%= render FlatPack::PageTitle::Component.new(
   title: "Recordings",
   subtitle: "A complete history of activity across your workspace.",
-  class: "mb-6"
 ) %>
 
-<div class="mt-8">
   <% if @recordings.any? %>
     <%= render FlatPack::Table::Component.new(data: @recordings) do |table| %>
     <% table.column(
@@ -43,4 +41,3 @@
   <% else %>
     <%= render FlatPack::Alert::Component.new(description: "No recordings yet.", style: :info) %>
   <% end %>
-</div>

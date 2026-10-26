@@ -13,10 +13,9 @@
   <%= render FlatPack::PageTitle::Component.new(
     title: "Edit Page",
     subtitle: "Create a new snapshot for a page inside #{@workspace.name}.",
-    class: "mb-0"
   ) %>
 
-  <%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+  <%= render FlatPack::Card::Component.new do |card| %>
     <% card.body do %>
       <%= render "form", recordable: @recordable, form_url: workspace_page_path(@workspace, @recording), form_method: :patch, submit_label: "Save Revision", cancel_url: workspace_page_path(@workspace, @recording) %>
     <% end %>

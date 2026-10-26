@@ -9,14 +9,13 @@
 <%= render FlatPack::PageTitle::Component.new(
   title: "Root",
   subtitle: "Reference examples for creating a root recording and calling all root-scoped recording, event, and query APIs from that entry point.",
-  class: "mb-6"
 ) %>
 
-<div class="mb-6 space-y-3">
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :sm) do %>
   <%= render FlatPack::SectionTitle::Component.new(
     title: "Set root recordable",
     subtitle: "Declare the root recordable class with recording_studio_recordable(root: true). Use shared: true for a domain forest such as messages, then fetch or create its recording with RecordingStudio.root_recording_for(recordable).",
-    class: "my-0"
+    spacing: :none
   ) %>
 
   <%= render FlatPack::Button::Component.new(
@@ -24,6 +23,6 @@
     style: :primary,
     href: recordable_methods_path
   ) %>
-</div>
+<% end %>
 
 <%= render "shared/method_catalog", method_catalog: @method_catalog %>

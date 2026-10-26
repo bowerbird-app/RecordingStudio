@@ -9,10 +9,9 @@
 <%= render FlatPack::PageTitle::Component.new(
   title: @recording.title,
   subtitle: "Folder recording details and children.",
-  class: "mb-6"
 ) %>
 
-<%= render FlatPack::Card::Component.new(class: "mt-8", padding: :none) do |card| %>
+<%= render FlatPack::Card::Component.new do |card| %>
   <% card.body do %>
     <% if @children.any? %>
       <%= render FlatPack::Table::Component.new(data: @children) do |table| %>

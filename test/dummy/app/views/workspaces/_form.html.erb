@@ -1,4 +1,5 @@
-<%= form_with model: workspace, class: "space-y-6" do |_form| %>
+<%= form_with model: workspace do |_form| %>
+  <%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg) do %>
   <%= render FlatPack::TextInput::Component.new(
     name: "workspace[name]",
     label: "Name",
@@ -8,5 +9,6 @@
   <%= render FlatPack::Grid::Component.new(cols: 2, gap: :md, align: :center) do %>
     <%= render FlatPack::Button::Component.new(text: "Create Workspace", type: "submit", style: :primary) %>
     <%= render FlatPack::Button::Component.new(text: "Cancel", href: workspaces_path, style: :ghost) %>
+  <% end %>
   <% end %>
 <% end %>

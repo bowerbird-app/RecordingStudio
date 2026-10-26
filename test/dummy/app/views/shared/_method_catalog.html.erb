@@ -1,4 +1,4 @@
-<div class="space-y-6">
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg) do %>
   <% method_catalog.each do |entry| %>
     <section class="space-y-3">
       <%= render FlatPack::SectionTitle::Component.new(
@@ -6,7 +6,7 @@
         subtitle: entry[:title],
         anchor_link: true,
         anchor_id: entry[:subtitle].to_s.parameterize(separator: "-").tr("_", "-"),
-        class: "my-0"
+        spacing: :none
       ) %>
       <%= render FlatPack::CodeBlock::Component.new(
         code: entry[:code],
@@ -16,4 +16,4 @@
       ) %>
     </section>
   <% end %>
-</div>
+<% end %>

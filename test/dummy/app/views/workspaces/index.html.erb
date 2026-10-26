@@ -3,7 +3,6 @@
 <% flat_pack_page_nav(round: true, anchor_href: root_path, anchor_tooltip: "Home") %>
 <% register_page_nav "Add workspace", new_workspace_path, role: :primary, icon: :plus %>
 
-<div class="mt-8">
   <% if @workspaces&.any? %>
     <%= render FlatPack::Table::Component.new(data: @workspaces) do |table| %>
     <% table.column(title: "Name", html: ->(workspace) { render(FlatPack::Link::Component.new(href: workspace_path(workspace))) { workspace.name } }) %>
@@ -13,4 +12,3 @@
   <% else %>
     <%= render FlatPack::Alert::Component.new(description: "No workspaces yet. Create one to start recording.", style: :info) %>
   <% end %>
-</div>
