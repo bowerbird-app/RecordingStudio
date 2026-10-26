@@ -13,8 +13,8 @@
  * flat_pack/variables sets the kit face and --radius-* on unlayered :root.
  * That beats Tailwind @layer theme, so this file does not copy those tokens.
  */
-@source "../../../vendor/bundle/ruby/3.3.0/bundler/gems/flatpack-9a386d1df49d/app/components";
-@source "../../../vendor/bundle/ruby/3.3.0/bundler/gems/flatpack-9a386d1df49d/app/helpers";
+@source "../../../vendor/bundle/ruby/3.3.0/bundler/gems/flatpack-0bba0e29d37a/app/components";
+@source "../../../vendor/bundle/ruby/3.3.0/bundler/gems/flatpack-0bba0e29d37a/app/helpers";
 
 @source "../../views/**/*.erb";
 @source "../../../../../app/views/**/*.erb";

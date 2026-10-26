@@ -7,7 +7,7 @@ class FlatPackInstallTest < ActiveSupport::TestCase
     css = File.read(Rails.root.join("app/assets/tailwind/application.css"))
 
     assert_includes css, '@import "tailwindcss" source(none);'
-    assert_includes css, '@source "../../../vendor/bundle/ruby/3.3.0/bundler/gems/flatpack-9a386d1df49d/app/components"'
+    assert_includes css, '@source "../../../vendor/bundle/ruby/3.3.0/bundler/gems/flatpack-0bba0e29d37a/app/components"'
     assert_includes css, "app/helpers"
     refute_match(/^\s*--font-sans:/, css)
     refute_match(/^\s*--font-mono:/, css)

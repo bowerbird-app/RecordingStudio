@@ -50,7 +50,7 @@
     <%= render FlatPack::PageLayout::Component.new(width: :default) do |layout| %>
       <% if back_row || page_buttons %>
         <% layout.top_nav do %>
-          <%= render FlatPack::TopNav::Component.new(padding: :none) do |nav| %>
+          <%= render FlatPack::TopNav::Component.new(padding: :none, size: :lg) do |nav| %>
             <% nav.left { back_row } if back_row %>
             <% nav.right { page_buttons } if page_buttons %>
           <% end %>

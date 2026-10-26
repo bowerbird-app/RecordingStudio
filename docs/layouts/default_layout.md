@@ -8,13 +8,13 @@ The shell is `FlatPack::PageLayout` (`width: :default`). Nothing else wraps
 that component. `top_nav_width` stays `:content` and `content_scroll` stays
 `:below`, so the bar matches the column and sits above the title. When the
 view sets back, close, or page actions, the layout draws one
-`FlatPack::TopNav` with `padding: :none`. Back and close sit on the left as
-two round buttons. Page actions sit on the right.
+`FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. Back and close
+sit on the left as two round buttons. Page actions sit on the right.
 
-> **Prerequisite:** `flat_pack` >= 0.1.313 is required. The layout renders
+> **Prerequisite:** `flat_pack` >= 0.1.315 is required. The layout renders
 > Flatpack components directly. `flat_pack` is not on RubyGems. The gemspec
 > declares the dependency, and the host Gemfile supplies the git source
-> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.313`).
+> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.315`).
 
 ## What it provides
 
@@ -23,10 +23,11 @@ two round buttons. Page actions sit on the right.
 - One `page_nav_button_group` (`variant: :outlined`, ghost `sm` for every
   role, `collapse: :menu`) for `register_page_nav` entries. An empty bucket
   renders nothing. Outlined does not restyle the children, so primary stays
-  ghost, the same as the other roles.
-- `TopNav` does not fold. Below 768px the button group is the only phone
-  menu. Back and close stay visible. Omit `menu_label`, so the trigger is
-  the bars glyph.
+  ghost, the same as the other roles. The group uses Flatpack's default
+  surface fill and border.
+- `TopNav` uses `size: :lg` (`data-fp-top-nav-size="lg"`). It does not fold.
+  Below 768px the button group is the only phone menu. Back and close stay
+  visible. Omit `menu_label`, so the trigger is the bars glyph.
 - `FlatPack::PageTitle` from `:title` and `:subtitle`.
 - The page body via `yield`.
 - `<title>`, optional description, and OpenGraph title, type, url,

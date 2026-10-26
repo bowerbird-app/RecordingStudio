@@ -594,9 +594,9 @@ The layout is `FlatPack::PageLayout` (`width: :default`). `top_nav_width`
 and `content_scroll` stay at their defaults (`:content` and `:below`). It
 calls `flat_pack_page_nav_tag` and one `page_nav_button_group`
 (`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) inside
-`TopNav` (`padding: :none`). Pass `round: true, style: :default` to
-`flat_pack_page_nav` so back and close are round buttons with
-`data-fp-style="default"`. `<html>` is `data-theme="rounded"`.
+`FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. Pass
+`round: true, style: :default` to `flat_pack_page_nav` so back and close are
+round buttons with `data-fp-style="default"`. `<html>` is `data-theme="rounded"`.
 
 ### Example
 

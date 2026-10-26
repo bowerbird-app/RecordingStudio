@@ -47,7 +47,7 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "body[data-recording-studio-default-layout='true']", count: 1
-    assert_select "[data-flat-pack-content-scroll=below] header.fp-top-nav[data-fp-top-nav-padding=none]", count: 1
+    assert_default_top_nav
     assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
     assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_round_default "a[href='#{workspaces_path}'][aria-label='Workspaces']"
@@ -97,6 +97,14 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def assert_default_top_nav
+    assert_select(
+      "[data-flat-pack-content-scroll=below] header.fp-top-nav" \
+      "[data-fp-top-nav-padding=none][data-fp-top-nav-size=lg]",
+      count: 1
+    )
+  end
 
   def assert_round_default(selector)
     round = "[data-fp-style=default][class*='button-round-border-radius']"

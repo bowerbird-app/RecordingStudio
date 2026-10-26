@@ -11,13 +11,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Requires `flat_pack` >= 0.1.313. Development and test pin tag `v0.1.313`.
+* Requires `flat_pack` >= 0.1.315. Development and test pin tag `v0.1.315`.
+* The default layout top nav is `FlatPack::TopNav::Component.new(padding: :none, size: :lg)`.
+  The header carries `data-fp-top-nav-padding="none"` and `data-fp-top-nav-size="lg"`.
 * Round back and close buttons use `flat_pack_page_nav(round: true, style: :default, ...)`.
   The rendered buttons carry `data-fp-style="default"`.
+* An outlined `page_nav_button_group` uses Flatpack's default surface fill and border.
 
 ### Upgrade notes
 
-- Pin `flat_pack` tag `v0.1.313` and run `bundle update flat_pack`.
+- Pin `flat_pack` tag `v0.1.315` and run `bundle update flat_pack`.
+- Pass `size: :lg` on a host `FlatPack::TopNav` that follows the default layout.
 - Pass `style: :default` on every `flat_pack_page_nav(round: true, ...)` call.
 - Flash still renders with `FlatPack::Alert`. `FlatPack::Flash` stays opt-in.
 - `DateInput` and `DateRangeInput` keep the same public kwargs and HTML.

@@ -1,9 +1,9 @@
 GIT
   remote: https://github.com/bowerbird-app/flatpack.git
-  revision: 9a386d1df49d70f95a12f203a2e18f8e8dd7470f
-  tag: v0.1.313
+  revision: 0bba0e29d37a72c175d8c7e62a9b4bd27567252e
+  tag: v0.1.315
   specs:
-    flat_pack (0.1.313)
+    flat_pack (0.1.315)
       pagy (~> 9.0)
       rails (>= 7.1, < 9)
       tailwind_merge (~> 0.13)
@@ -13,7 +13,7 @@ PATH
   remote: .
   specs:
     recording_studio (6.0.3)
-      flat_pack (>= 0.1.313)
+      flat_pack (>= 0.1.315)
       rails (>= 8.1.0)
 
 GEM
@@ -355,7 +355,7 @@ CHECKSUMS
   drb (2.2.3) sha256=0b00d6fdb50995fe4a45dea13663493c841112e4068656854646f418fda13373
   erb (6.0.5) sha256=858e63488cb796c9daba8b6e9ff4b3879c395022049be9a66a8e00980e612eac
   erubi (1.13.1) sha256=a082103b0885dbc5ecf1172fede897f9ebdb745a4b97a5e8dc63953db1ee4ad9
-  flat_pack (0.1.313)
+  flat_pack (0.1.315)
   globalid (1.4.0) sha256=037f12fbf1d9d7a014d501c2d5c77356fd4ddd96d7a7991d6700bba96706f427
   i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
   io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
