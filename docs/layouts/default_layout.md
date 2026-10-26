@@ -7,9 +7,10 @@ assume a sidebar or a page kind. The public layout file wraps
 The shell is `FlatPack::PageLayout` (`width: :default`). Nothing else wraps
 that component. `top_nav_width` stays `:content` and `content_scroll` stays
 `:below`, so the bar matches the column and sits above the title. When the
-view sets back, close, or page actions, the layout draws one
-`FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. Back and close
-sit on the left as two round buttons. Page actions sit on the right.
+view sets back, close, page actions, or `:page_nav_right`, the layout draws
+one `FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. Back and
+close sit on the left as two round buttons. Page actions and custom right-side
+HTML sit on the right.
 
 > **Prerequisite:** `flat_pack` >= 0.1.315 is required. The layout renders
 > Flatpack components directly. `flat_pack` is not on RubyGems. The gemspec
@@ -25,6 +26,12 @@ sit on the left as two round buttons. Page actions sit on the right.
   renders nothing. Outlined does not restyle the children, so primary stays
   ghost, the same as the other roles. The group uses Flatpack's default
   surface fill and border.
+- `content_for :page_nav_right`, set with `recording_studio_page_nav_right`
+  or `content_for` directly. The layout places that HTML after the button
+  group inside `nav.right`. TopNav's right section is
+  `flex items-center justify-end gap-2`, so the group and the custom HTML
+  sit side by side. Either one is enough to draw the right side. An empty
+  slot renders nothing, and a single item has no extra wrapper.
 - `TopNav` uses `size: :lg` (`data-fp-top-nav-size="lg"`). It does not fold.
   Below 768px the button group is the only phone menu. Back and close stay
   visible. Omit `menu_label`, so the trigger is the bars glyph.
@@ -129,8 +136,9 @@ provide the same surroundings.
 | `:subtitle` | `content_for :subtitle` | Page title subtitle |
 | `:head` | `default_layout_head` or `content_for :head` | Rendered in `<head>` |
 | `:seo_description` | `recording_studio_seo_description` | Description and `og:description` |
+| `:page_nav_right` | `recording_studio_page_nav_right` or `content_for :page_nav_right` | After the button group in `nav.right` |
 
-Page chrome is not a `content_for` slot:
+Back, close, and registered actions are not `content_for` slots:
 
 - `flat_pack_page_nav(...)` in the view. `flat_pack_page_nav_tag` in the layout.
 - `register_page_nav "Label", path, role: :primary|:secondary|:destructive`.
@@ -154,6 +162,7 @@ sidebar. This default layout is the page shell without one.
 Recording Studio still provides:
 
 - `default_layout_head { ... }`
+- `recording_studio_page_nav_right { ... }`
 - `recording_studio_seo_description(text)`
 
 Flatpack provides the page nav:
@@ -162,7 +171,8 @@ Flatpack provides the page nav:
 - `register_page_nav "Label", path, role:, icon:, overflow:`
 - `page_nav_button_group(styles:, variant:, collapse:)` — the layout calls this
 
-`recording_studio_page_nav` and `recording_studio_page_nav_right` are removed.
+`recording_studio_page_nav` is removed. Use `flat_pack_page_nav` for back
+and close. `recording_studio_page_nav_right` is the custom right-side slot.
 
 ## Defaults
 
@@ -175,7 +185,7 @@ Flatpack provides the page nav:
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
 | Back and close | Whatever `flat_pack_page_nav` stored. No call and no `return_to` means no row. Flatpack's own labels apply unless the view passes a tooltip. |
-| Page actions | One button group when the default bucket has entries. `overflow: true` parks that entry in the group's More menu. The phone menu lists every entry once. |
+| Page actions | One button group when the default bucket has entries. `overflow: true` parks that entry in the group's More menu. The phone menu lists every entry once. `:page_nav_right` renders after the group when that slot is set. |
 
 ## Example
 
@@ -186,6 +196,17 @@ Flatpack provides the page nav:
 <% register_page_nav "New page", new_page_path, role: :primary, icon: :plus %>
 <% register_page_nav "Share", share_page_path, role: :secondary %>
 <% register_page_nav "Delete", page_path, role: :destructive, icon: :trash, overflow: true %>
+<% recording_studio_page_nav_right do %>
+  <%= render FlatPack::Button::Component.new(
+    text: "New note",
+    icon: "plus",
+    icon_only: true,
+    round: true,
+    style: :default,
+    size: :sm,
+    href: new_note_path
+  ) %>
+<% end %>
 ```
 
 Back link and close together:
@@ -200,8 +221,9 @@ Back link and close together:
 ) %>
 ```
 
-A screen with no `register_page_nav` shows the back row only. The layout
-does not render an empty button group.
+A screen with no `register_page_nav` and no `:page_nav_right` shows the back
+row only. The layout does not render an empty button group. A screen with
+only `:page_nav_right` still draws the top nav.
 
 ## SEO
 

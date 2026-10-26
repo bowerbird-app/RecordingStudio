@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.0] - 2026-10-26
+
+### Added
+
+* `recording_studio_page_nav_right` writes `content_for :page_nav_right`.
+  The default layout renders that HTML in the top nav's right slot, after
+  `page_nav_button_group` when both are present. Either one draws the top
+  nav on its own. `FlatPack::TopNav`'s right section is already
+  `flex items-center justify-end gap-2`, so the two siblings sit side by
+  side with no extra wrapper.
+
+### Upgrade notes
+
+- No migration. Existing `register_page_nav` screens stay the same.
+- Call `recording_studio_page_nav_right { ... }`, or set
+  `content_for :page_nav_right`, to add a custom control beside the button
+  group.
+- A host layout that replaces the default reads
+  `content_for(:page_nav_right)` and renders it next to
+  `page_nav_button_group`.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-610).
+
 ## [6.0.3] - 2026-10-26
 
 ### Changed
