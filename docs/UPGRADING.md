@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+## Upgrading To 6.0.3
+
+This release requires `flat_pack` 0.1.315. The default layout top nav uses
+`size: :lg`. Round back and close buttons use Flatpack's default style.
+
+### What changed
+
+- `flat_pack` >= 0.1.315 is required. Pin tag `v0.1.315`.
+- The default layout top nav is `FlatPack::TopNav::Component.new(padding: :none, size: :lg)`.
+  The header carries `data-fp-top-nav-padding="none"` and `data-fp-top-nav-size="lg"`.
+- Round back and close buttons pass `style: :default`. The rendered buttons
+  carry `data-fp-style="default"`.
+- An outlined `page_nav_button_group` uses Flatpack's default surface fill and border.
+- `FlatPack::Flash` can render a flash hash you pass in. The default layout
+  still uses `FlatPack::Alert` for notice and alert. Adopt `FlatPack::Flash`
+  only where you want that component.
+- `DateInput` and `DateRangeInput` keep the same public kwargs, HTML, data
+  attributes, and Stimulus identifiers.
+
+### Upgrade steps
+
+```ruby
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.315"
+```
+
+Then `bundle update flat_pack`.
+
+```erb
+<% flat_pack_page_nav(round: true, style: :default, anchor_href: root_path, anchor_tooltip: "Home") %>
+```
+
+Add `style: :default` to every existing `flat_pack_page_nav(round: true, ...)` call.
+
 ## Upgrading To 6.0.2
 
 Install wiring and dummy screens now follow Flatpack v0.1.311. The default
@@ -856,19 +889,20 @@ boundary.
 ## Adopting the Shared Default Layout
 
 The page shell is `recording_studio/default_layout`. It renders
-`FlatPack::PageLayout` (`width: :default`) and a `TopNav` with
-`padding: :none`. `top_nav_width` stays `:content` and `content_scroll` stays
-`:below`. Back and close sit on the left as two round buttons. One outlined
-page-action button group sits on the right. The bar shares the column and
-sits above the title. `<html>` is `data-theme="rounded"`.
+`FlatPack::PageLayout` (`width: :default`) and
+`FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. `top_nav_width`
+stays `:content` and `content_scroll` stays `:below`. Back and close sit on
+the left as two round buttons. One outlined page-action button group sits on
+the right. The bar shares the column and sits above the title. `<html>` is
+`data-theme="rounded"`.
 
-`flat_pack` >= 0.1.311 is required. It is not on RubyGems. Pin
-`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.311`.
+`flat_pack` >= 0.1.315 is required. It is not on RubyGems. Pin
+`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.315`.
 
 ```erb
 <% content_for :title, "Workspaces" %>
 <% content_for :subtitle, "Pick one to open." %>
-<% flat_pack_page_nav(round: true, anchor_href: root_path, anchor_tooltip: "Home") %>
+<% flat_pack_page_nav(round: true, style: :default, anchor_href: root_path, anchor_tooltip: "Home") %>
 <% register_page_nav "New workspace", new_workspace_path, role: :primary, icon: :plus %>
 <% recording_studio_seo_description("Workspaces for your team") %>
 ```

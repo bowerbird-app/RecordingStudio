@@ -17,12 +17,12 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "body[data-theme]", count: 0
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
     assert_select "[data-fp-page-layout-width=default][data-fp-page-layout-top-nav-width=content]", count: 1
-    assert_select "[data-flat-pack-content-scroll=below] header.fp-top-nav[data-fp-top-nav-padding=none]", count: 1
+    assert_default_top_nav
     assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "nav[data-flat-pack--page-nav-fallback-url-value='#{workspaces_path}']", count: 1
-    assert_select "nav button[aria-label='Go back'][class*='button-round-border-radius']", count: 1
+    assert_round_default "nav button[aria-label='Go back']"
     assert_select "nav a[aria-label='Go back']", count: 0
-    assert_select "a[href='#{workspaces_path}'][aria-label='Close demo'][class*='button-round-border-radius']", count: 1
+    assert_round_default "a[href='#{workspaces_path}'][aria-label='Close demo']"
     assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
     assert_select "header .fp-button-group-menu[data-variant=outlined]", count: 1
     assert_select "header .fp-button-group-menu__row.fp-button-group--outlined a[data-fp-style=ghost]", minimum: 1
@@ -66,7 +66,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     ]
     removed.each { |snippet| refute_includes source, snippet }
     kept = [
-      "flat_pack_page_nav_tag", "page_nav_button_group", "collapse: :menu", "padding: :none",
+      "flat_pack_page_nav_tag", "page_nav_button_group", "collapse: :menu", "padding: :none", "size: :lg",
       "variant: :outlined", "style: :ghost",
       "FlatPack::PageLayout::Component",
       "FlatPack::TopNav::Component", "FlatPack::PageTitle::Component", "FlatPack::Alert::Component",
@@ -138,5 +138,18 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
   def assert_registered_page_action(href, text)
     assert_select "header .fp-button-group-menu__row a[href='#{href}']", text: text, count: 1
     assert_select "header .fp-button-group-menu__panel a[href='#{href}']", text: text, count: 1
+  end
+
+  def assert_default_top_nav
+    assert_select(
+      "[data-flat-pack-content-scroll=below] header.fp-top-nav" \
+      "[data-fp-top-nav-padding=none][data-fp-top-nav-size=lg]",
+      count: 1
+    )
+  end
+
+  def assert_round_default(selector)
+    round = "[data-fp-style=default][class*='button-round-border-radius']"
+    assert_select "#{selector}#{round}", count: 1
   end
 end

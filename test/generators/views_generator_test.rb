@@ -17,12 +17,14 @@ class ViewsGeneratorTest < Rails::Generators::TestCase
     run_generator(["post"])
 
     assert_file "app/views/posts/index.html.erb", /content_for :title, "Posts"/
-    assert_file "app/views/posts/index.html.erb", /flat_pack_page_nav\(round: true\)/
+    assert_file "app/views/posts/index.html.erb", /flat_pack_page_nav\(round: true, style: :default\)/
     assert_file "app/views/posts/index.html.erb", /register_page_nav "New Post", new_post_path, role: :primary/
-    assert_file "app/views/posts/show.html.erb", /flat_pack_page_nav\(/
+    assert_file "app/views/posts/show.html.erb", /flat_pack_page_nav\(round: true, style: :default/
     assert_file "app/views/posts/show.html.erb", /back_href: posts_path/
+    assert_file "app/views/posts/new.html.erb", /flat_pack_page_nav\(round: true, style: :default/
     assert_file "app/views/posts/new.html.erb", /render "form", post: @post/
     assert_file "app/views/posts/new.html.erb", /back_href: posts_path/
+    assert_file "app/views/posts/edit.html.erb", /flat_pack_page_nav\(round: true, style: :default/
     assert_file "app/views/posts/edit.html.erb", /render "form", post: @post/
     assert_file "app/views/posts/edit.html.erb", /back_href: post_path\(@post\)/
     assert_file "app/views/posts/_form.html.erb", /FlatPack::TextInput::Component/
