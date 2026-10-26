@@ -1,19 +1,19 @@
 GIT
   remote: https://github.com/bowerbird-app/flatpack.git
-  revision: 0e38434588d02e0718e8aa2286a9e48d3c0e484e
-  tag: v0.1.310
+  revision: c289e1ee98b96005e2d2d587aa87f17b4bfb6f99
+  tag: v0.1.311
   specs:
-    flat_pack (0.1.310)
+    flat_pack (0.1.311)
       pagy (~> 9.0)
       rails (>= 7.1, < 9)
       tailwind_merge (~> 0.13)
-      view_component (~> 4.12.0)
+      view_component (>= 4.14, < 5)
 
 PATH
   remote: .
   specs:
-    recording_studio (6.0.0)
-      flat_pack (>= 0.1.310)
+    recording_studio (6.0.1)
+      flat_pack (>= 0.1.311)
       rails (>= 8.1.0)
 
 GEM
@@ -292,10 +292,9 @@ GEM
     unicode-emoji (4.2.0)
     uri (1.1.1)
     useragent (0.16.11)
-    view_component (4.12.0)
+    view_component (4.19.0)
       actionview (>= 7.1.0)
       activesupport (>= 7.1.0)
-      concurrent-ruby (~> 1)
     warden (1.2.9)
       rack (>= 2.0.9)
     websocket-driver (0.8.2)
@@ -356,7 +355,7 @@ CHECKSUMS
   drb (2.2.3) sha256=0b00d6fdb50995fe4a45dea13663493c841112e4068656854646f418fda13373
   erb (6.0.5) sha256=858e63488cb796c9daba8b6e9ff4b3879c395022049be9a66a8e00980e612eac
   erubi (1.13.1) sha256=a082103b0885dbc5ecf1172fede897f9ebdb745a4b97a5e8dc63953db1ee4ad9
-  flat_pack (0.1.310)
+  flat_pack (0.1.311)
   globalid (1.4.0) sha256=037f12fbf1d9d7a014d501c2d5c77356fd4ddd96d7a7991d6700bba96706f427
   i18n (1.15.2) sha256=00f9eb62412fe593b2a65a97daa75300d37abb8f7202ec748e94b6d46a9dd1b5
   io-console (0.8.2) sha256=d6e3ae7a7cc7574f4b8893b4fca2162e57a825b223a177b7afa236c5ef9814cc
@@ -413,7 +412,7 @@ CHECKSUMS
   rake (13.4.2) sha256=cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701
   rbs (4.0.3) sha256=5a7bf70e2628549d9a1f44eae447b2cfe55968a9c60cfff52693a4bdcc020e14
   rdoc (8.0.0) sha256=03bf8c08a9639658855a0cfd77c0abca8325c227693f7f33f82957811348c469
-  recording_studio (6.0.0)
+  recording_studio (6.0.1)
   regexp_parser (2.12.0) sha256=35a916a1d63190ab5c9009457136ae5f3c0c7512d60291d0d1378ba18ce08ebb
   reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835
   responders (3.2.0) sha256=89c2d6ac0ae16f6458a11524cae4a8efdceba1a3baea164d28ee9046bd3df55a
@@ -435,7 +434,7 @@ CHECKSUMS
   unicode-emoji (4.2.0) sha256=519e69150f75652e40bf736106cfbc8f0f73aa3fb6a65afe62fefa7f80b0f80f
   uri (1.1.1) sha256=379fa58d27ffb1387eaada68c749d1426738bd0f654d812fcc07e7568f5c57c6
   useragent (0.16.11) sha256=700e6413ad4bb954bb63547fa098dddf7b0ebe75b40cc6f93b8d54255b173844
-  view_component (4.12.0) sha256=b9a5979d1c43eba2aa21a06a86f661aab3990104855f2909ef7c3779acdcdcb4
+  view_component (4.19.0) sha256=e75d3d5cf1f56c47118752436173e0d417d31ce79412919bc4232060257fe615
   warden (1.2.9) sha256=46684f885d35a69dbb883deabf85a222c8e427a957804719e143005df7a1efd0
   websocket-driver (0.8.2) sha256=97c556b019bf3410b4961002ac501621e9322d3f8a7bc02161a09301cc4c4146
   websocket-extensions (0.1.5) sha256=1c6ba63092cda343eb53fc657110c71c754c56484aad42578495227d717a8241
