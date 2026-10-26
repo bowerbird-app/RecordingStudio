@@ -27,7 +27,6 @@ two round buttons. Page actions sit on the right.
 - `TopNav` does not fold. Below 768px the button group is the only phone
   menu. Back and close stay visible. Omit `menu_label`, so the trigger is
   the bars glyph.
-- Flash notice and alert via `FlatPack::Alert::Component`.
 - `FlatPack::PageTitle` from `:title` and `:subtitle`.
 - The page body via `yield`.
 - `<title>`, optional description, and OpenGraph title, type, url,
@@ -35,8 +34,12 @@ two round buttons. Page actions sit on the right.
 - `yield :head`, and `recording_studio/_default_layout_head` when that
   partial is on the view path.
 - Stylesheets `flat_pack/variables`, `flat_pack/application`, and
-  `flat_pack/rich_text`, plus the importmap when the host defines
-  `javascript_importmap_tags`.
+  `flat_pack/rich_text`, then the host Tailwind sheet, plus the importmap
+  when the host defines `javascript_importmap_tags`.
+- Viewport meta `width=device-width,initial-scale=1,viewport-fit=cover`.
+- Flash notice and alert are plain `FlatPack::Alert` calls. When a flash
+  is present, `Grid` `gap: :lg` separates the flash, the title, and the
+  page. Alert has no spacing prop.
 - `data-theme="rounded"` on `<html>`.
 - Document title and site-name fallback from
   `RecordingStudio.configuration.app_name`.
@@ -102,12 +105,16 @@ end
 
 A callable is invoked as `call(controller:)`.
 
-The dummy app loads Flatpack the way the install generator does: Tailwind
-`@source` globs for Flatpack components and helpers, stylesheets
-`flat_pack/variables`, `flat_pack/application`, and `flat_pack/rich_text`,
-and the Flatpack importmap pins. Do not fork `--color-fp-*` in the host
-Tailwind file. Re-set kit radii on unlayered `:root` so Tailwind's
-`--radius-md` default does not win.
+The dummy app loads Flatpack the way `bin/rails generate flat_pack:install`
+and the Flatpack demo do. The layout links `flat_pack/variables`,
+`flat_pack/application`, and `flat_pack/rich_text`, then the host Tailwind
+sheet. The Tailwind entry uses `source(none)` and `@source` paths for the
+installed gem's components and helpers, plus the dummy and engine views.
+Do not fork `--color-fp-*`, and do not copy `--font-*` or `--radius-*`
+into the host file. Those tokens live on unlayered `:root` in
+`flat_pack/variables`, which wins over Tailwind's `@layer theme`. The
+viewport meta includes `viewport-fit=cover`. `app/javascript/application.js`
+calls `initLocalTimes` on `DOMContentLoaded` and `turbo:load`.
 
 ## Host layout contract
 

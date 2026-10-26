@@ -2,7 +2,7 @@
 <% content_for :subtitle, "Create a container for recordings." %>
 <% flat_pack_page_nav(round: true, back_href: workspaces_path, back_tooltip: "Workspaces") %>
 
-<%= render FlatPack::Card::Component.new(padding: :none) do |card| %>
+<%= render FlatPack::Card::Component.new do |card| %>
   <% card.body do %>
     <%= render "form", workspace: @workspace %>
   <% end %>

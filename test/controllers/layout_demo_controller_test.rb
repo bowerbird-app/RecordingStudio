@@ -80,15 +80,34 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     refute_includes source, "data-recording-studio-default-layout=\"true\" data-theme"
   end
 
+  test "default layout loads flatpack before the host tailwind sheet" do
+    source = default_layout_source
+
+    assert_includes source, "viewport-fit=cover"
+    assert_includes source, "gap: :lg"
+    refute_includes source, 'class: "mb-4"'
+    assert source.index("flat_pack/variables") < source.index("flat_pack/application")
+    assert source.index("flat_pack/application") < source.index("flat_pack/rich_text")
+    assert source.index("flat_pack/rich_text") < source.index('stylesheet_link_tag "tailwind"')
+  end
+
   test "host shell stays on the sidebar layout" do
     host_shell = File.read(Rails.root.join("app/views/layouts/application.html.erb"))
 
     assert_includes host_shell, "FlatPack::SidebarLayout::Component"
     assert_includes host_shell, "FlatPack::Alert::Component"
+    assert_includes host_shell, "FlatPack::SkipLink::Component"
+    assert_includes host_shell, "FlatPack::Grid::Component"
+    assert_includes host_shell, "gap: :lg"
+    assert_includes host_shell, "fp-layout-content"
+    assert_includes host_shell, 'id="main"'
+    assert_includes host_shell, "viewport-fit=cover"
     assert_includes host_shell, "flat_pack/variables"
     assert_includes host_shell, "flat_pack/application"
     assert_includes host_shell, "page_nav_button_group"
     assert_includes host_shell, "<html data-theme=\"rounded\">"
+    assert host_shell.index("flat_pack/variables") < host_shell.index("flat_pack/application")
+    assert host_shell.index("flat_pack/rich_text") < host_shell.index('stylesheet_link_tag "tailwind"')
     refute_match(/<body[^>]*data-theme/, host_shell)
   end
 
@@ -102,6 +121,9 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "link[rel=stylesheet][href*='flat_pack/rich_text']", minimum: 1
     assert_includes @response.body, "Saved the page"
     assert_includes @response.body, "Could not save the page"
+    assert_select ".mb-4", text: /Saved the page/, count: 0
+    assert_select ".mb-4", text: /Could not save the page/, count: 0
+    assert_select ".grid.gap-6", minimum: 1
     assert_select "title", text: "Default Layout Demo"
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
     assert_not_includes @response.body, "flat-pack--sidebar-layout"

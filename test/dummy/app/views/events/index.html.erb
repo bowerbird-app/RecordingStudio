@@ -1,6 +1,7 @@
 <% content_for :title, "Events" %>
 
-<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :md) do %>
+<%= render FlatPack::Breadcrumb::Component.new do |breadcrumb| %>
   <% breadcrumb.item(text: "Home", href: root_path) %>
   <% breadcrumb.item(text: "Events") %>
 <% end %>
@@ -8,10 +9,8 @@
 <%= render FlatPack::PageTitle::Component.new(
   title: "Events",
   subtitle: "Recent changes across recordings and recordables.",
-  class: "mb-6"
 ) %>
 
-<div class="mt-8">
   <% if @events.any? %>
     <%= render FlatPack::Table::Component.new(data: @events) do |table| %>
     <% table.column(
@@ -44,13 +43,14 @@
       title: "Impersonator",
       html: ->(event) { event.impersonator ? actor_label(event.impersonator) : "—" }
     ) %>
+    <%# TODO: no Flatpack text component for a muted secondary line. %>
     <% table.column(
       title: "Recordable",
       html: ->(event) {
         safe_join([
           recordable_name(event.recordable),
           ("Previous: #{recordable_name(event.previous_recordable)}" if event.previous_recordable)
-        ].compact.map { |entry| tag.div(entry, class: entry.start_with?("Previous:") ? "text-xs text-(--surface-muted-content-color)" : nil) })
+        ].compact.map { |entry| tag.div(entry) })
       }
     ) %>
     <% table.column(
@@ -71,4 +71,4 @@
   <% else %>
     <%= render FlatPack::Alert::Component.new(description: "No events yet.", style: :info) %>
   <% end %>
-</div>
+<% end %>

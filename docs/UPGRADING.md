@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+## Upgrading To 6.0.2
+
+Install wiring and dummy screens now follow Flatpack v0.1.311. The default
+layout shell is unchanged: `PageLayout` (`width: :default`), `TopNav`
+(`padding: :none`), round back and anchor buttons, and one outlined
+`page_nav_button_group` with `collapse: :menu`.
+
+### What changed
+
+- Stylesheets load Flatpack first and the host Tailwind sheet last. The
+  viewport meta includes `viewport-fit=cover`.
+- The dummy Tailwind entry scans the installed gem. It does not copy
+  `--font-*` or `--radius-*`. Those tokens stay in `flat_pack/variables`.
+- The JavaScript entry calls `initLocalTimes` on `DOMContentLoaded` and
+  `turbo:load`.
+- A card header uses the card padding. `padding: :none` insets nothing in
+  the header. Section titles inside a card use `size: :md, spacing: :none`.
+- Flashes are plain `FlatPack::Alert` calls. Stack them with `Grid`
+  `gap: :lg`. Alert has no spacing prop, so hosts do not pass a margin class.
+  Form actions use `Collection` `layout: :wrap, gap: :sm`.
+
+### Upgrade steps
+
+1. Put `stylesheet_link_tag` for `flat_pack/variables`, `flat_pack/application`,
+   and `flat_pack/rich_text` before the host Tailwind tag.
+2. Set the viewport meta to `width=device-width,initial-scale=1,viewport-fit=cover`.
+3. Point Tailwind `@source` at the installed gem's `app/components` (and
+   helpers). Do not add `--color-fp-*`, and do not re-declare `--font-*` or
+   `--radius-*` in the host sheet.
+4. Call `initLocalTimes` from the JavaScript entry, and pin any TipTap
+   packages from the current `flat_pack:install` list that the importmap lacks.
+5. Remove `padding: :none` from cards that have a header. Replace
+   `SectionTitle` `class: "my-0"` with `spacing: :none` (`size: :md` inside
+   a card). Drop margin utilities such as `class: "mb-4"` on Alert,
+   Breadcrumb, and the other Flatpack components.
+
 ## Upgrading To 6.0.1
 
 This is a dependency upgrade. The page shell is unchanged.

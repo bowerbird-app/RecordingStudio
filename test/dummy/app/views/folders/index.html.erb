@@ -1,6 +1,7 @@
 <% content_for :title, "Folders" %>
 
-<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :md) do %>
+<%= render FlatPack::Breadcrumb::Component.new do |breadcrumb| %>
   <% breadcrumb.item(text: "Home", href: root_path) %>
   <% breadcrumb.item(text: "Folders") %>
 <% end %>
@@ -8,10 +9,8 @@
 <%= render FlatPack::PageTitle::Component.new(
   title: "Folders",
   subtitle: "Folder recordings in the workspace tree.",
-  class: "mb-6"
 ) %>
 
-<div class="mt-8">
   <% if @folders.any? %>
     <%= render FlatPack::Table::Component.new(data: @folders) do |table| %>
     <% table.column(title: "Name", html: ->(recording) { render(FlatPack::Link::Component.new(href: folder_path(recording))) { recording.name } }) %>
@@ -21,4 +20,4 @@
   <% else %>
     <%= render FlatPack::Alert::Component.new(description: "No folders found.", style: :info) %>
   <% end %>
-</div>
+<% end %>

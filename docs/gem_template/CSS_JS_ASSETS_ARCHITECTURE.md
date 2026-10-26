@@ -38,11 +38,18 @@ The dummy app is the best current reference for asset setup.
 
 `test/dummy/app/assets/tailwind/application.css` currently:
 
-- imports Tailwind
-- scans FlatPack component templates from Bundler paths
-- defines FlatPack design-token CSS variables
+- imports Tailwind with `source(none)`
+- scans the installed Flatpack gem's `app/components` and `app/helpers`
 - scans dummy app views
-- scans the engine's `app/views/**/*.erb`
+- scans the engine's views, helpers, and components
+
+Font, radius, color, and spacing tokens stay in `flat_pack/variables`. The
+host file does not re-declare them. The layout links that sheet,
+`flat_pack/application`, and `flat_pack/rich_text` before this Tailwind file.
+The viewport meta includes `viewport-fit=cover`.
+`app/javascript/application.js` calls `initLocalTimes`.
+`lib/tasks/flat_pack_tailwind.rake` prints the gem components path the
+install generator recorded.
 
 The development watcher is wired through `test/dummy/Procfile.dev`:
 

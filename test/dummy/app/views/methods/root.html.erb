@@ -1,6 +1,7 @@
 <% content_for :title, "Root Methods" %>
 
-<%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :md) do %>
+<%= render FlatPack::Breadcrumb::Component.new do |breadcrumb| %>
   <% breadcrumb.item(text: "Home", href: root_path) %>
   <% breadcrumb.item(text: "Methods", href: methods_path) %>
   <% breadcrumb.item(text: "Root") %>
@@ -9,21 +10,24 @@
 <%= render FlatPack::PageTitle::Component.new(
   title: "Root",
   subtitle: "Reference examples for creating a root recording and calling all root-scoped recording, event, and query APIs from that entry point.",
-  class: "mb-6"
 ) %>
 
-<div class="mb-6 space-y-3">
-  <%= render FlatPack::SectionTitle::Component.new(
-    title: "Set root recordable",
-    subtitle: "Declare the root recordable class with recording_studio_recordable(root: true). Use shared: true for a domain forest such as messages, then fetch or create its recording with RecordingStudio.root_recording_for(recordable).",
-    class: "my-0"
-  ) %>
-
-  <%= render FlatPack::Button::Component.new(
-    text: "Open recordables",
-    style: :primary,
-    href: recordable_methods_path
-  ) %>
-</div>
+<%= render FlatPack::Collection::Component.new(layout: :stack, gap: :sm) do |stack| %>
+  <% stack.with_item do %>
+    <%= render FlatPack::SectionTitle::Component.new(
+      title: "Set root recordable",
+      subtitle: "Declare the root recordable class with recording_studio_recordable(root: true). Use shared: true for a domain forest such as messages, then fetch or create its recording with RecordingStudio.root_recording_for(recordable).",
+      spacing: :none
+    ) %>
+  <% end %>
+  <% stack.with_item do %>
+    <%= render FlatPack::Button::Component.new(
+      text: "Open recordables",
+      style: :primary,
+      href: recordable_methods_path
+    ) %>
+  <% end %>
+<% end %>
 
 <%= render "shared/method_catalog", method_catalog: @method_catalog %>
+<% end %>

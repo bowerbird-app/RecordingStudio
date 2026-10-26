@@ -34,8 +34,9 @@ class MethodsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_index_catalog_content
-    assert_select "section.space-y-3", count: 1
-    assert_select "section.space-y-3 pre code.language-ruby", count: 1
+    assert_select "section", minimum: 1
+    assert_select "section pre code.language-ruby", count: 1
+    assert_select "section.space-y-3", count: 0
     assert_includes @response.body, "config.recordable_types"
     assert_includes @response.body, "config.require_recordable_declarations"
     assert_includes @response.body, "config.actor"
@@ -204,8 +205,9 @@ class MethodsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "Depreciated"
     assert_includes @response.body, "Deprecated APIs that still work during migration windows"
     refute_includes @response.body, "Legacy labeling hooks"
-    assert_select "section.space-y-3", count: 3
-    assert_select "section.space-y-3 pre code.language-ruby", count: 3
+    assert_select "section", minimum: 3
+    assert_select "section pre code.language-ruby", count: 3
+    assert_select "section.space-y-3", count: 0
     assert_includes @response.body, "recordable.recording_studio_label"
     assert_includes @response.body, "recordable.class.recordable_type_label"
     assert_includes @response.body, "recordable.class.recording_studio_type_label"

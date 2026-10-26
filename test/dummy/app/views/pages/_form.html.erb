@@ -1,4 +1,5 @@
-<%= form_with url: form_url, method: form_method, scope: :page, class: "space-y-6" do |_form| %>
+<%= form_with url: form_url, method: form_method, scope: :page do |_form| %>
+  <%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg) do %>
   <%= render FlatPack::TextInput::Component.new(
     name: "page[title]",
     label: "Title",
@@ -12,8 +13,13 @@
     rows: 5
   ) %>
 
-  <%= render FlatPack::Grid::Component.new(cols: 2, gap: :md, align: :center) do %>
-    <%= render FlatPack::Button::Component.new(text: submit_label, type: "submit", style: :primary) %>
-    <%= render FlatPack::Button::Component.new(text: "Cancel", href: cancel_url, style: :ghost) %>
+  <%= render FlatPack::Collection::Component.new(layout: :wrap, gap: :sm) do |actions| %>
+    <% actions.with_item do %>
+      <%= render FlatPack::Button::Component.new(text: submit_label, type: "submit", style: :primary) %>
+    <% end %>
+    <% actions.with_item do %>
+      <%= render FlatPack::Button::Component.new(text: "Cancel", href: cancel_url, style: :secondary) %>
+    <% end %>
+  <% end %>
   <% end %>
 <% end %>

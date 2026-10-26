@@ -1,28 +1,20 @@
 @import "tailwindcss" source(none);
 
-/* Scan Flatpack components and helpers so Tailwind emits their utilities.
- * Tokens load from flat_pack/variables. Do not fork --color-fp-* here.
- * Tailwind's theme layer still emits --radius-md: 0.375rem. Re-set kit radii
- * on unlayered :root, the same way `flat_pack:install` does.
+/* Scan FlatPack ViewComponents so Tailwind emits their utility classes.
+ * Design tokens live in flat_pack/variables (loaded via stylesheet_link_tag).
+ * Do not fork --color-fp-* or write a token that points at itself.
+ *
+ * Shared :root names (host CSS last wins): --color-primary, --color-secondary,
+ * --radius-*, --shadow-*, --font-sans. If the host needs a separate primary,
+ * use a host-only name such as --my-app-primary. To restyle FlatPack, set
+ * --brand-* or --color-primary in a stylesheet loaded after flat_pack/variables:
+ *   :root { --brand-hue: 160; --brand-chroma: 0.18; --brand-lightness: 0.52; }
+ *
+ * flat_pack/variables sets the kit face and --radius-* on unlayered :root.
+ * That beats Tailwind @layer theme, so this file does not copy those tokens.
  */
-@source "../../../vendor/bundle/**/flatpack-*/app/components/**/*.rb";
-@source "../../../vendor/bundle/**/flatpack-*/app/components/**/*.erb";
-@source "../../../vendor/bundle/**/flatpack-*/app/helpers/**/*.rb";
-@source "../../../../../../usr/local/bundle/**/flatpack-*/app/components/**/*.rb";
-@source "../../../../../../usr/local/bundle/**/flatpack-*/app/components/**/*.erb";
-@source "../../../../../../usr/local/bundle/**/flatpack-*/app/helpers/**/*.rb";
-@source "../../../../../../usr/local/lib/ruby/gems/**/flatpack-*/app/components/**/*.rb";
-@source "../../../../../../usr/local/lib/ruby/gems/**/flatpack-*/app/components/**/*.erb";
-@source "../../../../../../usr/local/lib/ruby/gems/**/flatpack-*/app/helpers/**/*.rb";
-
-:root {
-  --radius-xs: 0.125rem;
-  --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1.25rem;
-  --radius-full: 9999px;
-}
+@source "../../../vendor/bundle/ruby/3.3.0/bundler/gems/flatpack-c289e1ee98b9/app/components";
+@source "../../../vendor/bundle/ruby/3.3.0/bundler/gems/flatpack-c289e1ee98b9/app/helpers";
 
 @source "../../views/**/*.erb";
 @source "../../../../../app/views/**/*.erb";

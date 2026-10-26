@@ -12,7 +12,7 @@ module WorkspacesHelper
     children = Array(recordings_by_parent[parent_id])
     return "".html_safe if children.empty?
 
-    render FlatPack::Tree::Component.new(compact: true, class: "w-full") do |tree|
+    render FlatPack::Tree::Component.new(compact: true) do |tree|
       recordings_hierarchy_nodes(tree, recordings_by_parent, parent_id: parent_id)
     end
   end
