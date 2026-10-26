@@ -596,8 +596,8 @@ and `content_scroll` stay at their defaults (`:content` and `:below`). It
 calls `flat_pack_page_nav_tag` and one `page_nav_button_group`
 (`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) inside
 `FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. It also reads
-`content_for(:page_nav_right)`. The button group renders first and the custom
-HTML second, as siblings in TopNav's right section (`flex items-center justify-end gap-2`).
+`content_for(:page_nav_right)`. The custom HTML renders first and the button
+group second, as siblings in TopNav's right section (`flex items-center justify-end gap-2`).
 The back row, the button group, or `:page_nav_right` each draw the top nav.
 Pass `round: true, style: :default` to `flat_pack_page_nav` so back and close are
 round buttons with `data-fp-style="default"`. `<html>` is `data-theme="rounded"`.

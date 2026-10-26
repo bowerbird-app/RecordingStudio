@@ -68,7 +68,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     removed.each { |snippet| refute_includes source, snippet }
     kept = [
       "flat_pack_page_nav_tag", "page_nav_button_group", "content_for(:page_nav_right)",
-      "safe_join([page_buttons, page_nav_right].compact)",
+      "safe_join([page_nav_right, page_buttons].compact)",
       "collapse: :menu", "padding: :none", "size: :lg",
       "variant: :outlined", "style: :ghost",
       "FlatPack::PageLayout::Component",
@@ -143,7 +143,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "header .fp-top-nav__right a[aria-label='New note'][href='#{new_workspace_path}']", count: 1
 
     right = css_select("header .fp-top-nav__right").first.to_html
-    assert_operator right.index("fp-button-group-menu"), :<, right.index("New note")
+    assert_operator right.index("New note"), :<, right.index("fp-button-group-menu")
   end
 
   test "default layout renders flatpack assets, alerts, and content_for slots" do

@@ -53,7 +53,7 @@
         <% layout.top_nav do %>
           <%= render FlatPack::TopNav::Component.new(padding: :none, size: :lg) do |nav| %>
             <% nav.left { back_row } if back_row %>
-            <% nav.right { safe_join([page_buttons, page_nav_right].compact) } if page_buttons || page_nav_right %>
+            <% nav.right { safe_join([page_nav_right, page_buttons].compact) } if page_buttons || page_nav_right %>
           <% end %>
         <% end %>
       <% end %>

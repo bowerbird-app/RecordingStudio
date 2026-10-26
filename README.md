@@ -1099,7 +1099,7 @@ Configure the page from the view:
 - `content_for :title` and `content_for :subtitle` — document title and `FlatPack::PageTitle`
 - `flat_pack_page_nav(round: true, style: :default, ...)` — back and close as two round buttons with `data-fp-style="default"`. The layout renders `flat_pack_page_nav_tag` on the left of `TopNav`.
 - `register_page_nav "Label", path, role: :primary` — page actions. The layout renders one `page_nav_button_group` (`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) on the right of `FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. `PageLayout` uses the default `top_nav_width: :content` and `content_scroll: :below`, so that row shares the content column and sits above the title.
-- `recording_studio_page_nav_right { ... }` — custom HTML in that same right slot, after the button group. `content_for :page_nav_right` sets the same slot. Either the group, the custom HTML, or the back row draws the top nav. TopNav's right section is `flex items-center justify-end gap-2`, so the two siblings sit side by side.
+- `recording_studio_page_nav_right { ... }` — custom HTML in that same right slot, before the button group. `content_for :page_nav_right` sets the same slot. Either the group, the custom HTML, or the back row draws the top nav. TopNav's right section is `flex items-center justify-end gap-2`, so the two siblings sit side by side.
 - `default_layout_head { ... }` — append content to `<head>`
 - `recording_studio_seo_description(text)` — description and `og:description`
 

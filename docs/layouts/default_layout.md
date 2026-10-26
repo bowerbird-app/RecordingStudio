@@ -27,7 +27,7 @@ HTML sit on the right.
   ghost, the same as the other roles. The group uses Flatpack's default
   surface fill and border.
 - `content_for :page_nav_right`, set with `recording_studio_page_nav_right`
-  or `content_for` directly. The layout places that HTML after the button
+  or `content_for` directly. The layout places that HTML before the button
   group inside `nav.right`. TopNav's right section is
   `flex items-center justify-end gap-2`, so the group and the custom HTML
   sit side by side. Either one is enough to draw the right side. An empty
@@ -136,7 +136,7 @@ provide the same surroundings.
 | `:subtitle` | `content_for :subtitle` | Page title subtitle |
 | `:head` | `default_layout_head` or `content_for :head` | Rendered in `<head>` |
 | `:seo_description` | `recording_studio_seo_description` | Description and `og:description` |
-| `:page_nav_right` | `recording_studio_page_nav_right` or `content_for :page_nav_right` | After the button group in `nav.right` |
+| `:page_nav_right` | `recording_studio_page_nav_right` or `content_for :page_nav_right` | Before the button group in `nav.right` |
 
 Back, close, and registered actions are not `content_for` slots:
 
@@ -185,7 +185,7 @@ and close. `recording_studio_page_nav_right` is the custom right-side slot.
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
 | Back and close | Whatever `flat_pack_page_nav` stored. No call and no `return_to` means no row. Flatpack's own labels apply unless the view passes a tooltip. |
-| Page actions | One button group when the default bucket has entries. `overflow: true` parks that entry in the group's More menu. The phone menu lists every entry once. `:page_nav_right` renders after the group when that slot is set. |
+| Page actions | One button group when the default bucket has entries. `overflow: true` parks that entry in the group's More menu. The phone menu lists every entry once. `:page_nav_right` renders before the group when that slot is set. |
 
 ## Example
 

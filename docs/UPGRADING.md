@@ -14,7 +14,7 @@ migration.
   slot with `content_for :page_nav_right`.
 - The default layout draws `FlatPack::TopNav` when the back row,
   `page_nav_button_group`, or `:page_nav_right` is present.
-- `nav.right` renders the button group first and `:page_nav_right` second.
+- `nav.right` renders `:page_nav_right` first and the button group second.
   TopNav's right section is `flex items-center justify-end gap-2`, so the
   two siblings sit side by side. One item has no extra wrapper.
 - `register_page_nav` behavior is unchanged.

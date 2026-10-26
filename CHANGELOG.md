@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 * `recording_studio_page_nav_right` writes `content_for :page_nav_right`.
-  The default layout renders that HTML in the top nav's right slot, after
+  The default layout renders that HTML in the top nav's right slot, before
   `page_nav_button_group` when both are present. Either one draws the top
   nav on its own. `FlatPack::TopNav`'s right section is already
   `flex items-center justify-end gap-2`, so the two siblings sit side by
