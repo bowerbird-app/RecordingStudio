@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+## Upgrading To 6.0.1
+
+This is a dependency upgrade. The page shell is unchanged.
+
+### What changed
+
+- `flat_pack` >= 0.1.311 is required. Pin tag `v0.1.311`.
+- `view_component` must be `>= 4.14` and `< 5`. This release resolves 4.19.0.
+  A component instance renders once. A second render raises
+  `ViewComponent::ReusedInstanceError`.
+- `ViewComponent::ExperimentallyCacheable` is now `ViewComponent::Cacheable`,
+  and caching is on for every component. Remove
+  `include ViewComponent::ExperimentallyCacheable`.
+
+### Upgrade steps
+
+```ruby
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.311"
+```
+
+Then `bundle update view_component`. Build a new component instance for each
+render. Do not keep an instance and render it again.
+
 ## Upgrading To 6.0.0
 
 This is a breaking upgrade. The default layout uses Flatpack's page layout,
@@ -25,14 +48,14 @@ top nav, and page-nav registry. There is no compatibility shim.
   not read `recording_studio.core.navigation` for back and close labels.
   Pass `back_tooltip` and `anchor_tooltip` to `flat_pack_page_nav`, or leave
   Flatpack's labels.
-- `flat_pack` >= 0.1.310 is required. Pin tag `v0.1.310`. Do not pass
+- `flat_pack` >= 0.1.311 is required. Pin tag `v0.1.311`. Do not pass
   `floating_top_nav:` or `mobile_menu:`. Both raise. Card no longer sets
   `h-full`. A `collapse: :menu` trigger with no `menu_label` is the bars glyph.
 
 ### Upgrade steps
 
 ```ruby
-gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.310"
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.311"
 ```
 
 In each view that used the old helper:
@@ -102,12 +125,12 @@ There is no compatibility shim.
 - Give each gem surface its own setting (default `nil`) and its own base
   controller block. A host sets `RecordingStudio.configuration.layout` for
   every nil block, or sets one gem setting to override that surface.
-- `flat_pack` (>= 0.1.310) is a required runtime dependency. See
+- `flat_pack` (>= 0.1.311) is a required runtime dependency. See
   [Upgrading to 6.0.0](#upgrading-to-600) for the current page shell.
   `flat_pack` is not on RubyGems. Add the git source in the host Gemfile:
 
   ```ruby
-  gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.310"
+  gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.311"
   ```
 
 ### Upgrade Steps
@@ -156,7 +179,7 @@ This is a patch upgrade. The default layout name is unchanged.
   back control href. `page_nav_back_label` and `page_nav_anchor_label` are
   tooltips. The right-hand cluster is a `with_item` block pushed with
   `ml-auto`.
-- Development and test depend on `flat_pack` tag v0.1.310. Page nav keywords
+- Development and test depend on `flat_pack` tag v0.1.311. Page nav keywords
   removed in Flatpack 0.1.274 raise if a host still passes them. The dummy
   sign-in card uses style `:shaded` because `:elevated` is no longer a card
   style.
@@ -803,8 +826,8 @@ The page shell is `recording_studio/default_layout`. It renders
 page-action button group sits on the right. The bar shares the column and
 sits above the title. `<html>` is `data-theme="rounded"`.
 
-`flat_pack` >= 0.1.310 is required. It is not on RubyGems. Pin
-`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.310`.
+`flat_pack` >= 0.1.311 is required. It is not on RubyGems. Pin
+`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.311`.
 
 ```erb
 <% content_for :title, "Workspaces" %>

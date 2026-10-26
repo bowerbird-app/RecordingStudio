@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.1] - 2026-10-26
+
+### Changed
+
+* Requires `flat_pack` >= 0.1.311. Development and test pin tag `v0.1.311`.
+  `view_component` resolves to 4.19.0 (`>= 4.14`, `< 5`).
+
+### Upgrade notes
+
+- Pin `flat_pack` tag `v0.1.311` and run `bundle update view_component`.
+  Render each component instance once. A second render raises
+  `ViewComponent::ReusedInstanceError`. Remove
+  `include ViewComponent::ExperimentallyCacheable`. See
+  [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-601).
+
 ## [6.0.0] - 2026-10-23
 
 ### Breaking
