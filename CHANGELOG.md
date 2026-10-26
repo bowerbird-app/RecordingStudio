@@ -12,12 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 * Requires `flat_pack` >= 0.1.313. Development and test pin tag `v0.1.313`.
+* Round back and close buttons use `flat_pack_page_nav(round: true, style: :default, ...)`.
+  The rendered buttons carry `data-fp-style="default"`.
 
 ### Upgrade notes
 
 - Pin `flat_pack` tag `v0.1.313` and run `bundle update flat_pack`.
-- The default layout is unchanged. Flash still renders with `FlatPack::Alert`.
-  `FlatPack::Flash` stays opt-in.
+- Pass `style: :default` on every `flat_pack_page_nav(round: true, ...)` call.
+- Flash still renders with `FlatPack::Alert`. `FlatPack::Flash` stays opt-in.
 - `DateInput` and `DateRangeInput` keep the same public kwargs and HTML.
 - See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-603).
 

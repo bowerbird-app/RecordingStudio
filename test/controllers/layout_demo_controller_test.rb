@@ -20,9 +20,9 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-flat-pack-content-scroll=below] header.fp-top-nav[data-fp-top-nav-padding=none]", count: 1
     assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "nav[data-flat-pack--page-nav-fallback-url-value='#{workspaces_path}']", count: 1
-    assert_select "nav button[aria-label='Go back'][class*='button-round-border-radius']", count: 1
+    assert_select "nav button[aria-label='Go back'][data-fp-style=default][class*='button-round-border-radius']", count: 1
     assert_select "nav a[aria-label='Go back']", count: 0
-    assert_select "a[href='#{workspaces_path}'][aria-label='Close demo'][class*='button-round-border-radius']", count: 1
+    assert_select "a[href='#{workspaces_path}'][aria-label='Close demo'][data-fp-style=default][class*='button-round-border-radius']", count: 1
     assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
     assert_select "header .fp-button-group-menu[data-variant=outlined]", count: 1
     assert_select "header .fp-button-group-menu__row.fp-button-group--outlined a[data-fp-style=ghost]", minimum: 1

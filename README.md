@@ -1097,7 +1097,7 @@ RecordingStudioLibrary.configuration.library_layout = "library"
 Configure the page from the view:
 
 - `content_for :title` and `content_for :subtitle` — document title and `FlatPack::PageTitle`
-- `flat_pack_page_nav(round: true, ...)` — back and close as two round buttons. The layout renders `flat_pack_page_nav_tag` on the left of `TopNav`.
+- `flat_pack_page_nav(round: true, style: :default, ...)` — back and close as two round buttons with `data-fp-style="default"`. The layout renders `flat_pack_page_nav_tag` on the left of `TopNav`.
 - `register_page_nav "Label", path, role: :primary` — page actions. The layout renders one `page_nav_button_group` (`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) on the right of `TopNav` (`padding: :none`). `PageLayout` uses the default `top_nav_width: :content` and `content_scroll: :below`, so that row shares the content column and sits above the title.
 - `default_layout_head { ... }` — append content to `<head>`
 - `recording_studio_seo_description(text)` — description and `og:description`

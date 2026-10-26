@@ -18,8 +18,8 @@ two round buttons. Page actions sit on the right.
 
 ## What it provides
 
-- Back and close from `flat_pack_page_nav(round: true)` /
-  `flat_pack_page_nav_tag`. They are two round buttons, not a group or a card.
+- Back and close from `flat_pack_page_nav(round: true, style: :default, ...)` /
+  `flat_pack_page_nav_tag`. They are two round buttons with `data-fp-style="default"`, not a group or a card.
 - One `page_nav_button_group` (`variant: :outlined`, ghost `sm` for every
   role, `collapse: :menu`) for `register_page_nav` entries. An empty bucket
   renders nothing. Outlined does not restyle the children, so primary stays
@@ -157,7 +157,7 @@ Recording Studio still provides:
 
 Flatpack provides the page nav:
 
-- `flat_pack_page_nav(round: true, back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)`
+- `flat_pack_page_nav(round: true, style: :default, back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)`
 - `register_page_nav "Label", path, role:, icon:, overflow:`
 - `page_nav_button_group(styles:, variant:, collapse:)` — the layout calls this
 
@@ -181,7 +181,7 @@ Flatpack provides the page nav:
 ```erb
 <% content_for :title, "Field notes" %>
 <% content_for :subtitle, "Packing list for the next shoot." %>
-<% flat_pack_page_nav(round: true, anchor_href: root_path, anchor_tooltip: "Home") %>
+<% flat_pack_page_nav(round: true, style: :default, anchor_href: root_path, anchor_tooltip: "Home") %>
 <% register_page_nav "New page", new_page_path, role: :primary, icon: :plus %>
 <% register_page_nav "Share", share_page_path, role: :secondary %>
 <% register_page_nav "Delete", page_path, role: :destructive, icon: :trash, overflow: true %>
@@ -191,7 +191,7 @@ Back link and close together:
 
 ```erb
 <% content_for :title, "New workspace" %>
-<% flat_pack_page_nav(round: true,
+<% flat_pack_page_nav(round: true, style: :default,
   back_href: workspaces_path,
   back_tooltip: "Workspaces",
   anchor_href: root_path,

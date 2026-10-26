@@ -4,11 +4,13 @@
 
 ## Upgrading To 6.0.3
 
-This is a dependency upgrade. The page shell is unchanged.
+This is a dependency upgrade. Round back and close buttons use Flatpack's default style.
 
 ### What changed
 
 - `flat_pack` >= 0.1.313 is required. Pin tag `v0.1.313`.
+- Round back and close buttons pass `style: :default`. The rendered buttons
+  carry `data-fp-style="default"`.
 - `FlatPack::Flash` can render a flash hash you pass in. The default layout
   still uses `FlatPack::Alert` for notice and alert. Adopt `FlatPack::Flash`
   only where you want that component.
@@ -22,6 +24,12 @@ gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.
 ```
 
 Then `bundle update flat_pack`.
+
+```erb
+<% flat_pack_page_nav(round: true, style: :default, anchor_href: root_path, anchor_tooltip: "Home") %>
+```
+
+Add `style: :default` to every existing `flat_pack_page_nav(round: true, ...)` call.
 
 ## Upgrading To 6.0.2
 
@@ -889,7 +897,7 @@ sits above the title. `<html>` is `data-theme="rounded"`.
 ```erb
 <% content_for :title, "Workspaces" %>
 <% content_for :subtitle, "Pick one to open." %>
-<% flat_pack_page_nav(round: true, anchor_href: root_path, anchor_tooltip: "Home") %>
+<% flat_pack_page_nav(round: true, style: :default, anchor_href: root_path, anchor_tooltip: "Home") %>
 <% register_page_nav "New workspace", new_workspace_path, role: :primary, icon: :plus %>
 <% recording_studio_seo_description("Workspaces for your team") %>
 ```

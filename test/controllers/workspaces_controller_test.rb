@@ -17,7 +17,8 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_select "html[data-theme=rounded] body[data-recording-studio-default-layout=true]", count: 1
     assert_select "body[data-theme]", count: 0
     assert_select "header nav[aria-label='Page navigation']", count: 1
-    assert_select "a[href='#{root_path}'][aria-label='Home']", count: 1
+    assert_select "nav button[aria-label='Go back'][data-fp-style=default][class*='button-round-border-radius']", count: 1
+    assert_select "a[href='#{root_path}'][aria-label='Home'][data-fp-style=default][class*='button-round-border-radius']", count: 1
     assert_select "header .fp-button-group-menu", count: 1
     assert_select "header .fp-button-group-menu__row a[href='#{new_workspace_path}']", text: "Add workspace", count: 1
     assert_select "header .fp-button-group-menu__panel a[href='#{new_workspace_path}']", text: "Add workspace", count: 1
@@ -49,8 +50,8 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-flat-pack-content-scroll=below] header.fp-top-nav[data-fp-top-nav-padding=none]", count: 1
     assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
     assert_select "header nav[aria-label='Page navigation']", count: 1
-    assert_select "a[href='#{workspaces_path}'][aria-label='Workspaces'][class*='button-round-border-radius']", count: 1
-    assert_select "header nav a[href='#{root_path}'][aria-label='Home'][class*='button-round-border-radius']", count: 1
+    assert_select "a[href='#{workspaces_path}'][aria-label='Workspaces'][data-fp-style=default][class*='button-round-border-radius']", count: 1
+    assert_select "header nav a[href='#{root_path}'][aria-label='Home'][data-fp-style=default][class*='button-round-border-radius']", count: 1
     assert_select "header .fp-button-group-menu[data-variant=outlined]", count: 1
     assert_select "header .fp-button-group-menu__trigger", count: 1
     assert_select "header .fp-button-group-menu__row" do
@@ -86,7 +87,7 @@ class WorkspacesControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-fp-page-layout-width=default][data-fp-page-layout-top-nav-width=content]", count: 1
     assert_select "[data-flat-pack-content-scroll=below]", count: 1
     assert_select "header nav[aria-label='Page navigation']", count: 1
-    assert_select "a[href='#{workspaces_path}'][aria-label='Workspaces'][class*='button-round-border-radius']", count: 1
+    assert_select "a[href='#{workspaces_path}'][aria-label='Workspaces'][data-fp-style=default][class*='button-round-border-radius']", count: 1
     assert_select ".fp-button-group-menu", count: 0
     assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
     assert_includes @response.body, "Create a container for recordings."
