@@ -1,4 +1,5 @@
-<%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg, class: "mx-auto w-full max-w-md") do %>
+<%# TODO: Grid has no max-width prop. %>
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg) do %>
   <%= render FlatPack::Card::Component.new(background: :shaded) do |card| %>
     <% card.header do %>
       <%= render FlatPack::SectionTitle::Component.new(title: "Log in", size: :md, spacing: :none) %>
@@ -11,10 +12,10 @@
       <% seed_account_ready = prefill_email.present? && User.exists?(email: prefill_email) %>
 
       <% if prefill_credentials %>
+        <%# TODO: Alert has no spacing prop. %>
         <%= render FlatPack::Alert::Component.new(
           description: "#{seed_account_ready ? 'Seed account ready' : 'Seed account not found'} Use #{prefill_email} with password #{prefill_password}.",
-          style: seed_account_ready ? :success : :warning,
-          class: "mb-4"
+          style: seed_account_ready ? :success : :warning
         ) %>
       <% end %>
 

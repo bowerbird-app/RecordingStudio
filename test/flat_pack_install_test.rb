@@ -3,16 +3,17 @@
 require "test_helper"
 
 class FlatPackInstallTest < ActiveSupport::TestCase
-  test "dummy tailwind entry re-sets the kit face and the full radius scale" do
+  test "dummy tailwind entry scans flatpack and does not copy kit tokens" do
     css = File.read(Rails.root.join("app/assets/tailwind/application.css"))
 
-    assert_includes css, '--font-sans: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
-    assert_includes css, '--font-mono: ui-monospace, "SF Mono", Menlo, Consolas'
-    assert_includes css, "--radius-md: 0.5rem;"
-    assert_includes css, "--radius-xxl: 2rem;"
-    assert_includes css, "--radius-xxxl: 2.5rem;"
-    assert_includes css, "--radius-full: 9999px;"
+    assert_includes css, '@import "tailwindcss" source(none);'
+    assert_includes css, '@source "../../../vendor/bundle/ruby/3.3.0/bundler/gems/flatpack-c289e1ee98b9/app/components"'
+    assert_includes css, "app/helpers"
+    refute_match(/^\s*--font-sans:/, css)
+    refute_match(/^\s*--font-mono:/, css)
+    refute_match(/^\s*--radius-/, css)
     refute_match(/^\s*--color-fp-/, css)
+    refute_includes css, "@layer base"
   end
 
   test "dummy javascript initializes local times and pins the current tiptap packages" do

@@ -43,12 +43,12 @@
   <% sidebar.footer do %>
     <%= render FlatPack::Sidebar::Footer::Component.new do %>
       <%= form_with url: destroy_user_session_path, method: :delete, data: { turbo: false } do %>
+        <%# TODO: Button has no full-width prop. method: does not submit a delete form. %>
         <%= render FlatPack::Button::Component.new(
           text: "Log out",
           type: "submit",
           style: :ghost,
-          icon: "arrow-left-on-rectangle",
-          class: "w-full"
+          icon: "arrow-left-on-rectangle"
         ) %>
       <% end %>
     <% end %>

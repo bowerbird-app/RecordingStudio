@@ -5,7 +5,8 @@
   subtitle: "How RecordingStudio handles records without a parent.",
 ) %>
 
-<%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg, class: "max-w-3xl") do %>
+<%# TODO: Grid has no max-width prop. %>
+<%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg) do %>
   <%= render FlatPack::Card::Component.new do |card| %>
     <% card.body do %>
       <%= render FlatPack::List::Component.new(spacing: :default, divider: true) do %>
@@ -19,12 +20,11 @@
     <% end %>
   <% end %>
 
-  <section class="space-y-3">
+  <section>
     <%= render FlatPack::SectionTitle::Component.new(
       title: "recording.parentless?",
       subtitle: "Checks whether a recording has no parent_recording_id.",
-      anchor_link: true,
-      spacing: :none
+      anchor_link: true
     ) %>
 
     <%= render FlatPack::CodeBlock::Component.new(
@@ -38,12 +38,11 @@
     ) %>
   </section>
 
-  <section class="space-y-3">
+  <section>
     <%= render FlatPack::SectionTitle::Component.new(
       title: "recording.orphan?",
       subtitle: "Checks whether a recording is parentless and is not a valid root.",
-      anchor_link: true,
-      spacing: :none
+      anchor_link: true
     ) %>
 
     <%= render FlatPack::CodeBlock::Component.new(
@@ -58,12 +57,11 @@
     ) %>
   </section>
 
-  <section class="space-y-3">
+  <section>
     <%= render FlatPack::SectionTitle::Component.new(
       title: "RecordingStudio::Recording.where(parent_recording_id: nil)",
       subtitle: "Finds parentless recordings, including valid roots.",
-      anchor_link: true,
-      spacing: :none
+      anchor_link: true
     ) %>
 
     <%= render FlatPack::CodeBlock::Component.new(
@@ -79,12 +77,11 @@
     ) %>
   </section>
 
-  <section class="space-y-3">
+  <section>
     <%= render FlatPack::SectionTitle::Component.new(
       title: "Error Messages",
       subtitle: "Returned when trying to create a non-root recording without a parent.",
-      anchor_link: true,
-      spacing: :none
+      anchor_link: true
     ) %>
 
     <%= render FlatPack::CodeBlock::Component.new(

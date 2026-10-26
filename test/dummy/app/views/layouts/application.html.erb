@@ -40,32 +40,30 @@
 
         <% layout.main do %>
           <main id="main" tabindex="-1" class="fp-layout-content py-4 sm:py-8">
-            <%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg) do %>
-              <% if flash[:notice].present? %>
-                <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success) %>
-              <% end %>
-              <% if flash[:alert].present? %>
-                <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger) %>
-              <% end %>
-              <% page_actions = page_nav_button_group(styles: FlatPack::PageNavRoleStyles::SOLID, collapse: :menu) %>
-              <%= page_actions if page_actions.present? %>
-              <%= yield %>
-            <% end %>
-          </main>
-        <% end %>
-      <% end %>
-    <% else %>
-      <div class="h-screen overflow-y-auto overscroll-y-contain">
-        <main id="main" tabindex="-1" class="fp-layout-content flex min-h-full w-full items-center justify-center py-8">
-          <%= render FlatPack::Grid::Component.new(cols: 1, gap: :lg, class: "w-full") do %>
+            <%# TODO: Alert and page_nav_button_group have no spacing prop. %>
             <% if flash[:notice].present? %>
               <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success) %>
             <% end %>
             <% if flash[:alert].present? %>
               <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger) %>
             <% end %>
+            <% page_actions = page_nav_button_group(styles: FlatPack::PageNavRoleStyles::SOLID, collapse: :menu) %>
+            <%= page_actions if page_actions.present? %>
             <%= yield %>
+          </main>
+        <% end %>
+      <% end %>
+    <% else %>
+      <div class="h-screen overflow-y-auto overscroll-y-contain">
+        <main id="main" tabindex="-1" class="fp-layout-content flex min-h-full w-full items-center justify-center py-8">
+          <%# TODO: Alert has no spacing prop. %>
+          <% if flash[:notice].present? %>
+            <%= render FlatPack::Alert::Component.new(description: flash[:notice], style: :success) %>
           <% end %>
+          <% if flash[:alert].present? %>
+            <%= render FlatPack::Alert::Component.new(description: flash[:alert], style: :danger) %>
+          <% end %>
+          <%= yield %>
         </main>
       </div>
     <% end %>

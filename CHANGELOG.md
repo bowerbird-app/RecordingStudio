@@ -13,25 +13,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Host stylesheets load `flat_pack/variables`, `flat_pack/application`, and
   `flat_pack/rich_text` before the Tailwind sheet. The viewport meta includes
-  `viewport-fit=cover`. The dummy Tailwind entry re-sets the kit `--font-sans`,
-  `--font-mono`, and `--radius-xs` through `--radius-xxxl` on unlayered `:root`.
-  `application.js` calls `initLocalTimes`.
+  `viewport-fit=cover`. The dummy Tailwind entry scans the installed gem and
+  leaves font and radius tokens in `flat_pack/variables`. `application.js`
+  calls `initLocalTimes`.
 * Dummy cards use Flatpack's default card padding. Section titles inside a
-  card use `size: :md` and `spacing: :none`. The default layout gives each
-  flash `class: "mb-4"`. The dummy sidebar column stacks the flash, page
-  actions, and page in a `FlatPack::Grid`.
+  card use `size: :md` and `spacing: :none`. Flashes, breadcrumbs, and other
+  Flatpack components no longer take margin utilities such as `mb-4`.
 
 ### Upgrade notes
 
 - Link the three Flatpack stylesheets, then the host Tailwind sheet.
 - Add `viewport-fit=cover` to the viewport meta tag.
-- When Tailwind loads last, re-set the kit face and the full `--radius-*`
-  scale on unlayered `:root`, including `--radius-xxl` and `--radius-xxxl`.
+- Point Tailwind `@source` at the gem. Do not copy `--font-*` or `--radius-*`
+  into the host sheet, and do not add `--color-fp-*`.
 - Import `initLocalTimes` from `flat_pack/local_time` and call it on
   `DOMContentLoaded` and `turbo:load`.
 - Do not pass `padding: :none` on a card to inset its header. Omit it.
   Inside a card, pass `SectionTitle` `size: :md, spacing: :none`.
   `class: "my-0"` does not override the title's spacing.
+- Do not pass margin utilities on Alert or other Flatpack components.
+  Alert, Breadcrumb, PageTitle, and `page_nav_button_group` have no spacing prop.
 - See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-602).
 
 ## [6.0.1] - 2026-10-26
