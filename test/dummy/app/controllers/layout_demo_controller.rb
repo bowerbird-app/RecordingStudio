@@ -4,7 +4,7 @@ class LayoutDemoController < ApplicationController
   def show
   end
 
-  # Anchor URL only — exercises layout default Close copy when PageNav/Button are absent.
+  # Anchor only. Flatpack supplies the close label. Nothing is registered.
   def chrome_defaults
   end
 

@@ -16,15 +16,17 @@ class ViewsGeneratorTest < Rails::Generators::TestCase
   def test_generates_resource_templates
     run_generator(["post"])
 
-    assert_file "app/views/posts/index.html.erb", /recording_studio_page_nav\(title: "Posts"\)/
-    assert_file "app/views/posts/index.html.erb", /FlatPack::PageTitle::Component/
-    assert_file "app/views/posts/show.html.erb", /recording_studio_page_nav\(/
-    assert_file "app/views/posts/show.html.erb", /page_nav_back_url: posts_path/
+    assert_file "app/views/posts/index.html.erb", /content_for :title, "Posts"/
+    assert_file "app/views/posts/index.html.erb", /flat_pack_page_nav\(round: true\)/
+    assert_file "app/views/posts/index.html.erb", /register_page_nav "New Post", new_post_path, role: :primary/
+    assert_file "app/views/posts/show.html.erb", /flat_pack_page_nav\(/
+    assert_file "app/views/posts/show.html.erb", /back_href: posts_path/
     assert_file "app/views/posts/new.html.erb", /render "form", post: @post/
-    assert_file "app/views/posts/new.html.erb", /page_nav_back_url: posts_path/
+    assert_file "app/views/posts/new.html.erb", /back_href: posts_path/
     assert_file "app/views/posts/edit.html.erb", /render "form", post: @post/
-    assert_file "app/views/posts/edit.html.erb", /page_nav_back_url: post_path\(@post\)/
+    assert_file "app/views/posts/edit.html.erb", /back_href: post_path\(@post\)/
     assert_file "app/views/posts/_form.html.erb", /FlatPack::TextInput::Component/
     assert_file "app/views/posts/_form.html.erb", /FlatPack::Button::Component/
+    refute_match(/recording_studio_page_nav/, File.read(File.join(destination_root, "app/views/posts/index.html.erb")))
   end
 end

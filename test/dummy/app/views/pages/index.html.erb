@@ -1,4 +1,5 @@
 <% content_for :title, "Pages" %>
+<% register_page_nav "New Page", new_workspace_page_path(@workspace), role: :primary, icon: :plus %>
 
 <%= render FlatPack::Breadcrumb::Component.new(class: "mb-4") do |breadcrumb| %>
   <% breadcrumb.item(text: "Home", href: root_path) %>
@@ -10,12 +11,7 @@
 <%= render FlatPack::PageTitle::Component.new(
   title: "#{@workspace.name} Pages",
   subtitle: "Workspace-rooted page recordings for this demo workspace."
-) do |page_title| %>
-  <% page_title.slot do %>
-    <%= render FlatPack::Button::Component.new(text: "Back to Workspace", style: :secondary, href: workspace_path(@workspace)) %>
-    <%= render FlatPack::Button::Component.new(text: "New Page", style: :primary, href: new_workspace_page_path(@workspace)) %>
-  <% end %>
-<% end %>
+) %>
 
 <div class="mt-8">
   <% if @recordings.any? %>

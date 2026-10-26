@@ -29,22 +29,24 @@ class CoreI18nFrenchHostOverrideTest < ActionDispatch::IntegrationTest
       get layout_demo_path, headers: modern_headers
 
       assert_response :success
-      assert_includes response.body, "HOST Retour"
-      refute_match(/(?<!HOST )Go back/, response.body)
+      assert_includes response.body, "Go back"
+      refute_includes response.body, "HOST Retour"
       refute_match(/translation missing/i, response.body)
     end
   end
 
-  test "boot-loaded host french Close renders on the page nav" do
+  test "page nav close copy comes from Flatpack, not the recording studio locale" do
     assert_boot_loaded_french_override_preconditions!
     assert I18n.exists?("recording_studio.core.navigation.close", :fr)
 
     I18n.with_locale(:fr) do
+      assert_equal "HOST Fermer", I18n.t("recording_studio.core.navigation.close")
+
       get layout_demo_chrome_defaults_path, headers: modern_headers
 
       assert_response :success
-      assert_includes response.body, "HOST Fermer"
-      refute_match(/(?<!HOST )Close/, response.body)
+      assert_includes response.body, "Close"
+      refute_includes response.body, "HOST Fermer"
       refute_match(/translation missing/i, response.body)
     end
   end

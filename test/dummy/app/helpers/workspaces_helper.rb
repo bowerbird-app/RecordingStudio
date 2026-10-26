@@ -1,4 +1,13 @@
 module WorkspacesHelper
+  def workspace_delete_path(workspace)
+    routed = Rails.application.routes.routes.any? do |route|
+      route.defaults[:controller].to_s == "workspaces" && route.defaults[:action].to_s == "destroy"
+    end
+    return unless routed
+
+    workspace_path(workspace)
+  end
+
   def recordings_hierarchy_list(recordings_by_parent, parent_id: nil)
     children = Array(recordings_by_parent[parent_id])
     return "".html_safe if children.empty?

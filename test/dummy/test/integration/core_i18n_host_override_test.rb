@@ -43,8 +43,8 @@ class CoreI18nHostOverrideTest < ActionDispatch::IntegrationTest
     get layout_demo_path, headers: modern_headers
 
     assert_response :success
-    assert_includes response.body, "HOST Go back"
-    refute_match(/(?<!HOST )Go back/, response.body)
+    assert_includes response.body, "Go back"
+    refute_includes response.body, "HOST Go back"
   ensure
     I18n.reload!
   end

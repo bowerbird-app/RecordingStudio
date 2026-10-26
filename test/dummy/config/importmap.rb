@@ -10,6 +10,9 @@ pin_all_from "app/javascript/controllers", under: "controllers"
 pin_all_from FlatPack::Engine.root.join("app/javascript/flat_pack/controllers"), under: "controllers/flat_pack", to: "flat_pack/controllers", preload: false
 pin_all_from FlatPack::Engine.root.join("app/javascript/flat_pack/tiptap"), under: "flat_pack/tiptap", to: "flat_pack/tiptap", preload: false
 pin "flat_pack/heroicons", to: "flat_pack/heroicons.js", preload: false
+pin "flat_pack/local_time", to: "flat_pack/local_time.js", preload: false
+pin "flat_pack/copy", to: "flat_pack/copy.js", preload: false
+pin "flat_pack/clipboard", to: "flat_pack/clipboard.js", preload: false
 
 # ── TipTap Rich Text Editor (built-in FlatPack support) ─────────────────
 # Packages pinned from esm.sh at a consistent version.

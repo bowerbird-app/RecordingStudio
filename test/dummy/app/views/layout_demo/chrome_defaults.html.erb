@@ -1,9 +1,3 @@
-<% recording_studio_page_nav(
-  title: "Chrome Defaults",
-  page_nav_anchor_url: workspaces_path
-) %>
-
-<div class="space-y-3 p-4">
-  <h1 class="text-lg font-semibold">Chrome Defaults</h1>
-  <p>Default PageNav labels with no custom back or close copy.</p>
-</div>
+<% content_for :title, "Chrome Defaults" %>
+<% content_for :subtitle, "Back and close use Flatpack labels. No page actions are registered." %>
+<% flat_pack_page_nav(round: true, anchor_href: workspaces_path) %>
