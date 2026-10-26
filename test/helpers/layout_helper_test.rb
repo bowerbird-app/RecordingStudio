@@ -5,9 +5,16 @@ require "test_helper"
 class LayoutHelperTest < ActionView::TestCase
   include RecordingStudio::LayoutHelper
 
-  def test_page_nav_is_flatpack_not_a_core_helper
+  def test_page_nav_back_row_is_flatpack_not_a_core_helper
     refute_respond_to self, :recording_studio_page_nav
-    refute_respond_to self, :recording_studio_page_nav_right
+  end
+
+  def test_recording_studio_page_nav_right_sets_slot_and_returns_nil
+    result = recording_studio_page_nav_right { tag.a("New note", href: "/notes/new") }
+
+    assert_nil result
+    assert_includes content_for(:page_nav_right), "New note"
+    assert_includes content_for(:page_nav_right), 'href="/notes/new"'
   end
 
   def test_default_layout_head_sets_head_slot_content

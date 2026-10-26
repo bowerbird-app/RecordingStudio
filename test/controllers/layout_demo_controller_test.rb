@@ -24,7 +24,8 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "nav a[aria-label='Go back']", count: 0
     assert_round_default "a[href='#{workspaces_path}'][aria-label='Close demo']"
     assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
-    assert_select "header .fp-button-group-menu[data-variant=outlined]", count: 1
+    assert_select "header .fp-top-nav__right .fp-button-group-menu[data-variant=outlined]", count: 1
+    assert_select "header .fp-top-nav__right a[aria-label='New note']", count: 0
     assert_select "header .fp-button-group-menu__row.fp-button-group--outlined a[data-fp-style=ghost]", minimum: 1
     assert_select "header a[data-fp-style=primary]", count: 0
     assert_select "header .fp-button-group-menu__trigger", count: 1
@@ -60,13 +61,15 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     source = default_layout_source
     %w[head title subtitle seo_description].each { |slot| assert_includes source, slot }
     removed = %w[
-      body_theme seo_image page_nav_right page_nav_back_url page_nav_anchor_url
+      body_theme seo_image page_nav_back_url page_nav_anchor_url
       recording_studio_page_nav mobile_actions: config.page_nav_styles render_page_nav
       FlatPack::PageNavStyles defined?(FlatPack recording-studio-back-button history.back
     ]
     removed.each { |snippet| refute_includes source, snippet }
     kept = [
-      "flat_pack_page_nav_tag", "page_nav_button_group", "collapse: :menu", "padding: :none", "size: :lg",
+      "flat_pack_page_nav_tag", "page_nav_button_group", "content_for(:page_nav_right)",
+      "safe_join([page_buttons, page_nav_right].compact)",
+      "collapse: :menu", "padding: :none", "size: :lg",
       "variant: :outlined", "style: :ghost",
       "FlatPack::PageLayout::Component",
       "FlatPack::TopNav::Component", "FlatPack::PageTitle::Component", "FlatPack::Alert::Component",
@@ -109,6 +112,38 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert host_shell.index("flat_pack/variables") < host_shell.index("flat_pack/application")
     assert host_shell.index("flat_pack/rich_text") < host_shell.index('stylesheet_link_tag "tailwind"')
     refute_match(/<body[^>]*data-theme/, host_shell)
+  end
+
+  test "custom page nav right renders without a registered button group" do
+    get layout_demo_page_nav_right_path, headers: modern_headers
+
+    assert_response :success
+    assert_default_top_nav
+    assert_select "header .fp-top-nav__right a[aria-label='New note'][href='#{new_workspace_path}']", count: 1
+    assert_select "header .fp-button-group-menu", count: 0
+    assert_select "nav button[aria-label='Go back']", count: 0
+  end
+
+  test "content_for page nav right renders without a registered button group" do
+    get layout_demo_page_nav_content_for_path, headers: modern_headers
+
+    assert_response :success
+    assert_default_top_nav
+    assert_select "header .fp-top-nav__right a[aria-label='New note'][href='#{new_workspace_path}']", count: 1
+    assert_select "header .fp-button-group-menu", count: 0
+  end
+
+  test "registered page actions and page nav right sit together in the right slot" do
+    get layout_demo_page_nav_both_path, headers: modern_headers
+
+    assert_response :success
+    assert_default_top_nav
+    assert_select "header .fp-top-nav__right .fp-button-group-menu[data-variant=outlined]", count: 1
+    assert_registered_page_action(new_workspace_path, "Create workspace")
+    assert_select "header .fp-top-nav__right a[aria-label='New note'][href='#{new_workspace_path}']", count: 1
+
+    right = css_select("header .fp-top-nav__right").first.to_html
+    assert_operator right.index("fp-button-group-menu"), :<, right.index("New note")
   end
 
   test "default layout renders flatpack assets, alerts, and content_for slots" do
