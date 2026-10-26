@@ -11,10 +11,10 @@ view sets back, close, or page actions, the layout draws one
 `FlatPack::TopNav` with `padding: :none`. Back and close sit on the left as
 two round buttons. Page actions sit on the right.
 
-> **Prerequisite:** `flat_pack` >= 0.1.311 is required. The layout renders
+> **Prerequisite:** `flat_pack` >= 0.1.313 is required. The layout renders
 > Flatpack components directly. `flat_pack` is not on RubyGems. The gemspec
 > declares the dependency, and the host Gemfile supplies the git source
-> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.311`).
+> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.313`).
 
 ## What it provides
 

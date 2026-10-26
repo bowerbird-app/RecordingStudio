@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## Upgrading To 6.0.3
+
+This is a dependency upgrade. The page shell is unchanged.
+
+### What changed
+
+- `flat_pack` >= 0.1.313 is required. Pin tag `v0.1.313`.
+- `FlatPack::Flash` can render a flash hash you pass in. The default layout
+  still uses `FlatPack::Alert` for notice and alert. Adopt `FlatPack::Flash`
+  only where you want that component.
+- `DateInput` and `DateRangeInput` keep the same public kwargs, HTML, data
+  attributes, and Stimulus identifiers.
+
+### Upgrade steps
+
+```ruby
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.313"
+```
+
+Then `bundle update flat_pack`.
+
 ## Upgrading To 6.0.2
 
 Install wiring and dummy screens now follow Flatpack v0.1.311. The default
@@ -862,8 +883,8 @@ The page shell is `recording_studio/default_layout`. It renders
 page-action button group sits on the right. The bar shares the column and
 sits above the title. `<html>` is `data-theme="rounded"`.
 
-`flat_pack` >= 0.1.311 is required. It is not on RubyGems. Pin
-`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.311`.
+`flat_pack` >= 0.1.313 is required. It is not on RubyGems. Pin
+`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.313`.
 
 ```erb
 <% content_for :title, "Workspaces" %>

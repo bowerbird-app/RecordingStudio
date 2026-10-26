@@ -1050,11 +1050,11 @@ PostgreSQL on each boot. Rebuild with Draft off to load a new pack. See
 
 ## Shared Layout
 
-`flat_pack` (>= 0.1.311) is a required dependency. It is not published on
+`flat_pack` (>= 0.1.313) is a required dependency. It is not published on
 RubyGems. The gemspec declares it, and the Gemfile supplies the git source:
 
 ```ruby
-gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.311"
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.313"
 ```
 
 RecordingStudio ships one public layout:
