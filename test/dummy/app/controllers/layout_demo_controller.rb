@@ -13,4 +13,13 @@ class LayoutDemoController < ApplicationController
     flash.now[:alert] = "Could not save the page"
     render :show
   end
+
+  def page_nav_right
+  end
+
+  def page_nav_content_for
+  end
+
+  def page_nav_both
+  end
 end

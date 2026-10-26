@@ -1,0 +1,7 @@
+<% content_for :title, "Menu and a circle" %>
+<% content_for :subtitle, "Page actions and one extra button share the top right." %>
+<% flat_pack_page_nav(round: true, style: :default, anchor_href: workspaces_path, anchor_tooltip: "Close demo") %>
+<% register_page_nav "Create workspace", new_workspace_path, role: :secondary %>
+<% recording_studio_page_nav_right do %>
+  <%= render "circle_button" %>
+<% end %>

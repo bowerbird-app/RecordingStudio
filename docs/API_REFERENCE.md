@@ -582,20 +582,24 @@ Public layout:
 
 ### Page nav
 
-Flatpack owns page nav. Call these from the view. The layout renders them.
+Flatpack owns the back row and the button group. Recording Studio adds one custom right slot. Call these from the view. The layout renders them.
 
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
 | `content_for :title` / `:subtitle` | string |  | Document title and `FlatPack::PageTitle`. |
 | `flat_pack_page_nav` | `round: true`, `style: :default`, `back_href`, `back_tooltip`, `anchor_href`, `anchor_tooltip` | `nil` | Stores the back and close row. |
 | `register_page_nav` | label, path, `role:`, optional `icon:`, `overflow:` | `nil` | Records one page action. `role` is `:primary`, `:secondary`, or `:destructive`. |
+| `recording_studio_page_nav_right(&block)` | block | `nil` | Writes the block to `content_for :page_nav_right`. |
 
 The layout is `FlatPack::PageLayout` (`width: :default`). `top_nav_width`
 and `content_scroll` stay at their defaults (`:content` and `:below`). It
 calls `flat_pack_page_nav_tag` and one `page_nav_button_group`
 (`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) inside
-`FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. Pass
-`round: true, style: :default` to `flat_pack_page_nav` so back and close are
+`FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. It also reads
+`content_for(:page_nav_right)`. The custom HTML renders first and the button
+group second, as siblings in TopNav's right section (`flex items-center justify-end gap-2`).
+The back row, the button group, or `:page_nav_right` each draw the top nav.
+Pass `round: true, style: :default` to `flat_pack_page_nav` so back and close are
 round buttons with `data-fp-style="default"`. `<html>` is `data-theme="rounded"`.
 
 ### Example
@@ -606,6 +610,9 @@ round buttons with `data-fp-style="default"`. `<html>` is `data-theme="rounded"`
 <% flat_pack_page_nav(round: true, style: :default, anchor_href: root_path, anchor_tooltip: "Home") %>
 <% recording_studio_seo_description("Browse and manage your workspaces") %>
 <% register_page_nav "New workspace", new_workspace_path, role: :primary, icon: :plus %>
+<% recording_studio_page_nav_right do %>
+  <%= render FlatPack::Button::Component.new(text: "New note", icon: "plus", icon_only: true, round: true, size: :sm, href: new_note_path) %>
+<% end %>
 ```
 
 ## What Not To Depend On

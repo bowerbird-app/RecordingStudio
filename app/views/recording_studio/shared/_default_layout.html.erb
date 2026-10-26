@@ -14,6 +14,7 @@
     variant: :outlined,
     collapse: :menu
   )
+  page_nav_right = content_for(:page_nav_right).presence
 %>
 <!DOCTYPE html>
 <html data-theme="rounded">
@@ -48,11 +49,11 @@
 
   <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true">
     <%= render FlatPack::PageLayout::Component.new(width: :default) do |layout| %>
-      <% if back_row || page_buttons %>
+      <% if back_row || page_buttons || page_nav_right %>
         <% layout.top_nav do %>
           <%= render FlatPack::TopNav::Component.new(padding: :none, size: :lg) do |nav| %>
             <% nav.left { back_row } if back_row %>
-            <% nav.right { page_buttons } if page_buttons %>
+            <% nav.right { safe_join([page_nav_right, page_buttons].compact) } if page_buttons || page_nav_right %>
           <% end %>
         <% end %>
       <% end %>

@@ -2,6 +2,47 @@
 
 ## Unreleased
 
+## Upgrading To 6.1.0
+
+This release adds a custom right-side slot on the default layout. No
+migration.
+
+### What changed
+
+- `RecordingStudio::LayoutHelper#recording_studio_page_nav_right` writes
+  `content_for :page_nav_right` and returns `nil`. A view can set the same
+  slot with `content_for :page_nav_right`.
+- The default layout draws `FlatPack::TopNav` when the back row,
+  `page_nav_button_group`, or `:page_nav_right` is present.
+- `nav.right` renders `:page_nav_right` first and the button group second.
+  TopNav's right section is `flex items-center justify-end gap-2`, so the
+  two siblings sit side by side. One item has no extra wrapper.
+- `register_page_nav` behavior is unchanged.
+
+### Upgrade steps
+
+No steps for hosts that already use `recording_studio/default_layout`.
+
+To add a custom control:
+
+```erb
+<% recording_studio_page_nav_right do %>
+  <%= render FlatPack::Button::Component.new(
+    text: "New note",
+    icon: "plus",
+    icon_only: true,
+    round: true,
+    style: :default,
+    size: :sm,
+    href: new_note_path
+  ) %>
+<% end %>
+```
+
+A host layout that replaces the default and wants this slot reads
+`content_for(:page_nav_right)` and renders it beside
+`page_nav_button_group`.
+
 ## Upgrading To 6.0.3
 
 This release requires `flat_pack` 0.1.315. The default layout top nav uses
