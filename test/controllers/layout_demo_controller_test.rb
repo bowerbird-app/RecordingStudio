@@ -16,13 +16,13 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "html[data-theme=rounded] body[data-recording-studio-default-layout=true]", count: 1
     assert_select "body[data-theme]", count: 0
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
-    assert_select "body > .fp-page-layout[data-fp-page-layout-width=default]", count: 1
-    assert_select "[data-flat-pack-top-nav-floating=below]", count: 1
+    assert_select "[data-fp-page-layout-width=default][data-fp-page-layout-top-nav-width=content]", count: 1
+    assert_select "[data-flat-pack-content-scroll=below] header.fp-top-nav[data-fp-top-nav-padding=none]", count: 1
     assert_select "header nav[aria-label='Page navigation']", count: 1
     assert_select "nav[data-flat-pack--page-nav-fallback-url-value='#{workspaces_path}']", count: 1
-    assert_select "nav button[aria-label='Go back']", count: 1
+    assert_select "nav button[aria-label='Go back'][class*='button-round-border-radius']", count: 1
     assert_select "nav a[aria-label='Go back']", count: 0
-    assert_select "a[href='#{workspaces_path}'][aria-label='Close demo']", count: 1
+    assert_select "a[href='#{workspaces_path}'][aria-label='Close demo'][class*='button-round-border-radius']", count: 1
     assert_select "[data-flat-pack--top-nav-target='toggle']", count: 0
     assert_select "header .fp-button-group-menu[data-variant=outlined]", count: 1
     assert_select "header .fp-button-group-menu__row.fp-button-group--outlined a[data-fp-style=ghost]", minimum: 1
@@ -66,8 +66,8 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     ]
     removed.each { |snippet| refute_includes source, snippet }
     kept = [
-      "flat_pack_page_nav_tag", "page_nav_button_group", "collapse: :menu", "mobile_menu: false",
-      "floating_top_nav: true", "content_scroll: :below", "variant: :outlined", "style: :ghost",
+      "flat_pack_page_nav_tag", "page_nav_button_group", "collapse: :menu", "padding: :none",
+      "variant: :outlined", "style: :ghost",
       "FlatPack::PageLayout::Component",
       "FlatPack::TopNav::Component", "FlatPack::PageTitle::Component", "FlatPack::Alert::Component",
       "flat_pack/variables", "flat_pack/application", "flat_pack/rich_text",
@@ -75,6 +75,8 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     ]
     kept.each { |snippet| assert_includes source, snippet }
     refute_includes source, "PageNavRoleStyles::SOLID"
+    refute_includes source, "floating_top_nav"
+    refute_includes source, "mobile_menu"
     refute_includes source, "data-recording-studio-default-layout=\"true\" data-theme"
   end
 

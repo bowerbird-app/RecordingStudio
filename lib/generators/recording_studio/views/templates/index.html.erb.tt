@@ -1,7 +1,7 @@
 <%%# Intended layout: recording_studio/default_layout %>
 <%% content_for :title, "<%= plural_name.humanize %>" %>
 <%% content_for :subtitle, "Replace this list with your collection UI." %>
-<%% flat_pack_page_nav %>
+<%% flat_pack_page_nav(round: true) %>
 <%% register_page_nav "New <%= human_name %>", new_<%= singular_route_helper %>_path, role: :primary, icon: :plus %>
 <%%# Optional SEO / head helpers:
     recording_studio_seo_description("Browse <%= plural_name.humanize.downcase %>")

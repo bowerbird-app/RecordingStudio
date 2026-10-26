@@ -11,24 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Breaking
 
-* The default layout is `FlatPack::PageLayout` (`width: :default`,
-  `floating_top_nav: true`, `content_scroll: :below`) with one
-  `FlatPack::TopNav` (`mobile_menu: false`). The floating bar shares the
-  column's edges and sits above the column. Back and close come from
-  `flat_pack_page_nav` / `flat_pack_page_nav_tag`. Page actions come from
-  `register_page_nav` and one `page_nav_button_group`
-  (`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) on
-  the right. Below 768px that group is the only phone menu. The title and
-  subtitle render as `FlatPack::PageTitle` under the bar. `<html>` is
+* The default layout is `FlatPack::PageLayout` (`width: :default`). The
+  top bar uses the default `top_nav_width: :content` and the default
+  `content_scroll: :below`, so the row matches the column and sits above
+  the title. `FlatPack::TopNav` uses `padding: :none`. Back and close come
+  from `flat_pack_page_nav(round: true)` / `flat_pack_page_nav_tag` as two
+  round buttons. Page actions come from `register_page_nav` and one
+  `page_nav_button_group` (`variant: :outlined`, ghost `sm` for every role,
+  `collapse: :menu`) on the right. Below 768px that group is the only phone
+  menu. The title and subtitle render as `FlatPack::PageTitle`. `<html>` is
   `data-theme="rounded"`.
 * `recording_studio_page_nav`, `recording_studio_page_nav_right`, and the
   `page_nav_*` content_for slots are removed. Views set `content_for :title`
   and `content_for :subtitle`.
-* Requires `flat_pack` >= 0.1.307. There is no compatibility shim.
+* Requires `flat_pack` >= 0.1.310. There is no compatibility shim.
 
 ### Changed
 
-* Development and test pin `flat_pack` to tag v0.1.307. The dummy sign-in
+* Development and test pin `flat_pack` to tag v0.1.310. The dummy sign-in
   card passes `background: :shaded`, and page titles use `slot`. The dummy
   Tailwind file sources Flatpack components and helpers and does not fork
   `--color-fp-*`.

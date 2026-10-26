@@ -1,6 +1,6 @@
 <%%# Intended layout: recording_studio/default_layout %>
 <%% content_for :title, "Edit <%= human_name %>" %>
-<%% flat_pack_page_nav(
+<%% flat_pack_page_nav(round: true,
   back_href: <%= singular_route_helper %>_path(@<%= file_name %>),
   back_tooltip: "<%= human_name %>"
 ) %>

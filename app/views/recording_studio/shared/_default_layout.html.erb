@@ -47,10 +47,10 @@
   </head>
 
   <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true">
-    <%= render FlatPack::PageLayout::Component.new(width: :default, floating_top_nav: true, content_scroll: :below) do |layout| %>
+    <%= render FlatPack::PageLayout::Component.new(width: :default) do |layout| %>
       <% if back_row || page_buttons %>
         <% layout.top_nav do %>
-          <%= render FlatPack::TopNav::Component.new(mobile_menu: false) do |nav| %>
+          <%= render FlatPack::TopNav::Component.new(padding: :none) do |nav| %>
             <% nav.left { back_row } if back_row %>
             <% nav.right { page_buttons } if page_buttons %>
           <% end %>

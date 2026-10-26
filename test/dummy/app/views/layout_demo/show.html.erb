@@ -1,6 +1,6 @@
 <% content_for :title, "Default Layout Demo" %>
 <% content_for :subtitle, "Back, close, and the page actions sit in the top bar." %>
-<% flat_pack_page_nav(anchor_href: workspaces_path, anchor_tooltip: "Close demo") %>
+<% flat_pack_page_nav(round: true, anchor_href: workspaces_path, anchor_tooltip: "Close demo") %>
 <% register_page_nav "Create workspace", new_workspace_path, role: :secondary %>
 
 <% default_layout_head do %>

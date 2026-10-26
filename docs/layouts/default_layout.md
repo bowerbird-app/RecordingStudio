@@ -4,30 +4,29 @@
 assume a sidebar or a page kind. The public layout file wraps
 `app/views/recording_studio/shared/_default_layout.html.erb`.
 
-The shell is `FlatPack::PageLayout` (`width: :default`,
-`floating_top_nav: true`, `content_scroll: :below`). Nothing else wraps that
-component. When the view sets back, close, or page actions, the layout draws
-one `FlatPack::TopNav` with `mobile_menu: false`. Back and close sit on the
-left. Page actions sit on the right. The floating bar shares the column's
-edges and sits above the column, so the title keeps the column's block
-padding.
+The shell is `FlatPack::PageLayout` (`width: :default`). Nothing else wraps
+that component. `top_nav_width` stays `:content` and `content_scroll` stays
+`:below`, so the bar matches the column and sits above the title. When the
+view sets back, close, or page actions, the layout draws one
+`FlatPack::TopNav` with `padding: :none`. Back and close sit on the left as
+two round buttons. Page actions sit on the right.
 
-> **Prerequisite:** `flat_pack` >= 0.1.307 is required. The layout renders
+> **Prerequisite:** `flat_pack` >= 0.1.310 is required. The layout renders
 > Flatpack components directly. `flat_pack` is not on RubyGems. The gemspec
 > declares the dependency, and the host Gemfile supplies the git source
-> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.307`).
+> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.310`).
 
 ## What it provides
 
-- Back and close from `flat_pack_page_nav` / `flat_pack_page_nav_tag`.
-  Flatpack's floating left section is one card, so those two controls share it.
+- Back and close from `flat_pack_page_nav(round: true)` /
+  `flat_pack_page_nav_tag`. They are two round buttons, not a group or a card.
 - One `page_nav_button_group` (`variant: :outlined`, ghost `sm` for every
   role, `collapse: :menu`) for `register_page_nav` entries. An empty bucket
   renders nothing. Outlined does not restyle the children, so primary stays
   ghost, the same as the other roles.
-- `TopNav` `mobile_menu: false`, so the button group is the only phone menu.
-  Below 768px the group collapses into its dropdown. Back and close stay
-  visible.
+- `TopNav` does not fold. Below 768px the button group is the only phone
+  menu. Back and close stay visible. Omit `menu_label`, so the trigger is
+  the bars glyph.
 - Flash notice and alert via `FlatPack::Alert::Component`.
 - `FlatPack::PageTitle` from `:title` and `:subtitle`.
 - The page body via `yield`.
@@ -151,7 +150,7 @@ Recording Studio still provides:
 
 Flatpack provides the page nav:
 
-- `flat_pack_page_nav(back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)`
+- `flat_pack_page_nav(round: true, back_href:, back_tooltip:, anchor_href:, anchor_tooltip:)`
 - `register_page_nav "Label", path, role:, icon:, overflow:`
 - `page_nav_button_group(styles:, variant:, collapse:)` — the layout calls this
 
@@ -175,7 +174,7 @@ Flatpack provides the page nav:
 ```erb
 <% content_for :title, "Field notes" %>
 <% content_for :subtitle, "Packing list for the next shoot." %>
-<% flat_pack_page_nav(anchor_href: root_path, anchor_tooltip: "Home") %>
+<% flat_pack_page_nav(round: true, anchor_href: root_path, anchor_tooltip: "Home") %>
 <% register_page_nav "New page", new_page_path, role: :primary, icon: :plus %>
 <% register_page_nav "Share", share_page_path, role: :secondary %>
 <% register_page_nav "Delete", page_path, role: :destructive, icon: :trash, overflow: true %>
@@ -185,7 +184,7 @@ Back link and close together:
 
 ```erb
 <% content_for :title, "New workspace" %>
-<% flat_pack_page_nav(
+<% flat_pack_page_nav(round: true,
   back_href: workspaces_path,
   back_tooltip: "Workspaces",
   anchor_href: root_path,

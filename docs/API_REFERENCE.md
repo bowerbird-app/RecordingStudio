@@ -590,18 +590,19 @@ Flatpack owns page nav. Call these from the view. The layout renders them.
 | `flat_pack_page_nav` | `back_href`, `back_tooltip`, `anchor_href`, `anchor_tooltip` | `nil` | Stores the back and close row. |
 | `register_page_nav` | label, path, `role:`, optional `icon:`, `overflow:` | `nil` | Records one page action. `role` is `:primary`, `:secondary`, or `:destructive`. |
 
-The layout is `FlatPack::PageLayout` (`width: :default`, `floating_top_nav: true`,
-`content_scroll: :below`). It calls `flat_pack_page_nav_tag` and one
-`page_nav_button_group` (`variant: :outlined`, ghost `sm` for every role,
-`collapse: :menu`) inside `TopNav` (`mobile_menu: false`). The floating bar
-shares the column and sits above it. `<html>` is `data-theme="rounded"`.
+The layout is `FlatPack::PageLayout` (`width: :default`). `top_nav_width`
+and `content_scroll` stay at their defaults (`:content` and `:below`). It
+calls `flat_pack_page_nav_tag` and one `page_nav_button_group`
+(`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) inside
+`TopNav` (`padding: :none`). Pass `round: true` to `flat_pack_page_nav` so
+back and close are round buttons. `<html>` is `data-theme="rounded"`.
 
 ### Example
 
 ```erb
 <% content_for :title, "Workspaces" %>
 <% content_for :subtitle, "Pick one to open." %>
-<% flat_pack_page_nav(anchor_href: root_path, anchor_tooltip: "Home") %>
+<% flat_pack_page_nav(round: true, anchor_href: root_path, anchor_tooltip: "Home") %>
 <% recording_studio_seo_description("Browse and manage your workspaces") %>
 <% register_page_nav "New workspace", new_workspace_path, role: :primary, icon: :plus %>
 ```

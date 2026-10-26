@@ -9,16 +9,15 @@ top nav, and page-nav registry. There is no compatibility shim.
 
 ### What changed
 
-- The shell is `FlatPack::PageLayout` (`width: :default`,
-  `floating_top_nav: true`, `content_scroll: :below`). When the view sets
-  back, close, or page actions, the layout renders `FlatPack::TopNav` with
-  `mobile_menu: false`. The floating bar shares the column's edges and sits
-  above the column, so the title keeps the column's block padding. Back and
-  close are on the left (`flat_pack_page_nav_tag`). Page actions are one
-  button group on the right (`page_nav_button_group` with `variant: :outlined`,
-  ghost `sm` for every role, and `collapse: :menu`). Below 768px that group
-  is the phone menu. Back and close stay visible. `<html>` is
-  `data-theme="rounded"`.
+- The shell is `FlatPack::PageLayout` (`width: :default`). `top_nav_width`
+  stays `:content` and `content_scroll` stays `:below`, so the bar matches
+  the column and sits above the title. When the view sets back, close, or
+  page actions, the layout renders `FlatPack::TopNav` with `padding: :none`.
+  Back and close are two round buttons on the left (`flat_pack_page_nav(round: true)`
+  and `flat_pack_page_nav_tag`). Page actions are one button group on the
+  right (`page_nav_button_group` with `variant: :outlined`, ghost `sm` for
+  every role, and `collapse: :menu`). Below 768px that group is the phone
+  menu. Back and close stay visible. `<html>` is `data-theme="rounded"`.
 - `FlatPack::PageTitle` reads `content_for :title` and `content_for :subtitle`.
   Flash alerts render above the title.
 - `recording_studio_page_nav` and `recording_studio_page_nav_right` are
@@ -26,12 +25,14 @@ top nav, and page-nav registry. There is no compatibility shim.
   not read `recording_studio.core.navigation` for back and close labels.
   Pass `back_tooltip` and `anchor_tooltip` to `flat_pack_page_nav`, or leave
   Flatpack's labels.
-- `flat_pack` >= 0.1.307 is required. Pin tag `v0.1.307`.
+- `flat_pack` >= 0.1.310 is required. Pin tag `v0.1.310`. Do not pass
+  `floating_top_nav:` or `mobile_menu:`. Both raise. Card no longer sets
+  `h-full`. A `collapse: :menu` trigger with no `menu_label` is the bars glyph.
 
 ### Upgrade steps
 
 ```ruby
-gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.307"
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.310"
 ```
 
 In each view that used the old helper:
@@ -39,7 +40,7 @@ In each view that used the old helper:
 ```erb
 <% content_for :title, "Field notes" %>
 <% content_for :subtitle, "Packing list for the next shoot." %>
-<% flat_pack_page_nav(back_href: notes_path, back_tooltip: "Notes", anchor_href: root_path, anchor_tooltip: "Home") %>
+<% flat_pack_page_nav(round: true, back_href: notes_path, back_tooltip: "Notes", anchor_href: root_path, anchor_tooltip: "Home") %>
 <% register_page_nav "New page", new_note_path, role: :primary, icon: :plus %>
 <% register_page_nav "Delete", note_path, role: :destructive, icon: :trash, overflow: true %>
 ```
@@ -101,12 +102,12 @@ There is no compatibility shim.
 - Give each gem surface its own setting (default `nil`) and its own base
   controller block. A host sets `RecordingStudio.configuration.layout` for
   every nil block, or sets one gem setting to override that surface.
-- `flat_pack` (>= 0.1.307) is a required runtime dependency. See
+- `flat_pack` (>= 0.1.310) is a required runtime dependency. See
   [Upgrading to 6.0.0](#upgrading-to-600) for the current page shell.
   `flat_pack` is not on RubyGems. Add the git source in the host Gemfile:
 
   ```ruby
-  gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.307"
+  gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.310"
   ```
 
 ### Upgrade Steps
@@ -155,7 +156,7 @@ This is a patch upgrade. The default layout name is unchanged.
   back control href. `page_nav_back_label` and `page_nav_anchor_label` are
   tooltips. The right-hand cluster is a `with_item` block pushed with
   `ml-auto`.
-- Development and test depend on `flat_pack` tag v0.1.307. Page nav keywords
+- Development and test depend on `flat_pack` tag v0.1.310. Page nav keywords
   removed in Flatpack 0.1.274 raise if a host still passes them. The dummy
   sign-in card uses style `:shaded` because `:elevated` is no longer a card
   style.
@@ -796,19 +797,19 @@ boundary.
 ## Adopting the Shared Default Layout
 
 The page shell is `recording_studio/default_layout`. It renders
-`FlatPack::PageLayout` (`width: :default`, `floating_top_nav: true`,
-`content_scroll: :below`) and a `TopNav` with `mobile_menu: false`. Back and
-close sit on the left. One outlined page-action button group sits on the
-right. That floating bar shares the column and sits above it. The title sits
-below the bar. `<html>` is `data-theme="rounded"`.
+`FlatPack::PageLayout` (`width: :default`) and a `TopNav` with
+`padding: :none`. `top_nav_width` stays `:content` and `content_scroll` stays
+`:below`. Back and close sit on the left as two round buttons. One outlined
+page-action button group sits on the right. The bar shares the column and
+sits above the title. `<html>` is `data-theme="rounded"`.
 
-`flat_pack` >= 0.1.307 is required. It is not on RubyGems. Pin
-`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.307`.
+`flat_pack` >= 0.1.310 is required. It is not on RubyGems. Pin
+`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.310`.
 
 ```erb
 <% content_for :title, "Workspaces" %>
 <% content_for :subtitle, "Pick one to open." %>
-<% flat_pack_page_nav(anchor_href: root_path, anchor_tooltip: "Home") %>
+<% flat_pack_page_nav(round: true, anchor_href: root_path, anchor_tooltip: "Home") %>
 <% register_page_nav "New workspace", new_workspace_path, role: :primary, icon: :plus %>
 <% recording_studio_seo_description("Workspaces for your team") %>
 ```
