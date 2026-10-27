@@ -2,6 +2,42 @@
 
 ## Unreleased
 
+## Upgrading To 6.2.0
+
+This release adds an optional background image on the default layout. No
+migration.
+
+### What changed
+
+- `RecordingStudio::LayoutHelper#recording_studio_background_image` writes
+  `content_for :background_image` and returns `nil`. A view can set the same
+  slot with `content_for :background_image, url`.
+- When the URL is present, the default layout calls `layout.background` with
+  `image_tag` (`alt=""`, `loading="lazy"`). `FlatPack::PageLayout` paints
+  that image as the blurred backdrop (`fp-backdrop`, with a tint layer).
+- A blank or missing URL leaves the page as it was. The layout does not
+  render `layout.background`.
+
+### Upgrade steps
+
+No steps for hosts that already use `recording_studio/default_layout`.
+
+To set a backdrop:
+
+```erb
+<% recording_studio_background_image("/photos/cover.png") %>
+```
+
+The same slot, without the helper:
+
+```erb
+<% content_for :background_image, "/photos/cover.png" %>
+```
+
+A host layout that replaces the default and wants this slot reads
+`content_for(:background_image)` and renders the image inside
+`FlatPack::PageLayout`'s `background` slot.
+
 ## Upgrading To 6.1.0
 
 This release adds a custom right-side slot on the default layout. No

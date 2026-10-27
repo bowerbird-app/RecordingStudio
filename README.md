@@ -1102,6 +1102,7 @@ Configure the page from the view:
 - `recording_studio_page_nav_right { ... }` — custom HTML in that same right slot, before the button group. `content_for :page_nav_right` sets the same slot. Either the group, the custom HTML, or the back row draws the top nav. TopNav's right section is `flex items-center justify-end gap-2`, so the two siblings sit side by side.
 - `default_layout_head { ... }` — append content to `<head>`
 - `recording_studio_seo_description(text)` — description and `og:description`
+- `recording_studio_background_image(url)` — decorative image in `FlatPack::PageLayout`'s `background` slot. `content_for :background_image, url` sets the same slot. A blank URL leaves the page without a backdrop.
 
 Set a custom app name for `<title>` and `og:site_name` fallback:
 

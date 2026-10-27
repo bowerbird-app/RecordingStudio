@@ -28,4 +28,18 @@ class LayoutHelperTest < ActionView::TestCase
 
     assert_equal "Test description for SEO", content_for(:seo_description)
   end
+
+  def test_recording_studio_background_image_sets_slot_and_returns_nil
+    result = recording_studio_background_image("/icon.png")
+
+    assert_nil result
+    assert_equal "/icon.png", content_for(:background_image)
+  end
+
+  def test_recording_studio_background_image_skips_a_blank_url
+    result = recording_studio_background_image(" ")
+
+    assert_nil result
+    assert_predicate content_for(:background_image), :blank?
+  end
 end

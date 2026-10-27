@@ -16,5 +16,10 @@ module RecordingStudio
       content_for(:seo_description, text) if text.present?
       nil
     end
+
+    def recording_studio_background_image(url)
+      content_for(:background_image, url) if url.present?
+      nil
+    end
   end
 end

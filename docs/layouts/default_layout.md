@@ -136,6 +136,7 @@ provide the same surroundings.
 | `:subtitle` | `content_for :subtitle` | Page title subtitle |
 | `:head` | `default_layout_head` or `content_for :head` | Rendered in `<head>` |
 | `:seo_description` | `recording_studio_seo_description` | Description and `og:description` |
+| `:background_image` | `recording_studio_background_image` or `content_for :background_image, url` | Decorative image in `layout.background` |
 | `:page_nav_right` | `recording_studio_page_nav_right` or `content_for :page_nav_right` | Before the button group in `nav.right` |
 
 Back, close, and registered actions are not `content_for` slots:
@@ -164,6 +165,7 @@ Recording Studio still provides:
 - `default_layout_head { ... }`
 - `recording_studio_page_nav_right { ... }`
 - `recording_studio_seo_description(text)`
+- `recording_studio_background_image(url)`
 
 Flatpack provides the page nav:
 
@@ -182,6 +184,7 @@ and close. `recording_studio_page_nav_right` is the custom right-side slot.
 | Visible title | `FlatPack::PageTitle` when `:title` is present. `:subtitle` is optional. |
 | Theme | `data-theme="rounded"` |
 | Description | Omitted when blank |
+| Background | Omitted when `:background_image` is blank. Otherwise one lazy image in `layout.background`. |
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
 | Back and close | Whatever `flat_pack_page_nav` stored. No call and no `return_to` means no row. Flatpack's own labels apply unless the view passes a tooltip. |
@@ -224,6 +227,17 @@ Back link and close together:
 A screen with no `register_page_nav` and no `:page_nav_right` shows the back
 row only. The layout does not render an empty button group. A screen with
 only `:page_nav_right` still draws the top nav.
+
+## Background
+
+```erb
+<% recording_studio_background_image("/photos/cover.png") %>
+```
+
+`content_for :background_image, "/photos/cover.png"` sets the same slot.
+The layout renders one `image_tag` with `alt=""` and `loading="lazy"` inside
+`layout.background`. Flatpack blurs the image and lays a tint over it.
+A blank URL skips the slot.
 
 ## SEO
 
