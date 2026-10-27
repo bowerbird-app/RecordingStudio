@@ -3,6 +3,8 @@
   app_name = (rs_config.respond_to?(:app_name) ? rs_config.app_name : nil).presence || "CHANGE_APP_NAME_IN_DEFAULT_LAYOUT"
   heading = content_for(:title).to_s.strip.presence
   subtitle = content_for(:subtitle).to_s.strip.presence
+  background_image = content_for(:background_image).to_s.strip.presence
+  page_width = content_for(:page_width).to_s.strip.presence&.to_sym || :default
   document_title = heading || app_name
   back_row = flat_pack_page_nav_tag
   page_buttons = page_nav_button_group(
@@ -48,7 +50,13 @@
   </head>
 
   <body class="bg-(--surface-page-background-color) text-(--surface-content-color)" data-recording-studio-default-layout="true">
-    <%= render FlatPack::PageLayout::Component.new(width: :default) do |layout| %>
+    <%= render FlatPack::PageLayout::Component.new(width: page_width) do |layout| %>
+      <% if background_image.present? %>
+        <% layout.background do %>
+          <%= image_tag background_image, alt: "", loading: "lazy" %>
+        <% end %>
+      <% end %>
+
       <% if back_row || page_buttons || page_nav_right %>
         <% layout.top_nav do %>
           <%= render FlatPack::TopNav::Component.new(padding: :none, size: :lg) do |nav| %>

@@ -59,7 +59,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
 
   test "default layout template keeps the host contract slots, assets, and alerts" do
     source = default_layout_source
-    %w[head title subtitle seo_description].each { |slot| assert_includes source, slot }
+    %w[head title subtitle seo_description background_image page_width].each { |slot| assert_includes source, slot }
     removed = %w[
       body_theme seo_image page_nav_back_url page_nav_anchor_url
       recording_studio_page_nav mobile_actions: config.page_nav_styles render_page_nav
@@ -71,7 +71,8 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
       "safe_join([page_nav_right, page_buttons].compact)",
       "collapse: :menu", "padding: :none", "size: :lg",
       "variant: :outlined", "style: :ghost",
-      "FlatPack::PageLayout::Component",
+      "FlatPack::PageLayout::Component", "width: page_width", "layout.background",
+      'alt: ""', 'loading: "lazy"',
       "FlatPack::TopNav::Component", "FlatPack::PageTitle::Component", "FlatPack::Alert::Component",
       "flat_pack/variables", "flat_pack/application", "flat_pack/rich_text",
       "<html data-theme=\"rounded\">"
@@ -146,6 +147,44 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_operator right.index("New note"), :<, right.index("fp-button-group-menu")
   end
 
+  test "show omits the page background when no image is set" do
+    get layout_demo_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "[data-fp-page-layout-width=default]", count: 1
+    assert_select "[data-flat-pack-layout-background]", count: 0
+    assert_select ".fp-backdrop", count: 0
+    assert_select ".fp-backdrop-media img", count: 0
+  end
+
+  test "background image helper renders the page layout backdrop" do
+    get layout_demo_background_image_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "[data-fp-page-layout-width=wide]", count: 1
+    assert_background_image "/layout-backdrop.svg"
+  end
+
+  test "content_for background image renders the page layout backdrop" do
+    get layout_demo_background_content_for_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "[data-fp-page-layout-width=narrow]", count: 1
+    assert_background_image "/icon.png"
+  end
+
+  test "page width helper renders narrow and full" do
+    get layout_demo_page_width_narrow_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "[data-fp-page-layout-width=narrow]", count: 1
+
+    get layout_demo_page_width_full_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "[data-fp-page-layout-width=full]", count: 1
+  end
+
   test "default layout renders flatpack assets, alerts, and content_for slots" do
     get layout_demo_contract_path, headers: modern_headers
 
@@ -181,6 +220,12 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
       "[data-fp-top-nav-padding=none][data-fp-top-nav-size=lg]",
       count: 1
     )
+  end
+
+  def assert_background_image(src)
+    assert_select "[data-flat-pack-layout-background='true'].fp-layout-main .fp-backdrop[aria-hidden='true']", count: 1
+    assert_select ".fp-backdrop-media img[alt=''][loading='lazy'][src='#{src}']", count: 1
+    assert_select ".fp-backdrop-tint", count: 1
   end
 
   def assert_round_default(selector)

@@ -580,6 +580,20 @@ Public layout:
 | `default_layout_head(&block)` | block | `nil` | Adds block content to `<head>` via `yield :head`. |
 | `recording_studio_seo_description(text)` | description string | `nil` | Sets `<meta name="description">` and `og:description`. |
 
+### Background
+
+| Method | Takes | Returns | Why it exists |
+| --- | --- | --- | --- |
+| `recording_studio_background_image(url)` | image URL | `nil` | Sets `content_for :background_image`. The default layout renders it in `layout.background`. |
+| `content_for :background_image, url` | image URL |  | Same slot, without the helper. |
+
+### Page width
+
+| Method | Takes | Returns | Why it exists |
+| --- | --- | --- | --- |
+| `recording_studio_page_width(width)` | `:narrow`, `:default`, `:wide`, or `:full` | `nil` | Sets `content_for :page_width`. The default layout passes it to `FlatPack::PageLayout`. |
+| `content_for :page_width, width` | the same names |  | Same slot, without the helper. A blank value stays `:default`. |
+
 ### Page nav
 
 Flatpack owns the back row and the button group. Recording Studio adds one custom right slot. Call these from the view. The layout renders them.
@@ -591,9 +605,12 @@ Flatpack owns the back row and the button group. Recording Studio adds one custo
 | `register_page_nav` | label, path, `role:`, optional `icon:`, `overflow:` | `nil` | Records one page action. `role` is `:primary`, `:secondary`, or `:destructive`. |
 | `recording_studio_page_nav_right(&block)` | block | `nil` | Writes the block to `content_for :page_nav_right`. |
 
-The layout is `FlatPack::PageLayout` (`width: :default`). `top_nav_width`
-and `content_scroll` stay at their defaults (`:content` and `:below`). It
-calls `flat_pack_page_nav_tag` and one `page_nav_button_group`
+The layout is `FlatPack::PageLayout`. `width` comes from `:page_width` and defaults to `:default`. `top_nav_width`
+and `content_scroll` stay at their defaults (`:content` and `:below`). When
+`content_for(:background_image)` is present, the layout fills
+`layout.background` with one decorative `image_tag` (`alt=""`, `loading="lazy"`).
+Flatpack paints that image as the page backdrop. A blank URL skips the slot.
+The layout calls `flat_pack_page_nav_tag` and one `page_nav_button_group`
 (`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) inside
 `FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. It also reads
 `content_for(:page_nav_right)`. The custom HTML renders first and the button
@@ -609,6 +626,8 @@ round buttons with `data-fp-style="default"`. `<html>` is `data-theme="rounded"`
 <% content_for :subtitle, "Pick one to open." %>
 <% flat_pack_page_nav(round: true, style: :default, anchor_href: root_path, anchor_tooltip: "Home") %>
 <% recording_studio_seo_description("Browse and manage your workspaces") %>
+<% recording_studio_background_image("/photos/cover.png") %>
+<% recording_studio_page_width(:wide) %>
 <% register_page_nav "New workspace", new_workspace_path, role: :primary, icon: :plus %>
 <% recording_studio_page_nav_right do %>
   <%= render FlatPack::Button::Component.new(text: "New note", icon: "plus", icon_only: true, round: true, size: :sm, href: new_note_path) %>
