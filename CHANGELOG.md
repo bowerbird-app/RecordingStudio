@@ -15,14 +15,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The default layout passes that URL to `FlatPack::PageLayout`'s `background`
   slot as a decorative image (`alt=""`, `loading="lazy"`). Flatpack paints it
   as the blurred page backdrop. A blank URL leaves the page unchanged.
+* `recording_studio_page_width` writes `content_for :page_width`. The default
+  layout passes that value to `FlatPack::PageLayout` as `width:`. Allowed
+  values are `:narrow`, `:default`, `:wide`, and `:full`. A blank value stays
+  `:default`.
 
 ### Upgrade notes
 
-- No migration. Pages that do not set the slot look the same.
+- No migration. Pages that do not set either slot look the same.
 - Call `recording_studio_background_image(url)`, or set
   `content_for :background_image, url`.
+- Call `recording_studio_page_width(:wide)`, or set
+  `content_for :page_width, :wide`. The same names work for `:narrow` and
+  `:full`.
 - A host layout that replaces the default reads
-  `content_for(:background_image)` and renders the image in `layout.background`.
+  `content_for(:background_image)` and `content_for(:page_width)`.
 - See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-620).
 
 ## [6.1.0] - 2026-10-26

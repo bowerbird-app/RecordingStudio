@@ -1103,6 +1103,7 @@ Configure the page from the view:
 - `default_layout_head { ... }` — append content to `<head>`
 - `recording_studio_seo_description(text)` — description and `og:description`
 - `recording_studio_background_image(url)` — decorative image in `FlatPack::PageLayout`'s `background` slot. `content_for :background_image, url` sets the same slot. A blank URL leaves the page without a backdrop.
+- `recording_studio_page_width(width)` — `FlatPack::PageLayout` width. `content_for :page_width, width` sets the same slot. Names are `:narrow`, `:default`, `:wide`, and `:full`. A blank value stays `:default`.
 
 Set a custom app name for `<title>` and `og:site_name` fallback:
 

@@ -4,7 +4,8 @@
 assume a sidebar or a page kind. The public layout file wraps
 `app/views/recording_studio/shared/_default_layout.html.erb`.
 
-The shell is `FlatPack::PageLayout` (`width: :default`). Nothing else wraps
+The shell is `FlatPack::PageLayout`. Width defaults to `:default`. A view
+can set `:narrow`, `:wide`, or `:full`. Nothing else wraps
 that component. `top_nav_width` stays `:content` and `content_scroll` stays
 `:below`, so the bar matches the column and sits above the title. When the
 view sets back, close, page actions, or `:page_nav_right`, the layout draws
@@ -137,6 +138,7 @@ provide the same surroundings.
 | `:head` | `default_layout_head` or `content_for :head` | Rendered in `<head>` |
 | `:seo_description` | `recording_studio_seo_description` | Description and `og:description` |
 | `:background_image` | `recording_studio_background_image` or `content_for :background_image, url` | Decorative image in `layout.background` |
+| `:page_width` | `recording_studio_page_width` or `content_for :page_width, width` | `FlatPack::PageLayout` `width:` (`:narrow`, `:default`, `:wide`, `:full`) |
 | `:page_nav_right` | `recording_studio_page_nav_right` or `content_for :page_nav_right` | Before the button group in `nav.right` |
 
 Back, close, and registered actions are not `content_for` slots:
@@ -166,6 +168,7 @@ Recording Studio still provides:
 - `recording_studio_page_nav_right { ... }`
 - `recording_studio_seo_description(text)`
 - `recording_studio_background_image(url)`
+- `recording_studio_page_width(width)`
 
 Flatpack provides the page nav:
 
@@ -185,6 +188,7 @@ and close. `recording_studio_page_nav_right` is the custom right-side slot.
 | Theme | `data-theme="rounded"` |
 | Description | Omitted when blank |
 | Background | Omitted when `:background_image` is blank. Otherwise one lazy image in `layout.background`. |
+| Page width | `:default` when `:page_width` is blank. Otherwise `:narrow`, `:default`, `:wide`, or `:full`. |
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
 | Back and close | Whatever `flat_pack_page_nav` stored. No call and no `return_to` means no row. Flatpack's own labels apply unless the view passes a tooltip. |
@@ -238,6 +242,16 @@ only `:page_nav_right` still draws the top nav.
 The layout renders one `image_tag` with `alt=""` and `loading="lazy"` inside
 `layout.background`. Flatpack blurs the image and lays a tint over it.
 A blank URL skips the slot.
+
+## Page width
+
+```erb
+<% recording_studio_page_width(:wide) %>
+```
+
+`content_for :page_width, :wide` sets the same slot. `:narrow` and `:full`
+work the same way. A blank value stays `:default`. Flatpack rejects any
+other name.
 
 ## SEO
 

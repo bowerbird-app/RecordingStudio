@@ -28,4 +28,10 @@ class LayoutDemoController < ApplicationController
 
   def background_content_for
   end
+
+  def page_width_narrow
+  end
+
+  def page_width_full
+  end
 end

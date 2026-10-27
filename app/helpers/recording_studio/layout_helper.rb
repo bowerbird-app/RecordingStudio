@@ -21,5 +21,10 @@ module RecordingStudio
       content_for(:background_image, url) if url.present?
       nil
     end
+
+    def recording_studio_page_width(width)
+      content_for(:page_width, width.to_s) if width.present?
+      nil
+    end
   end
 end

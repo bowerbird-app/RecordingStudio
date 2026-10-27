@@ -4,8 +4,8 @@
 
 ## Upgrading To 6.2.0
 
-This release adds an optional background image on the default layout. No
-migration.
+This release adds an optional background image and a page width on the
+default layout. No migration.
 
 ### What changed
 
@@ -17,26 +17,35 @@ migration.
   that image as the blurred backdrop (`fp-backdrop`, with a tint layer).
 - A blank or missing URL leaves the page as it was. The layout does not
   render `layout.background`.
+- `RecordingStudio::LayoutHelper#recording_studio_page_width` writes
+  `content_for :page_width` and returns `nil`. A view can set the same slot
+  with `content_for :page_width, :wide`.
+- The layout passes that value to `FlatPack::PageLayout` as `width:`.
+  Flatpack accepts `:narrow`, `:default`, `:wide`, and `:full`. A blank
+  value stays `:default`.
 
 ### Upgrade steps
 
 No steps for hosts that already use `recording_studio/default_layout`.
 
-To set a backdrop:
+To set a backdrop and a wider column:
 
 ```erb
 <% recording_studio_background_image("/photos/cover.png") %>
+<% recording_studio_page_width(:wide) %>
 ```
 
-The same slot, without the helper:
+The same slots, without the helpers:
 
 ```erb
 <% content_for :background_image, "/photos/cover.png" %>
+<% content_for :page_width, :wide %>
 ```
 
-A host layout that replaces the default and wants this slot reads
-`content_for(:background_image)` and renders the image inside
-`FlatPack::PageLayout`'s `background` slot.
+A host layout that replaces the default and wants these slots reads
+`content_for(:background_image)` and `content_for(:page_width)`. Render the
+image inside `FlatPack::PageLayout`'s `background` slot, and pass the width
+to `FlatPack::PageLayout::Component.new`.
 
 ## Upgrading To 6.1.0
 

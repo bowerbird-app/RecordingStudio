@@ -42,4 +42,20 @@ class LayoutHelperTest < ActionView::TestCase
     assert_nil result
     assert_predicate content_for(:background_image), :blank?
   end
+
+  def test_recording_studio_page_width_sets_slot_and_returns_nil
+    %i[narrow wide full].each do |width|
+      result = recording_studio_page_width(width)
+
+      assert_nil result
+      assert_includes content_for(:page_width), width.to_s
+    end
+  end
+
+  def test_recording_studio_page_width_skips_a_blank_width
+    result = recording_studio_page_width(" ")
+
+    assert_nil result
+    assert_predicate content_for(:page_width), :blank?
+  end
 end
