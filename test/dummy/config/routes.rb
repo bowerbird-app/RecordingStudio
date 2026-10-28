@@ -28,6 +28,7 @@ Rails.application.routes.draw do
   get :layout_demo_page_nav_content_for, to: "layout_demo#page_nav_content_for"
   get :layout_demo_page_nav_both, to: "layout_demo#page_nav_both"
   get :layout_demo_background_image, to: "layout_demo#background_image"
+  get :layout_demo_default_background, to: "layout_demo#default_background"
   get :layout_demo_background_content_for, to: "layout_demo#background_content_for"
   get :layout_demo_page_width_narrow, to: "layout_demo#page_width_narrow"
   get :layout_demo_page_width_full, to: "layout_demo#page_width_full"

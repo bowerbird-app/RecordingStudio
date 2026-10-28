@@ -26,6 +26,9 @@ class LayoutDemoController < ApplicationController
   def background_image
   end
 
+  def default_background
+  end
+
   def background_content_for
   end
 

@@ -17,14 +17,39 @@ module RecordingStudio
       nil
     end
 
-    def recording_studio_background_image(url)
-      content_for(:background_image, url) if url.present?
+    def recording_studio_default_background_image
+      configured =
+        if RecordingStudio.configuration.respond_to?(:default_background_image)
+          RecordingStudio.configuration.default_background_image
+        else
+          RecordingStudio::DEFAULT_BACKGROUND_IMAGE
+        end
+
+      configured.to_s.strip.presence
+    end
+
+    def recording_studio_background_image(url = :default)
+      image = background_image_source(url)
+      content_for(:background_image, image) if image.present?
       nil
     end
 
     def recording_studio_page_width(width)
       content_for(:page_width, width.to_s) if width.present?
       nil
+    end
+
+    private
+
+    def background_image_source(url)
+      case url
+      when nil, false
+        nil
+      when true, :default
+        recording_studio_default_background_image
+      else
+        url.is_a?(String) ? url.strip.presence : nil
+      end
     end
   end
 end
