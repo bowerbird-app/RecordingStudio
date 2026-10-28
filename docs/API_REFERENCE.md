@@ -245,6 +245,7 @@ Use `RecordingStudio.configure` to access these settings.
 | `recordable_dup_strategy_for(recordable_or_type)` | instance, class, or class name | callable or symbol | Resolves the effective duplication strategy for a type. |
 | `merge!(hash)` | hash-like object | merged configuration | Applies compatible keys from a hash, ignoring removed ones with a warning. |
 | `app_name` / `app_name=` | `String` | `String` | Application name used for `<title>` and `og:site_name` fallbacks in the default layout. Defaults to `"RecordingStudio"`. |
+| `default_background_image` / `default_background_image=` | `String` | `String` | Logical path or URL of the shared page backdrop. Defaults to `RecordingStudio::DEFAULT_BACKGROUND_IMAGE` (`"recording_studio/default_background.svg"`). `merge!` accepts the same key from `config/recording_studio.yml` and `config.x.recording_studio`. |
 | `layout` / `layout=` | `nil`, `false`, layout name `String`, or a callable | the stored value | Host layout used when a gem's `recording_studio_layout` block returns `nil`. A callable is invoked as `call(controller:)`. `nil` means `RecordingStudio::DEFAULT_LAYOUT`. `false` means no layout. A blank string, a positional callable, or any other value raises `ArgumentError`. |
 | `resolved_layout(controller:, default:)` | `controller:` keyword; optional `default:` | layout name or `false` | Resolves `configuration.layout` for one controller. `nil` (including a callable that returns `nil`) returns `default`, which defaults to `RecordingStudio::DEFAULT_LAYOUT`. `false` is returned as `false`. A positional call raises `ArgumentError`. |
 
@@ -255,6 +256,7 @@ Important behavior:
 - `idempotency_mode = :return_existing` is retry-friendly and usually correct for HTTP or job retries.
 - `recordable_dup_strategy = :dup` duplicates the recordable and clears known counter caches.
 - `RecordingStudio::DEFAULT_LAYOUT` is `"recording_studio/default_layout"`. It is the layout when both the gem block and `configuration.layout` are `nil`.
+- `RecordingStudio::DEFAULT_BACKGROUND_IMAGE` is `"recording_studio/default_background.svg"`. It is the starting value of `configuration.default_background_image`. The engine serves that file from `app/assets/images` and precompiles it when `config.assets.precompile` exists.
 - Controllers call `recording_studio_layout { Gem.configuration.layout }`. The block is evaluated in the controller with no arguments. Lookup is that setting when it is not `nil`, then `configuration.layout`, then `RecordingStudio::DEFAULT_LAYOUT`. The macro defines `recording_studio_resolved_layout` and declares `layout :recording_studio_resolved_layout`, so subclasses inherit it. It also adds `helper RecordingStudio::LayoutHelper`.
 - A layout callable accepts `controller:` only and returns a String, `nil` (try the next level), or `false` (no layout). `layout "name"` or `layout false` on a subclass still wins.
 - `RecordingStudio::Layout.hardcoded_layout_paths(root, ignore: [])` lists controllers that hard-code `layout "recording_studio/..."`. `rake recording_studio:check_layouts` fails when the host tree has one.
@@ -584,8 +586,9 @@ Public layout:
 
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
-| `recording_studio_background_image(url)` | image URL | `nil` | Sets `content_for :background_image`. The default layout renders it in `layout.background`. |
-| `content_for :background_image, url` | image URL |  | Same slot, without the helper. |
+| `recording_studio_default_background_image` | nothing | `String` or `nil` | Returns `configuration.default_background_image`, stripped. Falls back to `RecordingStudio::DEFAULT_BACKGROUND_IMAGE` when the configuration object has no such reader. Blank becomes `nil`. |
+| `recording_studio_background_image(url = :default)` | no argument, `true`, `:default`, a path `String`, `nil`, or `false` | `nil` | No argument, `true`, and `:default` store the shared image. A non-blank string stores that path. `nil`, `false`, and a blank string store nothing. |
+| `content_for :background_image, url` | image URL, `"true"`, `"default"`, or `"false"` |  | Same slot, without the helper. The layout treats `"true"` and `"default"` as the shared image and `"false"` as no image. |
 
 ### Page width
 
@@ -609,7 +612,10 @@ The layout is `FlatPack::PageLayout`. `width` comes from `:page_width` and defau
 and `content_scroll` stay at their defaults (`:content` and `:below`). When
 `content_for(:background_image)` is present, the layout fills
 `layout.background` with one decorative `image_tag` (`alt=""`, `loading="lazy"`).
-Flatpack paints that image as the page backdrop. A blank URL skips the slot.
+Flatpack paints that image as the page backdrop. A blank slot skips it.
+`"false"` skips it. `"true"` and `"default"` use
+`recording_studio_default_background_image`. Any other non-blank string is
+the image path.
 The layout calls `flat_pack_page_nav_tag` and one `page_nav_button_group`
 (`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) inside
 `FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. It also reads
@@ -626,6 +632,7 @@ round buttons with `data-fp-style="default"`. `<html>` is `data-theme="rounded"`
 <% content_for :subtitle, "Pick one to open." %>
 <% flat_pack_page_nav(round: true, style: :default, anchor_href: root_path, anchor_tooltip: "Home") %>
 <% recording_studio_seo_description("Browse and manage your workspaces") %>
+<% recording_studio_background_image %>
 <% recording_studio_background_image("/photos/cover.png") %>
 <% recording_studio_page_width(:wide) %>
 <% register_page_nav "New workspace", new_workspace_path, role: :primary, icon: :plus %>
