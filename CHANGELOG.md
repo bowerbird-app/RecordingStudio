@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.0.0](https://github.com/bowerbird-app/RecordingStudio/compare/v6.3.0...v7.0.0) (2026-10-28)
+
+
+### ⚠ BREAKING CHANGES
+
+* harden capability-owned child recordables
+* remove built-in access control from core
+
+### Features
+
+* add Capabilities.include_for enablement factory ([#43](https://github.com/bowerbird-app/RecordingStudio/issues/43)) ([fce33c6](https://github.com/bowerbird-app/RecordingStudio/commit/fce33c603f8e57a2c0dd278ab901651f6d78c5d4))
+* add capability framework and release automation ([bc1bc5f](https://github.com/bowerbird-app/RecordingStudio/commit/bc1bc5fb182f0dd23bfe7ed0d992647ec06e6526))
+* add configurable default background image and opt-in helper ([#71](https://github.com/bowerbird-app/RecordingStudio/issues/71)) ([6acc037](https://github.com/bowerbird-app/RecordingStudio/commit/6acc0377fa4c940a2ff7222bbcbdc3ee6d59c591))
+* add feature toggles for legacy move/copyable/device sessions ([7a8f02f](https://github.com/bowerbird-app/RecordingStudio/commit/7a8f02f5c09a30f27c318ec93133b99dae98dba9))
+* add recording studio default layout contract ([14045cf](https://github.com/bowerbird-app/RecordingStudio/commit/14045cf18ef3378b11f114825eb169fc6c433958))
+* align default layout nav contract and workspaces page nav ([369496d](https://github.com/bowerbird-app/RecordingStudio/commit/369496de38869bdf185beb8da4b697b7653314ab))
+* **cloud-agent:** add Billing 0.9.13 boot hooks ([#46](https://github.com/bowerbird-app/RecordingStudio/issues/46)) ([0d11c15](https://github.com/bowerbird-app/RecordingStudio/commit/0d11c15ea74cc61207bcd3bdb56058b6ee1fc990))
+* formalize addon capability contract in docs and registration lifecycle ([b47e733](https://github.com/bowerbird-app/RecordingStudio/commit/b47e733358784018f169ae8eb4d7bbcc6cc74e37))
+* harden capability-owned child recordables ([a475b91](https://github.com/bowerbird-app/RecordingStudio/commit/a475b91d74924cc9b648b8f2bf7df3291919d5e0))
+* remove built-in access control from core ([c6d7f00](https://github.com/bowerbird-app/RecordingStudio/commit/c6d7f0038fb44bb6928e1831545f18c9cf7f2242))
+* remove legacy moveable support ([7383c5e](https://github.com/bowerbird-app/RecordingStudio/commit/7383c5ef0c92358368710b27771b6b512cbdd004))
+* shared root declarations (4.1.0) ([#41](https://github.com/bowerbird-app/RecordingStudio/issues/41)) ([8d00bdc](https://github.com/bowerbird-app/RecordingStudio/commit/8d00bdc840a06a7ed5b5cc692fce00bb66916fbf))
+* support background_image and page_width in default layout ([#70](https://github.com/bowerbird-app/RecordingStudio/issues/70)) ([9848462](https://github.com/bowerbird-app/RecordingStudio/commit/984846214265c44efd505eab32d02ae3f3ffeac7))
+* support page_nav_right slot alongside page_nav_button_group in default layout ([#69](https://github.com/bowerbird-app/RecordingStudio/issues/69)) ([403521d](https://github.com/bowerbird-app/RecordingStudio/commit/403521dddc141ddb12d1ed8d8b30bd4105a9d6f8))
+* use page nav on new workspace view ([1b838e2](https://github.com/bowerbird-app/RecordingStudio/commit/1b838e2de29506f1c0b925e6597d55fef0c5def6))
+* use page nav on new workspace view ([b2a633d](https://github.com/bowerbird-app/RecordingStudio/commit/b2a633dbca9f84d77029250902277c73f32fe733))
+
+
+### Bug Fixes
+
+* **ci:** force postgres user in health check ([1b6dbad](https://github.com/bowerbird-app/RecordingStudio/commit/1b6dbad50c83ae383f5e180cfd59e1191eeba4d8))
+* **layout:** port page nav and honor a host layout ([#57](https://github.com/bowerbird-app/RecordingStudio/issues/57)) ([75ce048](https://github.com/bowerbird-app/RecordingStudio/commit/75ce048ab028bef6519cf205efde7cc1594f6d5e))
+* require flat_pack 0.1.315 and update default layout top nav ([#67](https://github.com/bowerbird-app/RecordingStudio/issues/67)) ([ed830e2](https://github.com/bowerbird-app/RecordingStudio/commit/ed830e247fcb91b32a58da0fd6a6bac2e1c3dd75))
+* **test:** stabilize device session cleanup and ordering assertion ([1ef35d1](https://github.com/bowerbird-app/RecordingStudio/commit/1ef35d1bd4c0055b17eae24ca2acb0b039fc06d8))
+
 ## [Unreleased]
 
 ## [6.3.0] - 2026-10-27
