@@ -3,7 +3,14 @@
   app_name = (rs_config.respond_to?(:app_name) ? rs_config.app_name : nil).presence || "CHANGE_APP_NAME_IN_DEFAULT_LAYOUT"
   heading = content_for(:title).to_s.strip.presence
   subtitle = content_for(:subtitle).to_s.strip.presence
-  background_image = content_for(:background_image).to_s.strip.presence
+  raw_background_image = content_for(:background_image).to_s.strip.presence
+  background_image = if raw_background_image.nil? || raw_background_image == "false"
+    nil
+  elsif raw_background_image == "true" || raw_background_image == "default"
+    recording_studio_default_background_image
+  else
+    raw_background_image
+  end
   page_width = content_for(:page_width).to_s.strip.presence&.to_sym || :default
   document_title = heading || app_name
   back_row = flat_pack_page_nav_tag

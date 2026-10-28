@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "assets"
+
 module RecordingStudio
   class Engine < ::Rails::Engine
     isolate_namespace RecordingStudio
@@ -11,6 +13,10 @@ module RecordingStudio
       RecordingStudio::DelegatedTypeRegistrar.apply!
       RecordingStudio.apply_capabilities!
       RecordingStudio::Engine.apply_registered_extensions!
+    end
+
+    initializer "recording_studio.assets" do |app|
+      RecordingStudio::Assets.register(app)
     end
 
     initializer "recording_studio.controller_layout" do

@@ -137,7 +137,7 @@ provide the same surroundings.
 | `:subtitle` | `content_for :subtitle` | Page title subtitle |
 | `:head` | `default_layout_head` or `content_for :head` | Rendered in `<head>` |
 | `:seo_description` | `recording_studio_seo_description` | Description and `og:description` |
-| `:background_image` | `recording_studio_background_image` or `content_for :background_image, url` | Decorative image in `layout.background` |
+| `:background_image` | `recording_studio_background_image` or `content_for :background_image` | Decorative image in `layout.background`. No argument, `true`, `:default`, `"true"`, or `"default"` uses the shared image. A path uses that image. `false`, `nil`, `""`, and `"false"` skip it. |
 | `:page_width` | `recording_studio_page_width` or `content_for :page_width, width` | `FlatPack::PageLayout` `width:` (`:narrow`, `:default`, `:wide`, `:full`) |
 | `:page_nav_right` | `recording_studio_page_nav_right` or `content_for :page_nav_right` | Before the button group in `nav.right` |
 
@@ -167,7 +167,8 @@ Recording Studio still provides:
 - `default_layout_head { ... }`
 - `recording_studio_page_nav_right { ... }`
 - `recording_studio_seo_description(text)`
-- `recording_studio_background_image(url)`
+- `recording_studio_default_background_image`
+- `recording_studio_background_image(url = :default)`
 - `recording_studio_page_width(width)`
 
 Flatpack provides the page nav:
@@ -187,7 +188,7 @@ and close. `recording_studio_page_nav_right` is the custom right-side slot.
 | Visible title | `FlatPack::PageTitle` when `:title` is present. `:subtitle` is optional. |
 | Theme | `data-theme="rounded"` |
 | Description | Omitted when blank |
-| Background | Omitted when `:background_image` is blank. Otherwise one lazy image in `layout.background`. |
+| Background | Omitted when `:background_image` is blank or `"false"`. `"true"` and `"default"` use `configuration.default_background_image`. Any other value is one lazy image in `layout.background`. |
 | Page width | `:default` when `:page_width` is blank. Otherwise `:narrow`, `:default`, `:wide`, or `:full`. |
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
@@ -234,14 +235,27 @@ only `:page_nav_right` still draws the top nav.
 
 ## Background
 
+The shared image is `RecordingStudio.configuration.default_background_image`.
+It starts as `RecordingStudio::DEFAULT_BACKGROUND_IMAGE`
+(`"recording_studio/default_background.svg"`). Opt in on a page:
+
+```erb
+<% recording_studio_background_image %>
+```
+
+`true` and `:default` opt in the same way. A path replaces the shared image
+for that page only:
+
 ```erb
 <% recording_studio_background_image("/photos/cover.png") %>
 ```
 
-`content_for :background_image, "/photos/cover.png"` sets the same slot.
+`content_for :background_image, "default"` opts in without the helper.
+`content_for :background_image, "/photos/cover.png"` sets a custom path.
+`"false"`, `nil`, `false`, and `""` leave the slot empty.
 The layout renders one `image_tag` with `alt=""` and `loading="lazy"` inside
 `layout.background`. Flatpack blurs the image and lays a tint over it.
-A blank URL skips the slot.
+A blank slot skips the backdrop.
 
 ## Page width
 

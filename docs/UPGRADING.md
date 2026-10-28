@@ -2,6 +2,67 @@
 
 ## Unreleased
 
+## Upgrading To 6.3.0
+
+This release adds a built-in backdrop the host can share, and a way for a
+page to opt into it. No migration.
+
+### What changed
+
+- The gem ships `app/assets/images/recording_studio/default_background.svg`.
+  `RecordingStudio::DEFAULT_BACKGROUND_IMAGE` is that logical path.
+- `RecordingStudio.configuration.default_background_image` starts as that
+  path. `RecordingStudio.configure`, `config/recording_studio.yml`, and
+  `config.x.recording_studio` can replace it. Every gem that reads the
+  setting sees the host value.
+- `recording_studio_default_background_image` returns the configured path,
+  stripped. A blank configuration returns `nil`.
+- `recording_studio_background_image` with no argument, `true`, or `:default`
+  writes that path to `content_for :background_image`. A string writes that
+  string. `nil`, `false`, and `""` write nothing and return `nil`.
+- The default layout still skips `layout.background` when the slot is
+  missing or blank. The strings `"true"` and `"default"` resolve to the
+  configured image. The string `"false"` resolves to no image. Any other
+  non-blank string is used as the image path.
+- The engine appends `app/assets/images` when `config.assets` exists, and
+  appends `"recording_studio/default_background.svg"` to
+  `config.assets.precompile` when that list exists.
+
+### Upgrade steps
+
+No steps for hosts that already use `recording_studio/default_layout` and
+do not want a backdrop. Those pages stay as they are.
+
+To share one image across gems:
+
+```ruby
+RecordingStudio.configure do |config|
+  config.default_background_image = "/backgrounds/studio.webp"
+end
+```
+
+The same key works in `config/recording_studio.yml`:
+
+```yaml
+default_background_image: "/backgrounds/studio.webp"
+```
+
+To use the shared image on one page:
+
+```erb
+<% recording_studio_background_image %>
+```
+
+`recording_studio_background_image(true)` and
+`recording_studio_background_image(:default)` do the same thing.
+`content_for :background_image, "default"` does too.
+
+To use a different image on one page:
+
+```erb
+<% recording_studio_background_image("/photos/cover.png") %>
+```
+
 ## Upgrading To 6.2.0
 
 This release adds an optional background image and a page width on the

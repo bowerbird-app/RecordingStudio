@@ -14,7 +14,8 @@ module RecordingStudio
       :event_notifications_enabled,
       :idempotency_mode,
       :recordable_dup_strategy,
-      :app_name
+      :app_name,
+      :default_background_image
     )
     attr_reader :recordable_types,
                 :hooks,
@@ -46,6 +47,7 @@ module RecordingStudio
       @hooks = Hooks.new
       @app_name = "RecordingStudio"
       @layout = nil
+      @default_background_image = RecordingStudio::DEFAULT_BACKGROUND_IMAGE
     end
 
     def layout=(value)

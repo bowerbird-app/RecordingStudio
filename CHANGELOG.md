@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.3.0] - 2026-10-27
+
+### Added
+
+* Built-in backdrop at `app/assets/images/recording_studio/default_background.svg`.
+  `RecordingStudio::DEFAULT_BACKGROUND_IMAGE` is
+  `"recording_studio/default_background.svg"`. The engine adds
+  `app/assets/images` to the asset load path and, when the host exposes
+  `config.assets.precompile`, precompiles that file. Sprockets and Propshaft
+  both serve `image_tag("recording_studio/default_background.svg")` with no
+  host setup.
+* `RecordingStudio.configuration.default_background_image` defaults to that
+  path. Hosts set it with `RecordingStudio.configure`,
+  `config/recording_studio.yml`, or `config.x.recording_studio`. Other gems
+  read the same value.
+* `recording_studio_default_background_image` returns the configured path.
+* `recording_studio_background_image` with no argument, `true`, or `:default`
+  opts the page into that shared image. A string path uses that image for
+  the page only. `nil`, `false`, or a blank string leaves the page unchanged.
+* The default layout treats a `content_for :background_image` value of
+  `"true"` or `"default"` as the shared image, and `"false"` as no image.
+  Any other non-blank string is a custom path. A missing slot still renders
+  no backdrop.
+
+### Upgrade notes
+
+- No migration. Pages that do not opt in look the same.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-630).
+
 ## [6.2.0] - 2026-10-28
 
 ### Added
