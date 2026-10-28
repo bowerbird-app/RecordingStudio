@@ -3,6 +3,7 @@
 module RecordingStudio
   # Layout name used when a gem setting and `configuration.layout` are both nil.
   DEFAULT_LAYOUT = "recording_studio/default_layout"
+  DEFAULT_BACKGROUND_IMAGE = "recording_studio/default_background.svg"
 
   # Resolves one layout setting and finds hard-coded `layout "recording_studio/..."` calls.
   module Layout
