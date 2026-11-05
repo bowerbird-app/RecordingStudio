@@ -54,6 +54,9 @@ When an AI agent needs to create or revise data, validate the hierarchy first in
   `RecordingStudio.parent_capabilities_for(child_type:, parent_recording:)` to explain the relationship.
 6. Prefer `root_recording.record`, `root_recording.revise`, and `recording.log_event!`; use
   `RecordingStudio.record!` only when you need the returned event object or lower-level control.
+7. Writes fail closed. Set `config.authorize_write` and supply an actor. A missing authorizer raises
+  `RecordingStudio::AuthorizationError`. A missing actor raises `RecordingStudio::ActorRequired`.
+  Set `config.allow_unauthorized_writes = true` only to keep the old open writes.
 
 ## Top-Level Module: `RecordingStudio`
 
@@ -217,6 +220,8 @@ Hierarchy errors:
 | `RecordingStudio::OrphanRecording` | A low-level new recording is attempted under an existing root without a parent. |
 | `RecordingStudio::MissingRecordableDeclaration` | A configured ActiveRecord type has no declaration while declarations are required. |
 | `RecordingStudio::InvalidRecordableDeclaration` | A declaration has invalid arguments, references unregistered parents, uses `shared:` incorrectly, or belongs to an unregistered type while strict declarations are enabled. |
+| `RecordingStudio::AuthorizationError` | `record!` has no `config.authorize_write` (unless `allow_unauthorized_writes` is true), or the authorizer returned a falsey value. |
+| `RecordingStudio::ActorRequired` | `record!` has no actor (unless `allow_unauthorized_writes` is true and `require_actor` is false). |
 
 ## Configuration: `RecordingStudio::Configuration`
 
@@ -227,8 +232,11 @@ Use `RecordingStudio.configure` to access these settings.
 | `recordable_types` | nothing | `Array<String>` | Lists delegated recordable types currently registered. |
 | `recordable_types=(types)` | array of classes or names | normalized array | Declares which recordable classes the engine should treat as delegated types. |
 | `require_recordable_declarations` / `require_recordable_declarations=` | boolean | boolean | Requires configured ActiveRecord recordable types to declare hierarchy rules. Defaults to `true`. |
-| `actor` | callable | callable | Supplies the default actor for writes when callers omit `actor:`. |
+| `actor` | callable | callable | Supplies the default actor for writes when callers omit `actor:`. Writes with no actor raise `RecordingStudio::ActorRequired` unless `allow_unauthorized_writes` is true and `require_actor` is false. |
 | `impersonator` | callable | callable | Supplies the default impersonator for writes when callers omit `impersonator:`. |
+| `authorize_write` / `authorize_write=` | callable or `nil` | callable or `nil` | Host write gate invoked inside `record!`. Return truthy to allow. `nil` raises `RecordingStudio::AuthorizationError` unless `allow_unauthorized_writes` is true. |
+| `allow_unauthorized_writes` / `allow_unauthorized_writes=` | boolean | boolean | Opt out of fail-closed writes. Default `false`. Set `true` only to keep the old open writes when no authorizer or actor is configured. |
+| `require_actor` / `require_actor=` | boolean | boolean | When true, writes without an actor raise `RecordingStudio::ActorRequired`. Still applies when `allow_unauthorized_writes` is true. Redundant with the fail-closed default. |
 | `event_notifications_enabled` | boolean | boolean | Enables ActiveSupport event instrumentation. |
 | `instrumentation_enabled` / `instrumentation_enabled=` | boolean | boolean | Compatibility alias for `event_notifications_enabled`. |
 | `idempotency_mode` | `:return_existing` or `:raise` | symbol | Controls duplicate idempotency-key behavior. |
@@ -253,6 +261,7 @@ Important behavior:
 
 - `actor` defaults to `-> { Current.actor }` when `Current` exists.
 - `impersonator` defaults to `-> { Current.impersonator }` when `Current` exists.
+- Writes fail closed. Configure `authorize_write` and an actor. `allow_unauthorized_writes` defaults to `false`.
 - `idempotency_mode = :return_existing` is retry-friendly and usually correct for HTTP or job retries.
 - `recordable_dup_strategy = :dup` duplicates the recordable and clears known counter caches.
 - `RecordingStudio::DEFAULT_LAYOUT` is `"recording_studio/default_layout"`. It is the layout when both the gem block and `configuration.layout` are `nil`.

@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.5.0] - 2026-11-05
+
+### Behavior change
+
+* Writes fail closed. With no `config.authorize_write`, `RecordingStudio.record!`
+  raises `RecordingStudio::AuthorizationError`. With no actor,
+  it raises `RecordingStudio::ActorRequired`. The previous fail-open default is
+  opt-in through `config.allow_unauthorized_writes = true`.
+
+### Added
+
+* `config.allow_unauthorized_writes` (default `false`). Set `true` only to keep
+  the old open writes when no authorizer or actor is configured.
+
+### Upgrade notes
+
+- Hosts that already set `config.authorize_write` and supply an actor on writes
+  need no change.
+- Hosts that relied on open writes must set an authorizer and an actor, or
+  set `config.allow_unauthorized_writes = true`.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-650).
+
 ## [6.3.0] - 2026-10-27
 
 ### Added

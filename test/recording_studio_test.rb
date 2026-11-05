@@ -178,6 +178,13 @@ class RecordingStudioTest < Minitest::Test
     refute_includes RecordingStudio.configuration.to_h.keys, :features
   end
 
+  def test_allow_unauthorized_writes_defaults_to_false
+    configuration = RecordingStudio::Configuration.new
+
+    refute configuration.allow_unauthorized_writes
+    assert_equal false, configuration.to_h.fetch(:allow_unauthorized_writes)
+  end
+
   def test_configuration_to_h_reports_registered_hook_counts
     baseline = RecordingStudio.configuration.to_h.fetch(:hooks_registered).fetch(:after_initialize, 0)
 

@@ -24,6 +24,7 @@ module RecordingStudio
                 :require_recordable_declarations,
                 :authorize_write,
                 :require_actor,
+                :allow_unauthorized_writes,
                 :max_metadata_bytes,
                 :allow_unsafe_recordable_queries,
                 :configured_type_names
@@ -40,6 +41,7 @@ module RecordingStudio
       @recordable_dup_strategy = :dup
       @require_recordable_declarations = true
       @require_actor = false
+      @allow_unauthorized_writes = false
       @authorize_write = nil
       @max_metadata_bytes = DEFAULT_MAX_METADATA_BYTES
       @allow_unsafe_recordable_queries = false
@@ -82,6 +84,12 @@ module RecordingStudio
       raise ArgumentError, "require_actor must be true or false" unless [true, false].include?(value)
 
       @require_actor = value
+    end
+
+    def allow_unauthorized_writes=(value)
+      raise ArgumentError, "allow_unauthorized_writes must be true or false" unless [true, false].include?(value)
+
+      @allow_unauthorized_writes = value
     end
 
     def allow_unsafe_recordable_queries=(value)
@@ -196,6 +204,7 @@ module RecordingStudio
         idempotency_mode: idempotency_mode,
         require_recordable_declarations: require_recordable_declarations,
         require_actor: require_actor,
+        allow_unauthorized_writes: allow_unauthorized_writes,
         max_metadata_bytes: max_metadata_bytes,
         allow_unsafe_recordable_queries: allow_unsafe_recordable_queries,
         authorize_write_configured: !authorize_write.nil?,

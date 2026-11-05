@@ -12,8 +12,11 @@ recordables, and events, while authorization and root-selection policy belong to
 - Event actors and impersonators are polymorphic persisted records. The host app is responsible for assigning
   `Current.actor` and `Current.impersonator` or passing `actor:` and `impersonator:` explicitly.
 - Events are append-only through ActiveRecord. Purge history only through intentional SQL retention paths.
-- `config.authorize_write` is an optional host gate invoked inside `RecordingStudio.record!`.
-- `config.require_actor` fails closed when writes omit an actor (recommended for production).
+- `config.authorize_write` is the host write gate invoked inside `RecordingStudio.record!`. When it is unset,
+  writes raise `RecordingStudio::AuthorizationError`.
+- Writes with no actor raise `RecordingStudio::ActorRequired`.
+- `config.allow_unauthorized_writes` defaults to `false`. Set `true` only to keep the old fail-open writes.
+- `config.require_actor` still refuses a missing actor when `allow_unauthorized_writes` is true.
 - Relation/Arel/proc recordable query escape hatches are trusted-only and disabled by default.
 - Event `metadata` is size-limited by `config.max_metadata_bytes` (default 16KB).
 

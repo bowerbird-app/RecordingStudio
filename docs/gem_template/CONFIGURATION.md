@@ -20,8 +20,11 @@ Use the Ruby initializer for anything dynamic or callable. YAML is best for simp
 | --- | --- | --- | --- |
 | `recordable_types` | `Array<String>` | `[]` | Recordable classes available to delegated type resolution. |
 | `require_recordable_declarations` | `true` or `false` | `true` | When `true`, configured ActiveRecord types must call `recording_studio_recordable(...)`. |
-| `actor` | callable | `-> { Current.actor }` when `Current` exists | Used when write APIs omit `actor:`. |
+| `actor` | callable | `-> { Current.actor }` when `Current` exists | Used when write APIs omit `actor:`. A missing actor raises `ActorRequired` unless `allow_unauthorized_writes` is true and `require_actor` is false. |
 | `impersonator` | callable | `-> { Current.impersonator }` when `Current` exists | Used when write APIs omit `impersonator:`. |
+| `authorize_write` | callable or `nil` | `nil` | Host write gate inside `record!`. Return truthy to allow. Unset raises `AuthorizationError` unless `allow_unauthorized_writes` is true. |
+| `allow_unauthorized_writes` | boolean | `false` | Opt out of fail-closed writes. Set `true` only to keep the old open writes. |
+| `require_actor` | boolean | `false` | When true, writes without an actor raise `ActorRequired`. Applies when `allow_unauthorized_writes` is true. Redundant with the fail-closed default. |
 | `event_notifications_enabled` | boolean | `true` | Controls `recordings.event_created` notifications. |
 | `instrumentation_enabled` | boolean alias | same as `event_notifications_enabled` | Compatibility alias for the notification switch. |
 | `idempotency_mode` | `:return_existing` or `:raise` | `:return_existing` | Controls duplicate `idempotency_key` behavior. |
@@ -37,6 +40,8 @@ RecordingStudio.configure do |config|
   config.require_recordable_declarations = true
   config.actor = -> { Current.actor }
   config.impersonator = -> { Current.impersonator }
+  config.authorize_write = ->(actor:, **) { actor.present? }
+  config.allow_unauthorized_writes = false
   config.event_notifications_enabled = true
   config.idempotency_mode = :return_existing
   config.recordable_dup_strategy = :dup
@@ -59,12 +64,14 @@ development:
   instrumentation_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
+  # allow_unauthorized_writes: false
 
 production:
   recordable_types: []
   instrumentation_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
+  # allow_unauthorized_writes: false
 ```
 
 ## `config.x.recording_studio`
@@ -120,7 +127,8 @@ device-session behavior were extracted from core and should now live in the host
 | --- | --- |
 | `config/recording_studio.yml` seems ignored | Ensure the file is valid YAML and uses Rails environment keys such as `development:` or `production:`. |
 | Missing declaration errors on boot | Set `recordable_types` only for types that actually call `recording_studio_recordable(...)`, or temporarily disable strict enforcement during upgrades. |
-| Callable settings do not work from YAML | Move `actor`, `impersonator`, or custom duplication logic into the Ruby initializer. |
+| Callable settings do not work from YAML | Move `actor`, `impersonator`, `authorize_write`, or custom duplication logic into the Ruby initializer. |
+| Writes raise `AuthorizationError` or `ActorRequired` | Set `config.authorize_write` and an actor, or set `allow_unauthorized_writes: true` only if you want the old open writes. |
 | Old access/device-session config no longer works | Move that configuration to the extracted addon or host app; core no longer honors it. |
 
 ## Files To Check

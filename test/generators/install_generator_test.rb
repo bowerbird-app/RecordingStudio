@@ -24,7 +24,8 @@ class InstallGeneratorTest < Rails::Generators::TestCase
     run_generator
 
     assert_file "config/routes.rb", /mount RecordingStudio::Engine/
-    assert_file "config/initializers/recording_studio.rb"
+    assert_file "config/initializers/recording_studio.rb", /config\.authorize_write/
+    assert_file "config/initializers/recording_studio.rb", /allow_unauthorized_writes/
   ensure
     generator_class.define_method(:add_yaml_config?, original_prompt)
   end
