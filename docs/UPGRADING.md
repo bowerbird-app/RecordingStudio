@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## Upgrading To 6.3.2
+
+This release raises the Rails floor and adds a security CI workflow. No
+migration.
+
+### What changed
+
+- `recording_studio.gemspec` requires `rails` >= 8.1.4.1.
+- `flat_pack` stays `>= 0.1.315`. The development Gemfiles still pin
+  tag `v0.1.315`.
+- `.github/workflows/security.yml` runs `bin/bundler-audit`,
+  `bin/brakeman`, and `bin/importmap audit` in `test/dummy`.
+
+### Upgrade steps
+
+Move the host app to Rails 8.1.4.1 or newer, then `bundle update rails`.
+Keep the existing `flat_pack` pin unless a later release raises that
+floor.
+
 ## Upgrading To 6.3.1
 
 This release reports config load errors through `RecordingStudio::Warnings.warn`.

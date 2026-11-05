@@ -24,5 +24,5 @@ Gem::Specification.new do |spec|
   end
 
   spec.add_dependency "flat_pack", ">= 0.1.315"
-  spec.add_dependency "rails", ">= 8.1.0"
+  spec.add_dependency "rails", ">= 8.1.4.1"
 end

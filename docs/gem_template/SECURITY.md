@@ -43,6 +43,10 @@ That origin-check relaxation is for development convenience only.
 - the gemspec requires RubyGems MFA for publishing
 - container services use official Postgres, Redis, and Ruby base images for development
 - the repository currently has a git-sourced development dependency on `flat_pack`
+- `.github/workflows/security.yml` runs `bundler-audit`, Brakeman, and
+  `importmap audit` against `test/dummy` on pull requests, pushes to
+  `main`, Monday midnight UTC, and manual dispatch
+- the gemspec requires `rails` >= 8.1.4.1
 
 ## Production Checklist For Host Apps
 

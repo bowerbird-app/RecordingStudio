@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.3.2] - 2026-11-05
+
+### Changed
+
+* The gemspec requires `rails` >= 8.1.4.1. Development and test still
+  resolve the lockfile Rails version.
+* CI runs `bundler-audit`, Brakeman, and `importmap audit` from
+  `.github/workflows/security.yml` against `test/dummy`.
+
+### Upgrade notes
+
+- Hosts on Rails older than 8.1.4.1 need to move to that patch or newer.
+- `flat_pack` stays `>= 0.1.315`. Development still pins tag `v0.1.315`.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-632).
+
 ## [6.3.1] - 2026-11-05
 
 ### Changed
