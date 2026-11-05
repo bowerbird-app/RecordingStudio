@@ -14,7 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Config load still swallows `StandardError` from `config_for(:recording_studio)`
   and `config.x.recording_studio`. Those failures now go through
   `RecordingStudio::Warnings.warn` with the source name, error class, and
-  message. Defaults stay in place.
+  message. A missing `config/recording_studio.yml` stays silent. Defaults stay
+  in place.
 
 ### Upgrade notes
 

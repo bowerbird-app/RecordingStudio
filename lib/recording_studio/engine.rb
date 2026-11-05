@@ -33,23 +33,13 @@ module RecordingStudio
       RecordingStudio::Hooks.run(:before_initialize, self)
     end
 
-    # rubocop:disable Metrics/BlockLength
     initializer "recording_studio.load_config" do |app|
       if app.respond_to?(:config_for)
         begin
-          yaml = begin
-            app.config_for(:recording_studio)
-          rescue StandardError => e
-            RecordingStudio::Warnings.warn(
-              "[RecordingStudio] Could not load config_for(:recording_studio) (#{e.class}: #{e.message})"
-            )
-            nil
-          end
+          yaml = RecordingStudio::ConfigLoadWarning.yaml_for(app)
           RecordingStudio.configuration.merge!(yaml) if yaml.respond_to?(:each)
         rescue StandardError => e
-          RecordingStudio::Warnings.warn(
-            "[RecordingStudio] Could not load config_for(:recording_studio) (#{e.class}: #{e.message})"
-          )
+          RecordingStudio::ConfigLoadWarning.call("apply", e)
         end
       end
 
@@ -63,16 +53,13 @@ module RecordingStudio
             xcfg.each_pair { |k, v| hash[k] = v } if xcfg.respond_to?(:each_pair)
             RecordingStudio.configuration.merge!(hash) if hash&.any?
           rescue StandardError => e
-            RecordingStudio::Warnings.warn(
-              "[RecordingStudio] Could not load config.x.recording_studio (#{e.class}: #{e.message})"
-            )
+            RecordingStudio::ConfigLoadWarning.call("load config.x.recording_studio", e)
           end
         end
       end
 
       RecordingStudio::Hooks.run(:on_configuration, RecordingStudio.configuration)
     end
-    # rubocop:enable Metrics/BlockLength
 
     initializer "recording_studio.after_initialize", after: "recording_studio.load_config" do |_app|
       RecordingStudio::Hooks.run(:after_initialize, self)
