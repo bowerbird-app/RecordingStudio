@@ -64,7 +64,7 @@ class EngineInitializersTest < ActiveSupport::TestCase
     initializer = RecordingStudio::Engine.initializers.find { |init| init.name == "recording_studio.load_config" }
     warnings = []
 
-    RecordingStudio::Warnings.stub(:warn, ->(message) { warnings << message }) do
+    Rails.logger.stub(:warn, ->(message) { warnings << message }) do
       initializer.run(app)
     end
 
