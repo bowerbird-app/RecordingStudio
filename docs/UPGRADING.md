@@ -4,9 +4,11 @@
 
 ## Upgrading To 6.5.0
 
+This is a breaking default for hosts that never set `config.authorize_write`.
 Writes through `RecordingStudio.record!` now fail closed. A missing write
 authorizer raises `RecordingStudio::AuthorizationError`. A missing actor
-raises `RecordingStudio::ActorRequired`.
+raises `RecordingStudio::ActorRequired`. Hosts that already set an authorizer
+and supply an actor do not need to change.
 
 The one opt-out is `config.allow_unauthorized_writes`. It defaults to `false`.
 Set it `true` only when you deliberately want the old open writes.
