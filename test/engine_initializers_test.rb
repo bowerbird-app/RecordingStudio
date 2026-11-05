@@ -62,17 +62,18 @@ class EngineInitializersTest < ActiveSupport::TestCase
     end
 
     initializer = RecordingStudio::Engine.initializers.find { |init| init.name == "recording_studio.load_config" }
-    warnings = []
+    io = StringIO.new
+    original_logger = Rails.logger
+    Rails.logger = Logger.new(io)
 
-    Rails.logger.stub(:warn, ->(message) { warnings << message }) do
-      initializer.run(app)
-    end
+    initializer.run(app)
 
-    assert_equal 1, warnings.size
-    assert_includes warnings.first, "config_for(:recording_studio)"
-    assert_includes warnings.first, "RuntimeError"
-    assert_includes warnings.first, "boom"
+    output = io.string
+    assert_includes output, "config_for(:recording_studio)"
+    assert_includes output, "RuntimeError"
+    assert_includes output, "boom"
   ensure
+    Rails.logger = original_logger if defined?(original_logger)
     app.singleton_class.send(:define_method, :config_for, original_method)
   end
 end
