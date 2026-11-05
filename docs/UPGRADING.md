@@ -2,6 +2,32 @@
 
 ## Unreleased
 
+## Upgrading To 6.4.0
+
+`instrumentation_enabled` is gone. Use `event_notifications_enabled`.
+
+### What changed
+
+- `RecordingStudio::Configuration` no longer defines
+  `instrumentation_enabled` or `instrumentation_enabled=`.
+- The install YAML template writes `event_notifications_enabled`.
+- Loading YAML (or any `merge!` hash) with `instrumentation_enabled` warns
+  through `RecordingStudio::Warnings.warn` and does not copy the value.
+
+### Upgrade steps
+
+Rename the key:
+
+```yaml
+event_notifications_enabled: true
+```
+
+Or in the initializer:
+
+```ruby
+config.event_notifications_enabled = true
+```
+
 ## Upgrading To 6.3.0
 
 This release adds a built-in backdrop the host can share, and a way for a

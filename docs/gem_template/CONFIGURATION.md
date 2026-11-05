@@ -23,7 +23,6 @@ Use the Ruby initializer for anything dynamic or callable. YAML is best for simp
 | `actor` | callable | `-> { Current.actor }` when `Current` exists | Used when write APIs omit `actor:`. |
 | `impersonator` | callable | `-> { Current.impersonator }` when `Current` exists | Used when write APIs omit `impersonator:`. |
 | `event_notifications_enabled` | boolean | `true` | Controls `recordings.event_created` notifications. |
-| `instrumentation_enabled` | boolean alias | same as `event_notifications_enabled` | Compatibility alias for the notification switch. |
 | `idempotency_mode` | `:return_existing` or `:raise` | `:return_existing` | Controls duplicate `idempotency_key` behavior. |
 | `recordable_dup_strategy` | symbol or callable | `:dup` | Global duplication strategy used by `revise`. |
 | `recordable_dup_strategies` | `Hash<String, callable>` | `{}` | Per-type overrides registered with `register_recordable_dup_strategy`. |
@@ -56,13 +55,13 @@ development:
   recordable_types:
     - Workspace
     - Page
-  instrumentation_enabled: true
+  event_notifications_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
 
 production:
   recordable_types: []
-  instrumentation_enabled: true
+  event_notifications_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
 ```

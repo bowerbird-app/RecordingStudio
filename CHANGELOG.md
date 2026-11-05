@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.4.0] - 2026-11-05
+
+### Removed
+
+* `Configuration#instrumentation_enabled` and `#instrumentation_enabled=`
+  (the compatibility alias for `event_notifications_enabled`).
+
+### Upgrade notes
+
+- Rename YAML and Ruby config `instrumentation_enabled` to
+  `event_notifications_enabled`. A leftover YAML key warns and is ignored.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-640).
+
 ## [6.3.0] - 2026-10-27
 
 ### Added
