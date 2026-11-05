@@ -1,7 +1,7 @@
 development:
   recordable_types:
     - Page
-  instrumentation_enabled: true
+  event_notifications_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
   # Writes fail closed. Set authorize_write and actor in the Ruby initializer.
@@ -12,7 +12,7 @@ development:
 
 production:
   recordable_types: []
-  instrumentation_enabled: true
+  event_notifications_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
   # Writes fail closed. Set authorize_write and actor in the Ruby initializer.

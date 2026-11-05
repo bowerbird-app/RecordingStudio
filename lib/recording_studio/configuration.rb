@@ -61,14 +61,6 @@ module RecordingStudio
       resolved.nil? ? default : resolved
     end
 
-    def instrumentation_enabled
-      event_notifications_enabled
-    end
-
-    def instrumentation_enabled=(value)
-      self.event_notifications_enabled = value
-    end
-
     def recordable_types=(types)
       @recordable_types = Array(types).map { |type| type.is_a?(Class) ? type.name : type.to_s }.uniq
       @configured_type_names = @recordable_types.filter_map(&:presence).uniq.freeze
@@ -236,6 +228,12 @@ module RecordingStudio
 
       hash.each do |k, v|
         key = k.to_s
+        if key == "instrumentation_enabled"
+          RecordingStudio::Warnings.warn(
+            "[RecordingStudio] 'instrumentation_enabled' was removed. Use 'event_notifications_enabled'."
+          )
+          next
+        end
         if REMOVED_CONFIGURATION_KEYS.include?(key)
           warn_removed_configuration_key!(key)
           next

@@ -21,8 +21,8 @@ default is in force, a missing actor is refused either way.
   `allow_unauthorized_writes` is `true` and `require_actor` is `false`.
 - `RecordingStudio::Authorization.authorize_write!` requires
   `config.authorize_write` unless `allow_unauthorized_writes` is `true`.
-- The install initializer now sets `authorize_write` to allow writes when an
-  actor is present.
+- The install initializer comments out a sample `authorize_write` that allows
+  a write when an actor is present. Uncomment it, or set your own authorizer.
 - `root_recording_for` still creates the root `Recording` row without this
   gate. Child writes still go through `record!`.
 
@@ -54,6 +54,68 @@ The same key works in `config/recording_studio.yml`.
 An app that upgrades without an authorizer or actor will see
 `AuthorizationError` or `ActorRequired` on `record`, `revise`, and
 `log_event!`.
+
+## Upgrading To 6.4.0
+
+`instrumentation_enabled` is gone. Use `event_notifications_enabled`.
+
+### What changed
+
+- `RecordingStudio::Configuration` no longer defines
+  `instrumentation_enabled` or `instrumentation_enabled=`.
+- The install YAML template writes `event_notifications_enabled`.
+- Loading YAML (or any `merge!` hash) with `instrumentation_enabled` warns
+  through `RecordingStudio::Warnings.warn` and does not copy the value.
+
+### Upgrade steps
+
+Rename the key:
+
+```yaml
+event_notifications_enabled: true
+```
+
+Or in the initializer:
+
+```ruby
+config.event_notifications_enabled = true
+```
+
+## Upgrading To 6.3.2
+
+This release raises the Rails floor and adds a security CI workflow. No
+migration.
+
+### What changed
+
+- `recording_studio.gemspec` requires `rails` >= 8.1.4.1.
+- `flat_pack` stays `>= 0.1.315`. The development Gemfiles still pin
+  tag `v0.1.315`.
+- `.github/workflows/security.yml` runs `bin/bundler-audit`,
+  `bin/brakeman`, and `bin/importmap audit` in `test/dummy`.
+
+### Upgrade steps
+
+Move the host app to Rails 8.1.4.1 or newer, then `bundle update rails`.
+Keep the existing `flat_pack` pin unless a later release raises that
+floor.
+
+## Upgrading To 6.3.1
+
+This release reports config load errors through `RecordingStudio::Warnings.warn`.
+No migration. Boot still does not raise, and defaults stay in place.
+
+### What changed
+
+- `config_for(:recording_studio)` and `config.x.recording_studio` still rescue
+  `StandardError`. The rescue now warns with the config source, error class,
+  and message instead of ignoring the error. A missing
+  `config/recording_studio.yml` does not warn.
+
+### Upgrade steps
+
+None. Watch logs for `[RecordingStudio] Could not load` if a present YAML file
+or `config.x.recording_studio` fails to read.
 
 ## Upgrading To 6.3.0
 

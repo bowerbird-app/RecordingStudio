@@ -8,8 +8,11 @@ selection lives in [../API_REFERENCE.md](../API_REFERENCE.md); this file focuses
 RecordingStudio loads configuration in this order, with later sources winning:
 
 1. Defaults from `RecordingStudio::Configuration#initialize`
-2. `config/recording_studio.yml` via `Rails.application.config_for(:recording_studio)` when present
-3. `config.x.recording_studio` when present
+2. `config/recording_studio.yml` via `Rails.application.config_for(:recording_studio)` when present.
+   A missing file is silent. Load errors for a present file are swallowed and
+   reported with `RecordingStudio::Warnings.warn`.
+3. `config.x.recording_studio` when present. A failed hash merge is swallowed
+   and reported the same way.
 4. `config/initializers/recording_studio.rb`
 
 Use the Ruby initializer for anything dynamic or callable. YAML is best for simple serializable values.
@@ -26,7 +29,6 @@ Use the Ruby initializer for anything dynamic or callable. YAML is best for simp
 | `allow_unauthorized_writes` | boolean | `false` | Opt out of fail-closed writes. Set `true` only to keep the old open writes. |
 | `require_actor` | boolean | `false` | When true, writes without an actor raise `ActorRequired`. Applies when `allow_unauthorized_writes` is true. Redundant with the fail-closed default. |
 | `event_notifications_enabled` | boolean | `true` | Controls `recordings.event_created` notifications. |
-| `instrumentation_enabled` | boolean alias | same as `event_notifications_enabled` | Compatibility alias for the notification switch. |
 | `idempotency_mode` | `:return_existing` or `:raise` | `:return_existing` | Controls duplicate `idempotency_key` behavior. |
 | `recordable_dup_strategy` | symbol or callable | `:dup` | Global duplication strategy used by `revise`. |
 | `recordable_dup_strategies` | `Hash<String, callable>` | `{}` | Per-type overrides registered with `register_recordable_dup_strategy`. |
@@ -61,14 +63,14 @@ development:
   recordable_types:
     - Workspace
     - Page
-  instrumentation_enabled: true
+  event_notifications_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
   # allow_unauthorized_writes: false
 
 production:
   recordable_types: []
-  instrumentation_enabled: true
+  event_notifications_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
   # allow_unauthorized_writes: false

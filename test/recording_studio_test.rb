@@ -185,6 +185,35 @@ class RecordingStudioTest < Minitest::Test
     assert_equal false, configuration.to_h.fetch(:allow_unauthorized_writes)
   end
 
+  def test_instrumentation_enabled_alias_is_removed
+    configuration = RecordingStudio::Configuration.new
+
+    assert_raises(NoMethodError) { configuration.instrumentation_enabled }
+    assert_raises(NoMethodError) { configuration.instrumentation_enabled = false }
+    refute_respond_to configuration, :instrumentation_enabled
+    refute_respond_to configuration, :instrumentation_enabled=
+  end
+
+  def test_merge_warns_on_removed_instrumentation_enabled_yaml_key
+    configuration = RecordingStudio::Configuration.new
+    configuration.event_notifications_enabled = true
+    warnings = []
+    original_warn = RecordingStudio::Warnings.method(:warn)
+
+    RecordingStudio::Warnings.define_singleton_method(:warn) do |message|
+      warnings << message
+    end
+
+    configuration.merge!("instrumentation_enabled" => false)
+
+    assert_equal true, configuration.event_notifications_enabled
+    assert_equal 1, warnings.size
+    assert_includes warnings.first, "instrumentation_enabled"
+    assert_includes warnings.first, "event_notifications_enabled"
+  ensure
+    RecordingStudio::Warnings.define_singleton_method(:warn, original_warn)
+  end
+
   def test_configuration_to_h_reports_registered_hook_counts
     baseline = RecordingStudio.configuration.to_h.fetch(:hooks_registered).fetch(:after_initialize, 0)
 

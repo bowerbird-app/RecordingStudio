@@ -238,7 +238,6 @@ Use `RecordingStudio.configure` to access these settings.
 | `allow_unauthorized_writes` / `allow_unauthorized_writes=` | boolean | boolean | Opt out of fail-closed writes. Default `false`. Set `true` only to keep the old open writes when no authorizer or actor is configured. |
 | `require_actor` / `require_actor=` | boolean | boolean | When true, writes without an actor raise `RecordingStudio::ActorRequired`. Still applies when `allow_unauthorized_writes` is true. Redundant with the fail-closed default. |
 | `event_notifications_enabled` | boolean | boolean | Enables ActiveSupport event instrumentation. |
-| `instrumentation_enabled` / `instrumentation_enabled=` | boolean | boolean | Compatibility alias for `event_notifications_enabled`. |
 | `idempotency_mode` | `:return_existing` or `:raise` | symbol | Controls duplicate idempotency-key behavior. |
 | `recordable_dup_strategy` | symbol or callable | symbol or callable | Global fallback duplication strategy used by `revise`. |
 | `recordable_dup_strategies` | nothing | `Hash<String, callable>` | Introspection for per-type duplication overrides. |

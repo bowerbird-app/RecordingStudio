@@ -9,6 +9,6 @@ Next steps:
 	- shared domain forests use `root: true, shared: true`
 	- child-only types use `root: false, allowed_parent_types: [...]`
 4. Set `Current.actor` and `Current.impersonator`, or pass `actor:` and `impersonator:` explicitly from your app.
-   Writes fail closed. Keep `config.authorize_write` set. A missing actor raises `ActorRequired`.
+   Writes fail closed. Uncomment `config.authorize_write` in the initializer (or set your own). A missing actor raises `ActorRequired`.
 5. If your app uses Tailwind, rebuild assets with `bin/rails tailwindcss:build`.
 6. The `/recording_studio` mount is not a bundled UI. Start integrating through `RecordingStudio.root_recording_for(...)` and the API docs instead.

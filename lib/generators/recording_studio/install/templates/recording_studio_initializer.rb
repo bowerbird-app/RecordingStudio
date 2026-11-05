@@ -21,7 +21,7 @@ RecordingStudio.configure do |config|
   # Missing actor raises ActorRequired. Return truthy to allow the write.
   # The callable also receives action:, recordable:, recording:, root_recording:,
   # parent_recording:, and impersonator:.
-  config.authorize_write = ->(actor:, **) { actor.present? }
+  # config.authorize_write = ->(actor:, **) { actor.present? }
 
   # Set true only to restore the old fail-open writes (no authorizer, no actor).
   # config.allow_unauthorized_writes = false

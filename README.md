@@ -4,7 +4,7 @@ RecordingStudio is a Rails engine foundation that implements Basecamp-style **Re
 using `delegated_type`. It provides an append-only event timeline with polymorphic actors, a root recording API, and a
 stable mixin surface for capabilities like comments, attachments, and reactions.
 
-**Requirements:** Ruby 3.3+ and Rails 8.1+.
+**Requirements:** Ruby 3.3+ and Rails 8.1.4.1+.
 
 ## Contents
 
@@ -586,7 +586,6 @@ end
   original event when the key matches, so retries are safe and do not create duplicates. `:raise` raises an error when
   the key matches, so callers must handle duplicates explicitly.
 - `event_notifications_enabled`: Emits `recordings.event_created` ActiveSupport notifications when true.
-- `instrumentation_enabled`: Compatibility alias for `event_notifications_enabled`.
 - `recordable_dup_strategy`: `:dup` clones attributes on revision; you can supply a callable for custom duplication.
 - `register_recordable_dup_strategy`: lets trusted addon code override duplication for one recordable type without
   changing the global fallback.
