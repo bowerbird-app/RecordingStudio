@@ -62,10 +62,16 @@ class EngineInitializersTest < ActiveSupport::TestCase
     end
 
     initializer = RecordingStudio::Engine.initializers.find { |init| init.name == "recording_studio.load_config" }
+    warnings = []
 
-    assert_silent do
+    RecordingStudio::Warnings.stub(:warn, ->(message) { warnings << message }) do
       initializer.run(app)
     end
+
+    assert_equal 1, warnings.size
+    assert_includes warnings.first, "config_for(:recording_studio)"
+    assert_includes warnings.first, "RuntimeError"
+    assert_includes warnings.first, "boom"
   ensure
     app.singleton_class.send(:define_method, :config_for, original_method)
   end

@@ -8,8 +8,10 @@ selection lives in [../API_REFERENCE.md](../API_REFERENCE.md); this file focuses
 RecordingStudio loads configuration in this order, with later sources winning:
 
 1. Defaults from `RecordingStudio::Configuration#initialize`
-2. `config/recording_studio.yml` via `Rails.application.config_for(:recording_studio)` when present
-3. `config.x.recording_studio` when present
+2. `config/recording_studio.yml` via `Rails.application.config_for(:recording_studio)` when present.
+   Load errors are swallowed and reported with `RecordingStudio::Warnings.warn`.
+3. `config.x.recording_studio` when present. A failed hash merge is swallowed
+   and reported the same way.
 4. `config/initializers/recording_studio.rb`
 
 Use the Ruby initializer for anything dynamic or callable. YAML is best for simple serializable values.

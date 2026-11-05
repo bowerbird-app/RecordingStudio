@@ -38,12 +38,17 @@ module RecordingStudio
         begin
           yaml = begin
             app.config_for(:recording_studio)
-          rescue StandardError
+          rescue StandardError => e
+            RecordingStudio::Warnings.warn(
+              "[RecordingStudio] Could not load config_for(:recording_studio) (#{e.class}: #{e.message})"
+            )
             nil
           end
           RecordingStudio.configuration.merge!(yaml) if yaml.respond_to?(:each)
-        rescue StandardError => _e
-          # ignore load errors; host app can provide initializer overrides
+        rescue StandardError => e
+          RecordingStudio::Warnings.warn(
+            "[RecordingStudio] Could not load config_for(:recording_studio) (#{e.class}: #{e.message})"
+          )
         end
       end
 
@@ -56,8 +61,10 @@ module RecordingStudio
             hash = {}
             xcfg.each_pair { |k, v| hash[k] = v } if xcfg.respond_to?(:each_pair)
             RecordingStudio.configuration.merge!(hash) if hash&.any?
-          rescue StandardError => _e
-            # ignore
+          rescue StandardError => e
+            RecordingStudio::Warnings.warn(
+              "[RecordingStudio] Could not load config.x.recording_studio (#{e.class}: #{e.message})"
+            )
           end
         end
       end

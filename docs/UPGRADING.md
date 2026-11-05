@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## Upgrading To 6.3.1
+
+This release reports config load errors through `RecordingStudio::Warnings.warn`.
+No migration. Boot still does not raise, and defaults stay in place.
+
+### What changed
+
+- `config_for(:recording_studio)` and `config.x.recording_studio` still rescue
+  `StandardError`. The rescue now warns with the config source, error class,
+  and message instead of ignoring the error.
+
+### Upgrade steps
+
+None. Watch logs for `[RecordingStudio] Could not load` if YAML or
+`config.x.recording_studio` fails to read.
+
 ## Upgrading To 6.3.0
 
 This release adds a built-in backdrop the host can share, and a way for a

@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.3.1] - 2026-11-05
+
+### Changed
+
+* Config load still swallows `StandardError` from `config_for(:recording_studio)`
+  and `config.x.recording_studio`. Those failures now go through
+  `RecordingStudio::Warnings.warn` with the source name, error class, and
+  message. Defaults stay in place.
+
+### Upgrade notes
+
+- No migration. Hosts that already had a bad YAML file or `config.x`
+  hash keep booting; they now see a warning instead of a silent skip.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-631).
+
 ## [6.3.0] - 2026-10-27
 
 ### Added
