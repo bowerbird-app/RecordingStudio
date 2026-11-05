@@ -4,7 +4,7 @@ RecordingStudio is a Rails engine foundation that implements Basecamp-style **Re
 using `delegated_type`. It provides an append-only event timeline with polymorphic actors, a root recording API, and a
 stable mixin surface for capabilities like comments, attachments, and reactions.
 
-**Requirements:** Ruby 3.3+ and Rails 8.1+.
+**Requirements:** Ruby 3.3+ and Rails 8.1.4.1+.
 
 ## Contents
 

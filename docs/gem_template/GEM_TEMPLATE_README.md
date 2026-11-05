@@ -28,7 +28,7 @@ Repository maintenance:
 
 ## Quick Repository Facts
 
-- Ruby 3.3+ and Rails 8.1+
+- Ruby 3.3+ and Rails 8.1.4.1+
 - The dummy app lives in `test/dummy`
 - The usual setup flow is `cd test/dummy && bin/setup --skip-server && bundle exec rails tailwindcss:build`
 - Start the demo app with `cd test/dummy && bin/dev`

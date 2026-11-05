@@ -6,7 +6,7 @@ use [../../README.md](../../README.md) and [../API_REFERENCE.md](../API_REFERENC
 ## Prerequisites
 
 - Ruby 3.3+
-- Rails 8.1+
+- Rails 8.1.4.1+
 - ActiveRecord-backed application
 - TailwindCSS only if your host app wants the generator to wire engine view scanning automatically
 

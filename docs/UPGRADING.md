@@ -28,6 +28,42 @@ Or in the initializer:
 config.event_notifications_enabled = true
 ```
 
+## Upgrading To 6.3.2
+
+This release raises the Rails floor and adds a security CI workflow. No
+migration.
+
+### What changed
+
+- `recording_studio.gemspec` requires `rails` >= 8.1.4.1.
+- `flat_pack` stays `>= 0.1.315`. The development Gemfiles still pin
+  tag `v0.1.315`.
+- `.github/workflows/security.yml` runs `bin/bundler-audit`,
+  `bin/brakeman`, and `bin/importmap audit` in `test/dummy`.
+
+### Upgrade steps
+
+Move the host app to Rails 8.1.4.1 or newer, then `bundle update rails`.
+Keep the existing `flat_pack` pin unless a later release raises that
+floor.
+
+## Upgrading To 6.3.1
+
+This release reports config load errors through `RecordingStudio::Warnings.warn`.
+No migration. Boot still does not raise, and defaults stay in place.
+
+### What changed
+
+- `config_for(:recording_studio)` and `config.x.recording_studio` still rescue
+  `StandardError`. The rescue now warns with the config source, error class,
+  and message instead of ignoring the error. A missing
+  `config/recording_studio.yml` does not warn.
+
+### Upgrade steps
+
+None. Watch logs for `[RecordingStudio] Could not load` if a present YAML file
+or `config.x.recording_studio` fails to read.
+
 ## Upgrading To 6.3.0
 
 This release adds a built-in backdrop the host can share, and a way for a
