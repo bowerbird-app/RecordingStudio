@@ -230,7 +230,6 @@ Use `RecordingStudio.configure` to access these settings.
 | `actor` | callable | callable | Supplies the default actor for writes when callers omit `actor:`. |
 | `impersonator` | callable | callable | Supplies the default impersonator for writes when callers omit `impersonator:`. |
 | `event_notifications_enabled` | boolean | boolean | Enables ActiveSupport event instrumentation. |
-| `instrumentation_enabled` / `instrumentation_enabled=` | boolean | boolean | Compatibility alias for `event_notifications_enabled`. |
 | `idempotency_mode` | `:return_existing` or `:raise` | symbol | Controls duplicate idempotency-key behavior. |
 | `recordable_dup_strategy` | symbol or callable | symbol or callable | Global fallback duplication strategy used by `revise`. |
 | `recordable_dup_strategies` | nothing | `Hash<String, callable>` | Introspection for per-type duplication overrides. |

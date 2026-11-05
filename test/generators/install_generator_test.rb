@@ -28,4 +28,15 @@ class InstallGeneratorTest < Rails::Generators::TestCase
   ensure
     generator_class.define_method(:add_yaml_config?, original_prompt)
   end
+
+  def test_yaml_template_uses_event_notifications_enabled
+    template = File.read(
+      RecordingStudio::Engine.root.join(
+        "lib/generators/recording_studio/install/templates/recording_studio.yml"
+      )
+    )
+
+    assert_includes template, "event_notifications_enabled: true"
+    refute_includes template, "instrumentation_enabled"
+  end
 end
