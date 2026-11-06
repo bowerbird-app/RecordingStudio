@@ -48,6 +48,9 @@ require File.expand_path("dummy/config/environment", __dir__)
 require "rails/test_help"
 require "recording_studio"
 require "devise/test/integration_helpers"
+require File.expand_path("support/recording_studio_authorized_writes", __dir__)
+
+RecordingStudioAuthorizedWrites.install!
 
 ActiveSupport::TestCase.class_eval do
   include RecordingStudioTestDataHelpers

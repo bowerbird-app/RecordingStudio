@@ -7,6 +7,7 @@ RecordingStudio.configure do |config|
   config.recordable_dup_strategy = :dup
   config.require_recordable_declarations = true
   config.app_name = "Custom App Name"
+  config.authorize_write = ->(actor:, **) { actor.present? }
 end
 
 RecordingStudio.register_recordable_type("Workspace")

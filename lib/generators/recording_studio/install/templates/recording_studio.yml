@@ -4,6 +4,9 @@ development:
   event_notifications_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
+  # Writes fail closed. Set authorize_write and actor in the Ruby initializer.
+  # Set true only to keep the old open writes (no authorizer, no actor).
+  # allow_unauthorized_writes: false
   # Per-type duplication overrides belong in the Ruby initializer:
   # config.register_recordable_dup_strategy("Page") { |recordable| ... }
 
@@ -12,5 +15,8 @@ production:
   event_notifications_enabled: true
   idempotency_mode: return_existing
   recordable_dup_strategy: dup
+  # Writes fail closed. Set authorize_write and actor in the Ruby initializer.
+  # Set true only to keep the old open writes (no authorizer, no actor).
+  # allow_unauthorized_writes: false
   # Per-type duplication overrides belong in the Ruby initializer:
   # config.register_recordable_dup_strategy("Page") { |recordable| ... }

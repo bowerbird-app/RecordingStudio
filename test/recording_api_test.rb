@@ -15,7 +15,7 @@ class RecordingApiTest < ActiveSupport::TestCase
       RecordingStudioComment
       RecordingStudioFolder
     ]
-    RecordingStudio.configuration.actor = -> {}
+    RecordingStudio.configuration.actor = RecordingStudioAuthorizedWrites.method(:actor)
     RecordingStudio.configuration.idempotency_mode = :return_existing
     RecordingStudio.configuration.event_notifications_enabled = true
 

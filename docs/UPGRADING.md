@@ -2,6 +2,61 @@
 
 ## Unreleased
 
+## Upgrading To 6.5.0
+
+This is a breaking default for hosts that never set `config.authorize_write`.
+Writes through `RecordingStudio.record!` now fail closed. A missing write
+authorizer raises `RecordingStudio::AuthorizationError`. A missing actor
+raises `RecordingStudio::ActorRequired`. Hosts that already set an authorizer
+and supply an actor do not need to change.
+
+The one opt-out is `config.allow_unauthorized_writes`. It defaults to `false`.
+Set it `true` only when you deliberately want the old open writes.
+
+`config.require_actor` still works. When `allow_unauthorized_writes` is `true`,
+missing actors are allowed unless `require_actor` is `true`. When the new
+default is in force, a missing actor is refused either way.
+
+### What changed
+
+- `RecordingStudio::Authorization.assert_actor!` requires an actor unless
+  `allow_unauthorized_writes` is `true` and `require_actor` is `false`.
+- `RecordingStudio::Authorization.authorize_write!` requires
+  `config.authorize_write` unless `allow_unauthorized_writes` is `true`.
+- The install initializer comments out a sample `authorize_write` that allows
+  a write when an actor is present. Uncomment it, or set your own authorizer.
+- `root_recording_for` still creates the root `Recording` row without this
+  gate. Child writes still go through `record!`.
+
+### Upgrade steps
+
+1. Set a write authorizer and an actor resolver.
+
+```ruby
+RecordingStudio.configure do |config|
+  config.actor = -> { Current.actor }
+  config.authorize_write = lambda { |root_recording:, actor:, **|
+    actor.present? && Current.user&.can_write?(root_recording)
+  }
+end
+```
+
+Pass `actor:` on background jobs and other writes that have no `Current.actor`.
+
+2. Only if you must keep the old open writes during a migration:
+
+```ruby
+RecordingStudio.configure do |config|
+  config.allow_unauthorized_writes = true
+end
+```
+
+The same key works in `config/recording_studio.yml`.
+
+An app that upgrades without an authorizer or actor will see
+`AuthorizationError` or `ActorRequired` on `record`, `revise`, and
+`log_event!`.
+
 ## Upgrading To 6.4.0
 
 `instrumentation_enabled` is gone. Use `event_notifications_enabled`.

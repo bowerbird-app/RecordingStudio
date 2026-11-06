@@ -27,6 +27,9 @@ require_relative "../config/environment"
 require "minitest/autorun"
 require "rails/test_help"
 require "devise/test/integration_helpers"
+require File.expand_path("../../../test/support/recording_studio_authorized_writes", __dir__)
+
+RecordingStudioAuthorizedWrites.install!
 
 unless Object.new.respond_to?(:stub)
   class Object

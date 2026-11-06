@@ -17,13 +17,17 @@ RecordingStudio.configure do |config|
   # Idempotency behavior for log_event!
   config.idempotency_mode = :return_existing # or :raise
 
-  # Require an actor on every write (recommended for production hosts)
-  # config.require_actor = true
+  # Writes fail closed. Missing authorize_write raises AuthorizationError.
+  # Missing actor raises ActorRequired. Return truthy to allow the write.
+  # The callable also receives action:, recordable:, recording:, root_recording:,
+  # parent_recording:, and impersonator:.
+  # config.authorize_write = ->(actor:, **) { actor.present? }
 
-  # Optional write authorization gate. Return truthy to allow the write.
-  # config.authorize_write = ->(action:, recordable:, recording:, root_recording:, parent_recording:, actor:, **) {
-  #   actor.present?
-  # }
+  # Set true only to restore the old fail-open writes (no authorizer, no actor).
+  # config.allow_unauthorized_writes = false
+
+  # Still used when allow_unauthorized_writes is true. Redundant with the new default.
+  # config.require_actor = true
 
   # Reject oversized event metadata payloads (JSON byte size)
   # config.max_metadata_bytes = 16_384

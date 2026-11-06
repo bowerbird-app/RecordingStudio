@@ -6,7 +6,9 @@ class HardeningApiTest < ActiveSupport::TestCase
   def setup
     @original_types = RecordingStudio.configuration.recordable_types
     @original_require_actor = RecordingStudio.configuration.require_actor
+    @original_allow_unauthorized_writes = RecordingStudio.configuration.allow_unauthorized_writes
     @original_authorize = RecordingStudio.configuration.authorize_write
+    @original_actor = RecordingStudio.configuration.actor
     @original_max_metadata = RecordingStudio.configuration.max_metadata_bytes
     @original_unsafe = RecordingStudio.configuration.allow_unsafe_recordable_queries
     RecordingStudio.configuration.recordable_types = %w[
@@ -22,7 +24,9 @@ class HardeningApiTest < ActiveSupport::TestCase
   def teardown
     RecordingStudio.configuration.recordable_types = @original_types
     RecordingStudio.configuration.require_actor = @original_require_actor
+    RecordingStudio.configuration.allow_unauthorized_writes = @original_allow_unauthorized_writes
     RecordingStudio.configuration.authorize_write = @original_authorize
+    RecordingStudio.configuration.actor = @original_actor
     RecordingStudio.configuration.max_metadata_bytes = @original_max_metadata
     RecordingStudio.configuration.allow_unsafe_recordable_queries = @original_unsafe
     RecordingStudio.configuration.hooks.clear(:before_record)
@@ -65,6 +69,7 @@ class HardeningApiTest < ActiveSupport::TestCase
 
   def test_require_actor_blocks_missing_actor
     RecordingStudio.configuration.require_actor = true
+    RecordingStudio.configuration.actor = -> {}
     _, root = create_workspace_root
 
     assert_raises(RecordingStudio::ActorRequired) do
@@ -76,6 +81,102 @@ class HardeningApiTest < ActiveSupport::TestCase
         actor: nil
       )
     end
+  end
+
+  def test_writes_fail_closed_without_an_authorizer
+    RecordingStudio.configuration.allow_unauthorized_writes = false
+    RecordingStudio.configuration.authorize_write = nil
+    user = User.create!(name: "Writer", email: "writer-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    _, root = create_workspace_root
+
+    error = assert_raises(RecordingStudio::AuthorizationError) do
+      RecordingStudio.record!(
+        action: "created",
+        recordable: RecordingStudioPage.new(title: "One"),
+        root_recording: root,
+        parent_recording: root,
+        actor: user
+      )
+    end
+
+    assert_match(/authorize_write is not configured/, error.message)
+  end
+
+  def test_writes_fail_closed_without_an_actor
+    RecordingStudio.configuration.allow_unauthorized_writes = false
+    RecordingStudio.configuration.require_actor = false
+    RecordingStudio.configuration.actor = -> {}
+    RecordingStudio.configuration.authorize_write = ->(**) { true }
+    _, root = create_workspace_root
+
+    assert_raises(RecordingStudio::ActorRequired) do
+      RecordingStudio.record!(
+        action: "created",
+        recordable: RecordingStudioPage.new(title: "One"),
+        root_recording: root,
+        parent_recording: root,
+        actor: nil
+      )
+    end
+  end
+
+  def test_writes_allowed_with_configured_authorizer_and_actor
+    user = User.create!(name: "Writer", email: "writer-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    RecordingStudio.configuration.allow_unauthorized_writes = false
+    RecordingStudio.configuration.authorize_write = ->(actor:, **) { actor == user }
+    _, root = create_workspace_root
+
+    event = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "One"),
+      root_recording: root,
+      parent_recording: root,
+      actor: user
+    )
+
+    assert_instance_of RecordingStudio::Event, event
+    assert_equal user, event.actor
+  end
+
+  def test_allow_unauthorized_writes_restores_fail_open_behavior
+    RecordingStudio.configuration.allow_unauthorized_writes = true
+    RecordingStudio.configuration.require_actor = false
+    RecordingStudio.configuration.authorize_write = nil
+    RecordingStudio.configuration.actor = -> {}
+    _, root = create_workspace_root
+
+    event = RecordingStudio.record!(
+      action: "created",
+      recordable: RecordingStudioPage.new(title: "One"),
+      root_recording: root,
+      parent_recording: root,
+      actor: nil
+    )
+
+    assert_instance_of RecordingStudio::Event, event
+    assert_nil event.actor
+  end
+
+  def test_require_actor_blocks_missing_actor_when_unauthorized_writes_are_allowed
+    RecordingStudio.configuration.allow_unauthorized_writes = true
+    RecordingStudio.configuration.require_actor = true
+    RecordingStudio.configuration.actor = -> {}
+    _, root = create_workspace_root
+
+    assert_raises(RecordingStudio::ActorRequired) do
+      RecordingStudio.record!(
+        action: "created",
+        recordable: RecordingStudioPage.new(title: "One"),
+        root_recording: root,
+        parent_recording: root,
+        actor: nil
+      )
+    end
+  end
+
+  def test_allow_unauthorized_writes_rejects_non_boolean
+    assert_raises(ArgumentError) { RecordingStudio.configuration.allow_unauthorized_writes = "yes" }
+    assert_equal @original_allow_unauthorized_writes, RecordingStudio.configuration.allow_unauthorized_writes
   end
 
   def test_authorize_write_can_deny

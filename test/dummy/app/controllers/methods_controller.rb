@@ -14,6 +14,7 @@ class MethodsController < ApplicationController
 
           config.actor = -> { Current.actor }
           config.impersonator = -> { Current.impersonator }
+          config.authorize_write = ->(actor:, **) { actor.present? }
 
           config.event_notifications_enabled = true
           config.idempotency_mode = :return_existing

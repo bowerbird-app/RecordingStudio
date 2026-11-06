@@ -542,6 +542,9 @@ When an AI agent needs to write through RecordingStudio, use this sequence befor
   `RecordingStudio.parent_capabilities_for(child_type:, parent_recording:)` to explain why the parent is valid.
 5. Prefer the high-level entry points on `RecordingStudio::Recording` (`record`, `revise`, `log_event!`) and drop to
   `RecordingStudio.record!` only when you need the returned event object or lower-level control.
+6. Writes fail closed. Set `config.authorize_write` and supply an actor (argument or `config.actor`).
+  Missing authorizer raises `RecordingStudio::AuthorizationError`. Missing actor raises
+  `RecordingStudio::ActorRequired`. Set `config.allow_unauthorized_writes = true` only to keep the old open writes.
 
 ## Configuration
 
@@ -553,8 +556,9 @@ RecordingStudio.configure do |config|
   config.impersonator = -> { Current.impersonator }
   config.event_notifications_enabled = true
   config.idempotency_mode = :return_existing # or :raise (avoids duplicates when using idempotency keys; see below)
-  config.require_actor = false # set true in production hosts
-  config.authorize_write = nil # optional ->(**ctx) { ... }
+  config.authorize_write = ->(actor:, **) { actor.present? } # placeholder; replace with real policy
+  config.allow_unauthorized_writes = false # set true only to keep the old open writes
+  config.require_actor = false # redundant with the fail-closed default; still used when opting out
   config.max_metadata_bytes = 16_384
   config.allow_unsafe_recordable_queries = false
   config.recordable_dup_strategy = :dup
@@ -569,8 +573,13 @@ end
   `recording_studio_recordable`; set false only while migrating older apps, where missing declarations warn.
 - `actor`: Callable used when callers omit `actor:` from write APIs.
 - `impersonator`: Callable used when callers omit `impersonator:` from write APIs.
-- `require_actor`: When true, writes without an actor raise `RecordingStudio::ActorRequired`.
-- `authorize_write`: Optional callable invoked inside `record!`; return truthy to allow the write.
+- `authorize_write`: Callable invoked inside `record!`. Return truthy to allow the write. When unset, writes raise
+  `RecordingStudio::AuthorizationError` unless `allow_unauthorized_writes` is true. The `actor.present?` example above
+  is a placeholder. Replace it with a real policy.
+- `allow_unauthorized_writes`: When false (default), writes need an authorizer and an actor. Set true only to restore
+  the old fail-open behavior.
+- `require_actor`: When true, writes without an actor raise `RecordingStudio::ActorRequired`. When
+  `allow_unauthorized_writes` is false, a missing actor is refused even if this flag is false.
 - `max_metadata_bytes`: Maximum JSON byte size for event metadata (default `16384`).
 - `allow_unsafe_recordable_queries`: Allows Relation/Arel/proc recordable query escape hatches. Prefer per-call
   `allow_unsafe_recordable_query: true` when needed.

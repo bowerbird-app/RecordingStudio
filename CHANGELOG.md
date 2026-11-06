@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.5.0] - 2026-11-05
+
+### Behavior change
+
+* Breaking default for hosts without `config.authorize_write`:
+  `RecordingStudio.record!` raises `RecordingStudio::AuthorizationError`.
+  A missing actor raises `RecordingStudio::ActorRequired`. Hosts that already
+  set an authorizer and supply an actor are unchanged. Opt out with
+  `config.allow_unauthorized_writes = true`.
+
+### Added
+
+* `config.allow_unauthorized_writes` (default `false`). Set `true` only to keep
+  the old open writes when no authorizer or actor is configured.
+
+### Upgrade notes
+
+- Hosts that already set `config.authorize_write` and supply an actor on writes
+  need no change.
+- Hosts that never set `authorize_write` (or that omit an actor) will see
+  `AuthorizationError` or `ActorRequired` until they set both, or set
+  `config.allow_unauthorized_writes = true`.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-650).
+
 ## [6.4.0] - 2026-11-05
 
 ### Removed
