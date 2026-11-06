@@ -556,7 +556,7 @@ RecordingStudio.configure do |config|
   config.impersonator = -> { Current.impersonator }
   config.event_notifications_enabled = true
   config.idempotency_mode = :return_existing # or :raise (avoids duplicates when using idempotency keys; see below)
-  config.authorize_write = ->(actor:, **) { actor.present? }
+  config.authorize_write = ->(actor:, **) { actor.present? } # placeholder; replace with real policy
   config.allow_unauthorized_writes = false # set true only to keep the old open writes
   config.require_actor = false # redundant with the fail-closed default; still used when opting out
   config.max_metadata_bytes = 16_384
@@ -574,7 +574,8 @@ end
 - `actor`: Callable used when callers omit `actor:` from write APIs.
 - `impersonator`: Callable used when callers omit `impersonator:` from write APIs.
 - `authorize_write`: Callable invoked inside `record!`. Return truthy to allow the write. When unset, writes raise
-  `RecordingStudio::AuthorizationError` unless `allow_unauthorized_writes` is true.
+  `RecordingStudio::AuthorizationError` unless `allow_unauthorized_writes` is true. The `actor.present?` example above
+  is a placeholder. Replace it with a real policy.
 - `allow_unauthorized_writes`: When false (default), writes need an authorizer and an actor. Set true only to restore
   the old fail-open behavior.
 - `require_actor`: When true, writes without an actor raise `RecordingStudio::ActorRequired`. When

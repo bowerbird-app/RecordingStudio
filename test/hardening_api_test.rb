@@ -157,6 +157,23 @@ class HardeningApiTest < ActiveSupport::TestCase
     assert_nil event.actor
   end
 
+  def test_require_actor_blocks_missing_actor_when_unauthorized_writes_are_allowed
+    RecordingStudio.configuration.allow_unauthorized_writes = true
+    RecordingStudio.configuration.require_actor = true
+    RecordingStudio.configuration.actor = -> {}
+    _, root = create_workspace_root
+
+    assert_raises(RecordingStudio::ActorRequired) do
+      RecordingStudio.record!(
+        action: "created",
+        recordable: RecordingStudioPage.new(title: "One"),
+        root_recording: root,
+        parent_recording: root,
+        actor: nil
+      )
+    end
+  end
+
   def test_allow_unauthorized_writes_rejects_non_boolean
     assert_raises(ArgumentError) { RecordingStudio.configuration.allow_unauthorized_writes = "yes" }
     assert_equal @original_allow_unauthorized_writes, RecordingStudio.configuration.allow_unauthorized_writes
