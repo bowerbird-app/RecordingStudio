@@ -23,6 +23,15 @@ class LayoutDemoController < ApplicationController
   def page_nav_both
   end
 
+  def page_nav_left
+  end
+
+  def page_nav_left_content_for
+  end
+
+  def page_nav_left_with_back
+  end
+
   def background_image
   end
 

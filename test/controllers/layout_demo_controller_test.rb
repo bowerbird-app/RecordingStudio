@@ -37,6 +37,15 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_not_includes @response.body, "flat-pack--sidebar-group"
   end
 
+  test "show keeps the back row as the only left child" do
+    get layout_demo_path, headers: modern_headers
+
+    assert_response :success
+    assert_select "header .fp-top-nav__left a[aria-label='Studio']", count: 0
+    assert_select "header .fp-top-nav__left > nav[aria-label='Page navigation']", count: 1
+    assert_select "header .fp-top-nav__left > *", count: 1
+  end
+
   test "show publishes open graph tags from the layout" do
     get layout_demo_path, headers: modern_headers
 
@@ -67,8 +76,9 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     ]
     removed.each { |snippet| refute_includes source, snippet }
     kept = [
-      "flat_pack_page_nav_tag", "page_nav_button_group", "content_for(:page_nav_right)",
-      "safe_join([page_nav_right, page_buttons].compact)",
+      "flat_pack_page_nav_tag", "page_nav_button_group",
+      "content_for(:page_nav_left)", "content_for(:page_nav_right)",
+      "safe_join([page_nav_left, back_row].compact)", "safe_join([page_nav_right, page_buttons].compact)",
       "collapse: :menu", "padding: :none", "size: :lg",
       "variant: :outlined", "style: :ghost",
       "FlatPack::PageLayout::Component", "width: page_width", "layout.background",
@@ -132,6 +142,47 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_default_top_nav
     assert_select "header .fp-top-nav__right a[aria-label='New note'][href='#{new_workspace_path}']", count: 1
     assert_select "header .fp-button-group-menu", count: 0
+  end
+
+  test "custom page nav left renders without a back row" do
+    get layout_demo_page_nav_left_path, headers: modern_headers
+
+    assert_response :success
+    assert_default_top_nav
+    assert_select "header .fp-top-nav__left > img[src='/icon.png'][alt='']", count: 1
+    assert_select "header .fp-top-nav__left > a[aria-label='Studio'][href='#{root_path}']", text: "Studio", count: 1
+    assert_select "header .fp-top-nav__left > *", count: 2
+    assert_select "header .fp-top-nav__left nav[aria-label='Page navigation']", count: 0
+    assert_select "nav button[aria-label='Go back']", count: 0
+    assert_select "header .fp-button-group-menu", count: 0
+  end
+
+  test "content_for page nav left renders without a back row" do
+    get layout_demo_page_nav_left_content_for_path, headers: modern_headers
+
+    assert_response :success
+    assert_default_top_nav
+    assert_select "header .fp-top-nav__left > a[aria-label='Studio'][href='#{root_path}']", text: "Studio", count: 1
+    assert_select "nav button[aria-label='Go back']", count: 0
+    assert_select "header .fp-button-group-menu", count: 0
+  end
+
+  test "page nav left sits before the back row in the left slot" do
+    get layout_demo_page_nav_left_with_back_path, headers: modern_headers
+
+    assert_response :success
+    assert_default_top_nav
+    assert_select "header .fp-top-nav__left > img[src='/icon.png']", count: 1
+    assert_select "header .fp-top-nav__left > a[aria-label='Studio'][href='#{root_path}']", text: "Studio", count: 1
+    assert_select "header .fp-top-nav__left > nav[aria-label='Page navigation']", count: 1
+    assert_select "header .fp-top-nav__left > *", count: 3
+    assert_round_default "nav button[aria-label='Go back']"
+    assert_round_default "a[href='#{workspaces_path}'][aria-label='Close demo']"
+    assert_select "header .fp-button-group-menu", count: 0
+
+    left = css_select("header .fp-top-nav__left").first.to_html
+    assert_operator left.index("/icon.png"), :<, left.index("Studio")
+    assert_operator left.index("Studio"), :<, left.index("Page navigation")
   end
 
   test "registered page actions and page nav right sit together in the right slot" do

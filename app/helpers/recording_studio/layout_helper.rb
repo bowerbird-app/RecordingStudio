@@ -7,6 +7,11 @@ module RecordingStudio
       nil
     end
 
+    def recording_studio_page_nav_left(&)
+      content_for(:page_nav_left, &) if block_given?
+      nil
+    end
+
     def recording_studio_page_nav_right(&)
       content_for(:page_nav_right, &) if block_given?
       nil

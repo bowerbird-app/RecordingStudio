@@ -9,6 +9,14 @@ class LayoutHelperTest < ActionView::TestCase
     refute_respond_to self, :recording_studio_page_nav
   end
 
+  def test_recording_studio_page_nav_left_sets_slot_and_returns_nil
+    result = recording_studio_page_nav_left { tag.a("Studio", href: "/") }
+
+    assert_nil result
+    assert_includes content_for(:page_nav_left), "Studio"
+    assert_includes content_for(:page_nav_left), 'href="/"'
+  end
+
   def test_recording_studio_page_nav_right_sets_slot_and_returns_nil
     result = recording_studio_page_nav_right { tag.a("New note", href: "/notes/new") }
 

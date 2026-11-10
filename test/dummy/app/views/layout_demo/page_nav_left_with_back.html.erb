@@ -1,0 +1,6 @@
+<% content_for :title, "Left of back" %>
+<% content_for :subtitle, "A mark sits before back and close." %>
+<% flat_pack_page_nav(round: true, style: :default, anchor_href: workspaces_path, anchor_tooltip: "Close demo") %>
+<% recording_studio_page_nav_left do %>
+  <%= render "left_mark" %>
+<% end %>

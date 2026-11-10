@@ -23,6 +23,7 @@
     variant: :outlined,
     collapse: :menu
   )
+  page_nav_left = content_for(:page_nav_left).presence
   page_nav_right = content_for(:page_nav_right).presence
 %>
 <!DOCTYPE html>
@@ -64,10 +65,10 @@
         <% end %>
       <% end %>
 
-      <% if back_row || page_buttons || page_nav_right %>
+      <% if back_row || page_nav_left || page_buttons || page_nav_right %>
         <% layout.top_nav do %>
           <%= render FlatPack::TopNav::Component.new(padding: :none, size: :lg) do |nav| %>
-            <% nav.left { back_row } if back_row %>
+            <% nav.left { safe_join([page_nav_left, back_row].compact) } if back_row || page_nav_left %>
             <% nav.right { safe_join([page_nav_right, page_buttons].compact) } if page_buttons || page_nav_right %>
           <% end %>
         <% end %>

@@ -1,0 +1,8 @@
+<%= image_tag "/icon.png", alt: "", width: 20, height: 20 %>
+<%= render FlatPack::Button::Component.new(
+  text: "Studio",
+  href: root_path,
+  style: :ghost,
+  size: :sm,
+  aria: { label: "Studio" }
+) %>

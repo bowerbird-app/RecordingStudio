@@ -2,6 +2,45 @@
 
 ## Unreleased
 
+## Upgrading To 6.6.0
+
+This release adds a custom left-side slot on the default layout. No
+migration.
+
+### What changed
+
+- `RecordingStudio::LayoutHelper#recording_studio_page_nav_left` writes
+  `content_for :page_nav_left` and returns `nil`. A view can set the same
+  slot with `content_for :page_nav_left`.
+- The default layout draws `FlatPack::TopNav` when the back row,
+  `:page_nav_left`, `page_nav_button_group`, or `:page_nav_right` is
+  present.
+- `nav.left` renders `:page_nav_left` first and the back row second.
+  TopNav's left section is `flex items-center gap-2`, so the two siblings
+  sit side by side. One item has no extra wrapper.
+- `register_page_nav` and `:page_nav_right` behavior is unchanged.
+
+### Upgrade steps
+
+No steps for hosts that already use `recording_studio/default_layout`.
+
+To add custom HTML before back and close:
+
+```erb
+<% recording_studio_page_nav_left do %>
+  <%= render FlatPack::Button::Component.new(
+    text: "Studio",
+    style: :ghost,
+    size: :sm,
+    href: root_path
+  ) %>
+<% end %>
+```
+
+A host layout that replaces the default reads
+`content_for(:page_nav_left)` and renders it in `nav.left` before the
+back row.
+
 ## Upgrading To 6.5.0
 
 This is a breaking default for hosts that never set `config.authorize_write`.

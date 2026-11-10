@@ -8,10 +8,10 @@ The shell is `FlatPack::PageLayout`. Width defaults to `:default`. A view
 can set `:narrow`, `:wide`, or `:full`. Nothing else wraps
 that component. `top_nav_width` stays `:content` and `content_scroll` stays
 `:below`, so the bar matches the column and sits above the title. When the
-view sets back, close, page actions, or `:page_nav_right`, the layout draws
-one `FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. Back and
-close sit on the left as two round buttons. Page actions and custom right-side
-HTML sit on the right.
+view sets back, close, page actions, `:page_nav_left`, or `:page_nav_right`,
+the layout draws one `FlatPack::TopNav::Component.new(padding: :none, size: :lg)`.
+Custom left-side HTML sits before back and close. Page actions and custom
+right-side HTML sit on the right.
 
 > **Prerequisite:** `flat_pack` >= 0.1.315 is required. The layout renders
 > Flatpack components directly. `flat_pack` is not on RubyGems. The gemspec
@@ -22,6 +22,12 @@ HTML sit on the right.
 
 - Back and close from `flat_pack_page_nav(round: true, style: :default, ...)` /
   `flat_pack_page_nav_tag`. They are two round buttons with `data-fp-style="default"`, not a group or a card.
+- `content_for :page_nav_left`, set with `recording_studio_page_nav_left`
+  or `content_for` directly. The layout places that HTML before the back
+  row inside `nav.left`. TopNav's left section is
+  `flex items-center gap-2`, so the custom HTML and the back row sit side
+  by side. Either one is enough to draw the left side. An empty slot
+  renders nothing, and a single item has no extra wrapper.
 - One `page_nav_button_group` (`variant: :outlined`, ghost `sm` for every
   role, `collapse: :menu`) for `register_page_nav` entries. An empty bucket
   renders nothing. Outlined does not restyle the children, so primary stays
@@ -139,6 +145,7 @@ provide the same surroundings.
 | `:seo_description` | `recording_studio_seo_description` | Description and `og:description` |
 | `:background_image` | `recording_studio_background_image` or `content_for :background_image` | Decorative image in `layout.background`. No argument, `true`, `:default`, `"true"`, or `"default"` uses the shared image. A path uses that image. `false`, `nil`, `""`, and `"false"` skip it. |
 | `:page_width` | `recording_studio_page_width` or `content_for :page_width, width` | `FlatPack::PageLayout` `width:` (`:narrow`, `:default`, `:wide`, `:full`) |
+| `:page_nav_left` | `recording_studio_page_nav_left` or `content_for :page_nav_left` | Before the back row in `nav.left` |
 | `:page_nav_right` | `recording_studio_page_nav_right` or `content_for :page_nav_right` | Before the button group in `nav.right` |
 
 Back, close, and registered actions are not `content_for` slots:
@@ -165,6 +172,7 @@ sidebar. This default layout is the page shell without one.
 Recording Studio still provides:
 
 - `default_layout_head { ... }`
+- `recording_studio_page_nav_left { ... }`
 - `recording_studio_page_nav_right { ... }`
 - `recording_studio_seo_description(text)`
 - `recording_studio_default_background_image`
@@ -178,7 +186,8 @@ Flatpack provides the page nav:
 - `page_nav_button_group(styles:, variant:, collapse:)` — the layout calls this
 
 `recording_studio_page_nav` is removed. Use `flat_pack_page_nav` for back
-and close. `recording_studio_page_nav_right` is the custom right-side slot.
+and close. `recording_studio_page_nav_left` is the custom left-side slot.
+`recording_studio_page_nav_right` is the custom right-side slot.
 
 ## Defaults
 
@@ -192,7 +201,7 @@ and close. `recording_studio_page_nav_right` is the custom right-side slot.
 | Page width | `:default` when `:page_width` is blank. Otherwise `:narrow`, `:default`, `:wide`, or `:full`. |
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
-| Back and close | Whatever `flat_pack_page_nav` stored. No call and no `return_to` means no row. Flatpack's own labels apply unless the view passes a tooltip. |
+| Back and close | Whatever `flat_pack_page_nav` stored. No call and no `return_to` means no row. Flatpack's own labels apply unless the view passes a tooltip. `:page_nav_left` renders before that row when the slot is set. |
 | Page actions | One button group when the default bucket has entries. `overflow: true` parks that entry in the group's More menu. The phone menu lists every entry once. `:page_nav_right` renders before the group when that slot is set. |
 
 ## Example
@@ -204,6 +213,14 @@ and close. `recording_studio_page_nav_right` is the custom right-side slot.
 <% register_page_nav "New page", new_page_path, role: :primary, icon: :plus %>
 <% register_page_nav "Share", share_page_path, role: :secondary %>
 <% register_page_nav "Delete", page_path, role: :destructive, icon: :trash, overflow: true %>
+<% recording_studio_page_nav_left do %>
+  <%= render FlatPack::Button::Component.new(
+    text: "Studio",
+    style: :ghost,
+    size: :sm,
+    href: root_path
+  ) %>
+<% end %>
 <% recording_studio_page_nav_right do %>
   <%= render FlatPack::Button::Component.new(
     text: "New note",
@@ -229,9 +246,10 @@ Back link and close together:
 ) %>
 ```
 
-A screen with no `register_page_nav` and no `:page_nav_right` shows the back
-row only. The layout does not render an empty button group. A screen with
-only `:page_nav_right` still draws the top nav.
+A screen with no `register_page_nav`, no `:page_nav_left`, and no
+`:page_nav_right` shows the back row only. The layout does not render an
+empty button group. A screen with only `:page_nav_left` or only
+`:page_nav_right` still draws the top nav.
 
 ## Background
 
@@ -302,6 +320,21 @@ get workspace_path(workspace)
 assert_select "header nav[aria-label='Page navigation']", count: 1
 assert_select "header .fp-button-group-menu__row a", text: "New Page", count: 1
 assert_select "header .fp-button-group-menu[data-controller='flat-pack--button-group-menu']", count: 1
+```
+
+When `:page_nav_left` is set with the back row, the custom HTML is the
+earlier sibling in `.fp-top-nav__left`.
+
+```ruby
+left = css_select("header .fp-top-nav__left").first.to_html
+assert_operator left.index("Studio"), :<, left.index("Page navigation")
+```
+
+When the slot is absent, the left section's only child is the back row.
+
+```ruby
+assert_select "header .fp-top-nav__left > nav[aria-label='Page navigation']", count: 1
+assert_select "header .fp-top-nav__left > *", count: 1
 ```
 
 `data-recording-studio-default-layout="true"` on `<body>` confirms the
