@@ -607,13 +607,14 @@ Public layout:
 
 ### Page nav
 
-Flatpack owns the back row and the button group. Recording Studio adds one custom right slot. Call these from the view. The layout renders them.
+Flatpack owns the back row and the button group. Recording Studio adds custom left and right slots. Call these from the view. The layout renders them.
 
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
 | `content_for :title` / `:subtitle` | string |  | Document title and `FlatPack::PageTitle`. |
 | `flat_pack_page_nav` | `round: true`, `style: :default`, `back_href`, `back_tooltip`, `anchor_href`, `anchor_tooltip` | `nil` | Stores the back and close row. |
 | `register_page_nav` | label, path, `role:`, optional `icon:`, `overflow:` | `nil` | Records one page action. `role` is `:primary`, `:secondary`, or `:destructive`. |
+| `recording_studio_page_nav_left(&block)` | block | `nil` | Writes the block to `content_for :page_nav_left`. |
 | `recording_studio_page_nav_right(&block)` | block | `nil` | Writes the block to `content_for :page_nav_right`. |
 
 The layout is `FlatPack::PageLayout`. `width` comes from `:page_width` and defaults to `:default`. `top_nav_width`
@@ -627,9 +628,13 @@ the image path.
 The layout calls `flat_pack_page_nav_tag` and one `page_nav_button_group`
 (`variant: :outlined`, ghost `sm` for every role, `collapse: :menu`) inside
 `FlatPack::TopNav::Component.new(padding: :none, size: :lg)`. It also reads
-`content_for(:page_nav_right)`. The custom HTML renders first and the button
-group second, as siblings in TopNav's right section (`flex items-center justify-end gap-2`).
-The back row, the button group, or `:page_nav_right` each draw the top nav.
+`content_for(:page_nav_left)` and `content_for(:page_nav_right)`. Left custom
+HTML renders first and the back row second, as siblings in TopNav's left
+section (`flex items-center gap-2`). Right custom HTML renders first and the
+button group second, as siblings in TopNav's right section
+(`flex items-center justify-end gap-2`).
+The back row, `:page_nav_left`, the button group, or `:page_nav_right` each
+draw the top nav.
 Pass `round: true, style: :default` to `flat_pack_page_nav` so back and close are
 round buttons with `data-fp-style="default"`. `<html>` is `data-theme="rounded"`.
 
@@ -644,6 +649,9 @@ round buttons with `data-fp-style="default"`. `<html>` is `data-theme="rounded"`
 <% recording_studio_background_image("/photos/cover.png") %>
 <% recording_studio_page_width(:wide) %>
 <% register_page_nav "New workspace", new_workspace_path, role: :primary, icon: :plus %>
+<% recording_studio_page_nav_left do %>
+  <%= render FlatPack::Button::Component.new(text: "Studio", style: :ghost, size: :sm, href: root_path) %>
+<% end %>
 <% recording_studio_page_nav_right do %>
   <%= render FlatPack::Button::Component.new(text: "New note", icon: "plus", icon_only: true, round: true, size: :sm, href: new_note_path) %>
 <% end %>
