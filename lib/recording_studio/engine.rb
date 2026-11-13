@@ -84,7 +84,7 @@ module RecordingStudio
           event: RecordingStudio::Event
         }.each do |name, klass|
           hooks.model_extensions_for(name).each do |extension|
-            key = [klass.name, extension.object_id]
+            key = [klass.object_id, extension.object_id]
             next if applied_extension_keys.include?(key)
 
             klass.class_eval(&extension)
@@ -98,7 +98,7 @@ module RecordingStudio
 
         hooks = RecordingStudio.configuration.hooks
         hooks.controller_extensions_for(:application).each do |extension|
-          key = ["RecordingStudio::ApplicationController", extension.object_id]
+          key = [RecordingStudio::ApplicationController.object_id, extension.object_id]
           next if applied_extension_keys.include?(key)
 
           RecordingStudio::ApplicationController.class_eval(&extension)
