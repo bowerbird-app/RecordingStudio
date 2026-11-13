@@ -468,10 +468,11 @@ RecordingStudio::Labels.register_formatter(
 
 ### Public vs internal boundaries
 
-- **Public/stable for addons:** `RecordingStudio` helper methods above, `RecordingStudio::Labels`, and
-  `RecordingStudio::Recording` identity/presentation helpers.
+- **Public/stable for addons:** `RecordingStudio` helper methods above, `RecordingStudio::Labels`,
+  `RecordingStudio::GateDecision`, and `RecordingStudio::Recording` identity/presentation helpers.
 - **Trusted extension points only:** `config.register_recordable_dup_strategy`, `RecordingStudio::Labels.register_formatter`,
-  `recordable_scope`, and the private `extend_recordings_query` hook. These should only be wired with code-defined
+  `recordable_scope`, the private `extend_recordings_query` hook, `RecordingStudio.register_gate`,
+  `RecordingStudio.check_gate`, and `config.gate_overrides`. These should only be wired with code-defined
   callables, never user input.
 - **Internal/private:** delegated type registrar internals, callback ordering, concern module layout, and direct mutation
   of counter caches outside the helper API.
@@ -522,7 +523,7 @@ For the complete public method surface, including arguments, return values, and 
 That reference is the best starting point for AI agents and addon authors because it is organized by API surface:
 
 - top-level `RecordingStudio` helpers
-- configuration and hooks
+- configuration, hooks, and gates
 - `RecordingStudio::Recording` write/query/tree methods
 - event scopes
 - labels, capabilities, duplication, and counter-cache helpers
@@ -563,6 +564,7 @@ RecordingStudio.configure do |config|
   config.allow_unsafe_recordable_queries = false
   config.recordable_dup_strategy = :dup
   config.register_recordable_dup_strategy("Page") { |recordable| Page.new(title: recordable.title) }
+  config.gate_overrides = {}
 end
 ```
 
@@ -591,7 +593,12 @@ end
 - `register_recordable_dup_strategy`: lets trusted addon code override duplication for one recordable type without
   changing the global fallback.
 - `hooks`: Global hook registry exposed as `RecordingStudio.configuration.hooks`. Write path hooks include
-  `before_record` and `after_record`.
+  `before_record` and `after_record`. Hooks run for side effects and swallow errors unless `raise_on_error` is set.
+- `gate_overrides`: Host map of per-check `priority` and `enabled` flags for `RecordingStudio.check_gate`.
+  Default `{}`. `nil` clears the map. Unknown check names are ignored and logged. `RecordingStudio::Gates.reset!`
+  clears this map and the registered checks. Name a gate `<gem>.<gate>`
+  (`downloadable.stats`). Any other non-blank name warns once and still runs. Gates are a separate
+  registry from hooks and from `authorize_write`. Core returns the decision and does not redirect.
 
 ## Upgrade Guide
 

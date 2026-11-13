@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.7.0] - 2026-11-12
+
+### Added
+
+* `RecordingStudio::GateDecision` and `RecordingStudio.check_gate` for named
+  allow and deny checks. A gate allows when it has no enabled checks, or when
+  every enabled check allows. The first deny is returned with that check's
+  redirect and reason. An unexpected return or a raised error denies, logs a
+  warning, and is reported with `Rails.error.report` when `Rails.error` is
+  available (`handled: true`, context `gate` and `check`). Core does not redirect.
+* `RecordingStudio.register_gate`, `unregister_gate`, `gate_registered?`,
+  and `gate_checks`. Registering the same gate and check again replaces it
+  and logs a warning. `RecordingStudio::Gates.reset!` clears the registry
+  and `config.gate_overrides`.
+* `config.gate_overrides` changes a named check's priority or disables it.
+  Unknown check names are ignored and logged.
+* A gate name that does not match `<gem>.<gate>`
+  (`/\A[a-z0-9_]+(\.[a-z0-9_]+)+\z/`) warns once and is still accepted.
+
+### Upgrade notes
+
+- No migration. `authorize_write` and hooks are unchanged.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-670).
+
 ## [6.6.0] - 2026-11-10
 
 ### Added

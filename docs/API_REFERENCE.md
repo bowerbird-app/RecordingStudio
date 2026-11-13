@@ -66,6 +66,11 @@ These methods are the main addon-facing API.
 | --- | --- | --- | --- |
 | `configuration` | nothing | `RecordingStudio::Configuration` | Read or mutate engine configuration in one place. |
 | `configure` | block with `config` | same configuration object | Standard Rails-style configuration entry point. |
+| `register_gate(gate_name, check_name, callable = nil, priority: 100, &block)` | gate name, check name, callable or block, optional priority | normalized check name | Adds one named check. The same gate and check name replaces the previous check and logs a warning. |
+| `unregister_gate(gate_name, check_name)` | gate name, check name | `true` when removed, otherwise `false` | Removes one named check. |
+| `gate_registered?(gate_name)` | gate name | `true` or `false` | Reports whether any check is registered for that gate, including checks a host has disabled. |
+| `gate_checks(gate_name)` | gate name | array of frozen hashes `{ name:, priority:, enabled: }` | Lists the gate's checks in the order `check_gate` runs them. |
+| `check_gate(gate_name, actor:, recording: nil, **context)` | gate name, required `actor:`, optional `recording:`, extra keywords | `RecordingStudio::GateDecision` | Runs enabled checks. Returns allow, or the first deny. |
 | `registered_capabilities` | nothing | `Hash` | Introspection for capability registrations, including source and child-recordable metadata. |
 | `register_capability(name, mod = nil, recording_methods: nil, source: nil, child_recordables: [])` | capability name plus optional recording methods and child recordables | registered capability metadata | Adds recording-level behavior and/or source-aware capability-owned child-recordable metadata without monkey-patching core. |
 | `apply_capabilities!` | nothing | `Hash` of registrations iterated | Re-applies registered recording modules after reloads or boot order changes. |
@@ -242,6 +247,7 @@ Use `RecordingStudio.configure` to access these settings.
 | `recordable_dup_strategy` | symbol or callable | symbol or callable | Global fallback duplication strategy used by `revise`. |
 | `recordable_dup_strategies` | nothing | `Hash<String, callable>` | Introspection for per-type duplication overrides. |
 | `hooks` | nothing | `RecordingStudio::Hooks` | Global hook registry for extension points. |
+| `gate_overrides` / `gate_overrides=` | hash or `nil` | frozen hash | Host `priority` and `enabled` flags for named gate checks. `nil` clears the map. Default `{}`. Unknown check names are kept and ignored when the gate runs. |
 | `enable_capability(capability, on:)` | capability name, recordable type | internal set mutation | Enables a capability for one type. |
 | `capability_enabled?(capability, for_type:)` | capability name, recordable type | `true` or `false` | Reads type-specific capability enablement. |
 | `capabilities_for(recordable_or_type)` | instance, class, or class name | sorted `Array<Symbol>` | Returns enabled capabilities for a type. |
@@ -381,6 +387,88 @@ patching core classes.
 | `run(event_name, *args)` | event name and args | `Array` of results | Convenience proxy to the global hook registry. |
 | `run_around(event_name, context, &block)` | event name, context, block | block result | Convenience proxy for around hooks. |
 | `trigger(event_name, *args)` | event name and args | `Array` of results | Alias-style convenience method for custom events. |
+
+## Gates: `RecordingStudio.check_gate`
+
+Gates are named allow and deny checks. They are not hooks, and they are not `config.authorize_write`.
+Hooks run for side effects and swallow errors. `authorize_write` guards `record!`. A gate returns a
+`RecordingStudio::GateDecision`. Core does not redirect, and it does not contain access or billing policy.
+
+A gate name is a non-empty string or a symbol. Symbols are converted with `to_s` and surrounding space is
+removed. A blank name raises `ArgumentError`. Check names use the same rule.
+
+The conventional gate name is `<gem>.<gate>`, matching `/\A[a-z0-9_]+(\.[a-z0-9_]+)+\z/`.
+`downloadable.stats` and `recording_studio.core.export` match. `stats` and `Host.Gate` do not.
+A name outside that pattern warns once and is still accepted. The check runs.
+
+### `RecordingStudio::GateDecision`
+
+| Method | Takes | Returns | Why it exists |
+| --- | --- | --- | --- |
+| `allow` | nothing | frozen decision | An allow. `gate` and `check` are `nil`. |
+| `deny(redirect_to: nil, reason: nil, gate: nil, check: nil)` | optional redirect, reason, gate, and check | frozen decision | A deny. `check_gate` fills `gate` and `check` with the check that produced it. |
+| `allowed?` | nothing | `true` or `false` | The check passed. |
+| `denied?` | nothing | `true` or `false` | The check did not pass. |
+| `redirect_to` | nothing | stored redirect or `nil` | Where the caller may send the actor. Core never redirects. |
+| `reason` | nothing | stored reason or `nil` | Why the check denied. |
+| `gate` | nothing | gate name or `nil` | Which gate produced a deny. `nil` on allow. |
+| `check` | nothing | check name or `nil` | Which check produced a deny. `nil` on allow. |
+
+String `redirect_to` and `reason` values are frozen copies. Two decisions with the same fields are equal.
+
+### Registration
+
+| Method | Takes | Returns | Why it exists |
+| --- | --- | --- | --- |
+| `RecordingStudio.register_gate(gate_name, check_name, callable = nil, priority: 100, &block)` | names, callable or block, priority | normalized check name | Stores one check. A block and a callable at the same time use the callable. |
+| `RecordingStudio.unregister_gate(gate_name, check_name)` | names | `true` or `false` | Removes one check. Missing names return `false`. |
+| `RecordingStudio.gate_registered?(gate_name)` | gate name | `true` or `false` | True when at least one check is stored, even if every check is disabled. |
+| `RecordingStudio.gate_checks(gate_name)` | gate name | array of frozen hashes | Debug list in run order. Each hash has `name`, `priority`, and `enabled`. Disabled checks stay in the list. |
+| `RecordingStudio::Gates.reset!` | nothing | cleared registry and overrides | Drops every check and sets `config.gate_overrides` back to `{}`. Tests use this one call between examples. |
+
+The registry is guarded by a mutex. Checks run after the snapshot is taken, so a check may register another gate without deadlocking.
+Lower `priority` runs first. The default is `100`. Equal priorities keep registration order. Replacing a check updates its callable and priority, keeps its place in that order, and logs a warning.
+
+`RecordingStudio::Gates.reset!` is the reload clear. Registering the same gate and check again replaces that one check, so an initializer that runs twice does not add a second copy.
+
+### `RecordingStudio.check_gate`
+
+```ruby
+RecordingStudio.check_gate("downloadable.stats", actor: actor, recording: recording, plan: "pro")
+```
+
+`actor:` is required and may be `nil`. `recording:` defaults to `nil`. Other keywords are passed through to each check.
+
+Each check is called as `call(actor:, recording:, **context)`. A block can ignore those keywords. A lambda must accept them. A lambda that accepts nothing raises, and that raise denies.
+
+The result is `GateDecision.allow` when no checks are registered, or when every enabled check allows. An allow from a check does not stop later checks. `gate` and `check` on that allow are `nil`.
+
+The first deny stops the run. `false` denies with no redirect and no reason. `GateDecision.deny` keeps that decision's `redirect_to` and `reason`, and `check_gate` sets `gate` and `check` to the check that returned it. Any other return value denies with no redirect and no reason. A raised error does the same. Both log a warning with the gate name and the check name. The original error does not propagate.
+
+When `Rails.error` responds to `report`, that same failure is also reported:
+
+```ruby
+Rails.error.report(error, handled: true, context: { gate: gate_name, check: check_name })
+```
+
+An unexpected return is reported as an `ArgumentError` whose message names the class that came back. `handled: true` means the gate already turned the failure into a deny.
+
+### Host overrides
+
+```ruby
+RecordingStudio.configure do |config|
+  config.gate_overrides = {
+    "downloadable.stats" => {
+      "paywall" => { priority: 10 },
+      "legacy" => { enabled: false }
+    }
+  }
+end
+```
+
+`priority` is an integer. `enabled` is `true` or `false`. Any other setting raises `ArgumentError`. The assignment replaces the whole map. `nil` stores `{}`. `merge!` accepts the same key, including string keys from `config/recording_studio.yml`.
+
+An override for a check that is not registered is ignored. When a logger is present the ignore is logged at debug. Otherwise it is a warning. It is not an error. A disabled check is not called. If every check is disabled, `check_gate` allows. Removing the override restores the priority stored at registration.
 
 ## Recording API: `RecordingStudio::Recording`
 

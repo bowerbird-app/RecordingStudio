@@ -27,7 +27,8 @@ module RecordingStudio
                 :allow_unauthorized_writes,
                 :max_metadata_bytes,
                 :allow_unsafe_recordable_queries,
-                :configured_type_names
+                :configured_type_names,
+                :gate_overrides
 
     def initialize # rubocop:disable Metrics/AbcSize
       @recordable_types = []
@@ -47,6 +48,7 @@ module RecordingStudio
       @allow_unsafe_recordable_queries = false
       @recordable_dup_strategies = {}
       @hooks = Hooks.new
+      @gate_overrides = {}.freeze
       @app_name = "RecordingStudio"
       @layout = nil
       @default_background_image = RecordingStudio::DEFAULT_BACKGROUND_IMAGE
@@ -95,6 +97,10 @@ module RecordingStudio
       raise ArgumentError, "max_metadata_bytes must be positive" unless bytes.positive?
 
       @max_metadata_bytes = bytes
+    end
+
+    def gate_overrides=(value)
+      @gate_overrides = RecordingStudio::GateOverrides.normalize(value)
     end
 
     def authorize_write=(value)
@@ -202,7 +208,8 @@ module RecordingStudio
         authorize_write_configured: !authorize_write.nil?,
         recordable_dup_strategy: recordable_dup_strategy,
         recordable_dup_strategies: recordable_dup_strategies.keys.sort,
-        hooks_registered: hooks.registered_counts
+        hooks_registered: hooks.registered_counts,
+        gate_overrides: @gate_overrides
       }
     end
 
