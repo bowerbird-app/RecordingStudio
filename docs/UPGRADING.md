@@ -2,6 +2,80 @@
 
 ## Unreleased
 
+## Upgrading To 6.7.0
+
+This release adds named allow and deny checks, called gates. No migration.
+`authorize_write` and hooks stay as they are.
+
+### What changed
+
+- `RecordingStudio.register_gate` stores a named check on a gate.
+- `RecordingStudio.check_gate` returns a `RecordingStudio::GateDecision`.
+- A gate allows when it has no enabled checks, or when every enabled check allows.
+- The first deny stops the run. That decision carries the check's redirect and reason.
+- Core does not redirect. The caller reads `redirect_to` and redirects itself.
+- An unexpected return value or a raised error denies, and the log names the gate and the check.
+- `config.gate_overrides` sets a check's `priority` or `enabled: false` without editing the gem.
+- A check name in that map that is not registered is ignored and logged. It does not raise.
+- Registering the same gate and check again replaces that check and logs a warning.
+
+### Upgrade steps
+
+No steps for an app that does not call `check_gate`.
+
+A gem that already has its own allow method can keep the method name and delegate:
+
+```ruby
+def self.stats_allowed?(actor:, recording: nil, **context)
+  RecordingStudio.check_gate(
+    "downloadable.stats",
+    actor: actor,
+    recording: recording,
+    **context
+  ).allowed?
+end
+```
+
+Move the old check into a registration. Use a gate name of the form `"<gem>.<gate>"`.
+
+```ruby
+RecordingStudio.register_gate("downloadable.stats", "paywall") do |actor:, recording: nil, **|
+  if paid?(actor)
+    true
+  else
+    RecordingStudio::GateDecision.deny(redirect_to: "/upgrade", reason: "paywall")
+  end
+end
+```
+
+`paid?` stands in for the gem's existing rule. Return `true` to allow, `false` to deny with no redirect, or a `GateDecision`.
+
+A host can run `paywall` earlier, or turn off a check named `legacy`, without editing the gem:
+
+```ruby
+RecordingStudio.configure do |config|
+  config.gate_overrides = {
+    "downloadable.stats" => {
+      "paywall" => { priority: 10 },
+      "legacy" => { enabled: false }
+    }
+  }
+end
+```
+
+The same hash can live under `gate_overrides` in `config/recording_studio.yml`.
+
+To send the actor somewhere else, read the decision where the gem or the host already handles the request. Core will not call `redirect_to`.
+
+```ruby
+decision = RecordingStudio.check_gate(
+  "downloadable.stats",
+  actor: current_actor,
+  recording: recording
+)
+redirect_to(decision.redirect_to) if decision.denied? && decision.redirect_to
+```
+
 ## Upgrading To 6.6.0
 
 This release adds a custom left-side slot on the default layout. No
