@@ -8,7 +8,6 @@ class GatesTest < Minitest::Test
   def setup
     @gate_overrides = RecordingStudio.configuration.gate_overrides
     RecordingStudio::Gates.reset!
-    RecordingStudio.configuration.gate_overrides = {}
   end
 
   def teardown
@@ -335,9 +334,13 @@ class GatesTest < Minitest::Test
     assert_predicate RecordingStudio.check_gate("downloadable.stats", actor: :ada), :allowed?
 
     RecordingStudio.register_gate("other.gate", "open") { false }
+    RecordingStudio.configuration.gate_overrides = {
+      "other.gate" => { "open" => { enabled: false } }
+    }
     RecordingStudio::Gates.reset!
     assert_equal false, RecordingStudio.gate_registered?("other.gate")
     assert_empty RecordingStudio.gate_checks("other.gate")
+    assert_equal({}, RecordingStudio.configuration.gate_overrides)
   end
 
   def test_checks_receive_actor_recording_and_context
@@ -452,6 +455,68 @@ class GatesTest < Minitest::Test
     assert_equal({}, summary[:gate_overrides])
   end
 
+  def test_failed_checks_are_reported_to_rails_error
+    reports = []
+    subscriber = Object.new
+    subscriber.define_singleton_method(:report) do |error, handled:, severity:, context:, source:|
+      reports << { error: error, handled: handled, severity: severity, context: context, source: source }
+    end
+    Rails.error.subscribe(subscriber)
+    log = capture_log do
+      RecordingStudio.register_gate("downloadable.stats", "boom") { raise "nope" }
+      decision = RecordingStudio.check_gate("downloadable.stats", actor: :ada)
+      assert_predicate decision, :denied?
+      assert_nil decision.redirect_to
+    end
+    assert_includes log, 'Check "boom" on gate "downloadable.stats" failed closed'
+
+    RecordingStudio::Gates.reset!
+    RecordingStudio.register_gate("downloadable.stats", "blank") { nil }
+    unexpected = RecordingStudio.check_gate("downloadable.stats", actor: :ada)
+
+    raised = reports.find { |report| report[:error].is_a?(RuntimeError) }
+    blank = reports.find { |report| report[:error].is_a?(ArgumentError) }
+    assert_predicate unexpected, :denied?
+    assert_equal true, raised[:handled]
+    assert_equal "downloadable.stats", raised[:context][:gate]
+    assert_equal "boom", raised[:context][:check]
+    assert_includes raised[:error].message, "nope"
+    assert_equal true, blank[:handled]
+    assert_equal "downloadable.stats", blank[:context][:gate]
+    assert_equal "blank", blank[:context][:check]
+    assert_includes blank[:error].message, "NilClass"
+  ensure
+    Rails.error.unsubscribe(subscriber) if defined?(subscriber) && subscriber
+  end
+
+  def test_unconventional_gate_names_warn_once_and_still_run
+    log = capture_log do
+      RecordingStudio.register_gate("stats", "open") { true }
+      RecordingStudio.register_gate(:stats, "other") { true }
+      RecordingStudio.check_gate("stats", actor: :ada)
+    end
+    assert_equal 1, log.scan('Gate name "stats" does not match <gem>.<gate>').size
+    assert_predicate RecordingStudio.check_gate("stats", actor: :ada), :allowed?
+    assert_equal true, RecordingStudio.gate_registered?("stats")
+
+    quiet = capture_log do
+      RecordingStudio.register_gate("downloadable.stats", "open") { true }
+      RecordingStudio.register_gate("recording_studio.core.export", "open") { true }
+    end
+    assert_equal false, quiet.include?("does not match")
+
+    again = capture_log do
+      RecordingStudio.configuration.gate_overrides = {
+        "Host.Gate" => { "paywall" => { enabled: false } }
+      }
+      RecordingStudio.configuration.gate_overrides = {
+        "Host.Gate" => { "paywall" => { enabled: true } }
+      }
+    end
+    assert_equal 1, again.scan('Gate name "Host.Gate" does not match <gem>.<gate>').size
+    assert_equal true, RecordingStudio.configuration.gate_overrides["Host.Gate"]["paywall"][:enabled]
+  end
+
   def test_gem_wrapper_uses_allowed_from_check_gate
     RecordingStudio.register_gate("downloadable.stats", "paywall") do |actor:, **|
       actor == :ada ? true : RecordingStudio::GateDecision.deny(redirect_to: "/upgrade", reason: "paywall")
@@ -477,7 +542,6 @@ class GatesTest < Minitest::Test
 
   def check_only(check_name, &)
     RecordingStudio::Gates.reset!
-    RecordingStudio.configuration.gate_overrides = {}
     RecordingStudio.register_gate("downloadable.stats", check_name, &)
     RecordingStudio.check_gate("downloadable.stats", actor: :ada)
   end

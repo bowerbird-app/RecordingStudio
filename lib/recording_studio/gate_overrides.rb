@@ -11,7 +11,7 @@ module RecordingStudio
       raise ArgumentError, "gate_overrides must be a Hash" unless value.is_a?(Hash)
 
       value.each_with_object({}) do |(gate_name, checks), normalized|
-        name = RecordingStudio::Gates.normalize_name(gate_name, "gate name")
+        name = RecordingStudio::Gates.normalize_gate_name(gate_name)
         normalized[name] = normalize_checks(checks)
       end.freeze
     end

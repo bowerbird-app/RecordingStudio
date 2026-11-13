@@ -395,8 +395,11 @@ Hooks run for side effects and swallow errors. `authorize_write` guards `record!
 `RecordingStudio::GateDecision`. Core does not redirect, and it does not contain access or billing policy.
 
 A gate name is a non-empty string or a symbol. Symbols are converted with `to_s` and surrounding space is
-removed. The usual name is `"<gem>.<gate>"`, for example `"downloadable.stats"`. A blank name raises
-`ArgumentError`. Check names use the same rule.
+removed. A blank name raises `ArgumentError`. Check names use the same rule.
+
+The conventional gate name is `<gem>.<gate>`, matching `/\A[a-z0-9_]+(\.[a-z0-9_]+)+\z/`.
+`downloadable.stats` and `recording_studio.core.export` match. `stats` and `Host.Gate` do not.
+A name outside that pattern warns once and is still accepted. The check runs.
 
 ### `RecordingStudio::GateDecision`
 
@@ -421,7 +424,7 @@ String `redirect_to` and `reason` values are frozen copies. Two decisions with t
 | `RecordingStudio.unregister_gate(gate_name, check_name)` | names | `true` or `false` | Removes one check. Missing names return `false`. |
 | `RecordingStudio.gate_registered?(gate_name)` | gate name | `true` or `false` | True when at least one check is stored, even if every check is disabled. |
 | `RecordingStudio.gate_checks(gate_name)` | gate name | array of frozen hashes | Debug list in run order. Each hash has `name`, `priority`, and `enabled`. Disabled checks stay in the list. |
-| `RecordingStudio::Gates.reset!` | nothing | cleared registry | Drops every check. Tests use this between examples. It does not clear `gate_overrides`. |
+| `RecordingStudio::Gates.reset!` | nothing | cleared registry and overrides | Drops every check and sets `config.gate_overrides` back to `{}`. Tests use this one call between examples. |
 
 The registry is guarded by a mutex. Checks run after the snapshot is taken, so a check may register another gate without deadlocking.
 Lower `priority` runs first. The default is `100`. Equal priorities keep registration order. Replacing a check updates its callable and priority, keeps its place in that order, and logs a warning.
@@ -440,7 +443,15 @@ Each check is called as `call(actor:, recording:, **context)`. A block can ignor
 
 The result is `GateDecision.allow` when no checks are registered, or when every enabled check allows. An allow from a check does not stop later checks. `gate` and `check` on that allow are `nil`.
 
-The first deny stops the run. `false` denies with no redirect and no reason. `GateDecision.deny` keeps that decision's `redirect_to` and `reason`, and `check_gate` sets `gate` and `check` to the check that returned it. Any other return value denies with no redirect and no reason. A raised error does the same. Both are logged with the gate name and the check name. The error does not propagate.
+The first deny stops the run. `false` denies with no redirect and no reason. `GateDecision.deny` keeps that decision's `redirect_to` and `reason`, and `check_gate` sets `gate` and `check` to the check that returned it. Any other return value denies with no redirect and no reason. A raised error does the same. Both log a warning with the gate name and the check name. The original error does not propagate.
+
+When `Rails.error` responds to `report`, that same failure is also reported:
+
+```ruby
+Rails.error.report(error, handled: true, context: { gate: gate_name, check: check_name })
+```
+
+An unexpected return is reported as an `ArgumentError` whose message names the class that came back. `handled: true` means the gate already turned the failure into a deny.
 
 ### Host overrides
 

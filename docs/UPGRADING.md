@@ -18,6 +18,9 @@ This release adds named allow and deny checks, called gates. No migration.
 - `config.gate_overrides` sets a check's `priority` or `enabled: false` without editing the gem.
 - A check name in that map that is not registered is ignored and logged. It does not raise.
 - Registering the same gate and check again replaces that check and logs a warning.
+- A raised error or an unexpected return still denies. When `Rails.error` is available, that failure is also sent to `Rails.error.report` with `handled: true` and context `gate` and `check`.
+- `RecordingStudio::Gates.reset!` clears registered checks and sets `config.gate_overrides` back to `{}`.
+- A gate name should match `<gem>.<gate>` (`/\A[a-z0-9_]+(\.[a-z0-9_]+)+\z/`). Any other non-blank name warns once and still runs.
 
 ### Upgrade steps
 

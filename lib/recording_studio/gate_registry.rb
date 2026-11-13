@@ -33,10 +33,21 @@ module RecordingStudio
         mutex.synchronize { locked_snapshot(gate) }
       end
 
+      def claim_unconventional_warning(name)
+        mutex.synchronize do
+          seen = (@unconventional_names ||= {})
+          return false if seen[name]
+
+          seen[name] = true
+          true
+        end
+      end
+
       def reset!
         mutex.synchronize do
           @registry = {}
           @sequence = 0
+          @unconventional_names = {}
         end
       end
 

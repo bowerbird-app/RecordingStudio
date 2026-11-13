@@ -595,7 +595,9 @@ end
 - `hooks`: Global hook registry exposed as `RecordingStudio.configuration.hooks`. Write path hooks include
   `before_record` and `after_record`. Hooks run for side effects and swallow errors unless `raise_on_error` is set.
 - `gate_overrides`: Host map of per-check `priority` and `enabled` flags for `RecordingStudio.check_gate`.
-  Default `{}`. `nil` clears the map. Unknown check names are ignored and logged. Gates are a separate
+  Default `{}`. `nil` clears the map. Unknown check names are ignored and logged. `RecordingStudio::Gates.reset!`
+  clears this map and the registered checks. Name a gate `<gem>.<gate>`
+  (`downloadable.stats`). Any other non-blank name warns once and still runs. Gates are a separate
   registry from hooks and from `authorize_write`. Core returns the decision and does not redirect.
 
 ## Upgrade Guide

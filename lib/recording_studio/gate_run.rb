@@ -51,8 +51,7 @@ module RecordingStudio
     def result
       decision_for(@item[:callable].call(actor: @actor, recording: @recording, **@context))
     rescue StandardError => e
-      warn_failure("#{e.class}: #{e.message}")
-      deny
+      fail_closed("#{e.class}: #{e.message}", e)
     end
 
     private
@@ -62,8 +61,8 @@ module RecordingStudio
       return deny if value == false
       return deny_from(value) if value.is_a?(GateDecision)
 
-      warn_failure("expected true, false, or RecordingStudio::GateDecision, got #{value.class}")
-      deny
+      detail = "expected true, false, or RecordingStudio::GateDecision, got #{value.class}"
+      fail_closed(detail, ArgumentError.new(detail))
     end
 
     def deny_from(value)
@@ -76,11 +75,32 @@ module RecordingStudio
       GateDecision.deny(redirect_to: redirect_to, reason: reason, gate: @item[:gate], check: @item[:name])
     end
 
+    def fail_closed(detail, error)
+      warn_failure(detail)
+      report_error(error)
+      deny
+    end
+
     def warn_failure(detail)
       RecordingStudio::Warnings.warn(
         "[RecordingStudio::Gates] Check #{@item[:name].inspect} on gate #{@item[:gate].inspect} " \
         "failed closed: #{detail}"
       )
+    end
+
+    def report_error(error)
+      reporter = rails_error_reporter
+      return unless reporter.respond_to?(:report)
+
+      reporter.report(error, handled: true, context: { gate: @item[:gate], check: @item[:name] })
+    rescue StandardError
+      nil
+    end
+
+    def rails_error_reporter
+      return unless defined?(Rails) && Rails.respond_to?(:error)
+
+      Rails.error
     end
   end
 end
