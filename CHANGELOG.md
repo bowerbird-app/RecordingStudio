@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Development and dummy Gemfiles pin `flat_pack` tag `v0.1.356`. The gemspec floor stays `>= 0.1.315`.
+
 ## [6.7.0] - 2026-11-12
 
 ### Added
