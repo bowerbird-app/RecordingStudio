@@ -8,6 +8,7 @@ require "recording_studio/engine"
 require "recording_studio/warnings"
 require "recording_studio/config_load_warning"
 require "recording_studio/configuration"
+require "recording_studio/gates"
 require "recording_studio/counter_caches"
 require "recording_studio/errors"
 require "recording_studio/authorization"
@@ -33,6 +34,26 @@ module RecordingStudio
 
     def configure
       yield(configuration) if block_given?
+    end
+
+    def register_gate(gate_name, check_name, callable = nil, priority: Gates::DEFAULT_PRIORITY, &)
+      Gates.register(gate_name, check_name, callable, priority: priority, &)
+    end
+
+    def unregister_gate(gate_name, check_name)
+      Gates.unregister(gate_name, check_name)
+    end
+
+    def gate_registered?(gate_name)
+      Gates.registered?(gate_name)
+    end
+
+    def gate_checks(gate_name)
+      Gates.checks_for(gate_name)
+    end
+
+    def check_gate(gate_name, actor:, recording: nil, **context)
+      Gates.check(gate_name, actor: actor, recording: recording, **context)
     end
 
     def registered_capabilities
