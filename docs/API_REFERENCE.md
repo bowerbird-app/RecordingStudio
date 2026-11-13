@@ -380,6 +380,8 @@ patching core classes.
 | `clear!` | nothing | cleared registries | Test helper to reset the registry. |
 | `clear(event_name)` | event name | registry mutation | Removes hooks for one event. |
 
+`extend_model` for `:recording` and `:event`, and `extend_controller` for `:application`, run from the engine `to_prepare` hook. Each block is applied once per class object. A reloaded class is a new object, so the block runs again. A class that stayed loaded is left alone.
+
 ### Class API via `RecordingStudio::Hooks`
 
 | Method | Takes | Returns | Why it exists |

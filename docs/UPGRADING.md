@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## Upgrading To 6.7.1
+
+Development reload applies `extend_model` and `extend_controller` on the new class. No migration.
+
+### What changed
+
+- `Recording`, `Event`, and `RecordingStudio::ApplicationController` receive those extensions again after a code reload.
+- The same extension still runs once on a class that was not reloaded.
+- Development and dummy Gemfiles pin `flat_pack` tag `v0.1.356`. The gemspec floor stays `>= 0.1.315`.
+
+### Upgrade steps
+
+None.
+
 ## Upgrading To 6.7.0
 
 This release adds named allow and deny checks, called gates. No migration.

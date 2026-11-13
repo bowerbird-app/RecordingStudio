@@ -7,9 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.7.1] - 2026-11-13
+
+### Fixed
+
+* `extend_model` and `extend_controller` apply again after a development reload.
+  The dedupe key was the class name, so a reloaded `Recording`, `Event`, or
+  `ApplicationController` skipped the block. The key is now the class object
+  and the extension block. A class that was not reloaded still receives each
+  block once.
+
 ### Changed
 
 * Development and dummy Gemfiles pin `flat_pack` tag `v0.1.356`. The gemspec floor stays `>= 0.1.315`.
+
+### Upgrade notes
+
+- No migration. In development, registered model and controller extensions show up on the reloaded class.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-671).
 
 ## [6.7.0] - 2026-11-12
 
