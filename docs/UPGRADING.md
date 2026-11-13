@@ -1277,7 +1277,7 @@ the right. The bar shares the column and sits above the title. `<html>` is
 `data-theme="rounded"`.
 
 `flat_pack` >= 0.1.315 is required. It is not on RubyGems. Pin
-`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.315`.
+`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.356`.
 
 ```erb
 <% content_for :title, "Workspaces" %>

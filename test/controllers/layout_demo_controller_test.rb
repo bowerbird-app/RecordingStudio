@@ -248,7 +248,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "Could not save the page"
     assert_select ".mb-4", text: /Saved the page/, count: 0
     assert_select ".mb-4", text: /Could not save the page/, count: 0
-    assert_select ".grid.gap-6", minimum: 1
+    assert_select ".grid[class*='gap-[var(--stack-gap-lg)]']", minimum: 1
     assert_select "title", text: "Default Layout Demo"
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
     assert_not_includes @response.body, "flat-pack--sidebar-layout"
