@@ -40,6 +40,10 @@ module RecordingStudio
     scope :of_type, ->(klass) { where(recordable_type: klass.to_s) }
     scope :kept, -> { RecordingStudio::RecordingFilters.apply(all) }
 
+    def kept?
+      RecordingStudio::RecordingFilters.kept?(self) { self.class.kept.where(id: id).exists? }
+    end
+
     class << self
       def lock_ids!(ids)
         normalized_ids = Array(ids).filter_map do |value|

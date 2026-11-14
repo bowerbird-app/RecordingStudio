@@ -4,15 +4,13 @@ module RecordingStudio
   # Named filters for Recording.kept. Stored in lib so a code reload leaves them in place.
   module RecordingFilters
     IDENTIFIER = /\A[A-Za-z_][A-Za-z0-9_]{0,62}\z/
-    Filter = Data.define(:name, :relation, :sql)
+    Filter = Data.define(:name, :relation, :sql, :predicate)
 
     class << self
-      def register(name, sql:, &block)
+      def register(name, sql:, predicate: nil, &block)
         filter_name = normalize_name(name)
-        raise ArgumentError, "recording filter requires a block" unless block
-        raise ArgumentError, "recording filter sql must respond to call" unless sql.respond_to?(:call)
-
-        filter = Filter.new(name: filter_name, relation: block, sql: sql)
+        validate_filter!(block, sql, predicate)
+        filter = Filter.new(name: filter_name, relation: block, sql: sql, predicate: predicate)
         mutex.synchronize { registry[filter_name] = filter }
         filter_name
       end
@@ -40,6 +38,14 @@ module RecordingStudio
       end
 
       private
+
+      def validate_filter!(block, sql, predicate)
+        raise ArgumentError, "recording filter requires a block" unless block
+        raise ArgumentError, "recording filter sql must respond to call" unless sql.respond_to?(:call)
+        return if predicate.nil? || predicate.respond_to?(:call)
+
+        raise ArgumentError, "recording filter predicate must respond to call"
+      end
 
       def apply_filter(filter, relation)
         filtered = filter.relation.call(relation)
