@@ -10,6 +10,7 @@ require "recording_studio/config_load_warning"
 require "recording_studio/configuration"
 require "recording_studio/gates"
 require "recording_studio/recording_filters"
+require "recording_studio/recording_filter_kept"
 require "recording_studio/counter_caches"
 require "recording_studio/errors"
 require "recording_studio/authorization"
@@ -59,8 +60,8 @@ module RecordingStudio
       Gates.check(gate_name, actor: actor, recording: recording, **context)
     end
 
-    def register_recording_filter(name, sql:, &)
-      RecordingFilters.register(name, sql:, &)
+    def register_recording_filter(name, sql:, predicate: nil, &)
+      RecordingFilters.register(name, sql:, predicate:, &)
     end
 
     def unregister_recording_filter(name)

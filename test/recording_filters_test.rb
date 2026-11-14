@@ -34,6 +34,108 @@ class RecordingFiltersTest < ActiveSupport::TestCase
     assert_empty RecordingStudio::Recording.default_scopes
   end
 
+  def test_kept_predicate_is_true_when_no_filter_is_registered
+    root = create_workspace_root
+    fresh = RecordingStudio::Recording.new
+
+    assert_empty(capture_sql do
+      assert root.kept?
+      assert fresh.kept?
+    end)
+  end
+
+  def test_kept_predicate_uses_predicates_without_a_query
+    root = create_workspace_root
+    page = record_page(root, "Draft")
+    fresh = RecordingStudio::Recording.new(recordable_type: "Workspace")
+    register_type_filter(
+      :kind,
+      "Workspace",
+      predicate: ->(recording) { recording.recordable_type == "Workspace" },
+      relation: ->(_recordings) { raise "relation filter should not run" }
+    )
+    register_parent_filter(:roots, predicate: ->(recording) { recording.parent_recording_id.nil? })
+
+    assert_empty(capture_sql do
+      assert root.kept?
+      refute page.kept?
+      assert fresh.kept?
+      refute RecordingStudio::Recording.new(recordable_type: "RecordingStudioPage").kept?
+    end)
+  end
+
+  def test_kept_predicate_queries_when_a_filter_has_no_predicate
+    root = create_workspace_root
+    page = record_page(root, "Draft")
+    fresh = RecordingStudio::Recording.new(recordable_type: "Workspace")
+    register_type_filter(:kind, "Workspace", predicate: ->(_recording) { raise "predicate should not run" })
+    register_parent_filter(:roots)
+
+    root_queries = capture_sql { assert root.kept? }
+    page_queries = capture_sql { refute page.kept? }
+    fresh_queries = capture_sql { assert fresh.kept? }
+
+    assert_equal 1, root_queries.size
+    assert_equal 1, page_queries.size
+    assert_empty fresh_queries
+    assert_match(/SELECT 1 AS one FROM "recording_studio_recordings"/, root_queries.first)
+    assert_includes root_queries.first, "recordable_type"
+    assert_includes root_queries.first, "parent_recording_id"
+    assert_includes root_queries.first, '"id"'
+    assert_includes page_queries.first, '"id"'
+  end
+
+  def test_reregistering_a_filter_replaces_its_predicate
+    root = create_workspace_root
+    page = record_page(root, "Draft")
+    register_type_filter(:kind, "Workspace", predicate: ->(recording) { recording.recordable_type == "Workspace" })
+    register_parent_filter(:roots, predicate: ->(recording) { recording.parent_recording_id.nil? })
+
+    assert_empty(capture_sql do
+      assert root.kept?
+      refute page.kept?
+    end)
+
+    register_type_filter(
+      :kind,
+      "RecordingStudioPage",
+      predicate: ->(recording) { recording.recordable_type == "RecordingStudioPage" }
+    )
+
+    sql = RecordingStudio.kept_sql
+    assert_equal 1, sql.scan("recordable_type").size
+    assert_operator sql.index("recordable_type"), :<, sql.index("parent_recording_id")
+    assert_includes sql, "RecordingStudioPage"
+    assert_empty(capture_sql do
+      refute root.kept?
+      refute page.kept?
+    end)
+
+    register_type_filter(:kind, "RecordingStudioPage")
+
+    queries = capture_sql { refute page.kept? }
+    assert_equal 1, queries.size
+    assert_empty(capture_sql { assert_predicate RecordingStudio::Recording.new, :kept? })
+  end
+
+  def test_predicate_must_be_callable_and_return_a_boolean
+    error = assert_raises(ArgumentError) do
+      RecordingStudio.register_recording_filter(:kind, sql: ->(*) { "1=1" }, predicate: "nope") do |recordings|
+        recordings
+      end
+    end
+    assert_equal "recording filter predicate must respond to call", error.message
+
+    root = create_workspace_root
+    RecordingStudio.register_recording_filter(
+      :kind,
+      sql: ->(*) { "1=1" },
+      predicate: ->(_recording) {}
+    ) { |recordings| recordings }
+    error = assert_raises(ArgumentError) { root.kept? }
+    assert_equal "recording filter :kind predicate must return true or false", error.message
+  end
+
   def test_kept_applies_each_registered_filter_in_registration_order
     root = create_workspace_root
     page = record_page(root, "Draft")
@@ -189,18 +291,29 @@ class RecordingFiltersTest < ActiveSupport::TestCase
     root.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = title }
   end
 
-  def register_type_filter(name, type_name)
+  def register_type_filter(name, type_name, predicate: nil, relation: nil)
     RecordingStudio.register_recording_filter(
       name,
-      sql: ->(table) { "#{table}.recordable_type = '#{type_name}'" }
-    ) { |recordings| recordings.where(recordable_type: type_name) }
+      sql: ->(table) { "#{table}.recordable_type = '#{type_name}'" },
+      predicate: predicate
+    ) { |recordings| relation ? relation.call(recordings) : recordings.where(recordable_type: type_name) }
   end
 
-  def register_parent_filter(name)
+  def register_parent_filter(name, predicate: nil)
     RecordingStudio.register_recording_filter(
       name,
-      sql: ->(table) { "#{table}.parent_recording_id IS NULL" }
+      sql: ->(table) { "#{table}.parent_recording_id IS NULL" },
+      predicate: predicate
     ) { |recordings| recordings.where(parent_recording_id: nil) }
+  end
+
+  def capture_sql(&)
+    queries = []
+    callback = lambda { |_name, _start, _finish, _id, payload|
+      queries << payload[:sql] unless payload[:name] == "SCHEMA"
+    }
+    ActiveSupport::Notifications.subscribed(callback, "sql.active_record", &)
+    queries
   end
 
   def kept_sql(type_name, second_fragment)

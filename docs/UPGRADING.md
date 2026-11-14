@@ -33,6 +33,36 @@ root = RecordingStudio.create_root_recording!(workspace, actor: Current.actor)
 
 A second call returns the same root and does not write another event.
 
+## Upgrading To 6.15.0
+
+`Recording#kept?` answers "is this recording kept?" for one record. No migration.
+
+### What changed
+
+- `RecordingStudio::Recording#kept?` is true when no filters are registered.
+- `RecordingStudio.register_recording_filter` takes an optional `predicate:`.
+  The callable receives the recording and returns `true` or `false`.
+  Registering the same name still replaces that filter and keeps its place.
+- When every registered filter has a predicate, `kept?` runs them in memory
+  and does not query. When any filter has no predicate, a saved recording
+  runs one query: `self.class.kept.where(id: id).exists?`.
+- A new, unsaved recording uses the predicates when every filter has one.
+  When any filter has no predicate, `kept?` returns true and does not query.
+- `kept_sql` is for runtime queries only. Never use it in migrations, index
+  definitions, or anything evaluated once at boot or migrate time. It reflects
+  only the filters registered at that moment. With none registered it is
+  `1=1`.
+
+### Upgrade steps
+
+Pass `predicate:` from the addon that owns the rule when `kept?` should skip
+the query. A filter without a predicate still works. Saved recordings then
+fall back to one `Recording.kept` existence check.
+
+Call `kept_sql` from a request, job, or other runtime path after initializers
+have registered filters. Leave it out of migrations, index definitions, and
+boot-time code.
+
 ## Upgrading To 6.14.0
 
 `Recording.kept` is how core asks "is this recording kept?". No migration.
