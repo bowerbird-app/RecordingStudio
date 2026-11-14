@@ -22,8 +22,8 @@ quinn.password = default_password
 quinn.password_confirmation = default_password
 quinn.save!
 
-studio_root = RecordingStudio.root_recording_for(workspace)
-quinn_root = RecordingStudio.root_recording_for(quinn_workspace)
+studio_root = RecordingStudio.create_root_recording!(workspace, actor: admin_user)
+quinn_root = RecordingStudio.create_root_recording!(quinn_workspace, actor: quinn)
 actors = [
   User.find_by!(email: "avery@example.com"),
   User.find_by!(email: "quinn@example.com")

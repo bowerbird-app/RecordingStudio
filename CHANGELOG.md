@@ -15,6 +15,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No migration. Hosts that copy the git pin should use tag `v0.1.366`.
 
+## [7.0.0] - 2026-11-14
+
+### Changed
+
+* `RecordingStudio.root_recording_for` only finds a root recording. It returns `nil` when that recordable has no root, and it does not write.
+* `RecordingStudio.create_root_recording!(recordable, actor: nil, impersonator: nil, metadata: {})` creates that root through the same write path as `record!`. A later call returns the existing root and does not append another event. Two concurrent creates leave one root and one event.
+
+### Upgrade notes
+
+- Breaking. No migration.
+- Lookup call sites keep `root_recording_for` and handle `nil`.
+- Seeds, setup, and request paths that created a root by looking it up call `create_root_recording!` with an actor.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-700).
+
 ## [6.15.0] - 2026-11-14
 
 ### Added

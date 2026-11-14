@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+## Upgrading To 7.0.0
+
+`root_recording_for` no longer creates a root recording. Creating a root goes through `create_root_recording!`, which uses the same actor, authorization, hook, and event path as `record!`. No migration.
+
+### What changed
+
+- `RecordingStudio.root_recording_for(recordable)` still requires a persisted recordable and still calls `assert_root_allowed!`. It returns the existing root recording, or `nil`. It does not insert a recording or an event.
+- `RecordingStudio.create_root_recording!(recordable, actor: nil, impersonator: nil, metadata: {})` returns the existing root unchanged when one is already there. That return does not authorize, run hooks, or append an event.
+- When the root is missing, creation resolves the actor the same way `record!` does (`actor:` or `config.actor`). It calls `authorize_write!` with `action: "created"`, `recordable:`, and `recording:`, `root_recording:`, and `parent_recording:` all `nil`, so the app can decide who may create roots. It then runs `before_record`, inserts the root, appends one `created` event whose `root_recording_id` is the new root id, instruments that event, and runs `after_record`.
+- A denied authorizer raises `AuthorizationError` and inserts nothing. A missing actor raises `ActorRequired` under the same rules as `record!`.
+- Two concurrent creates still produce one root. The loser of the unique-index race returns the winner and does not append a second event.
+
+### Upgrade steps
+
+Gems and host apps split lookup from creation.
+
+Lookup-only call sites stay on `root_recording_for` and handle `nil`:
+
+```ruby
+root = RecordingStudio.root_recording_for(workspace)
+return unless root
+```
+
+Creating call sites — seeds, setup, and request paths that used to create a root the first time they looked it up — call `create_root_recording!` with an actor:
+
+```ruby
+root = RecordingStudio.create_root_recording!(workspace, actor: Current.actor)
+```
+
+A second call returns the same root and does not write another event.
+
 ## Upgrading To 6.15.0
 
 `Recording#kept?` answers "is this recording kept?" for one record. No migration.
@@ -1493,7 +1524,7 @@ bundle exec ruby -Itest test/dummy/test/models/commentable_capability_test.rb
 | `RecordingStudio::InvalidRecordableDeclaration` | A declaration is malformed, references an unregistered parent type, sets `shared: true` without `root: true`, or leaves a non-root type without any valid parent allowance. | Register the parent type in `config.recordable_types`, ensure labels/root/shared flags are valid, and declare `allowed_parent_types:` unless the type is capability-owned. |
 | `RecordingStudio::RootNotAllowed` | A child-only recordable was used as a root. | Declare the type with `root: true` if it really is a root, or create it under an allowed parent recording. |
 | `RecordingStudio::InvalidParent` | A child was recorded without a parent or under a disallowed parent type. | Pass `parent_recording:` and include that parent's recordable type in `allowed_parent_types:`. |
-| `RecordingStudio::OrphanRecording` | A low-level new recording was attempted under an existing root without a parent. | Use `root_recording_for` for root creation or pass `parent_recording:` for child creation. |
+| `RecordingStudio::OrphanRecording` | A low-level new recording was attempted under an existing root without a parent. | Use `create_root_recording!` for root creation or pass `parent_recording:` for child creation. |
 | `ArgumentError` | A capability registration declared `child_recordables:` without `source:`. | Add `source:` when registering capability-owned child recordables. |
 
 ## Helpful Introspection

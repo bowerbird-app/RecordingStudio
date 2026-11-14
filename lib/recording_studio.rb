@@ -287,15 +287,28 @@ module RecordingStudio
     end
 
     def root_recording_for(recordable)
-      raise ArgumentError, "recordable is required" if recordable.nil?
+      assert_root_recordable!(recordable)
+      find_root_recording(recordable)
+    end
 
-      unless recordable.respond_to?(:persisted?) && recordable.persisted?
-        raise ArgumentError, "recordable must be persisted"
-      end
+    def create_root_recording!(recordable, actor: nil, impersonator: nil, metadata: {})
+      assert_root_recordable!(recordable)
+      existing = find_root_recording(recordable)
+      return existing if existing
 
-      assert_root_allowed!(recordable)
-
-      find_or_create_root_recording!(recordable)
+      commit_record!(
+        action: "created",
+        recordable: recordable,
+        recording: nil,
+        root_recording: nil,
+        parent_recording: nil,
+        actor: actor,
+        impersonator: impersonator,
+        metadata: metadata,
+        occurred_at: Time.current,
+        idempotency_key: nil,
+        creating_root: true
+      )
     end
 
     def root_recording_or_self(recording)
@@ -397,8 +410,49 @@ module RecordingStudio
 
     def record!(action:, recordable:, recording: nil, root_recording: nil, actor: nil, impersonator: nil,
                 metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)
+      commit_record!(
+        action: action,
+        recordable: recordable,
+        recording: recording,
+        root_recording: root_recording,
+        actor: actor,
+        impersonator: impersonator,
+        metadata: metadata,
+        occurred_at: occurred_at,
+        idempotency_key: idempotency_key,
+        parent_recording: parent_recording,
+        creating_root: false
+      )
+    end
+
+    private
+
+    def capability_mutex
+      @capability_mutex ||= Monitor.new
+    end
+
+    def assert_root_recordable!(recordable)
+      raise ArgumentError, "recordable is required" if recordable.nil?
+
+      unless recordable.respond_to?(:persisted?) && recordable.persisted?
+        raise ArgumentError, "recordable must be persisted"
+      end
+
+      assert_root_allowed!(recordable)
+    end
+
+    def find_root_recording(recordable)
+      RecordingStudio::Recording.unscoped.find_by(recordable: recordable, parent_recording_id: nil)
+    end
+
+    def find_root_recording!(recordable)
+      RecordingStudio::Recording.unscoped.find_by!(recordable: recordable, parent_recording_id: nil)
+    end
+
+    def commit_record!(action:, recordable:, recording:, root_recording:, actor:, impersonator:, metadata:,
+                       occurred_at:, idempotency_key:, parent_recording:, creating_root:)
       RecordingStudio::DelegatedTypeRegistrar.apply!
-      raise ArgumentError, "root_recording is required" if root_recording.nil? && recording.nil?
+      raise ArgumentError, "root_recording is required" if !creating_root && root_recording.nil? && recording.nil?
 
       resolved_actor = RecordingStudio::Authorization.assert_actor!(actor || configuration.actor&.call)
       resolved_impersonator = impersonator || configuration.impersonator&.call
@@ -406,85 +460,84 @@ module RecordingStudio
       idempotency_key = idempotency_key.presence
 
       RecordingStudio::Recording.transaction do
-        if recording
-          recording = reload_recording_for_hierarchy!(recording, :recording, mode: "FOR UPDATE")
-        elsif parent_recording
-          # Share blocks a move that updates this parent. Another create can share the same row.
-          parent_recording = reload_recording_for_hierarchy!(
-            parent_recording, :parent_recording, mode: RecordingStudio::Locks::SHARE_LOCK
+        unless creating_root
+          if recording
+            recording = reload_recording_for_hierarchy!(recording, :recording, mode: "FOR UPDATE")
+          elsif parent_recording
+            # Share blocks a move that updates this parent. Another create can share the same row.
+            parent_recording = reload_recording_for_hierarchy!(
+              parent_recording, :parent_recording, mode: RecordingStudio::Locks::SHARE_LOCK
+            )
+          end
+
+          root_recording ||= root_recording_or_self(recording)
+          raise ArgumentError, "root_recording is required" if root_recording.nil?
+
+          root_recording = reload_recording_for_hierarchy!(root_recording, :root_recording, mode: nil)
+          if recording && parent_recording
+            parent_recording = reload_recording_for_hierarchy!(parent_recording, :parent_recording, mode: nil)
+          end
+
+          assert_root_recording!(root_recording)
+
+          assert_recording_belongs_to_root!(
+            root_recording,
+            recording,
+            message: "recording must belong to the provided root_recording"
           )
+
+          assert_parent_recording_belongs_to_root!(parent_recording, root_recording)
         end
 
-        root_recording ||= root_recording_or_self(recording)
-        raise ArgumentError, "root_recording is required" if root_recording.nil?
-
-        root_recording = reload_recording_for_hierarchy!(root_recording, :root_recording, mode: nil)
-        if recording && parent_recording
-          parent_recording = reload_recording_for_hierarchy!(parent_recording, :parent_recording, mode: nil)
-        end
-
-        assert_root_recording!(root_recording)
-
-        assert_recording_belongs_to_root!(
-          root_recording,
-          recording,
-          message: "recording must belong to the provided root_recording"
-        )
-
-        assert_parent_recording_belongs_to_root!(parent_recording, root_recording)
-
-        RecordingStudio::Authorization.authorize_write!(
+        write_context = {
           action: action,
           recordable: recordable,
-          recording: recording,
-          root_recording: root_recording,
-          parent_recording: parent_recording,
+          recording: creating_root ? nil : recording,
+          root_recording: creating_root ? nil : root_recording,
+          parent_recording: creating_root ? nil : parent_recording,
           actor: resolved_actor,
           impersonator: resolved_impersonator,
           metadata: metadata
-        )
+        }
+        RecordingStudio::Authorization.authorize_write!(**write_context)
+        RecordingStudio::Hooks.run(:before_record, **write_context)
 
-        RecordingStudio::Hooks.run(
-          :before_record,
-          action: action,
-          recordable: recordable,
-          recording: recording,
-          root_recording: root_recording,
-          parent_recording: parent_recording,
-          actor: resolved_actor,
-          impersonator: resolved_impersonator,
-          metadata: metadata
-        )
-
-        existing_event = find_idempotent_event(recording, idempotency_key)
-        return handle_idempotency(existing_event) if existing_event
-
-        unless recording
-          if parent_recording.nil?
-            assert_root_allowed!(recordable.class.name)
-            raise RecordingStudio::OrphanRecording,
-                  "#{recordable.class.name} cannot be recorded under an existing root without a parent; " \
-                  "use root_recording_for to create root recordings"
-          else
-            assert_parent_allowed!(child_type: recordable.class.name, parent_recording: parent_recording)
-          end
+        unless creating_root
+          existing_event = find_idempotent_event(recording, idempotency_key)
+          return handle_idempotency(existing_event) if existing_event
         end
 
-        recordable.save! unless recordable.persisted?
-        if recording
-          previous_recordable = recording.recordable
-          if previous_recordable && previous_recordable.class.name != recordable.class.name
-            raise ArgumentError, "recordable type must remain #{previous_recordable.class.name}"
-          end
-
-          recording.update!(recordable: recordable) if recordable != previous_recordable
+        previous_recordable = nil
+        if creating_root
+          recording = insert_root_recording!(recordable)
+          next find_root_recording!(recordable) if recording.nil?
         else
-          recording = RecordingStudio::Recording.create!(
-            root_recording: root_recording,
-            recordable: recordable,
-            parent_recording: parent_recording
-          )
-          previous_recordable = nil
+          unless recording
+            if parent_recording.nil?
+              assert_root_allowed!(recordable.class.name)
+              raise RecordingStudio::OrphanRecording,
+                    "#{recordable.class.name} cannot be recorded under an existing root without a parent; " \
+                    "use create_root_recording! to create root recordings"
+            else
+              assert_parent_allowed!(child_type: recordable.class.name, parent_recording: parent_recording)
+            end
+          end
+
+          recordable.save! unless recordable.persisted?
+          if recording
+            previous_recordable = recording.recordable
+            if previous_recordable && previous_recordable.class.name != recordable.class.name
+              raise ArgumentError, "recordable type must remain #{previous_recordable.class.name}"
+            end
+
+            recording.update!(recordable: recordable) if recordable != previous_recordable
+          else
+            recording = RecordingStudio::Recording.create!(
+              root_recording: root_recording,
+              recordable: recordable,
+              parent_recording: parent_recording
+            )
+          end
         end
 
         event = begin
@@ -508,20 +561,16 @@ module RecordingStudio
 
         instrument_event(event)
         RecordingStudio::Hooks.run(:after_record, event)
-        event
+        creating_root ? recording : event
       end
     end
 
-    private
-
-    def capability_mutex
-      @capability_mutex ||= Monitor.new
-    end
-
-    def find_or_create_root_recording!(recordable)
-      RecordingStudio::Recording.unscoped.find_or_create_by!(recordable: recordable, parent_recording_id: nil)
+    def insert_root_recording!(recordable)
+      RecordingStudio::Recording.transaction(requires_new: true) do
+        RecordingStudio::Recording.create!(recordable: recordable, parent_recording_id: nil)
+      end
     rescue ActiveRecord::RecordNotUnique
-      RecordingStudio::Recording.unscoped.find_by!(recordable: recordable, parent_recording_id: nil)
+      nil
     end
 
     def merge_capability_registration!(capability_name, mod, recording_methods:, source:, child_recordables:)

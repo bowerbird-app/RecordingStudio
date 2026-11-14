@@ -294,7 +294,7 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
 
   def create_workspace_root(name: "Workspace")
     workspace = Workspace.create!(name: name)
-    root = RecordingStudio.root_recording_for(workspace)
+    root = RecordingStudio.create_root_recording!(workspace)
     [workspace, root]
   end
 

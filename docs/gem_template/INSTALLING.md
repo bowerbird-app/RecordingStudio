@@ -102,7 +102,7 @@ First write:
 
 ```ruby
 workspace = Workspace.create!(name: "Studio")
-root = RecordingStudio.root_recording_for(workspace)
+root = RecordingStudio.create_root_recording!(workspace, actor: Current.actor)
 
 root.record(Page) do |page|
   page.title = "Getting started"
@@ -133,6 +133,7 @@ Good validation checks after installation:
 ```ruby
 RecordingStudio.validate_recordable_declarations!
 RecordingStudio.root_recordable_types
+RecordingStudio.create_root_recording!(Workspace.first, actor: Current.actor)
 RecordingStudio.root_recording_for(Workspace.first)
 ```
 
@@ -140,7 +141,7 @@ Or from a console/session:
 
 ```ruby
 root = RecordingStudio.root_recording_for(Workspace.first)
-root.recordings_query
+root.recordings_query if root
 ```
 
 ## Troubleshooting
@@ -148,7 +149,7 @@ root.recordings_query
 | Issue | What to check |
 | --- | --- |
 | `RecordingStudio::MissingRecordableDeclaration` | Add `recording_studio_recordable(...)` to every configured ActiveRecord type, or temporarily set `require_recordable_declarations = false` while migrating. |
-| `RecordingStudio::RootNotAllowed` | You called `root_recording_for` for a type that does not declare `root: true`. |
+| `RecordingStudio::RootNotAllowed` | You called `root_recording_for` or `create_root_recording!` for a type that does not declare `root: true`. |
 | `RecordingStudio::InvalidParent` | The child type needs a valid `parent_recording:` and an allowed parent type. |
 | Tailwind classes from engine views are missing | Rebuild CSS with `bin/rails tailwindcss:build` and verify the `@source` line exists. |
 | `/recording_studio` returns 404 | Expected unless your app or a future engine version adds routes there. |

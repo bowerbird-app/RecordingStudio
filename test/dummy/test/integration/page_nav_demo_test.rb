@@ -30,7 +30,7 @@ class PageNavDemoTest < ActionDispatch::IntegrationTest
 
   test "folder show registers nothing and renders no empty button group" do
     workspace = Workspace.create!(name: "Folder Workspace")
-    root = RecordingStudio.root_recording_for(workspace)
+    root = RecordingStudio.create_root_recording!(workspace)
     recording = root.record(RecordingStudioFolder, actor: @user, parent_recording: root) do |folder|
       folder.name = "Notes"
     end

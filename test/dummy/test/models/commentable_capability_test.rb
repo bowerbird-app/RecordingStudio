@@ -23,7 +23,7 @@ class CommentableCapabilityTest < ActiveSupport::TestCase
 
   test "commentable page owns comment child recordables through capability enablement" do
     workspace = Workspace.create!(name: "Workspace")
-    root = RecordingStudio.root_recording_for(workspace)
+    root = RecordingStudio.create_root_recording!(workspace)
     page_event = RecordingStudio.record!(
       action: "created",
       recordable: RecordingStudioPage.new(title: "Page"),

@@ -417,13 +417,24 @@ class MethodsController < ApplicationController
       RUBY
     },
     {
-      title: "Create or Find a Root Recording",
+      title: "Find a Root Recording",
       subtitle: "RecordingStudio.root_recording_for",
       code: <<~'RUBY'
         # Workspace declares recording_studio_recordable(root: true).
         root_recordable = Workspace.find("9d1a4d5b-5f6a-4f0b-a7d4-2b4a4d0d12ef")
 
+        # Returns the root recording, or nil when this recordable has none.
         root_recording = RecordingStudio.root_recording_for(root_recordable)
+      RUBY
+    },
+    {
+      title: "Create a Root Recording",
+      subtitle: "RecordingStudio.create_root_recording!",
+      code: <<~'RUBY'
+        # Workspace declares recording_studio_recordable(root: true).
+        root_recordable = Workspace.find("9d1a4d5b-5f6a-4f0b-a7d4-2b4a4d0d12ef")
+
+        root_recording = RecordingStudio.create_root_recording!(root_recordable, actor: Current.actor)
       RUBY
     },
     {
@@ -521,7 +532,7 @@ class MethodsController < ApplicationController
       subtitle: "RecordingStudio.record!",
       code: <<~'RUBY'
         workspace = Workspace.find("46ce6659-3670-4f7e-9f17-d5ec4ff983d8")
-        root_recording = RecordingStudio.root_recording_for(workspace)
+        root_recording = RecordingStudio.create_root_recording!(workspace, actor: Current.actor)
 
         event = RecordingStudio.record!(
           action: "created",
@@ -1270,8 +1281,16 @@ class MethodsController < ApplicationController
     },
     "RecordingStudio.root_recording_for" => {
       returns_kind: "Recording",
+      returns: "RecordingStudio::Recording or nil",
+      notes: "Finds the top-level recording for a persisted recordable declared with root: true. Returns nil when that root does not exist yet. Never writes.",
+      example_response: <<~'TEXT'
+        #<RecordingStudio::Recording id: "0d8e4d5a-d869-4cfe-bf13-f784b77d7f35", recordable_type: "Workspace", recordable_id: "46ce6659-3670-4f7e-9f17-d5ec4ff983d8">
+      TEXT
+    },
+    "RecordingStudio.create_root_recording!" => {
+      returns_kind: "Recording",
       returns: "RecordingStudio::Recording",
-      notes: "Finds or creates the top-level recording wrapper for a persisted recordable declared with root: true.",
+      notes: "Creates the root recording through the same write path as record!. Returns the existing root unchanged when one is already there.",
       example_response: <<~'TEXT'
         #<RecordingStudio::Recording id: "0d8e4d5a-d869-4cfe-bf13-f784b77d7f35", recordable_type: "Workspace", recordable_id: "46ce6659-3670-4f7e-9f17-d5ec4ff983d8">
       TEXT
@@ -1977,6 +1996,7 @@ class MethodsController < ApplicationController
 
   ROOT_METHOD_SUBTITLES = [
     "RecordingStudio.root_recording_for",
+    "RecordingStudio.create_root_recording!",
     "RecordingStudio.root_recording_or_self",
     "RecordingStudio.root_recording_id_for",
     "RecordingStudio.root_recording?",
