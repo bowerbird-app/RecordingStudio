@@ -12,6 +12,7 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
       RecordingStudioPage
       RecordingStudioComment
       RecordingStudioFolder
+      RecordingStudioCover
     ]
     RecordingStudio.configuration.recordable_dup_strategy = :dup
     RecordingStudio::DelegatedTypeRegistrar.apply!

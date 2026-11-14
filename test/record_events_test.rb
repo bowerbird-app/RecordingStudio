@@ -26,6 +26,7 @@ class RecordEventsTest < ActiveSupport::TestCase
       RecordingStudioPage
       RecordingStudioComment
       RecordingStudioFolder
+      RecordingStudioCover
     ]
     RecordingStudio.configuration.event_notifications_enabled = true
     RecordingStudio::DelegatedTypeRegistrar.apply!

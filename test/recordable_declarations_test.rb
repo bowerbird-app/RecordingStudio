@@ -14,6 +14,7 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
       RecordingStudioPage
       RecordingStudioComment
       RecordingStudioFolder
+      RecordingStudioCover
     ]
     RecordingStudio.configuration.require_recordable_declarations = true
     RecordingStudio::DelegatedTypeRegistrar.apply!
@@ -119,6 +120,7 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
       RecordingStudioComment
       RecordingStudioFolder
       SystemActor
+      RecordingStudioCover
     ]
     error = assert_raises(RecordingStudio::InvalidRecordableDeclaration) do
       RecordingStudio::DelegatedTypeRegistrar.apply!
@@ -377,6 +379,7 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
       RecordingStudioComment
       RecordingStudioFolder
       SystemActor
+      RecordingStudioCover
     ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
   end

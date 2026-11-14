@@ -15,6 +15,7 @@ class SharedRootTest < ActiveSupport::TestCase
       RecordingStudioComment
       RecordingStudioFolder
       SystemActor
+      RecordingStudioCover
     ]
     RecordingStudio.configuration.require_recordable_declarations = true
     declare_system_actor_capability_child!

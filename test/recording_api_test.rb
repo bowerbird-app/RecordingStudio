@@ -14,6 +14,7 @@ class RecordingApiTest < ActiveSupport::TestCase
       RecordingStudioPage
       RecordingStudioComment
       RecordingStudioFolder
+      RecordingStudioCover
     ]
     RecordingStudio.configuration.actor = RecordingStudioAuthorizedWrites.method(:actor)
     RecordingStudio.configuration.idempotency_mode = :return_existing

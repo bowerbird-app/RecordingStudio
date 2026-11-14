@@ -62,6 +62,21 @@ end
 # class Page < ApplicationRecord
 #   recording_studio_recordable label: "Page", root: false, allowed_parent_types: ["Workspace", "Page"]
 # end
+#
+# class Cover < ApplicationRecord
+#   recording_studio_recordable label: "Cover",
+#                               root: false,
+#                               allowed_parent_types: ["Workspace"],
+#                               one_per_parent: true
+# end
+#
+# One attachment under a company, without making every attachment unique.
+# Register from an initializer, not to_prepare:
+# RecordingStudio.declare_single_child(
+#   "RecordingStudioAttachable::Attachment",
+#   under: "RecordingStudioCompany::Company",
+#   key: "recording_studio_company.logo"
+# )
 
 # Optional label/presentation overrides for trusted addon code
 # RecordingStudio::Labels.register_formatter("Page", name: ->(page) { page.title })

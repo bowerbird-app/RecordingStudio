@@ -7,13 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [7.0.0] - 2026-11-14
+
+### Added
+
+* A recordable can declare `one_per_parent: true`, or `one_per_parent: ["Workspace"]`
+  for named parent types. `RecordingStudio.declare_single_child(child_type, under:, key:)`
+  registers the same rule when another gem owns the child class. The same key
+  replaces that rule. The registry lives outside the reloader.
+* Creating that child locks the parent `FOR UPDATE` (the 6.11 order otherwise
+  stays: parent first, root read with no row lock) and raises
+  `RecordingStudio::SlotTaken` when any recording of that type already sits
+  directly under the parent. Trashed rows count. `revise` of the occupant
+  still replaces its recordable. `lock_for_move!` raises `SlotTaken` when the
+  destination slot is taken. `record_events!` is unchanged.
+* `rails generate recording_studio:single_child_index` writes a partial unique
+  index on `(parent_recording_id, recordable_type)` for child types that are
+  single under every parent. The `WHERE` list is fixed when the generator runs.
+
 ### Changed
 
 * Development and dummy Gemfiles pin `flat_pack` tag `v0.1.366`. The gemspec floor stays `>= 0.1.315`.
 
 ### Upgrade notes
 
-- No migration. Hosts that copy the git pin should use tag `v0.1.366`.
+- Run `rails generate recording_studio:single_child_index` and migrate after
+  declaring a type with `one_per_parent: true`.
+- Company, Identity, and Publishable: see
+  [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-700).
+- Hosts that copy the git pin should use tag `v0.1.366`.
 
 ## [6.15.0] - 2026-11-14
 

@@ -632,11 +632,14 @@ Preferred write helpers:
 
 ### Moving a recording
 
-A create locks the parent `FOR SHARE` and reads the root with no row lock. An update locks
-that recording `FOR UPDATE` and does not lock the root. `FOR SHARE` is the parent lock
-because it conflicts with a move's `FOR UPDATE` on the same row, so the parent's root cannot
-change before the insert, and a second create can take `FOR SHARE` on that parent at the
-same time.
+A create locks the parent `FOR SHARE` and reads the root with no row lock, unless the
+child is declared single under that parent's type. That create locks the parent
+`FOR UPDATE` instead, still before the unlocked root read. An update locks that
+recording `FOR UPDATE` and does not lock the root. `FOR SHARE` is the parent lock
+for every other create because it conflicts with a move's `FOR UPDATE` on the same
+row, so the parent's root cannot change before the insert, and a second create can
+take `FOR SHARE` on that parent at the same time. Two single-child creates wait on
+the parent's `FOR UPDATE`.
 
 Moveable and any other code that changes `parent_recording_id` or `root_recording_id` calls
 `lock_for_move!` inside the move transaction before those writes. The helper locks the
@@ -663,6 +666,62 @@ end
 
 `RecordingStudio::MoveConflict` means the tree changed while the locks were taken. The
 rescue has to sit outside the transaction so the row locks are released before the retry.
+`RecordingStudio::SlotTaken` means the recording being moved is declared single under
+the target parent's type and that parent already has one. Roll back. The occupant
+stays where it is.
+
+### One recording per parent
+
+Declare this on the child when each direct parent should hold at most one recording
+of that type:
+
+```ruby
+class Cover < ApplicationRecord
+  recording_studio_recordable label: "Cover",
+                              root: false,
+                              allowed_parent_types: ["Workspace"],
+                              one_per_parent: true
+end
+```
+
+`one_per_parent: ["Workspace"]` is the same rule for those parent types only. The
+child must be `root: false`. A list has to sit inside `allowed_parent_types` when
+that option is set.
+
+When another gem owns the child class, register the rule once at boot:
+
+```ruby
+RecordingStudio.declare_single_child(
+  "RecordingStudioAttachable::Attachment",
+  under: "RecordingStudioCompany::Company",
+  key: "recording_studio_company.logo"
+)
+```
+
+`under: true` means every parent. The same `key` replaces that rule. Call this from
+an initializer, not `to_prepare`. `RecordingStudio.remove_single_child(key)` drops
+one key. `RecordingStudio.single_child?(child_type, under: parent)` is the check.
+
+`record!` raises `RecordingStudio::SlotTaken` when a second recording of that type
+would land directly under the parent. The read includes every row. A trashed child
+still holds the slot. `revise` of the existing recording is the replacement. It
+swaps the recordable and keeps the recording.
+
+`record_events!` does not create recordings and does not check the slot.
+
+The database backstop is generated, not shipped as a core migration:
+
+```bash
+rails generate recording_studio:single_child_index
+```
+
+That writes a partial unique index on `(parent_recording_id, recordable_type)`
+`WHERE recordable_type IN (...)`. The list is the configured types that are single
+under every parent, written into the migration as SQL when you run the generator.
+A type that is single only under named parent types is enforced in `record!` and
+`lock_for_move!` and left out of the index, with a comment in the migration. Putting
+that type in the index would make it unique under every parent. Run the generator
+again after the declarations change, then migrate.
 
 ### Querying Recordings (Filters & Ordering)
 
@@ -1066,6 +1125,7 @@ root_recording.recordings_of(Page)
 ```bash
 rails g recording_studio:install
 rails g recording_studio:migrations
+rails g recording_studio:single_child_index
 rails g recording_studio:views RESOURCE
 ```
 
@@ -1075,6 +1135,9 @@ built-in browser UI or default routes, so treat that mount as integration surfac
 Use the dummy app for an interactive example.
 
 The migrations generator installs the current core schema for fresh host apps.
+
+`recording_studio:single_child_index` writes the partial unique index for
+`one_per_parent: true` declarations. See [One recording per parent](#one-recording-per-parent).
 
 The views generator scaffolds FlatPack resource templates:
 

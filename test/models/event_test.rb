@@ -11,6 +11,7 @@ class EventTest < ActiveSupport::TestCase
       RecordingStudioPage
       RecordingStudioComment
       RecordingStudioFolder
+      RecordingStudioCover
     ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
 

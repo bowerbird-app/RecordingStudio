@@ -2,6 +2,156 @@
 
 ## Unreleased
 
+## Upgrading To 7.0.0
+
+One recording of child type X directly under a parent. No core migration until
+a host declares a type that is single under every parent, then generates the
+index below.
+
+### What changed
+
+- `recording_studio_recordable ..., one_per_parent: true` means at most one
+  recording of that child type under each direct parent. `one_per_parent:
+  ["Workspace"]` limits only those parent types. The child must declare
+  `root: false`. A list has to be a subset of `allowed_parent_types` when
+  those are declared.
+- `RecordingStudio.declare_single_child(child_type, under:, key:)` registers
+  the same rule for a child class this gem does not own. `under: true` means
+  every parent. `under:` as a type or a list means those parent types. The
+  same `key` replaces that rule. Register from an initializer. Leave
+  `to_prepare` alone. The registry survives code reload.
+- `RecordingStudio.remove_single_child(key)` drops one key.
+  `RecordingStudio.single_child?(child_type, under:)` is the check.
+- A create of a declared child locks that parent `FOR UPDATE` instead of
+  `FOR SHARE`, in the same place `record!` already locks the parent. The root
+  is still read with no row lock. Two such creates wait on each other. The
+  loser raises `RecordingStudio::SlotTaken`. Other creates still take
+  `FOR SHARE` and still share the parent.
+- The occupancy read is every row under that parent with that
+  `recordable_type`. Core does not know about trash and does not call `kept`
+  or `kept_sql`. A trashed child still holds the slot.
+- `revise` and any other `record!` that passes the existing recording replace
+  that occupant's recordable. That is how a logo or image is replaced.
+- `lock_for_move!` already holds the target parent `FOR UPDATE`. It raises
+  `SlotTaken` when the moved recording's type is declared single under the
+  target parent's type and another row already occupies it. Moving the
+  occupant onto its current parent is allowed.
+- `record_events!` only appends events to recordings that exist. It does not
+  check the slot.
+- `rails generate recording_studio:single_child_index` writes a migration:
+
+```ruby
+add_index :recording_studio_recordings,
+          [:parent_recording_id, :recordable_type],
+          unique: true,
+          name: "index_recording_studio_recordings_on_single_child",
+          where: "recordable_type IN ('Cover')"
+```
+
+  The `IN` list is the configured child types that are single under every
+  parent (`one_per_parent: true` or `under: true`), quoted into the file when
+  the generator runs. A child type that is single only under named parent
+  types is enforced in `record!` and `lock_for_move!` and left out of the
+  index. The index cannot see the parent recording's type, so including that
+  child type would make it unique under every parent. The generator writes
+  those pairwise limits as comments. The `WHERE` clause is static SQL. It
+  does not call `kept_sql` and it does not exclude trashed rows.
+
+### Upgrade steps
+
+Apps that declare no single child keep the 6.11 locks. Generate the index
+after adding `one_per_parent: true`.
+
+#### Company
+
+Drop the `to_prepare` hook that includes `Slots::Validation` into
+`RecordingStudio::Recording`, and drop the
+`RecordingStudioAttachable::Attachment` include of
+`RecordingStudio::Capabilities::Trashable`. Delete `Slots.lock_parent!`.
+It takes the root `FOR UPDATE` and then the parent `FOR UPDATE` inside
+`record!`, which already holds the parent, and deadlocks with
+`lock_for_move!`.
+
+Declare the limits from an initializer, not `to_prepare`:
+
+```ruby
+initializer "recording_studio_company.single_children" do
+  RecordingStudio.declare_single_child(
+    "RecordingStudioAttachable::Attachment",
+    under: "RecordingStudioCompany::Company",
+    key: "recording_studio_company.logo"
+  )
+end
+```
+
+A logo is an attachment. Do not pass `under: true` for that type. The index
+would then allow only one attachment under every parent. The pairwise rule
+above is enforced in Ruby: one attachment directly under a company, and many
+attachments under other parents.
+
+On `RecordingStudioCompany::Company`, set `one_per_parent: true` only when
+every parent type that holds companies uses `allow: :one`. That puts Company
+in the generated index. When some parents use `allow: :many`, declare only
+the `:one` parent types:
+
+```ruby
+RecordingStudio.declare_single_child(
+  "RecordingStudioCompany::Company",
+  under: ["Workspace"],
+  key: "recording_studio_company.company"
+)
+```
+
+Leave Company out of `one_per_parent: true` in that case so `:many` parents
+can still hold many companies. The old `allow:` option no longer needs a
+validation included into `Recording`.
+
+Replace a logo by revising the existing logo recording. Creating a second
+attachment under the company raises `RecordingStudio::SlotTaken`. Trashing
+the logo does not free the slot.
+
+#### Identity
+
+Same shape. Drop the `Slots::Validation` include and the
+`RecordingStudioAttachable::Attachment` Trashable override.
+
+```ruby
+initializer "recording_studio_identity.single_children" do
+  RecordingStudio.declare_single_child(
+    "RecordingStudioAttachable::Attachment",
+    under: "RecordingStudioIdentity::Identity",
+    key: "recording_studio_identity.image"
+  )
+end
+```
+
+Company and Identity can both register. Different keys union. An attachment
+is then single under a company and under an identity, and still repeats under
+other parents.
+
+Declare `one_per_parent: true` on `RecordingStudioIdentity::Identity` only
+when every parent uses `allow: :one`. Otherwise `declare_single_child` with
+those parent types and a distinct key.
+
+Replace an image by revising the existing image recording (the current
+replace-file path). Do not record a second attachment under the identity.
+
+#### Publishable
+
+Declare `one_per_parent: true` on `RecordingStudioPublishable::Publishable`.
+Drop `index_rs_publishable_child_per_parent`. That index is unique on
+`parent_recording_id` where `recordable_type` is the publishable type, and
+the later form also requires `trashed_at IS NULL`. Core's index counts every
+row, including trashed ones.
+
+Run `rails generate recording_studio:single_child_index` and migrate. Do not
+keep the publishable index beside the generated one.
+
+#### Embeddable
+
+Leave the active-embed index alone. One active embed per parent is a
+different rule from one recording of a child type.
+
 ## Upgrading To 6.15.0
 
 `Recording#kept?` answers "is this recording kept?" for one record. No migration.

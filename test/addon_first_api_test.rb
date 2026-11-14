@@ -14,6 +14,7 @@ class AddonFirstApiTest < ActiveSupport::TestCase
       RecordingStudioPage
       RecordingStudioComment
       RecordingStudioFolder
+      RecordingStudioCover
     ]
     RecordingStudio.configuration.recordable_dup_strategy = :dup
     RecordingStudio.configuration.recordable_dup_strategies.clear
