@@ -15,6 +15,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No migration. Hosts that copy the git pin should use tag `v0.1.366`.
 
+## [6.12.0] - 2026-11-14
+
+### Changed
+
+* `recordings_query` preloads the polymorphic recordable. A list that reads
+  `name`, `title`, `type_label`, or `summary` uses that preloaded record.
+  The extra queries are one per recordable type on the page, and they stay
+  the same as the page grows.
+* `recording.recordables` reads 50 events unless you pass `limit:`. Order is
+  `occurred_at`, `created_at`, then `id`, oldest first. The array responds to
+  `next_cursor`. Pass that string as `cursor:` to read the next newer page.
+  `all: true` returns the full distinct history. The current recordable stays
+  in the result. A page after the last event is empty.
+
+### Upgrade notes
+
+- No migration.
+- Callers that need every snapshot pass `recordables(all: true)`.
+- `all: true` does not take `limit:` or `cursor:`.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-6120).
+
 ## [6.11.0] - 2026-11-14
 
 ### Changed

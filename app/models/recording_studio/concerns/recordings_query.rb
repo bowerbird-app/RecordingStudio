@@ -52,7 +52,8 @@ module RecordingStudio
         )
         scope = enforce_recordings_scope(scope, root_id: root_id, include_children: include_children)
         scope = extend_recordings_query(scope)
-        apply_relation_window(scope, order: order, limit: limit, offset: offset)
+        scope = apply_relation_window(scope, order: order, limit: limit, offset: offset)
+        preload_list_recordables(scope)
       end
       # rubocop:enable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/ParameterLists, Metrics/PerceivedComplexity
 
@@ -125,6 +126,33 @@ module RecordingStudio
 
         custom_scope = recordable_scope.call(scope)
         custom_scope.is_a?(ActiveRecord::Relation) ? custom_scope : scope
+      end
+
+      # select(:id) is a subquery. Preloading that partial row asks for recordable_type.
+      module ListRecordablePreload
+        def exec_queries(...)
+          records = super
+          preload_recordables_for_list(records)
+          records
+        end
+
+        private
+
+        def preload_recordables_for_list(records)
+          return if select_values.any?
+          return if records.empty?
+          return unless records.first.class.reflect_on_association(:recordable)
+          return if records.first.association(:recordable).loaded?
+
+          ActiveRecord::Associations::Preloader.new(records: records, associations: :recordable).call
+        end
+      end
+
+      def preload_list_recordables(scope)
+        return scope unless scope.respond_to?(:extending)
+        return scope unless scope.klass.reflect_on_association(:recordable)
+
+        scope.extending(ListRecordablePreload)
       end
 
       def extend_recordings_query(scope)

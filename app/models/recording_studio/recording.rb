@@ -13,6 +13,8 @@ module RecordingStudio
 
     self.table_name = "recording_studio_recordings"
 
+    RECORDABLES_LIMIT = 50
+
     belongs_to :root_recording, class_name: "RecordingStudio::Recording", optional: true
     belongs_to :parent_recording, class_name: "RecordingStudio::Recording", optional: true,
                                   inverse_of: :child_recordings
@@ -100,15 +102,15 @@ module RecordingStudio
       association(:events).scope.find_by(idempotency_key: idempotency_key)
     end
 
-    def recordables
-      events_scope = association(:events).scope.reorder(occurred_at: :asc, created_at: :asc)
-      event_snapshots = events_scope.preload(:recordable, :previous_recordable).flat_map do |event|
-        [event.previous_recordable, event.recordable]
-      end
-
-      (event_snapshots + [recordable]).compact.uniq do |snapshot|
-        [snapshot.class.base_class.name, snapshot.id]
-      end
+    def recordables(limit: nil, cursor: nil, all: false)
+      assert_recordables_page!(limit: limit, cursor: cursor, all: all)
+      page_limit = all ? nil : (limit || RECORDABLES_LIMIT)
+      page_cursor = all ? nil : cursor
+      events = recordable_history_events(limit: page_limit, cursor: page_cursor)
+      page = distinct_recordable_snapshots(events, cursor: page_cursor)
+      next_cursor = recordables_next_cursor(events, limit: page_limit)
+      page.define_singleton_method(:next_cursor) { next_cursor }
+      page
     end
 
     def record(recordable_or_class, actor: nil, impersonator: nil, metadata: {}, parent_recording: nil)
@@ -373,6 +375,32 @@ module RecordingStudio
     end
 
     private
+
+    def assert_recordables_page!(limit:, cursor:, all:)
+      return unless all
+
+      raise ArgumentError, "limit is not used when all: true" unless limit.nil?
+      raise ArgumentError, "cursor is not used when all: true" if cursor.present?
+    end
+
+    def recordable_history_events(limit:, cursor:)
+      scope = association(:events).scope.reorder(occurred_at: :asc, created_at: :asc, id: :asc)
+      scope = scope.newer_than_cursor(cursor) if cursor.present?
+      scope = scope.limit(limit) if limit
+      scope.preload(:recordable, :previous_recordable).to_a
+    end
+
+    def distinct_recordable_snapshots(events, cursor:)
+      snapshots = events.flat_map { |event| [event.previous_recordable, event.recordable] }
+      snapshots << recordable if events.any? || cursor.blank?
+      snapshots.compact.uniq { |snapshot| [snapshot.class.base_class.name, snapshot.id] }
+    end
+
+    def recordables_next_cursor(events, limit:)
+      return if limit.nil? || events.size != limit || events.last.nil?
+
+      RecordingStudio::Event.cursor_for(events.last)
+    end
 
     def recordings_with_children_page(parent_scope, limit:, offset:)
       offset = offset.to_i
