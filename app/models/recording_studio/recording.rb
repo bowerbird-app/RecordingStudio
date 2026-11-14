@@ -316,6 +316,12 @@ module RecordingStudio
         allow_unsafe_recordable_query: allow_unsafe_recordable_query
       )
 
+      if limit.present? && ascending_id_order?(order) &&
+         descendant_type.blank? && descendant_id.blank? && descendant_recording_id.blank? &&
+         descendant_recordable_filters.blank? && descendant_recordable_scope.blank?
+        return recordings_with_children_page(parent_scope, limit: limit, offset: offset)
+      end
+
       matching_descendants = filtered_root_recordings_query(
         include_children: true,
         type: descendant_type,
@@ -353,6 +359,30 @@ module RecordingStudio
     end
 
     private
+
+    def recordings_with_children_page(parent_scope, limit:, offset:)
+      offset = offset.to_i
+      needed = limit.to_i + offset
+      ids = RecordingStudio::Tree.child_owner_ids(
+        root_recording_id: root_query_root_id,
+        parent_scope: parent_scope,
+        needed: needed
+      )
+      parent_scope.where(id: ids.drop(offset)).reorder(id: :asc).limit(limit.to_i)
+    end
+
+    def ascending_id_order?(order)
+      case order
+      when nil, ""
+        true
+      when Hash
+        order.size == 1 && order.keys.first.to_s == "id" && order.values.first.to_s.casecmp("desc") != 0
+      when String, Symbol
+        order.to_s.strip.match?(/\A"?id"?(\s+asc)?\z/i)
+      else
+        false
+      end
+    end
 
     def recordings_matching_related_presence(include_children: true, type: nil, id: nil,
                                              recording_id: nil, parent_id: nil, recordable_filters: nil,

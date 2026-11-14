@@ -10,8 +10,9 @@ Tree reads stay in SQL. No migration.
 
 - Descendant walks filter `root_recording_id` on the first step only. Later steps follow `parent_recording_id`.
 - Ancestor and descendant walks stop when a recording repeats or the walk passes depth 1000, and raise `RecordingStudio::TreeWalkError`.
-- `subtree_recordings` and `recordings_with_descendants` keep their limit and order in the database.
-- Descendants stay ordered by depth, then id. `ancestor_ids` stays nearest-first, and `ancestors` stays root-first.
+- `subtree_recordings` stays ordered by depth, then id. With a limit, it reads one level at a time and stops when the page is full. The page raises if it reaches a cycle or depth 1000.
+- `recordings_with_descendants` with a descendant filter still walks ancestors in SQL. With a limit and no descendant filter, it returns recordings that have a child, ordered by id, and does not walk the rest of the tree.
+- `ancestor_ids` stays nearest-first, and `ancestors` stays root-first.
 
 ### Upgrade steps
 

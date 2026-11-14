@@ -37,18 +37,23 @@ class TreeWalkTest < ActiveSupport::TestCase
     _, root = create_workspace_root
     later = root.record(RecordingStudioPage) { |page| page.title = "Later" }
     earlier = root.record(RecordingStudioPage) { |page| page.title = "Earlier" }
-    root.record(RecordingStudioComment, parent_recording: later) { |comment| comment.body = "Nested" }
+    grandchild = root.record(RecordingStudioComment, parent_recording: later) { |comment| comment.body = "Nested" }
     ordered_children = [earlier.id, later.id].sort
 
     relation = root.subtree_recordings
-    limited = relation.limit(2)
 
     assert_kind_of ActiveRecord::Relation, relation
     assert_equal [root.id] + ordered_children, relation.limit(3).pluck(:id)
     assert_equal ordered_children, root.subtree_recordings(include_self: false).limit(2).pluck(:id)
-    assert_match(/\bLIMIT\b/i, limited.to_sql)
-    refute_match(/WHEN '[0-9a-f-]{36}' THEN/i, limited.to_sql)
-    assert_equal 1, limited.to_sql.scan("root_recording_id").size
+    assert_equal ordered_children + [grandchild.id], root.subtree_recordings(include_self: false).limit(4).pluck(:id)
+    assert_equal [root.id, ordered_children.first], relation.limit(2).map(&:id)
+
+    sql = capture_sql { root.subtree_recordings(include_self: false).limit(2).pluck(:id) }
+    assert(sql.any? { |statement| statement.match?(/ORDER BY id ASC/i) && statement.match?(/\bLIMIT\b/i) })
+    refute(sql.any? { |statement| statement.match?(/WITH RECURSIVE/i) })
+    refute(sql.any? { |statement| statement.match?(/WHEN '[0-9a-f-]{36}' THEN/i) })
+    root_filters = sql.sum { |statement| statement.scan("root_recording_id").size }
+    assert_equal 1, root_filters
   end
 
   def test_recordings_with_descendants_limit_stays_in_sql
@@ -71,6 +76,25 @@ class TreeWalkTest < ActiveSupport::TestCase
     assert_equal [parent.id, child.id].min, relation.pick(:id)
   end
 
+  def test_recordings_with_descendants_limit_reads_child_owners_by_id
+    _, root = create_workspace_root
+    parent = root.record(RecordingStudioPage) { |page| page.title = "Ancestor" }
+    root.record(RecordingStudioPage, parent_recording: parent) { |page| page.title = "Child" }
+    leaf = root.record(RecordingStudioPage) { |page| page.title = "Leaf" }
+
+    ids = nil
+    sql = capture_sql do
+      ids = root.recordings_with_descendants(limit: 10).pluck(:id)
+    end
+    direct = root.recordings_with_descendants(include_children: false, limit: 10).pluck(:id)
+
+    assert_equal [root.id, parent.id].sort, ids
+    assert_not_includes ids, leaf.id
+    assert_equal [parent.id], direct
+    refute(sql.any? { |statement| statement.match?(/WITH RECURSIVE descendants/i) })
+    assert(sql.any? { |statement| statement.match?(/parent_recording_id/i) })
+  end
+
   def test_cycle_raises
     _, root = create_workspace_root
     first = root.record(RecordingStudioPage) { |page| page.title = "First" }
@@ -80,10 +104,13 @@ class TreeWalkTest < ActiveSupport::TestCase
 
     RecordingStudio::Recording.connection.execute("SET LOCAL statement_timeout = '3s'")
 
+    assert_equal [second.id], first.subtree_recordings(include_self: false).limit(1).pluck(:id)
+    assert_includes root.recordings_with_descendants(limit: 1).pluck(:id), [first.id, second.id, third.id].min
+
     [-> { RecordingStudio::Tree.ancestor_ids(first.id) },
      -> { first.descendant_ids },
-     -> { first.subtree_recordings.limit(1).pluck(:id) },
-     -> { root.recordings_with_descendants(limit: 1).pluck(:id) }].each do |walk|
+     -> { first.subtree_recordings(include_self: false).limit(3).pluck(:id) },
+     -> { root.recordings_with_descendants.pluck(:id) }].each do |walk|
       error = assert_raises(RecordingStudio::TreeWalkError, &walk)
       assert_match(/contains a cycle at recording/, error.message)
     end
@@ -100,9 +127,13 @@ class TreeWalkTest < ActiveSupport::TestCase
 
     insert_descendant_chain(leaf, 1)
 
+    assert root.subtree_recordings(include_self: false).limit(1).pick(:id).present?
+
     [-> { root.descendant_ids },
      -> { depth_leaf(root).ancestors },
-     -> { root.subtree_recordings.limit(1).pluck(:id) }].each do |walk|
+     lambda {
+       root.subtree_recordings.limit(1).offset(RecordingStudio::Tree::MAX_WALK_DEPTH + 1).pluck(:id)
+     }].each do |walk|
       error = assert_raises(RecordingStudio::TreeWalkError, &walk)
       assert_match(/exceeded the depth cap of 1000/, error.message)
     end
@@ -140,6 +171,15 @@ class TreeWalkTest < ActiveSupport::TestCase
              #{connection.quote(now)}
       FROM chain
     SQL
+  end
+
+  def capture_sql(&)
+    queries = []
+    callback = lambda { |_name, _start, _finish, _id, payload|
+      queries << payload[:sql] unless payload[:name] == "SCHEMA"
+    }
+    ActiveSupport::Notifications.subscribed(callback, "sql.active_record", &)
+    queries
   end
 
   def depth_leaf(root)

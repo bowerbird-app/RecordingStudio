@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # The walk SQL is one statement per query. Line length here is the statement, not branching.
-# rubocop:disable Metrics/ModuleLength, Metrics/MethodLength
+# rubocop:disable Metrics/ModuleLength, Metrics/MethodLength, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
 module RecordingStudio
   # SQL tree helpers for recording hierarchy traversal.
   # Uses recursive CTEs against PostgreSQL.
@@ -16,12 +16,24 @@ module RecordingStudio
 
     # Translates the walk's database error into TreeWalkError after rolling
     # back the failed statement, so an outer transaction can continue.
+    # A depth-ordered page with a limit is read level by level. A recursive
+    # CTE is materialized before an outer LIMIT, so it cannot stop early.
     module WalkGuard
-      def load
+      attr_accessor :subtree_seed
+
+      def load(&)
+        if subtree_page?
+          load_subtree_page unless loaded?
+          return self
+        end
+
         guarded { super }
       end
 
-      def pluck(*)
+      def pluck(*column_names)
+        plain = column_names.all? { |name| name.is_a?(Symbol) || name.is_a?(String) }
+        return pluck_subtree_page(column_names) if subtree_page? && plain
+
         guarded { super }
       end
 
@@ -29,7 +41,9 @@ module RecordingStudio
         guarded { super }
       end
 
-      def exists?(...)
+      def exists?(conditions = :none)
+        return subtree_page_ids.any? if conditions == :none && subtree_page?
+
         guarded { super }
       end
 
@@ -42,6 +56,50 @@ module RecordingStudio
         raise RecordingStudio::TreeWalkError, match[0] if match
 
         raise
+      end
+
+      def subtree_page?
+        return false unless subtree_seed && limit_value
+        return false if reordering_value || distinct_value || lock_value
+        return false if where_clause.any? || having_clause.any? || !from_clause.empty?
+        return false if select_values.any? || group_values.any?
+        return false if includes_values.any? || eager_load_values.any? || preload_values.any?
+        return false if left_outer_joins_values.any?
+
+        joins_values.size <= 1
+      end
+
+      def subtree_page_ids
+        seed = subtree_seed
+        RecordingStudio::Tree.subtree_page_ids(
+          recording_id: seed.fetch(:recording_id),
+          root_recording_id: seed[:root_recording_id],
+          include_self: seed.fetch(:include_self),
+          limit: limit_value,
+          offset: offset_value
+        )
+      end
+
+      def load_subtree_page(ids = subtree_page_ids)
+        @records = if ids.empty?
+                     []
+                   else
+                     by_id = klass.unscoped.where(id: ids).index_by { |record| record.id.to_s }
+                     ids.filter_map { |id| by_id[id.to_s] }
+                   end
+        @loaded = true
+      end
+
+      def pluck_subtree_page(column_names)
+        ids = subtree_page_ids
+        names = column_names.map(&:to_s)
+        return ids if names == ["id"]
+
+        load_subtree_page(ids)
+        plucked = records.map do |record|
+          names.map { |name| record.read_attribute(name) }
+        end
+        names.one? ? plucked.map(&:first) : plucked
       end
     end
 
@@ -62,10 +120,91 @@ module RecordingStudio
     def subtree_relation(recording_id:, root_recording_id:, include_self:)
       return Recording.unscoped.none if recording_id.blank?
 
-      recordings_joined_to_walk(
+      relation = recordings_joined_to_walk(
         subtree_walk_sql(recording_id, root_recording_id: root_recording_id, include_self: include_self),
         order_by_depth: true
       )
+      relation.subtree_seed = {
+        recording_id: recording_id,
+        root_recording_id: root_recording_id,
+        include_self: include_self
+      }
+      relation
+    end
+
+    # One level at a time, each level ordered by id, stopping once the page is
+    # full. Children of an in-root recording stay in that root, so the root
+    # predicate is only on the first level.
+    def subtree_page_ids(recording_id:, root_recording_id:, include_self:, limit:, offset:)
+      limit = limit.to_i
+      offset = offset.to_i
+      return [] if limit <= 0
+
+      needed = limit + [offset, 0].max
+      ids = []
+      seen = {}
+      if include_self
+        ids << recording_id
+        seen[recording_id] = true
+        return ids.drop(offset).first(limit) if ids.size >= needed
+      end
+
+      parents = [recording_id]
+      seen[recording_id] = true
+      depth = 0
+      while parents.any? && ids.size < needed
+        if depth >= MAX_WALK_DEPTH
+          overflow_id = child_ids(parents, root_recording_id: nil, limit: 1).first
+          break if overflow_id.nil?
+
+          raise_walk_failure!(overflow_id, cycle: seen[overflow_id])
+        end
+
+        remaining = needed - ids.size
+        children = child_ids(
+          parents,
+          root_recording_id: depth.zero? ? root_recording_id : nil,
+          limit: remaining + 1
+        )
+        children.each { |child_id| raise_walk_failure!(child_id, cycle: true) if seen[child_id] }
+        taken = children.first(remaining)
+        taken.each { |child_id| seen[child_id] = true }
+        ids.concat(taken)
+        break if children.size > remaining || taken.empty?
+
+        parents = taken
+        depth += 1
+      end
+
+      ids.drop(offset).first(limit)
+    end
+
+    # Distinct parent ids in id order. Each step is one index lookup, and the
+    # walk stops after `needed` parents. Callers that pass a limit use this
+    # instead of walking every ancestor.
+    def child_owner_ids(root_recording_id:, parent_scope:, needed:)
+      needed = needed.to_i
+      return [] if needed <= 0 || root_recording_id.blank?
+
+      found = []
+      cursor = nil
+      while found.size < needed
+        requested = needed - found.size
+        batch = next_child_owner_ids(root_recording_id, after: cursor, limit: requested)
+        break if batch.empty?
+
+        cursor = batch.last
+        allowed = parent_scope.unscope(:order).where(id: batch).pluck(:id)
+        allowed_ids = allowed.to_h { |id| [id, true] }
+        batch.each do |id|
+          next unless allowed_ids[id]
+
+          found << id
+          break if found.size >= needed
+        end
+        break if batch.size < requested
+      end
+      found
     end
 
     def ancestor_ids_of_matches_sql(matching_descendants)
@@ -103,14 +242,79 @@ module RecordingStudio
     private_class_method :flagged?
 
     def failure_message(row)
-      recording_id = row.fetch("id")
-      if flagged?(row, "cycle")
+      walk_failure_message(row.fetch("id"), cycle: flagged?(row, "cycle"))
+    end
+    private_class_method :failure_message
+
+    def walk_failure_message(recording_id, cycle:)
+      if cycle
         "Recording tree contains a cycle at recording #{recording_id}"
       else
         "Recording tree walk exceeded the depth cap of #{MAX_WALK_DEPTH} at recording #{recording_id}"
       end
     end
-    private_class_method :failure_message
+    private_class_method :walk_failure_message
+
+    def raise_walk_failure!(recording_id, cycle:)
+      raise TreeWalkError, walk_failure_message(recording_id, cycle: cycle)
+    end
+    private_class_method :raise_walk_failure!
+
+    def child_ids(parent_ids, root_recording_id:, limit:)
+      return [] if parent_ids.empty? || limit.to_i <= 0
+
+      parent_sql = if parent_ids.one?
+                     "parent_recording_id = #{quote(parent_ids.first)}"
+                   else
+                     quoted = parent_ids.map { |parent_id| quote(parent_id) }.join(", ")
+                     "parent_recording_id IN (#{quoted})"
+                   end
+      root_sql = "AND root_recording_id = #{quote(root_recording_id)}" if root_recording_id.present?
+      connection.select_values(<<~SQL.squish)
+        SELECT id
+        FROM #{TABLE}
+        WHERE #{parent_sql}
+          #{root_sql}
+        ORDER BY id ASC
+        LIMIT #{limit.to_i}
+      SQL
+    end
+    private_class_method :child_ids
+
+    def next_child_owner_ids(root_recording_id, after:, limit:)
+      return [] if limit.to_i <= 0
+
+      after_sql = "AND parent_recording_id > #{quote(after)}" if after.present?
+      connection.select_values(<<~SQL.squish)
+        WITH RECURSIVE parents AS (
+          (
+            SELECT parent_recording_id AS id, 1 AS n
+            FROM #{TABLE}
+            WHERE root_recording_id = #{quote(root_recording_id)}
+              AND parent_recording_id IS NOT NULL
+              #{after_sql}
+            ORDER BY parent_recording_id
+            LIMIT 1
+          )
+          UNION ALL
+          (
+            SELECT nxt.id, parents.n + 1
+            FROM parents
+            JOIN LATERAL (
+              SELECT parent_recording_id AS id
+              FROM #{TABLE}
+              WHERE root_recording_id = #{quote(root_recording_id)}
+                AND parent_recording_id > parents.id
+              ORDER BY parent_recording_id
+              LIMIT 1
+            ) nxt ON TRUE
+            WHERE parents.n < #{limit.to_i}
+          )
+        )
+        SELECT id FROM parents
+      SQL
+    end
+    private_class_method :next_child_owner_ids
 
     def recordings_joined_to_walk(walk_sql, order_by_depth:)
       table = Recording.quoted_table_name
@@ -312,4 +516,4 @@ module RecordingStudio
     private_class_method :guard_sql
   end
 end
-# rubocop:enable Metrics/ModuleLength, Metrics/MethodLength
+# rubocop:enable Metrics/ModuleLength, Metrics/MethodLength, Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity

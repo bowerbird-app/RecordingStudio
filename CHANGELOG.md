@@ -13,20 +13,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * Recording tree walks read descendants and ancestors in SQL.
   The descendant recursive step follows `parent_recording_id` and applies
-  `root_recording_id` only on the seed. `subtree_recordings` and
-  `recordings_with_descendants` apply limit in the database.
+  `root_recording_id` only on the seed. A limited `subtree_recordings` page
+  reads one level at a time, ordered by depth then id, and stops when the
+  page is full. A limited `recordings_with_descendants` with no descendant
+  filter returns recordings that have a child, smallest id first.
 
 ### Fixed
 
 * Ancestor and descendant walks raise `RecordingStudio::TreeWalkError` when
   they repeat a recording or pass a depth of 1000. A cycle no longer runs
-  until the statement times out.
+  until the statement times out. A limited subtree page raises when the page
+  itself reaches the cycle or the depth cap.
 
 ### Upgrade notes
 
 - No migration. Acyclic trees shallower than 1000 return the same rows.
 - Descendants stay ordered by depth, then id. `ancestor_ids` stays
   nearest-first, and `ancestors` stays root-first.
+- A limited subtree page keeps that order and does not read levels past the page.
+- A limited `recordings_with_descendants` with no descendant filter is the recordings that have a child, ordered by id.
 - See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-680).
 
 ## [6.7.1] - 2026-11-13
