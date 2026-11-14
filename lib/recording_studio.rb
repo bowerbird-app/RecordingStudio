@@ -23,6 +23,7 @@ require "recording_studio/translation"
 require "recording_studio/labels"
 require "recording_studio/recordable"
 require "recording_studio/recordable_declarations"
+require "recording_studio/single_children"
 require "recording_studio/relationships"
 require "recording_studio/locks"
 require "recording_studio/event_batch"
@@ -160,6 +161,22 @@ module RecordingStudio
     def recordable_declarations
       RecordingStudio::RecordableDeclarations.ensure_loaded!
       RecordingStudio::RecordableDeclarations.declarations.dup
+    end
+
+    def declare_single_child(child_type, under:, key:)
+      RecordingStudio::SingleChildren.declare(child_type, under: under, key: key)
+    end
+
+    def remove_single_child(key)
+      RecordingStudio::SingleChildren.remove(key)
+    end
+
+    def single_child?(child_type, under:)
+      RecordingStudio::SingleChildren.applies?(child_type, under)
+    end
+
+    def single_child_index_types
+      RecordingStudio::SingleChildren.index_types
     end
 
     def validate_recordable_declarations! # rubocop:disable Naming/PredicateMethod
@@ -464,9 +481,12 @@ module RecordingStudio
           if recording
             recording = reload_recording_for_hierarchy!(recording, :recording, mode: "FOR UPDATE")
           elsif parent_recording
-            # Share blocks a move that updates this parent. Another create can share the same row.
+            # FOR UPDATE when this child is single under the parent. Otherwise FOR SHARE.
+            # The root row stays unlocked either way.
             parent_recording = reload_recording_for_hierarchy!(
-              parent_recording, :parent_recording, mode: RecordingStudio::Locks::SHARE_LOCK
+              parent_recording,
+              :parent_recording,
+              mode: RecordingStudio::SingleChildren.lock_mode(recordable, parent_recording)
             )
           end
 
@@ -520,6 +540,7 @@ module RecordingStudio
                     "use create_root_recording! to create root recordings"
             else
               assert_parent_allowed!(child_type: recordable.class.name, parent_recording: parent_recording)
+              RecordingStudio::SingleChildren.assert_available!(recordable, parent_recording)
             end
           end
 

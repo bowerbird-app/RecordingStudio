@@ -11,6 +11,7 @@ module RecordingStudio
       :shared,
       :allowed_parent_types,
       :allowed_parent_types_provided,
+      :one_per_parent,
       keyword_init: true
     ) do
       def root?
@@ -19,6 +20,10 @@ module RecordingStudio
 
       def shared?
         shared == true
+      end
+
+      def one_per_parent?
+        one_per_parent == true || one_per_parent.is_a?(Array)
       end
     end
 
@@ -43,7 +48,9 @@ module RecordingStudio
       attributes = declaration_attributes(label: label, plural_label: plural_label, root: root, options: options)
       validate_declaration_arguments!(recordable_class, attributes)
       type_name = RecordingStudio::Identity.type_name_for(recordable_class)
-      declaration_registry[type_name] = build_declaration(type_name, attributes).freeze
+      declaration = build_declaration(type_name, attributes).freeze
+      declaration_registry[type_name] = declaration
+      RecordingStudio::SingleChildren.sync_declaration!(declaration)
     end
 
     def declaration_attributes(label:, plural_label:, root:, options:)
@@ -53,21 +60,26 @@ module RecordingStudio
         root: root,
         shared: options.key?(:shared) ? options[:shared] : false,
         allowed_parent_types: options[:allowed_parent_types],
-        allowed_parent_types_provided: options.key?(:allowed_parent_types)
+        allowed_parent_types_provided: options.key?(:allowed_parent_types),
+        one_per_parent: options[:one_per_parent],
+        one_per_parent_provided: options.key?(:one_per_parent)
       }
     end
 
     def build_declaration(type_name, attributes)
       label = normalize_label(attributes.fetch(:label))
-      Declaration.new(
-        type: type_name,
-        label: label,
+      Declaration.new(type: type_name, label: label, **declaration_copy(label, attributes))
+    end
+
+    def declaration_copy(label, attributes)
+      {
         plural_label: normalize_label(attributes.fetch(:plural_label)) || label.pluralize,
         root: attributes.fetch(:root),
         shared: attributes.fetch(:shared),
         allowed_parent_types: normalize_types(attributes.fetch(:allowed_parent_types)).freeze,
-        allowed_parent_types_provided: attributes.fetch(:allowed_parent_types_provided)
-      )
+        allowed_parent_types_provided: attributes.fetch(:allowed_parent_types_provided),
+        one_per_parent: freeze_one_per_parent(attributes.fetch(:one_per_parent))
+      }
     end
 
     def declarations
@@ -77,6 +89,7 @@ module RecordingStudio
     def replace_declarations!(new_declarations)
       @declaration_registry = new_declarations.dup
       @loaded_configured_type_names = Set.new
+      RecordingStudio::SingleChildren.rebuild_declarations!(@declaration_registry)
     end
 
     def declaration_for(recordable_or_type)
@@ -203,6 +216,7 @@ module RecordingStudio
       end
       validate_declared_types_registered!
       validate_allowed_parent_types_registered!
+      validate_one_per_parent_types!
       validate_required_parent_types!
       validate_capability_parent_allowances!
     end
@@ -287,6 +301,20 @@ module RecordingStudio
             "#{capability_name} child_recordables require a non-blank source"
     end
 
+    def validate_one_per_parent_types!
+      registered_types = registered_type_names
+      declaration_registry.each_value do |declaration|
+        next unless declaration.one_per_parent.is_a?(Array)
+        next unless registered_types.include?(declaration.type)
+
+        invalid_types = declaration.one_per_parent - registered_types.to_a
+        next if invalid_types.empty?
+
+        raise RecordingStudio::InvalidRecordableDeclaration,
+              "#{declaration.type} one_per_parent includes unregistered type(s): #{invalid_types.join(', ')}"
+      end
+    end
+
     def validate_allowed_parent_types_registered!
       registered_types = registered_type_names
       declaration_registry.each_value do |declaration|
@@ -348,6 +376,64 @@ module RecordingStudio
       validate_plural_label!(recordable_class, attributes.fetch(:plural_label))
 
       normalize_types(attributes.fetch(:allowed_parent_types)) if attributes.fetch(:allowed_parent_types_provided)
+      validate_one_per_parent!(recordable_class, attributes)
+    end
+
+    def validate_one_per_parent!(recordable_class, attributes)
+      unless attributes[:one_per_parent_provided]
+        attributes[:one_per_parent] = false
+        return
+      end
+
+      attributes[:one_per_parent] = normalized_one_per_parent(
+        recordable_class,
+        attributes,
+        attributes[:one_per_parent]
+      )
+    end
+
+    def normalized_one_per_parent(recordable_class, attributes, value)
+      return false if value == false
+
+      if value == true
+        require_child_one_per_parent!(recordable_class, attributes)
+        return true
+      end
+
+      return one_per_parent_list(recordable_class, attributes, value) if value.is_a?(Array)
+
+      raise_invalid!(recordable_class, "one_per_parent must be true or a list of parent types")
+    end
+
+    def one_per_parent_list(recordable_class, attributes, value)
+      require_child_one_per_parent!(recordable_class, attributes)
+      parent_types = normalize_types(value)
+      raise_invalid!(recordable_class, "one_per_parent must list a parent type") if parent_types.empty?
+
+      assert_one_per_parent_subset!(recordable_class, attributes, parent_types)
+      parent_types
+    end
+
+    def require_child_one_per_parent!(recordable_class, attributes)
+      return if attributes.fetch(:root) == false
+
+      raise_invalid!(recordable_class, "one_per_parent requires root: false")
+    end
+
+    def assert_one_per_parent_subset!(recordable_class, attributes, parent_types)
+      return unless attributes.fetch(:allowed_parent_types_provided)
+
+      extra = parent_types - normalize_types(attributes.fetch(:allowed_parent_types))
+      return if extra.empty?
+
+      raise_invalid!(
+        recordable_class,
+        "one_per_parent includes parent types that are not allowed: #{extra.join(', ')}"
+      )
+    end
+
+    def freeze_one_per_parent(value)
+      value.is_a?(Array) ? value.freeze : value
     end
 
     def validate_label!(recordable_class, label)

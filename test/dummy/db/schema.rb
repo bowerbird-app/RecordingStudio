@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_14_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_14_153001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -19,6 +19,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_090000) do
     t.text "body", null: false
     t.integer "events_count", default: 0, null: false
     t.integer "recordings_count", default: 0, null: false
+  end
+
+  create_table "recording_studio_covers", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
+    t.string "title", null: false
+    t.integer "recordings_count", default: 0, null: false
+    t.integer "events_count", default: 0, null: false
   end
 
   create_table "recording_studio_events", id: :uuid, default: -> { "gen_random_uuid()" }, force: :cascade do |t|
@@ -66,6 +72,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_14_090000) do
     t.string "recordable_type", null: false
     t.uuid "root_recording_id"
     t.datetime "updated_at", null: false
+    t.index ["parent_recording_id", "recordable_type"], name: "index_recording_studio_recordings_on_single_child", unique: true, where: "((recordable_type)::text = 'RecordingStudioCover'::text)"
     t.index ["parent_recording_id"], name: "index_recording_studio_recordings_on_parent_recording_id"
     t.index ["recordable_type", "recordable_id"], name: "index_recording_studio_recordings_on_recordable"
     t.index ["recordable_type", "recordable_id"], name: "index_rs_unique_root_recording_per_recordable", unique: true, where: "(parent_recording_id IS NULL)"

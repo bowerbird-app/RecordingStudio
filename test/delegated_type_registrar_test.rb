@@ -19,6 +19,7 @@ class DelegatedTypeRegistrarTest < ActiveSupport::TestCase
       RecordingStudioPage
       RecordingStudioComment
       RecordingStudioFolder
+      RecordingStudioCover
     ]
 
     RecordingStudio::DelegatedTypeRegistrar.apply!
@@ -32,6 +33,7 @@ class DelegatedTypeRegistrarTest < ActiveSupport::TestCase
       RecordingStudioPage
       RecordingStudioComment
       RecordingStudioFolder
+      RecordingStudioCover
     ]
 
     RecordingStudio::DelegatedTypeRegistrar.apply!
@@ -45,6 +47,7 @@ class DelegatedTypeRegistrarTest < ActiveSupport::TestCase
       RecordingStudioPage
       RecordingStudioComment
       RecordingStudioFolder
+      RecordingStudioCover
     ]
 
     RecordingStudio::DelegatedTypeRegistrar.apply!
@@ -63,6 +66,7 @@ class DelegatedTypeRegistrarTest < ActiveSupport::TestCase
       RecordingStudioComment
       RecordingStudioFolder
       String
+      RecordingStudioCover
     ]
     RecordingStudio.configuration.require_recordable_declarations = false
 

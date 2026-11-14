@@ -9,6 +9,9 @@ module RecordingStudio
 
   class InvalidParent < StandardError; end
 
+  # A single-child slot already holds a recording, including a trashed one.
+  class SlotTaken < StandardError; end
+
   class MissingRecordableDeclaration < StandardError; end
 
   class InvalidRecordableDeclaration < StandardError; end

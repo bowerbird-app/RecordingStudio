@@ -1,0 +1,24 @@
+# frozen_string_literal: true
+
+class <%= migration_class_name %> < ActiveRecord::Migration[<%= migration_version %>]
+  def change
+<% if pairwise_lines.any? -%>
+    # Enforced in record! and lock_for_move!, and left out of this index.
+    # The index cannot see the parent recording's type:
+<% pairwise_lines.each do |line| -%>
+    #   <%= line %>
+<% end -%>
+<% end -%>
+<% if where_sql -%>
+    add_index :recording_studio_recordings,
+              %i[parent_recording_id recordable_type],
+              unique: true,
+              name: <%= index_name.inspect %>,
+              where: <%= where_sql.inspect %>,
+              if_not_exists: true
+<% else -%>
+    # No configured recordable is single under every parent.
+    # Run this generator again after declaring one_per_parent: true.
+<% end -%>
+  end
+end

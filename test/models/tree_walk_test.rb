@@ -10,6 +10,7 @@ class TreeWalkTest < ActiveSupport::TestCase
       RecordingStudioPage
       RecordingStudioComment
       RecordingStudioFolder
+      RecordingStudioCover
     ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
     reset_recording_studio_tables!(RecordingStudioFolder, RecordingStudioPage, RecordingStudioComment)

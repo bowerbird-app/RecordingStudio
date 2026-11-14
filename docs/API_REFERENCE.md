@@ -117,6 +117,10 @@ These methods are the main addon-facing API.
 | `parent_allowed?(child_type:, parent_recording:)` | child type, parent recording | `true`, `false`, or raises | Checks declared and capability-derived parent/child hierarchy rules. |
 | `assert_root_allowed!(type)` | instance, class, or class name | `true` or raises `RecordingStudio::RootNotAllowed` | Guards APIs that create or identify root recordings. |
 | `assert_parent_allowed!(child_type:, parent_recording:)` | child type, parent recording | `true` or raises `RecordingStudio::InvalidParent` | Guards child creation against declaration and capability-derived hierarchy rules. |
+| `declare_single_child(child_type, under:, key:)` | child type, `true` or parent type(s), required key | the rule | At most one recording of `child_type` directly under each matching parent. `under: true` means every parent and includes the type in the generated index. A type or list is enforced in `record!` and `lock_for_move!` only. The same key replaces that rule. Register from an initializer. |
+| `remove_single_child(key)` | key | `true` when removed, otherwise `false` | Drops one registered single-child rule. |
+| `single_child?(child_type, under:)` | child type, parent recording or parent type | `true` or `false` | Whether a create or move of that child under that parent is limited to one. |
+| `single_child_index_types` | nothing | `Array<String>` | Configured child types that are single under every parent. The generator writes these into the partial unique index. |
 | `root_recording_for(recordable)` | persisted top-level recordable | `RecordingStudio::Recording` or `nil` | Finds the root recording for a top-level object. Returns `nil` when it does not exist. Does not write. |
 | `create_root_recording!(recordable, actor: nil, impersonator: nil, metadata: {})` | persisted top-level recordable, optional actor, impersonator, and metadata | `RecordingStudio::Recording` | Creates the root through the same write path as `record!`. Returns the existing root unchanged when one is already there. |
 | `root_recording_or_self(recording)` | recording or root recording | `RecordingStudio::Recording` or `nil` | Collapses `root_recording || self` into one public helper. |
@@ -187,9 +191,13 @@ Behavior summary:
 - When `event_notifications_enabled` is true, a newly created event emits `recordings.event_created`.
   The payload includes `metadata`, a frozen copy of the event metadata with string keys (`{}` when nil).
   Existing payload keys stay as they are. See the Instrumentation section in the README.
-- A create locks `parent_recording` with `FOR SHARE` and loads `root_recording` with no row lock.
-  `FOR SHARE` keeps the parent's root stable until the insert commits, and it does not block
-  another create. An update locks `recording` with `FOR UPDATE` and does not lock the root.
+- A create locks `parent_recording` with `FOR SHARE` and loads `root_recording` with no row lock,
+  unless the child type is declared single under that parent's type. That create locks the parent
+  with `FOR UPDATE` in the same position. `FOR SHARE` keeps the parent's root stable until the
+  insert commits, and it does not block another create. `FOR UPDATE` makes two single-child
+  creates wait. The second raises `RecordingStudio::SlotTaken` when any recording of that
+  type is already under the parent. An update locks `recording` with `FOR UPDATE` and does not
+  lock the root. `revise` of the existing occupant is an update, so it stays allowed.
 - The event insert, idempotency handling, and `before_record` / `after_record` hooks stay inside
   that same transaction.
 
@@ -223,6 +231,7 @@ Behavior summary:
 - `events_count` is updated once per recordable after the outermost transaction commits.
 - The call joins the caller's transaction, or opens one when none is open.
 - `idempotency_key` raises. Batch dedupe is not part of this version.
+- The call does not create a recording, move one, or check a single-child slot.
 - A given `occurred_at` is kept. Omitted times share one base `Time.current` and stay strictly increasing
   inside the batch, so the default timeline matches input order.
 
@@ -238,11 +247,17 @@ Lock order:
 2. The recording, `to_parent`, and the current descendants, ascending id, `FOR UPDATE`,
    skipping ids already locked in step 1.
 
-The parent's root cannot change under a create, because the create holds `FOR SHARE` on that
-parent and this helper holds `FOR UPDATE` on the moved recording, the target parent, and the
-descendants. A create under that subtree waits until the move commits, or it commits first and
-is included in `descendant_ids`. A new id that would lock out of order raises `MoveConflict`
-instead, and the retry includes it.
+The parent's root cannot change under a create, because the create holds `FOR SHARE` or
+`FOR UPDATE` on that parent and this helper holds `FOR UPDATE` on the moved recording, the
+target parent, and the descendants. A single-child create holds `FOR UPDATE` on the parent
+and does not lock the root, so it waits with a move instead of deadlocking. A create under
+that subtree waits until the move commits, or it commits first and is included in
+`descendant_ids`. A new id that would lock out of order raises `MoveConflict` instead, and
+the retry includes it.
+
+After those locks, a recording whose type is declared single under `to_parent`'s type raises
+`RecordingStudio::SlotTaken` when another row already occupies that slot. The check sees
+every row. The recording being moved does not count as an occupant of the destination.
 
 Return value, frozen:
 
@@ -292,6 +307,7 @@ Macro parameters:
 | `root:` | yes | `true` when the type can be a root recording; `false` for child-only types. |
 | `shared:` | no | `true` when a root type is a shared domain forest rather than an owned bucket. Defaults to `false`. Only valid with `root: true`, and cannot be combined with a non-empty `allowed_parent_types`. |
 | `allowed_parent_types:` | required when `root: false` unless parent allowances are derived from a registered capability | Class names/classes allowed as direct parents. `[]` is valid but means the type cannot currently be nested anywhere unless capability enablement grants parents. |
+| `one_per_parent:` | no | `true` for one recording of this type under every direct parent. A list of parent types limits only those parents and must be a subset of `allowed_parent_types` when those are declared. Requires `root: false`. `true` puts the type in the generated index. A list is enforced in Ruby only. |
 
 Declaration behavior:
 
@@ -302,6 +318,10 @@ Declaration behavior:
 - A declaration for an unregistered type warns when declarations are not required and raises
   `RecordingStudio::InvalidRecordableDeclaration` when they are required.
 - `allowed_parent_types` entries must be registered recordable types.
+- `one_per_parent: true` and `declare_single_child(..., under: true)` share one occupancy rule: every
+  row of that `recordable_type` under the parent counts, including trashed rows. `revise` of that
+  recording stays allowed. `rails generate recording_studio:single_child_index` writes the backstop
+  index for those types. A parent-type list is not in the index.
 - Non-root capability-owned child recordables may omit `allowed_parent_types` only when a registered capability declares
   them in `child_recordables:`; effective parents are then derived from recordable types where that capability is enabled.
 - Direct model saves validate hierarchy rules too, so bypassing `record!` does not create valid orphan recordings.
@@ -316,6 +336,7 @@ Hierarchy errors:
 | --- | --- |
 | `RecordingStudio::RootNotAllowed` | A non-root recordable is used where a root is required. |
 | `RecordingStudio::InvalidParent` | A child is recorded without a parent or under a disallowed parent type. |
+| `RecordingStudio::SlotTaken` | A create or `lock_for_move!` would put a second recording of a declared single child directly under that parent. Existing rows count, including trashed ones. |
 | `RecordingStudio::OrphanRecording` | A low-level new recording is attempted under an existing root without a parent. |
 | `RecordingStudio::MissingRecordableDeclaration` | A configured ActiveRecord type has no declaration while declarations are required. |
 | `RecordingStudio::InvalidRecordableDeclaration` | A declaration has invalid arguments, references unregistered parents, uses `shared:` incorrectly, or belongs to an unregistered type while strict declarations are enabled. |

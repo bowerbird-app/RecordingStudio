@@ -10,6 +10,7 @@ class CapabilitiesTest < ActiveSupport::TestCase
       RecordingStudioPage
       RecordingStudioFolder
       RecordingStudioComment
+      RecordingStudioCover
     ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
     RecordingStudio.apply_capabilities!

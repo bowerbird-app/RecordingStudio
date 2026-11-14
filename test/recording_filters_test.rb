@@ -10,6 +10,7 @@ class RecordingFiltersTest < ActiveSupport::TestCase
       RecordingStudioPage
       RecordingStudioComment
       RecordingStudioFolder
+      RecordingStudioCover
     ]
     RecordingStudio::DelegatedTypeRegistrar.apply!
     RecordingStudio::RecordingFilters.reset!

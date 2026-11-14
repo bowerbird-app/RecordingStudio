@@ -15,6 +15,7 @@ class CapabilityOwnedRecordablesTest < ActiveSupport::TestCase
       RecordingStudioFolder
       RecordingStudioComment
       SystemActor
+      RecordingStudioCover
     ]
     declare_system_actor_recordable
     RecordingStudio::DelegatedTypeRegistrar.apply!

@@ -37,7 +37,10 @@ module RecordingStudio
         load_targets!
         assert_same_root!
         lock_rows!([@source_root_id, @to_root.id])
-        pack(lock_nodes!)
+        locked = pack(lock_nodes!)
+        child = locked[:recording]
+        SingleChildren.assert_available!(child.recordable_type, locked[:to_parent], except: child.id)
+        locked
       end
 
       private
@@ -91,8 +94,7 @@ module RecordingStudio
       end
 
       def assert_lock_order!(pending, locked)
-        return if locked.empty?
-        return if pending.all? { |id| id > locked.max }
+        return if locked.empty? || pending.all? { |id| id > locked.max }
 
         raise MoveConflict, RETRY
       end
