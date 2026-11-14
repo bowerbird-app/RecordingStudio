@@ -558,7 +558,7 @@ Write behavior details:
 | `recordings_for(recordables)` | array of persisted recordables | `Array<RecordingStudio::Recording>` | Batch version of `recording_for`, preserving input order. |
 | `recordables_of(recordable_class, **options)` | recordable class plus query options | `Array<ActiveRecord::Base>` | Returns recordables instead of recording wrappers. |
 | `child_recordings_of(parent_recording, **options)` | parent recording plus query options | `ActiveRecord::Relation<RecordingStudio::Recording>` | Reads direct children under the same root. |
-| `events_query(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, actions: nil, actor: nil, actor_type: nil, actor_id: nil, impersonator: nil, impersonator_type: nil, impersonator_id: nil, from: nil, to: nil, limit: nil, offset: nil)` | root recording filters plus event filters | `ActiveRecord::Relation<RecordingStudio::Event>` | Reads an event timeline for a root or subtree slice. |
+| `events_query(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, actions: nil, actor: nil, actor_type: nil, actor_id: nil, impersonator: nil, impersonator_type: nil, impersonator_id: nil, from: nil, to: nil, limit: nil, cursor: nil)` | root recording filters plus event filters | `ActiveRecord::Relation<RecordingStudio::Event>` | Reads an event timeline for a root or a filtered slice. A root-wide read defaults to 50 rows and pages with `cursor:`. |
 | `recordings_with_events(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, actions: nil, actor: nil, actor_type: nil, actor_id: nil, impersonator: nil, impersonator_type: nil, impersonator_id: nil, from: nil, to: nil, order: nil, limit: nil, offset: nil)` | root recording filters plus event filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Finds recordings whose history matches event filters. |
 | `recordings_with_children(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, child_type: nil, child_id: nil, child_recording_id: nil, child_recordable_filters: nil, child_recordable_scope: nil, order: nil, limit: nil, offset: nil)` | parent and child filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Finds recordings that have matching direct children. |
 | `recordings_with_descendants(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, descendant_type: nil, descendant_id: nil, descendant_recording_id: nil, descendant_recordable_filters: nil, descendant_recordable_scope: nil, order: nil, limit: nil, offset: nil)` | parent and descendant filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Recordings with matching descendants below them. A limit with no descendant filter returns recordings that have a child, ordered by id. A descendant filter still walks ancestors and raises `TreeWalkError` on a cycle or a depth over 1000. |
@@ -577,6 +577,13 @@ Query guidance:
   `child_recordable_scope`, `descendant_recordable_filters`, and `descendant_recordable_scope`.
 - `order:` is sanitized against recording columns.
 - `recordable_order:` is sanitized against recordable columns for the resolved `type:`.
+- A root-wide `events_query` (no type, recording, parent, or recordable filter, `include_children: true`) reads `events.root_recording_id`. It does not join recordings, does not take `offset:`, and does not count the timeline.
+- That root-wide read returns `RecordingStudio::Event::ROOT_TIMELINE_LIMIT` (50) rows unless you pass `limit:`.
+- Order is `occurred_at DESC`, `created_at DESC`, `id DESC`.
+- `RecordingStudio::Event.cursor_for(event)` returns an opaque cursor. Pass it as `events_query(cursor:)` to read the next older page.
+- A short page, or an empty page after a full one, means the timeline is finished.
+- Filtered `events_query` calls still select through recordings and apply a limit only when you pass `limit:`.
+- `RecordingStudio::Event.for_root` is the same root filter without a default limit. Pass `limit:` when you want a page.
 
 ## Capability Helper API: `RecordingStudio::Capability`
 
@@ -596,7 +603,10 @@ The event model is intentionally small. Most public usage is through scopes.
 | Method or scope | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
 | `for_recording(recording)` | recording | `ActiveRecord::Relation<RecordingStudio::Event>` | Reads events for one recording. |
-| `for_root(root_recording_or_id)` | root recording or ID | `ActiveRecord::Relation<RecordingStudio::Event>` | Reads events across a full root tree. |
+| `for_root(root_recording_or_id)` | root recording or ID | `ActiveRecord::Relation<RecordingStudio::Event>` | Reads events whose `root_recording_id` is that root. Does not join recordings and does not limit. |
+| `cursor_for(event)` | event | `String` | Opaque cursor for the next older `events_query` page. |
+| `timeline` | nothing | `ActiveRecord::Relation<RecordingStudio::Event>` | Orders by `occurred_at`, `created_at`, then `id`, newest first. |
+| `older_than_cursor(cursor)` | cursor string | `ActiveRecord::Relation<RecordingStudio::Event>` | Keyset filter for rows older than the cursor. A blank cursor is a no-op. An invalid cursor raises `ArgumentError`. |
 | `by_actor(actor)` | persisted polymorphic actor | `ActiveRecord::Relation<RecordingStudio::Event>` | Filters by actor identity. |
 | `by_impersonator(impersonator)` | persisted polymorphic impersonator | `ActiveRecord::Relation<RecordingStudio::Event>` | Filters by impersonator identity. |
 | `with_action(action)` | action string or array | `ActiveRecord::Relation<RecordingStudio::Event>` | Filters by action name. |
@@ -663,6 +673,10 @@ publish_events = root.events_query(
   actions: %w[published unpublished],
   from: 7.days.ago
 )
+
+timeline = root.events_query
+next_cursor = RecordingStudio::Event.cursor_for(timeline.last) if timeline.size == timeline.limit_value
+older = root.events_query(cursor: next_cursor)
 ```
 
 ## Layout Helpers: `RecordingStudio::LayoutHelper`

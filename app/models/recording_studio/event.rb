@@ -6,7 +6,11 @@ module RecordingStudio
 
     self.table_name = "recording_studio_events"
 
+    ROOT_TIMELINE_LIMIT = 50
+    TIMELINE_ORDER = { occurred_at: :desc, created_at: :desc, id: :desc }.freeze
+
     belongs_to :recording, class_name: "RecordingStudio::Recording", inverse_of: :events
+    belongs_to :root_recording, class_name: "RecordingStudio::Recording"
     belongs_to :recordable, polymorphic: true
     belongs_to :previous_recordable, polymorphic: true, optional: true
     belongs_to :actor, polymorphic: true, optional: true
@@ -23,7 +27,18 @@ module RecordingStudio
                 end
       next none if root_id.blank?
 
-      joins(:recording).where(recording_studio_recordings: { root_recording_id: root_id })
+      where(root_recording_id: root_id)
+    }
+    scope :timeline, -> { order(TIMELINE_ORDER) }
+    scope :older_than_cursor, lambda { |cursor|
+      next all if cursor.blank?
+
+      occurred_at, created_at, id = RecordingStudio::Event.cursor_point(cursor)
+      where(
+        "(recording_studio_events.occurred_at, recording_studio_events.created_at, recording_studio_events.id) " \
+        "< (CAST(? AS timestamp), CAST(? AS timestamp), CAST(? AS uuid))",
+        occurred_at, created_at, id
+      )
     }
     scope :by_actor, lambda { |actor|
       return none unless actor
@@ -44,6 +59,7 @@ module RecordingStudio
     }
     scope :recent, -> { order(occurred_at: :desc, created_at: :desc) }
 
+    before_validation :assign_root_recording_id, on: :create
     before_update :raise_append_only_error
     before_destroy :raise_append_only_error
     after_commit :increment_recordable_events_count, on: :create
@@ -53,7 +69,41 @@ module RecordingStudio
       persisted?
     end
 
+    class << self
+      def cursor_for(event)
+        raise ArgumentError, "event is required" if event.blank?
+
+        payload = {
+          "occurred_at" => event.occurred_at.iso8601(6),
+          "created_at" => event.created_at.iso8601(6),
+          "id" => event.id
+        }
+        Base64.urlsafe_encode64(JSON.generate(payload), padding: false)
+      end
+
+      def cursor_point(cursor)
+        decoded = JSON.parse(Base64.urlsafe_decode64(cursor.to_s))
+        occurred_at = Time.iso8601(decoded.fetch("occurred_at"))
+        created_at = Time.iso8601(decoded.fetch("created_at"))
+        id = decoded.fetch("id").to_s
+        raise ArgumentError if occurred_at.nil? || created_at.nil? || id.blank?
+
+        [occurred_at, created_at, id]
+      rescue ArgumentError, JSON::ParserError, KeyError, TypeError
+        raise ArgumentError, "cursor is invalid"
+      end
+    end
+
     private
+
+    def assign_root_recording_id
+      return if root_recording_id.present? || recording_id.blank?
+
+      source = recording
+      return if source.nil?
+
+      self.root_recording_id = source.root_recording_id.presence || source.id
+    end
 
     def raise_append_only_error
       raise ActiveRecord::ReadOnlyRecord,

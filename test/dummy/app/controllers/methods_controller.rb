@@ -690,12 +690,9 @@ class MethodsController < ApplicationController
       title: "Query a Root Event Timeline",
       subtitle: "root_recording.events_query",
       code: <<~'RUBY'
-        root_recording.events_query(
-          actions: %w[published reviewed],
-          type: Page,
-          include_children: true,
-          limit: 20
-        )
+        page = root_recording.events_query
+        next_cursor = RecordingStudio::Event.cursor_for(page.last)
+        root_recording.events_query(cursor: next_cursor)
       RUBY
     },
     {
@@ -1467,7 +1464,7 @@ class MethodsController < ApplicationController
       returns_kind: "Relation",
       returns: "ActiveRecord::Relation<RecordingStudio::Event>",
       items: "RecordingStudio::Event",
-      notes: "Returns a root-scoped event timeline filtered by the matching recordings and event attributes.",
+      notes: "Returns a root event timeline. With no recording filters the page is 50 events, newest first, read from events.root_recording_id. Pass cursor: from RecordingStudio::Event.cursor_for for the next page. There is no offset and no total count. A type, recording, parent, or recordable filter still reads through recordings.",
       example_response: <<~'TEXT'
         #<ActiveRecord::Relation [
           #<RecordingStudio::Event id: "6e3e3b42-f0f7-4046-a20a-c3d8b69d1a6c", action: "published">,
@@ -1598,7 +1595,7 @@ class MethodsController < ApplicationController
       returns_kind: "Relation",
       returns: "ActiveRecord::Relation<RecordingStudio::Event>",
       items: "RecordingStudio::Event",
-      notes: "Returns events whose recordings belong to the given root recording, including descendants.",
+      notes: "Returns events with this root_recording_id, including descendants. It does not join recordings and it does not limit the relation.",
       example_response: <<~'TEXT'
         #<ActiveRecord::Relation [
           #<RecordingStudio::Event id: "6e3e3b42-f0f7-4046-a20a-c3d8b69d1a6c", action: "published">,

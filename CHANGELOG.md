@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [6.8.0] - 2026-11-13
+## [6.10.0] - 2026-11-14
 
 ### Changed
 
@@ -27,12 +27,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Upgrade notes
 
-- No migration. Acyclic trees shallower than 1000 return the same rows.
+- No migration for the tree walk. Acyclic trees shallower than 1000 return the same rows.
 - Descendants stay ordered by depth, then id. `ancestor_ids` stays
   nearest-first, and `ancestors` stays root-first.
 - A limited subtree page keeps that order and does not read levels past the page.
 - A limited `recordings_with_descendants` with no descendant filter is the recordings that have a child, ordered by id.
-- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-680).
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-6100).
+
+## [6.9.0] - 2026-11-14
+
+### Changed
+
+* `recording_studio_events.root_recording_id` is required. It is set from the
+  recording's root when the event is written. A cross-root move that saves a
+  new `root_recording_id` rewrites that column for the recording and its
+  subtree in the same transaction.
+* Root-wide `events_query` reads `root_recording_id` on events. It returns 50
+  events unless `limit:` is passed, ordered by `occurred_at`, `created_at`,
+  and `id`, newest first. Pass `cursor:` from `RecordingStudio::Event.cursor_for`
+  to read the next page. `offset:` is gone. There is no total count.
+* `RecordingStudio::Event.for_root` filters on `root_recording_id` and does not
+  join recordings.
+
+### Upgrade notes
+
+- Run the new migration. It backfills `root_recording_id` and adds the root
+  timeline and impersonator indexes.
+- Replace `events_query(..., offset:)` with `cursor:`.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-690).
 
 ## [6.7.1] - 2026-11-13
 
