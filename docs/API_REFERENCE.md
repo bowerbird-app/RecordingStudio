@@ -124,6 +124,7 @@ These methods are the main addon-facing API.
 | `set_capability_options(capability, on:, **options)` | capability name, recordable type, option hash | configuration side effect | Stores per-type capability options. |
 | `capability_options(capability, for: type)` | capability name, recordable type | `Hash` or `nil` | Reads per-type capability options. |
 | `record!(action:, recordable:, recording: nil, root_recording: nil, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)` | write parameters | `RecordingStudio::Event` | Canonical low-level write API used by higher-level helpers. |
+| `record_events!(entries)` | array of event entries | `Array<RecordingStudio::Event>` | Appends one event per entry to existing recordings in a single INSERT. |
 | `lock_for_move!(recording, to_parent:, to_root:)` | recording, target parent, target root | frozen `Hash` | Locks a parent or root change in a stable order. See below. |
 
 Capability-owned child recordables are for addon internals whose valid parents are determined by host recordables opting
@@ -178,6 +179,39 @@ Behavior summary:
   another create. An update locks `recording` with `FOR UPDATE` and does not lock the root.
 - The event insert, idempotency handling, and `before_record` / `after_record` hooks stay inside
   that same transaction.
+
+### `RecordingStudio.record_events!(entries)`
+
+Use this to append many events to recordings that already exist. The return value is an Array of
+`RecordingStudio::Event` in input order.
+
+Each entry is a Hash:
+
+| Key | Required | Meaning |
+| --- | --- | --- |
+| `action` | yes | Event action string. |
+| `recording` | yes | Persisted recording that receives the event. |
+| `recordable` | yes | Must be `recording.recordable`. |
+| `actor` | no | Falls back to the configured actor lambda, then `assert_actor!`. |
+| `impersonator` | no | Falls back to the configured impersonator lambda. `nil` uses that fallback. |
+| `metadata` | no | Normalized the same way as `record!`. Defaults to `{}`. |
+| `occurred_at` | no | Stored as given. `nil` becomes a batch timestamp that increases by one microsecond per row. |
+
+Behavior summary:
+
+- No new recording is created, and the recording's recordable does not change.
+- Recordings are locked with `Recording.lock_ids!` (`FOR UPDATE`, id order). The root is read with no row lock.
+- `authorize_write!` runs for every row, then `before_record`, and only then does the INSERT run.
+  `root_recording_id` is set on every row. `previous_recordable` is the current recordable.
+- Every event is built and validated in Ruby first. An invalid row, an authorization denial, or a
+  `recordable` that is not the recording's current recordable raises and inserts nothing.
+- After the insert, each event is instrumented and then passed to `after_record`, in input order.
+  `instrument_event` stays private.
+- `events_count` is updated once per recordable after the outermost transaction commits.
+- The call joins the caller's transaction, or opens one when none is open.
+- `idempotency_key` raises. Batch dedupe is not part of this version.
+- A given `occurred_at` is kept. Omitted times share one base `Time.current` and stay strictly increasing
+  inside the batch, so the default timeline matches input order.
 
 ### `RecordingStudio.lock_for_move!(recording, to_parent:, to_root:)`
 
@@ -273,8 +307,8 @@ Hierarchy errors:
 | `RecordingStudio::MissingRecordableDeclaration` | A configured ActiveRecord type has no declaration while declarations are required. |
 | `RecordingStudio::InvalidRecordableDeclaration` | A declaration has invalid arguments, references unregistered parents, uses `shared:` incorrectly, or belongs to an unregistered type while strict declarations are enabled. |
 | `RecordingStudio::TreeWalkError` | An ancestor or descendant walk repeats a recording or passes a depth of 1000. |
-| `RecordingStudio::AuthorizationError` | `record!` has no `config.authorize_write` (unless `allow_unauthorized_writes` is true), or the authorizer returned a falsey value. |
-| `RecordingStudio::ActorRequired` | `record!` has no actor (unless `allow_unauthorized_writes` is true and `require_actor` is false). |
+| `RecordingStudio::AuthorizationError` | `record!` or `record_events!` has no `config.authorize_write` (unless `allow_unauthorized_writes` is true), or the authorizer returned a falsey value. A denial in a batch inserts nothing. |
+| `RecordingStudio::ActorRequired` | `record!` or `record_events!` has no actor (unless `allow_unauthorized_writes` is true and `require_actor` is false). |
 
 ## Configuration: `RecordingStudio::Configuration`
 

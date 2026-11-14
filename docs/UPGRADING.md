@@ -2,6 +2,65 @@
 
 ## Unreleased
 
+## Upgrading To 6.13.0
+
+`RecordingStudio.record_events!(entries)` appends events onto recordings that
+already exist. No migration.
+
+### What changed
+
+- One call inserts every event in the batch. The return value is an Array of
+  `RecordingStudio::Event` in input order.
+- The call locks those recordings with `FOR UPDATE` in id order, the same lock
+  `record!` takes for an update. It does not take `FOR UPDATE` on the root.
+- It resolves `actor` and `impersonator`, normalizes `metadata`, and runs
+  `authorize_write!` and `before_record` for every row before the insert.
+  `after_record` and the `recordings.event_created` notification run after the
+  insert, one event at a time, in input order.
+- `recordable` must be the recording's current recordable. The call does not
+  create a recording and does not swap the recordable.
+- A row that is invalid or unauthorized raises, and the batch inserts nothing.
+- Omitted `occurred_at` values start at one `Time.current` and increase by a
+  microsecond per row, so the default timeline follows input order. A given
+  `occurred_at` is stored as given.
+- `events_count` is incremented once per recordable after the outermost
+  transaction commits. `insert_all` does not run the event counter callback.
+- The call joins an open transaction, or opens one when the caller has none.
+- `idempotency_key` raises. This version has no batch dedupe.
+
+### Upgrade steps
+
+Callers of `record!` stay as they are.
+
+Accessible's deleted-access path should drop the private insert:
+
+1. Delete `RecordingStudioAccessible::Services::DeletedAccessEventInsert`.
+   That removes `Event.insert_all!`, `RecordingStudio.send(:instrument_event, event)`,
+   the reload-by-id publish, and the hand-rolled `events_count` update.
+2. In `DeletedAccessEvents#write!`, delete `lock!` and `authorize!`.
+   `lock!` takes `FOR UPDATE` on the root. `authorize!` runs `authorize_write!`
+   and `before_record`, which `record_events!` now does. Leaving either in place
+   locks the root again or runs the hook twice.
+3. Keep building the plans, including the actor, impersonator, and metadata.
+   Pass the recording's current recordable. Do not pass `idempotency_key`.
+4. Replace the insert with:
+
+```ruby
+RecordingStudio.record_events!(plans.map { |plan|
+  {
+    action: "deleted",
+    recording: plan[:target],
+    recordable: plan[:recordable],
+    actor: plan[:actor],
+    impersonator: plan[:impersonator],
+    metadata: plan[:metadata]
+  }
+})
+```
+
+Omit `occurred_at` unless a caller needs a specific time. The batch assigns
+increasing defaults.
+
 ## Upgrading To 6.12.0
 
 No migration.

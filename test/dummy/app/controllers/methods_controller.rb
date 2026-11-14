@@ -536,6 +536,30 @@ class MethodsController < ApplicationController
       RUBY
     },
     {
+      title: "Append Many Events",
+      subtitle: "RecordingStudio.record_events!",
+      code: <<~'RUBY'
+        events = RecordingStudio.record_events!([
+          {
+            action: "reviewed",
+            recording: page_recording,
+            recordable: page_recording.recordable,
+            actor: current_user,
+            metadata: { status: "approved" }
+          },
+          {
+            action: "published",
+            recording: page_recording,
+            recordable: page_recording.recordable,
+            actor: current_user
+          }
+        ])
+
+        # One Event per entry, in the same order.
+        events.map(&:action)
+      RUBY
+    },
+    {
       title: "Create a Child Recording",
       subtitle: "root_recording.record",
       code: <<~'RUBY'
@@ -1348,6 +1372,18 @@ class MethodsController < ApplicationController
         #<RecordingStudio::Event id: "1f94e2f4-7a5d-4f4d-8f3c-3d5d7762c114", action: "created", recording_id: "7d8d6e1d-3d4f-4f6c-9b72-5c1bb0d6a2c9">
       TEXT
     },
+    "RecordingStudio.record_events!" => {
+      returns_kind: "Array",
+      returns: "Array<RecordingStudio::Event>",
+      items: "RecordingStudio::Event",
+      notes: "Appends events to existing recordings in one INSERT and returns them in input order.",
+      example_response: <<~'TEXT'
+        [
+          #<RecordingStudio::Event id: "2a7c59e6-73bc-4884-b4f0-93ee3d4b6ef2", action: "reviewed">,
+          #<RecordingStudio::Event id: "6e3e3b42-f0f7-4046-a20a-c3d8b69d1a6c", action: "published">
+        ]
+      TEXT
+    },
     "root_recording.record" => {
       returns_kind: "Recording",
       returns: "RecordingStudio::Recording",
@@ -1888,6 +1924,7 @@ class MethodsController < ApplicationController
 
   CRUD_METHOD_SUBTITLES = [
     "RecordingStudio.record!",
+    "RecordingStudio.record_events!",
     "RecordingStudio.dup_strategy_for",
     "RecordingStudio.duplicate_recordable",
     "RecordingStudio::Duplication.reset_counter_caches",

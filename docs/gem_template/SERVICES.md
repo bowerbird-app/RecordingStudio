@@ -62,7 +62,7 @@ Relevant hooks:
 - `after_service`
 - `around_service`
 
-`RecordingStudio.record!` also fires write-path hooks:
+`RecordingStudio.record!` and `RecordingStudio.record_events!` also fire write-path hooks:
 
 - `before_record`
 - `after_record`
