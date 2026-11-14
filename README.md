@@ -469,11 +469,12 @@ RecordingStudio::Labels.register_formatter(
 ### Public vs internal boundaries
 
 - **Public/stable for addons:** `RecordingStudio` helper methods above, `RecordingStudio::Labels`,
-  `RecordingStudio::GateDecision`, and `RecordingStudio::Recording` identity/presentation helpers.
+  `RecordingStudio::GateDecision`, `RecordingStudio.kept_sql`, `RecordingStudio::Recording.kept`, and
+  `RecordingStudio::Recording` identity/presentation helpers.
 - **Trusted extension points only:** `config.register_recordable_dup_strategy`, `RecordingStudio::Labels.register_formatter`,
   `recordable_scope`, the private `extend_recordings_query` hook, `RecordingStudio.register_gate`,
-  `RecordingStudio.check_gate`, and `config.gate_overrides`. These should only be wired with code-defined
-  callables, never user input.
+  `RecordingStudio.check_gate`, `RecordingStudio.register_recording_filter`, and `config.gate_overrides`.
+  These should only be wired with code-defined callables, never user input.
 - **Internal/private:** delegated type registrar internals, callback ordering, concern module layout, and direct mutation
   of counter caches outside the helper API.
 
@@ -977,6 +978,36 @@ The quick examples below are accurate for the current code, but the exhaustive m
 | `RecordingStudio::Recording.all` | Latest recordings first. |
 | `RecordingStudio::Recording.for_root(root_recording.id)` | All recordings belonging to a root recording. |
 | `RecordingStudio::Recording.of_type(Page)` | Recordings whose current recordable is a given type. |
+| `RecordingStudio::Recording.kept` | Recordings that pass every registered kept filter, in registration order. Every recording when none are registered. |
+
+### Kept recordings
+
+Core does not decide what "kept" means. `RecordingStudio::Recording.kept` returns every recording until an addon
+registers a filter. Trashable is the first gem that should register the condition it owns, so other gems can share
+one scope instead of repeating a `trashed_at` predicate.
+
+```ruby
+initializer "recording_studio_trashable.recording_filter" do
+  RecordingStudio.register_recording_filter(
+    :trashable,
+    sql: ->(table) { "#{table}.trashed_at IS NULL" }
+  ) { |recordings| recordings.where(trashed_at: nil) }
+end
+```
+
+Register from the addon engine initializer. The registry lives with the other core registries and survives a code
+reload. `to_prepare` runs again on every reload, so leave it out of this registration.
+
+The block filters a relation. `sql:` receives the quoted table name or alias and returns the same condition as SQL.
+`RecordingStudio.kept_sql` joins those fragments with `AND`, each wrapped in parentheses. With no filters it returns
+`1=1`. Pass an alias when the condition belongs on a join:
+
+```ruby
+RecordingStudio.kept_sql("parents")
+```
+
+Re-registering the same name replaces that filter and keeps its place. `unregister_recording_filter` removes one name.
+Tree walks, locks, `record_events!`, and event root sync ignore the registry. There is no `default_scope`.
 
 ### Events
 

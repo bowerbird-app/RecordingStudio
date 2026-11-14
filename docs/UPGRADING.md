@@ -2,6 +2,51 @@
 
 ## Unreleased
 
+## Upgrading To 6.14.0
+
+`Recording.kept` is how core asks "is this recording kept?". No migration.
+Core does not register a filter, so the scope returns every recording until
+an addon fills it in.
+
+### What changed
+
+- `RecordingStudio.register_recording_filter(name, sql:, &block)` stores one
+  filter under a symbol name. The block receives a relation and returns a
+  relation. `sql:` receives a quoted table name or alias and returns a SQL
+  fragment. Registering the same name replaces that filter and keeps its
+  place in registration order.
+- `RecordingStudio.unregister_recording_filter(name)` removes one filter.
+  Tests use it to clear a name they registered.
+- `RecordingStudio::Recording.kept` runs every filter in registration order.
+- `RecordingStudio.kept_sql(table = "recording_studio_recordings")` joins the
+  SQL fragments with `AND`, each wrapped in parentheses. With no filters it
+  returns `1=1`. The table argument has to be a plain SQL identifier. Core
+  quotes it before the `sql:` callable sees it.
+- Subtree walks, hierarchy reads, locks, `record_events!`, and event root
+  sync do not apply these filters. There is no `default_scope`.
+
+### Upgrade steps
+
+Addon gems that used to repeat `where(trashed_at: nil)` register the condition
+they own from an engine initializer:
+
+```ruby
+initializer "recording_studio_trashable.recording_filter" do
+  RecordingStudio.register_recording_filter(
+    :trashable,
+    sql: ->(table) { "#{table}.trashed_at IS NULL" }
+  ) { |recordings| recordings.where(trashed_at: nil) }
+end
+```
+
+Use the engine initializer. Leave `to_prepare` alone. The registry survives
+code reload, and `to_prepare` runs again on every reload.
+
+Call `RecordingStudio::Recording.kept` for relation queries. Call
+`RecordingStudio.kept_sql("parents")` when the condition has to sit on a
+join alias. Host apps that have not installed a gem which registers a filter
+see no change.
+
 ## Upgrading To 6.13.0
 
 `RecordingStudio.record_events!(entries)` appends events onto recordings that

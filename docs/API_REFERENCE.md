@@ -39,6 +39,10 @@ Use this decision guide before calling methods:
   `root_recording.events_query(...)`
 - You need events for one recording only:
   `recording.events(...)`
+- You need recordings that registered addon filters still treat as kept:
+  `RecordingStudio::Recording.kept`
+- You need that same condition in SQL, including on a join alias:
+  `RecordingStudio.kept_sql("parents")`
 
 ## AI Hierarchy And Write Checklist
 
@@ -73,6 +77,9 @@ These methods are the main addon-facing API.
 | `gate_registered?(gate_name)` | gate name | `true` or `false` | Reports whether any check is registered for that gate, including checks a host has disabled. |
 | `gate_checks(gate_name)` | gate name | array of frozen hashes `{ name:, priority:, enabled: }` | Lists the gate's checks in the order `check_gate` runs them. |
 | `check_gate(gate_name, actor:, recording: nil, **context)` | gate name, required `actor:`, optional `recording:`, extra keywords | `RecordingStudio::GateDecision` | Runs enabled checks. Returns allow, or the first deny. |
+| `register_recording_filter(name, sql:, &block)` | symbol or string name, required `sql:` callable, required block | symbol name | Stores one kept filter. The same name replaces the previous filter and keeps its place in registration order. The block takes a relation and returns a relation. `sql:` takes a quoted table name or alias and returns a SQL fragment. |
+| `unregister_recording_filter(name)` | symbol or string name | `true` when removed, otherwise `false` | Removes one kept filter. Tests use this to clear a name they registered. |
+| `kept_sql(table = "recording_studio_recordings")` | SQL table name or alias | `String` | Joins every registered SQL fragment with `AND`, each wrapped in parentheses. Returns `1=1` when none are registered. The table argument must be a plain identifier. Core quotes it before calling `sql:`. |
 | `registered_capabilities` | nothing | `Hash` | Introspection for capability registrations, including source and child-recordable metadata. |
 | `register_capability(name, mod = nil, recording_methods: nil, source: nil, child_recordables: [])` | capability name plus optional recording methods and child recordables | registered capability metadata | Adds recording-level behavior and/or source-aware capability-owned child-recordable metadata without monkey-patching core. |
 | `apply_capabilities!` | nothing | `Hash` of registrations iterated | Re-applies registered recording modules after reloads or boot order changes. |
@@ -563,6 +570,7 @@ This is the main object addons and host apps work with after they resolve a root
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
 | `lock_ids!(ids)` | array-like list of IDs | locked `ActiveRecord::Relation` of recordings ordered by ID | Gives deterministic locking order to reduce deadlock risk. |
+| `kept` | nothing | `ActiveRecord::Relation<RecordingStudio::Recording>` | Applies every registered kept filter in registration order. Returns every recording when none are registered. Tree walks, locks, and event writes do not use this scope. |
 
 ### Identity and presentation helpers
 

@@ -15,6 +15,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No migration. Hosts that copy the git pin should use tag `v0.1.366`.
 
+## [6.14.0] - 2026-11-14
+
+### Added
+
+* `RecordingStudio.register_recording_filter` stores one named answer to
+  "is this recording kept?". The block filters a relation. `sql:` returns the
+  same condition for a quoted table name or join alias. Registering the same
+  name again replaces that filter and keeps its place. `unregister_recording_filter`
+  removes one name.
+* `RecordingStudio::Recording.kept` applies the registered filters in
+  registration order. With none registered it returns every recording.
+* `RecordingStudio.kept_sql` joins those SQL fragments with `AND`, each wrapped
+  in parentheses. With none registered it returns `1=1`.
+
+### Upgrade notes
+
+- No migration. Core registers no filters, so `kept` and `kept_sql` match
+  every recording until an addon registers one.
+- Register from the addon engine initializer. The registry lives outside the
+  reloader. `to_prepare` runs on every reload and will register again.
+- Tree walks, locks, `record_events!`, and event root sync stay unfiltered.
+  There is no `default_scope`.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-6140).
+
 ## [6.13.0] - 2026-11-14
 
 ### Added

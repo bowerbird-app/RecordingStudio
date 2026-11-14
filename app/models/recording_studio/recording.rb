@@ -38,6 +38,7 @@ module RecordingStudio
     scope :recent, -> { order(updated_at: :desc) }
     scope :for_root, ->(root_id) { where(root_recording_id: root_id) }
     scope :of_type, ->(klass) { where(recordable_type: klass.to_s) }
+    scope :kept, -> { RecordingStudio::RecordingFilters.apply(all) }
 
     class << self
       def lock_ids!(ids)
