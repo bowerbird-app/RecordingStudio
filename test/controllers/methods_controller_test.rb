@@ -103,6 +103,8 @@ class MethodsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes @response.body, "CRUD"
     assert_includes @response.body, "RecordingStudio.record!"
+    assert_includes @response.body, "RecordingStudio.record_events!"
+    assert_includes @response.body, "href=\"#recordingstudio-record-events\""
     assert_includes @response.body, "root_recording = RecordingStudio.root_recording_for(workspace)"
     assert_includes @response.body, "parent_recording: root_recording"
     refute_includes @response.body, "root_recording: RecordingStudio::Recording.create!"

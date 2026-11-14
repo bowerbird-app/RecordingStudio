@@ -15,6 +15,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No migration. Hosts that copy the git pin should use tag `v0.1.366`.
 
+## [6.13.0] - 2026-11-14
+
+### Added
+
+* `RecordingStudio.record_events!(entries)` appends events to existing recordings
+  in one INSERT and returns `RecordingStudio::Event` objects in input order.
+  It locks those recordings `FOR UPDATE` in id order and does not lock the root.
+  Actor, impersonator, metadata, `authorize_write!`, and `before_record` /
+  `after_record` match `record!`. One invalid or unauthorized row inserts nothing.
+  `events_count` is updated once per recordable after commit. Passing
+  `idempotency_key` raises. This version does not create recordings or swap
+  recordables.
+
+### Upgrade notes
+
+- No migration.
+- Gems that bulk-insert `recording_studio_events`, including Accessible's
+  `DeletedAccessEventInsert`, call `record_events!` instead. Stop calling
+  `RecordingStudio.send(:instrument_event, event)`, stop scheduling
+  `events_count` by hand, and stop taking `FOR UPDATE` on the root.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-6130).
+
 ## [6.11.0] - 2026-11-14
 
 ### Changed

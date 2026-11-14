@@ -23,6 +23,7 @@ require "recording_studio/recordable"
 require "recording_studio/recordable_declarations"
 require "recording_studio/relationships"
 require "recording_studio/locks"
+require "recording_studio/event_batch"
 require "recording_studio/services/base_service"
 
 # rubocop:disable Metrics/ModuleLength, Metrics/ClassLength
@@ -374,6 +375,10 @@ module RecordingStudio
 
     def lock_for_move!(recording, to_parent:, to_root:)
       RecordingStudio::Locks.lock_for_move!(recording, to_parent: to_parent, to_root: to_root)
+    end
+
+    def record_events!(entries)
+      RecordingStudio::EventBatch.record!(entries)
     end
 
     def record!(action:, recordable:, recording: nil, root_recording: nil, actor: nil, impersonator: nil,

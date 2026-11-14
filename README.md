@@ -575,7 +575,7 @@ end
   `recording_studio_recordable`; set false only while migrating older apps, where missing declarations warn.
 - `actor`: Callable used when callers omit `actor:` from write APIs.
 - `impersonator`: Callable used when callers omit `impersonator:` from write APIs.
-- `authorize_write`: Callable invoked inside `record!`. Return truthy to allow the write. When unset, writes raise
+- `authorize_write`: Callable invoked inside `record!` and `record_events!`. Return truthy to allow the write. When unset, writes raise
   `RecordingStudio::AuthorizationError` unless `allow_unauthorized_writes` is true. The `actor.present?` example above
   is a placeholder. Replace it with a real policy.
 - `allow_unauthorized_writes`: When false (default), writes need an authorizer and an actor. Set true only to restore
@@ -626,6 +626,7 @@ Preferred write helpers:
 | `recording.log_event!(action: ..., metadata: ...)` | event fields | `RecordingStudio::Event` | Same as above when you already have the target recording. |
 | `root_recording.revert(recording, to_recordable: previous_snapshot, actor: ...)` | recording and prior recordable snapshot | `RecordingStudio::Recording` | You need to move the recording back to a prior snapshot and log `reverted`. |
 | `RecordingStudio.record!(...)` | low-level write parameters | `RecordingStudio::Event` | You need the canonical event-writing primitive directly. |
+| `RecordingStudio.record_events!(entries)` | array of event entries for existing recordings | `Array<RecordingStudio::Event>` | You are appending many events and want one INSERT. |
 | `RecordingStudio.lock_for_move!(recording, to_parent:, to_root:)` | recording being moved, target parent, target root | frozen Hash | You are about to change a recording's parent or root. |
 
 ### Moving a recording
@@ -1062,8 +1063,8 @@ end
 That copy is `{}` when the event's metadata is nil or empty. Actor and impersonator stay the write's
 actor and impersonator. Callers that need
 an extra fact, such as `authorized_by_type` and `authorized_by_id` for the person who authorized an
-OAuth client's write, put it in `metadata`. `record!`, `revise`, and `log_event!` already accept and
-persist that hash.
+OAuth client's write, put it in `metadata`. `record!`, `record_events!`, `revise`, and `log_event!` already accept and
+persist that hash. `record_events!` emits one `recordings.event_created` notification per inserted event, in input order.
 
 ## Dummy Sandbox
 
