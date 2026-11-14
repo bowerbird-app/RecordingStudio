@@ -24,4 +24,6 @@ module RecordingStudio
   class InvalidRevertTarget < ArgumentError; end
 
   class UnsafeRecordableQuery < ArgumentError; end
+
+  class TreeWalkError < StandardError; end
 end

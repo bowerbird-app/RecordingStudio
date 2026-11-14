@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.8.0] - 2026-11-13
+
+### Changed
+
+* Recording tree walks read descendants and ancestors in SQL.
+  The descendant recursive step follows `parent_recording_id` and applies
+  `root_recording_id` only on the seed. `subtree_recordings` and
+  `recordings_with_descendants` apply limit in the database.
+
+### Fixed
+
+* Ancestor and descendant walks raise `RecordingStudio::TreeWalkError` when
+  they repeat a recording or pass a depth of 1000. A cycle no longer runs
+  until the statement times out.
+
+### Upgrade notes
+
+- No migration. Acyclic trees shallower than 1000 return the same rows.
+- Descendants stay ordered by depth, then id. `ancestor_ids` stays
+  nearest-first, and `ancestors` stays root-first.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-680).
+
 ## [6.7.1] - 2026-11-13
 
 ### Fixed

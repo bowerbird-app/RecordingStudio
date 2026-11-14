@@ -52,11 +52,7 @@ module RecordingStudio
       def descendants
         return [] if id.blank?
 
-        ids = descendant_id_chain
-        return [] if ids.empty?
-
-        recordings_by_id = self.class.unscoped.where(id: ids).index_by(&:id)
-        ids.filter_map { |descendant_id| recordings_by_id[descendant_id] }
+        subtree_recordings(include_self: false).to_a
       end
 
       def self_and_descendants
@@ -73,11 +69,6 @@ module RecordingStudio
 
       def ancestor_id_chain
         RecordingStudio::Tree.ancestor_ids(parent_recording_id)
-      end
-
-      def descendant_id_chain
-        root_id = RecordingStudio.root_recording_id_for(root_recording_or_self)
-        RecordingStudio::Tree.descendant_ids(id, root_recording_id: root_id)
       end
 
       def assign_root_recording_id

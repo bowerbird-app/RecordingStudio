@@ -7,15 +7,24 @@ module RecordingStudio
       extend ActiveSupport::Concern
 
       def descendant_ids(include_self: false)
-        subtree_ids(include_self: include_self)
+        return [] if id.blank?
+
+        ids = RecordingStudio::Tree.descendant_ids(
+          id,
+          root_recording_id: RecordingStudio.root_recording_id_for(root_recording_or_self)
+        )
+        include_self ? [id] + ids : ids
       end
 
       def subtree_recordings(include_self: true, order: nil, scope: nil, allow_unsafe_recordable_query: nil)
-        ids = subtree_ids(include_self: include_self)
-        return self.class.unscoped.none if ids.empty?
-
-        relation = scoped_subtree_relation(ids, scope, allow_unsafe_recordable_query: allow_unsafe_recordable_query)
-        reorder_subtree_relation(relation, ids, order)
+        relation = RecordingStudio::Tree.subtree_relation(
+          recording_id: id,
+          root_recording_id: RecordingStudio.root_recording_id_for(root_recording_or_self),
+          include_self: include_self
+        )
+        relation = apply_subtree_scope(relation, scope, allow_unsafe_recordable_query: allow_unsafe_recordable_query)
+        safe_order = sanitize_order_for_model(order, self.class)
+        safe_order.present? ? relation.reorder(safe_order) : relation
       end
 
       # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/ParameterLists, Metrics/PerceivedComplexity
@@ -49,29 +58,6 @@ module RecordingStudio
 
       private
 
-      def scoped_subtree_relation(ids, scope, allow_unsafe_recordable_query: nil)
-        relation = self.class.unscoped.where(id: ids)
-        apply_subtree_scope(
-          relation,
-          scope,
-          allow_unsafe_recordable_query: allow_unsafe_recordable_query
-        ).where(id: ids)
-      end
-
-      def reorder_subtree_relation(relation, ids, order)
-        safe_order = sanitize_order_for_model(order, self.class)
-        return relation.reorder(safe_order) if safe_order.present?
-
-        relation.reorder(*stable_subtree_order(ids))
-      end
-
-      def subtree_ids(include_self:)
-        return [] if id.blank?
-
-        ids = descendant_id_chain
-        include_self ? [id] + ids : ids
-      end
-
       def apply_subtree_scope(relation, scope, allow_unsafe_recordable_query: nil) # rubocop:disable Metrics/MethodLength
         return relation if scope.blank?
 
@@ -92,16 +78,6 @@ module RecordingStudio
                           end
 
         scoped_relation.is_a?(ActiveRecord::Relation) ? scoped_relation : relation
-      end
-
-      def stable_subtree_order(ids)
-        connection = self.class.connection
-        table_name = connection.quote_table_name(self.class.table_name)
-        case_sql = ids.each_with_index.map do |recording_id, index|
-          "WHEN #{connection.quote(recording_id)} THEN #{index}"
-        end.join(" ")
-
-        [Arel.sql("CASE #{table_name}.id #{case_sql} END ASC")]
       end
 
       # rubocop:disable Metrics/AbcSize, Metrics/MethodLength, Metrics/ParameterLists

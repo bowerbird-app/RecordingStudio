@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## Upgrading To 6.8.0
+
+Tree reads stay in SQL. No migration.
+
+### What changed
+
+- Descendant walks filter `root_recording_id` on the first step only. Later steps follow `parent_recording_id`.
+- Ancestor and descendant walks stop when a recording repeats or the walk passes depth 1000, and raise `RecordingStudio::TreeWalkError`.
+- `subtree_recordings` and `recordings_with_descendants` keep their limit and order in the database.
+- Descendants stay ordered by depth, then id. `ancestor_ids` stays nearest-first, and `ancestors` stays root-first.
+
+### Upgrade steps
+
+None for a tree that is already acyclic and shallower than 1000. A cycle written outside the normal save path, or a chain deeper than 1000, now raises instead of running until the statement times out.
+
 ## Upgrading To 6.7.1
 
 Development reload applies `extend_model` and `extend_controller` on the new class. No migration.

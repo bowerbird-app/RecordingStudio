@@ -82,7 +82,7 @@ module RecordingStudio
         to: to,
         limit: limit,
         offset: offset
-      )
+      ).extending(RecordingStudio::Tree::WalkGuard)
     end
 
     def latest_event
@@ -327,12 +327,14 @@ module RecordingStudio
         allow_unsafe_recordable_query: allow_unsafe_recordable_query
       )
 
+      table = self.class.connection.quote_table_name(self.class.table_name)
+      ancestor_sql = RecordingStudio::Tree.ancestor_ids_of_matches_sql(matching_descendants)
       apply_relation_window(
-        parent_scope.where(id: descendant_ancestor_ids_for(parent_scope, matching_descendants)),
+        parent_scope.where("#{table}.id IN (#{ancestor_sql})"),
         order: order,
         limit: limit,
         offset: offset
-      )
+      ).extending(RecordingStudio::Tree::WalkGuard)
     end
 
     def log_event!(action:, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current,
@@ -430,18 +432,6 @@ module RecordingStudio
       )
       scope = scope.where(id: recording_id) if recording_id.present?
       scope
-    end
-
-    def descendant_ancestor_ids_for(parent_scope, matching_descendants)
-      parent_ids = parent_scope.pluck(:id)
-      return [] if parent_ids.empty?
-
-      parent_links = RecordingStudio::Tree.parent_links_for_root(root_query_root_id)
-      RecordingStudio::Tree.ancestor_ids_of_descendants(
-        parent_ids: parent_ids,
-        matching_descendant_pairs: matching_descendants.pluck(:id, :parent_recording_id),
-        parent_links: parent_links
-      )
     end
 
     def root_query_root_id
