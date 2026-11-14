@@ -22,6 +22,7 @@ require "recording_studio/labels"
 require "recording_studio/recordable"
 require "recording_studio/recordable_declarations"
 require "recording_studio/relationships"
+require "recording_studio/locks"
 require "recording_studio/services/base_service"
 
 # rubocop:disable Metrics/ModuleLength, Metrics/ClassLength
@@ -371,6 +372,10 @@ module RecordingStudio
       configuration.capability_options(capability, for_type: resolved_type)
     end
 
+    def lock_for_move!(recording, to_parent:, to_root:)
+      RecordingStudio::Locks.lock_for_move!(recording, to_parent: to_parent, to_root: to_root)
+    end
+
     def record!(action:, recordable:, recording: nil, root_recording: nil, actor: nil, impersonator: nil,
                 metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)
       RecordingStudio::DelegatedTypeRegistrar.apply!
@@ -382,12 +387,22 @@ module RecordingStudio
       idempotency_key = idempotency_key.presence
 
       RecordingStudio::Recording.transaction do
-        recording = reload_recording_for_hierarchy!(recording, :recording) if recording
+        if recording
+          recording = reload_recording_for_hierarchy!(recording, :recording, mode: "FOR UPDATE")
+        elsif parent_recording
+          # Share blocks a move that updates this parent. Another create can share the same row.
+          parent_recording = reload_recording_for_hierarchy!(
+            parent_recording, :parent_recording, mode: RecordingStudio::Locks::SHARE_LOCK
+          )
+        end
+
         root_recording ||= root_recording_or_self(recording)
         raise ArgumentError, "root_recording is required" if root_recording.nil?
 
-        root_recording = reload_recording_for_hierarchy!(root_recording, :root_recording)
-        parent_recording = reload_recording_for_hierarchy!(parent_recording, :parent_recording) if parent_recording
+        root_recording = reload_recording_for_hierarchy!(root_recording, :root_recording, mode: nil)
+        if recording && parent_recording
+          parent_recording = reload_recording_for_hierarchy!(parent_recording, :parent_recording, mode: nil)
+        end
 
         assert_root_recording!(root_recording)
 
@@ -566,12 +581,8 @@ module RecordingStudio
       ).exists?
     end
 
-    def reload_recording_for_hierarchy!(recording, name)
-      unless recording.respond_to?(:id) && recording.id.present?
-        raise ArgumentError, "#{name} must be a persisted recording"
-      end
-
-      RecordingStudio::Recording.unscoped.lock.find(recording.id)
+    def reload_recording_for_hierarchy!(recording, name, mode:)
+      RecordingStudio::Locks.lock_recording!(recording, name, mode: mode)
     end
 
     def handle_idempotency(event)

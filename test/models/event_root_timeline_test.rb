@@ -58,8 +58,11 @@ class EventRootTimelineTest < ActiveSupport::TestCase
 
     ActiveSupport::Notifications.subscribed(callback, "sql.active_record") do
       RecordingStudio::Recording.transaction do
-        RecordingStudio::Recording.where(id: [child.id, grandchild.id]).update_all(root_recording_id: destination.id)
-        parent.update!(parent_recording: destination, root_recording_id: destination.id)
+        locks = RecordingStudio.lock_for_move!(parent, to_parent: destination, to_root: destination)
+        if locks[:descendant_ids].any?
+          RecordingStudio::Recording.where(id: locks[:descendant_ids]).update_all(root_recording_id: destination.id)
+        end
+        locks[:recording].update!(parent_recording: locks[:to_parent], root_recording_id: destination.id)
       end
     end
 

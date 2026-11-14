@@ -15,6 +15,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No migration. Hosts that copy the git pin should use tag `v0.1.366`.
 
+## [6.11.0] - 2026-11-14
+
+### Changed
+
+* Writes no longer take `FOR UPDATE` on the root recording. A create locks the
+  parent `FOR SHARE`. An update locks that recording `FOR UPDATE`. The root
+  row is read with no row lock.
+* `RecordingStudio.lock_for_move!(recording, to_parent:, to_root:)` locks a
+  parent or root change. It locks the two roots in id order, then the
+  recording, the target parent, and the current descendants in id order.
+  Call it inside the move transaction before changing parent or root.
+
+### Upgrade notes
+
+- No migration.
+- Moveable and any other gem that changes `parent_recording_id` or
+  `root_recording_id` calls `lock_for_move!` in that transaction, `update_all`s
+  the returned `descendant_ids`, then `update!`s the returned recording so
+  event roots follow. `update_all` on its own does not rewrite events.
+- Roll the transaction back and retry when `RecordingStudio::MoveConflict`
+  is raised.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-6110).
+
 ## [6.10.0] - 2026-11-14
 
 ### Changed

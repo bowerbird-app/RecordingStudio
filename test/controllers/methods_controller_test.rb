@@ -157,6 +157,7 @@ class MethodsControllerTest < ActionDispatch::IntegrationTest
     assert_includes @response.body, "RecordingStudio::Recording.all"
     assert_includes @response.body, "RecordingStudio::Recording.of_type"
     assert_includes @response.body, "RecordingStudio::Recording.lock_ids!"
+    assert_includes @response.body, "RecordingStudio.lock_for_move!"
     assert_includes @response.body, "root_recording.recordings_query"
     assert_includes @response.body, "root_recording.recordings_with_children"
     assert_includes @response.body, "root_recording.recordings_with_descendants"

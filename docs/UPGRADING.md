@@ -2,6 +2,55 @@
 
 ## Unreleased
 
+## Upgrading To 6.11.0
+
+Write locks no longer serialise a whole tree. No migration.
+
+### What changed
+
+- A create locks the parent row `FOR SHARE` and reads the root with no row lock.
+  `FOR SHARE` conflicts with the `FOR UPDATE` a move holds on that parent, so the
+  parent's root cannot change between the check and the insert. Two creates can
+  share the parent. They do not wait on each other.
+- An update, including `revise` and `log_event!`, locks that recording `FOR UPDATE`
+  and does not lock the root or the parent.
+- `RecordingStudio.lock_for_move!(recording, to_parent:, to_root:)` is the way to
+  change a parent or a root. It runs inside the caller's transaction. It locks
+  the recording's current root and `to_root` in id order, then the recording,
+  `to_parent`, and the current descendants in id order. The return hash includes
+  reloaded `recording`, `to_parent`, `to_root`, `source_root`, and `descendant_ids`.
+- `RecordingStudio::MoveConflict` means the tree changed while those locks were
+  being taken. Roll back the transaction and retry the move.
+
+### Upgrade steps
+
+Gems that write `parent_recording_id` or `root_recording_id` themselves, including
+Moveable, replace that lock sequence with:
+
+```ruby
+attempts = 0
+begin
+  attempts += 1
+  RecordingStudio::Recording.transaction do
+    locks = RecordingStudio.lock_for_move!(recording, to_parent: new_parent, to_root: new_root)
+    if locks[:descendant_ids].any?
+      RecordingStudio::Recording.where(id: locks[:descendant_ids]).update_all(root_recording_id: new_root.id)
+    end
+    locks[:recording].update!(parent_recording: locks[:to_parent], root_recording_id: new_root.id)
+  end
+rescue RecordingStudio::MoveConflict
+  retry if attempts < 5
+  raise
+end
+```
+
+Use the ids returned by the helper for `update_all`. A later descendant query filters
+on the old root and will miss rows whose root was just updated. The `update!` rewrites
+event `root_recording_id` for the saved recording and its descendants. `update_all`
+does not.
+
+Plain `record`, `revise`, and `log_event!` need no call-site change.
+
 ## Upgrading To 6.10.0
 
 Tree reads stay in SQL. No migration for this change. 6.9.0 still requires the events migration.

@@ -626,6 +626,41 @@ Preferred write helpers:
 | `recording.log_event!(action: ..., metadata: ...)` | event fields | `RecordingStudio::Event` | Same as above when you already have the target recording. |
 | `root_recording.revert(recording, to_recordable: previous_snapshot, actor: ...)` | recording and prior recordable snapshot | `RecordingStudio::Recording` | You need to move the recording back to a prior snapshot and log `reverted`. |
 | `RecordingStudio.record!(...)` | low-level write parameters | `RecordingStudio::Event` | You need the canonical event-writing primitive directly. |
+| `RecordingStudio.lock_for_move!(recording, to_parent:, to_root:)` | recording being moved, target parent, target root | frozen Hash | You are about to change a recording's parent or root. |
+
+### Moving a recording
+
+A create locks the parent `FOR SHARE` and reads the root with no row lock. An update locks
+that recording `FOR UPDATE` and does not lock the root. `FOR SHARE` is the parent lock
+because it conflicts with a move's `FOR UPDATE` on the same row, so the parent's root cannot
+change before the insert, and a second create can take `FOR SHARE` on that parent at the
+same time.
+
+Moveable and any other code that changes `parent_recording_id` or `root_recording_id` calls
+`lock_for_move!` inside the move transaction before those writes. The helper locks the
+current root and `to_root` in id order, then the recording, `to_parent`, and the current
+descendants in id order. Use the returned `descendant_ids` for `update_all`. Saving the
+returned recording rewrites event roots for that subtree. `update_all` does not.
+
+```ruby
+attempts = 0
+begin
+  attempts += 1
+  RecordingStudio::Recording.transaction do
+    locks = RecordingStudio.lock_for_move!(recording, to_parent: new_parent, to_root: new_root)
+    if locks[:descendant_ids].any?
+      RecordingStudio::Recording.where(id: locks[:descendant_ids]).update_all(root_recording_id: new_root.id)
+    end
+    locks[:recording].update!(parent_recording: locks[:to_parent], root_recording_id: new_root.id)
+  end
+rescue RecordingStudio::MoveConflict
+  retry if attempts < 5
+  raise
+end
+```
+
+`RecordingStudio::MoveConflict` means the tree changed while the locks were taken. The
+rescue has to sit outside the transaction so the row locks are released before the retry.
 
 ### Querying Recordings (Filters & Ordering)
 
