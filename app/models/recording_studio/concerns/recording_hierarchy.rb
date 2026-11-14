@@ -65,9 +65,10 @@ module RecordingStudio
 
       alias level depth
 
-      # Cross-root moves update descendant recording rows with update_all, then
-      # save this recording. This statement rewrites event roots for the saved
-      # recording and every descendant in that same transaction.
+      # Cross-root moves call RecordingStudio.lock_for_move! first, update the
+      # returned descendant ids with update_all, then save this recording.
+      # This statement rewrites event roots for the saved recording and every
+      # descendant in that same transaction.
       SUBTREE_EVENT_ROOT_SQL = <<~SQL.squish.freeze
         WITH RECURSIVE subtree AS (
           SELECT id FROM recording_studio_recordings WHERE id = %<recording_id>s

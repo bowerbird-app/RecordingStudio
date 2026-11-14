@@ -741,6 +741,34 @@ class MethodsController < ApplicationController
       RUBY
     },
     {
+      title: "Lock a Move in Stable Order",
+      subtitle: "RecordingStudio.lock_for_move!",
+      code: <<~'RUBY'
+        attempts = 0
+        begin
+          attempts += 1
+          RecordingStudio::Recording.transaction do
+            locks = RecordingStudio.lock_for_move!(
+              page_recording,
+              to_parent: destination_root,
+              to_root: destination_root
+            )
+            if locks[:descendant_ids].any?
+              RecordingStudio::Recording.where(id: locks[:descendant_ids])
+                                        .update_all(root_recording_id: destination_root.id)
+            end
+            locks[:recording].update!(
+              parent_recording: locks[:to_parent],
+              root_recording_id: destination_root.id
+            )
+          end
+        rescue RecordingStudio::MoveConflict
+          retry if attempts < 5
+          raise
+        end
+      RUBY
+    },
+    {
       title: "Read Filtered Events",
       subtitle: "recording.events",
       code: <<~'RUBY'
@@ -1531,6 +1559,20 @@ class MethodsController < ApplicationController
         ]>
       TEXT
     },
+    "RecordingStudio.lock_for_move!" => {
+      returns_kind: "Hash",
+      returns: "Frozen Hash",
+      notes: "Locks both roots in id order, then the recording, target parent, and current descendants in id order. Use descendant_ids for update_all, then update! the returned recording. Retry the transaction on RecordingStudio::MoveConflict.",
+      example_response: <<~'TEXT'
+        {
+          recording: #<RecordingStudio::Recording id: "7d8d6e1d-3d4f-4f6c-9b72-5c1bb0d6a2c9", recordable_type: "Page">,
+          to_parent: #<RecordingStudio::Recording id: "0d8e4d5a-d869-4cfe-bf13-f784b77d7f35", recordable_type: "Workspace">,
+          to_root: #<RecordingStudio::Recording id: "0d8e4d5a-d869-4cfe-bf13-f784b77d7f35", recordable_type: "Workspace">,
+          source_root: #<RecordingStudio::Recording id: "11111111-1111-4111-8111-111111111111", recordable_type: "Workspace">,
+          descendant_ids: ["41b7d1f8-8c17-47cc-951f-1f10d0f38ec4"]
+        }
+      TEXT
+    },
     "recording.events" => {
       returns_kind: "Relation",
       returns: "ActiveRecord::Relation<RecordingStudio::Event>",
@@ -1870,6 +1912,7 @@ class MethodsController < ApplicationController
     "RecordingStudio::Recording.all",
     "RecordingStudio::Recording.of_type",
     "RecordingStudio::Recording.lock_ids!",
+    "RecordingStudio.lock_for_move!",
     "RecordingStudio::Recording.for_root",
     "root_recording.recordings_query",
     "root_recording.recordings_of",

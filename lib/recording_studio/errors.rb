@@ -26,4 +26,7 @@ module RecordingStudio
   class UnsafeRecordableQuery < ArgumentError; end
 
   class TreeWalkError < StandardError; end
+
+  # The tree changed while a move was taking locks. Roll back and retry.
+  class MoveConflict < StandardError; end
 end

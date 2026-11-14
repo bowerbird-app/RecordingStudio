@@ -28,6 +28,8 @@ Use this decision guide before calling methods:
   `recording.log_event!(action: "...")` or `root_recording.log_event(recording, action: "...")`
 - You need one low-level write entry point that always returns the created event:
   `RecordingStudio.record!(...)`
+- You are changing a recording's parent or root:
+  `RecordingStudio.lock_for_move!(recording, to_parent:, to_root:)` inside that transaction
 - You need recordings under a root:
   `root_recording.recordings_query(...)`
 - You need recordings based on direct child or nested descendant presence:
@@ -122,6 +124,7 @@ These methods are the main addon-facing API.
 | `set_capability_options(capability, on:, **options)` | capability name, recordable type, option hash | configuration side effect | Stores per-type capability options. |
 | `capability_options(capability, for: type)` | capability name, recordable type | `Hash` or `nil` | Reads per-type capability options. |
 | `record!(action:, recordable:, recording: nil, root_recording: nil, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current, idempotency_key: nil, parent_recording: nil)` | write parameters | `RecordingStudio::Event` | Canonical low-level write API used by higher-level helpers. |
+| `lock_for_move!(recording, to_parent:, to_root:)` | recording, target parent, target root | frozen `Hash` | Locks a parent or root change in a stable order. See below. |
 
 Capability-owned child recordables are for addon internals whose valid parents are determined by host recordables opting
 into a capability:
@@ -170,6 +173,50 @@ Behavior summary:
 - When `event_notifications_enabled` is true, a newly created event emits `recordings.event_created`.
   The payload includes `metadata`, a frozen copy of the event metadata with string keys (`{}` when nil).
   Existing payload keys stay as they are. See the Instrumentation section in the README.
+- A create locks `parent_recording` with `FOR SHARE` and loads `root_recording` with no row lock.
+  `FOR SHARE` keeps the parent's root stable until the insert commits, and it does not block
+  another create. An update locks `recording` with `FOR UPDATE` and does not lock the root.
+- The event insert, idempotency handling, and `before_record` / `after_record` hooks stay inside
+  that same transaction.
+
+### `RecordingStudio.lock_for_move!(recording, to_parent:, to_root:)`
+
+Call this inside an open transaction before changing `parent_recording_id` or `root_recording_id`.
+Moveable and other gems that move recordings use it. A plain `record` / `revise` / `log_event!`
+does not.
+
+Lock order:
+
+1. The recording's current root and `to_root`, ascending id, `FOR UPDATE`.
+2. The recording, `to_parent`, and the current descendants, ascending id, `FOR UPDATE`,
+   skipping ids already locked in step 1.
+
+The parent's root cannot change under a create, because the create holds `FOR SHARE` on that
+parent and this helper holds `FOR UPDATE` on the moved recording, the target parent, and the
+descendants. A create under that subtree waits until the move commits, or it commits first and
+is included in `descendant_ids`. A new id that would lock out of order raises `MoveConflict`
+instead, and the retry includes it.
+
+Return value, frozen:
+
+| Key | Meaning |
+| --- | --- |
+| `recording` | Reloaded recording to `update!`. |
+| `to_parent` | Reloaded target parent. |
+| `to_root` | Reloaded target root. |
+| `source_root` | Reloaded current root. |
+| `descendant_ids` | Descendant ids to `update_all` with the new `root_recording_id`. Does not include `recording`. |
+
+`update_all` those ids, then `update!` the returned recording with the new parent and root.
+The save rewrites event `root_recording_id` values for the subtree. `update_all` does not.
+Do not query descendants again after `update_all`; that query still filters on the old root.
+
+`RecordingStudio::MoveConflict` means a new row appeared out of lock order, or a root changed
+before its row was locked. Roll back the whole transaction and retry. Rescuing inside the
+transaction keeps the old locks.
+
+`ArgumentError` means the call is outside a transaction, a recording is not persisted, or
+`to_parent` does not belong to `to_root`.
 
 ## Recordable Declarations
 
