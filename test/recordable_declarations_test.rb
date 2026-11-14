@@ -222,7 +222,7 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
     declare_system_actor_root_without_parent_rules!
     _, root = create_workspace_root
 
-    assert RecordingStudio.root_recording_for(SystemActor.create!(name: "Root actor")).root?
+    assert RecordingStudio.create_root_recording!(SystemActor.create!(name: "Root actor")).root?
     assert_raises(RecordingStudio::InvalidParent) do
       RecordingStudio.record!(
         action: "created",
@@ -386,7 +386,7 @@ class RecordableDeclarationsTest < ActiveSupport::TestCase
 
   def create_workspace_root
     workspace = Workspace.create!(name: "Workspace")
-    root = RecordingStudio.root_recording_for(workspace)
+    root = RecordingStudio.create_root_recording!(workspace)
     [workspace, root]
   end
 end

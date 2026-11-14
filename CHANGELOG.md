@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+* Development and dummy Gemfiles pin `flat_pack` tag `v0.1.366`. The gemspec floor stays `>= 0.1.315`.
+
+### Upgrade notes
+
+- No migration. Hosts that copy the git pin should use tag `v0.1.366`.
+
 ## [7.0.0] - 2026-11-14
 
 ### Added
@@ -27,15 +35,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Development and dummy Gemfiles pin `flat_pack` tag `v0.1.366`. The gemspec floor stays `>= 0.1.315`.
+* `RecordingStudio.root_recording_for` only finds a root recording. It returns `nil` when that recordable has no root, and it does not write.
+* `RecordingStudio.create_root_recording!(recordable, actor: nil, impersonator: nil, metadata: {})` creates that root through the same write path as `record!`. A later call returns the existing root and does not append another event. Two concurrent creates leave one root and one event.
 
 ### Upgrade notes
 
+- Breaking. No migration for the root split.
+- Lookup call sites keep `root_recording_for` and handle `nil`.
+- Seeds, setup, and request paths that created a root by looking it up call `create_root_recording!` with an actor.
 - Run `rails generate recording_studio:single_child_index` and migrate after
   declaring a type with `one_per_parent: true`.
 - Company, Identity, and Publishable: see
   [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-700).
-- Hosts that copy the git pin should use tag `v0.1.366`.
 
 ## [6.15.0] - 2026-11-14
 

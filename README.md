@@ -124,12 +124,12 @@ class ApplicationController < ActionController::Base
 end
 ```
 
-4. Create/find the root recording for that top-level recordable:
+4. Create the root recording for that top-level recordable:
 
 ```ruby
 workspace = Workspace.find_or_create_by!(name: "Studio Workspace")
 
-root_recording = RecordingStudio.root_recording_for(workspace)
+root_recording = RecordingStudio.create_root_recording!(workspace, actor: Current.actor)
 ```
 
 5. Create your first recording under that root:
@@ -238,7 +238,8 @@ to make it explicit that they are roots only and cannot be nested under another 
 
 Root recordables can be top-level recordings. Non-root recordables must list allowed parents; an empty list is valid but
 means the type cannot currently be recorded under any parent. `RecordingStudio.root_recording_for(recordable)` only
-accepts recordables that declare `root: true`, and child creation checks `allowed_parent_types` before saving.
+accepts recordables that declare `root: true` and returns the existing root or `nil`. `RecordingStudio.create_root_recording!`
+creates that root. Child creation checks `allowed_parent_types` before saving.
 
 A root type may also declare `shared: true`. Shared roots are still roots and still provide the write/query boundary,
 but they mark a domain forest that nobody owns through the root node itself. Domain children declare the shared root in
@@ -390,6 +391,7 @@ recording.type_label
 
 ```ruby
 RecordingStudio.root_recording_for(recordable)
+RecordingStudio.create_root_recording!(recordable, actor:)
 RecordingStudio.root_recording_or_self(recording)
 RecordingStudio.root_recording_id_for(recording)
 RecordingStudio.root_recording?(recording)
@@ -535,8 +537,9 @@ When an AI agent needs to write through RecordingStudio, use this sequence befor
 
 1. Normalize the type and declaration with `RecordingStudio.recordable_type_name(...)` and
   `RecordingStudio.recordable_declaration_for(...)`.
-2. If the write is for a top-level object, confirm `RecordingStudio.root_allowed?(type)` and call
-  `RecordingStudio.root_recording_for(persisted_recordable)`.
+2. If the write is for a top-level object, confirm `RecordingStudio.root_allowed?(type)`. Look up an existing root
+  with `RecordingStudio.root_recording_for(persisted_recordable)` and handle `nil`. Create one with
+  `RecordingStudio.create_root_recording!(persisted_recordable, actor:)`.
 3. If the write is for a child, resolve the intended `parent_recording` first and verify
   `RecordingStudio.parent_allowed?(child_type:, parent_recording:)`.
 4. If the child is capability-owned and its parents are derived from enablement, inspect
@@ -620,7 +623,8 @@ Preferred write helpers:
 
 | Method | Takes | Returns | Use it when |
 | --- | --- | --- | --- |
-| `RecordingStudio.root_recording_for(workspace)` | persisted top-level recordable | root `RecordingStudio::Recording` | You need the root boundary for writes and queries. |
+| `RecordingStudio.root_recording_for(workspace)` | persisted top-level recordable | root `RecordingStudio::Recording` or `nil` | You need the existing root boundary. This does not create one. |
+| `RecordingStudio.create_root_recording!(workspace, actor:)` | persisted top-level recordable, optional actor, impersonator, and metadata | root `RecordingStudio::Recording` | You are creating the root, or returning the one that already exists. |
 | `root_recording.record(Page, actor: ..., parent_recording: nil) { |page| ... }` | class or recordable instance, optional actor context, optional parent | `RecordingStudio::Recording` | You are creating a new recording and want a `created` event. |
 | `root_recording.revise(recording, actor: ...) { |page| ... }` | existing recording plus changes | `RecordingStudio::Recording` | You are creating a new immutable snapshot and an `updated` event. |
 | `root_recording.log_event(recording, action: ..., metadata: ...)` | target recording plus event fields | `RecordingStudio::Event` | You want history without changing the current snapshot. |
@@ -884,7 +888,7 @@ end
 class PagesController < ApplicationController
   def create
     workspace = Workspace.find(params[:workspace_id])
-    root_recording = RecordingStudio.root_recording_for(workspace)
+    root_recording = RecordingStudio.create_root_recording!(workspace, actor: Current.actor)
 
     root_recording.record(Page, actor: Current.actor) do |page|
       page.title = params[:title]

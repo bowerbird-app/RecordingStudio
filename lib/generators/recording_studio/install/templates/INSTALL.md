@@ -11,4 +11,4 @@ Next steps:
 4. Set `Current.actor` and `Current.impersonator`, or pass `actor:` and `impersonator:` explicitly from your app.
    Writes fail closed. Uncomment `config.authorize_write` in the initializer (or set your own). A missing actor raises `ActorRequired`.
 5. If your app uses Tailwind, rebuild assets with `bin/rails tailwindcss:build`.
-6. The `/recording_studio` mount is not a bundled UI. Start integrating through `RecordingStudio.root_recording_for(...)` and the API docs instead.
+6. The `/recording_studio` mount is not a bundled UI. Create a root with `RecordingStudio.create_root_recording!(recordable, actor:)`, then look it up with `RecordingStudio.root_recording_for(recordable)`. See the API docs.

@@ -263,7 +263,7 @@ class SingleChildrenTest < ActiveSupport::TestCase
 
   def create_workspace_root(name: "Workspace")
     workspace = Workspace.create!(name: name)
-    [workspace, RecordingStudio.root_recording_for(workspace)]
+    [workspace, RecordingStudio.create_root_recording!(workspace)]
   end
 
   def covers_under(parent)
@@ -436,7 +436,7 @@ class SingleChildConcurrencyTest < ActiveSupport::TestCase
 
   def create_workspace_root(name: "Workspace")
     workspace = Workspace.create!(name: name)
-    [workspace, RecordingStudio.root_recording_for(workspace)]
+    [workspace, RecordingStudio.create_root_recording!(workspace)]
   end
 
   def covers_under(parent)

@@ -485,7 +485,7 @@ class RecordingApiMethodsTest < ActiveSupport::TestCase
 
   def create_workspace_root(name: "Workspace")
     workspace = Workspace.create!(name: name)
-    root_recording = RecordingStudio.root_recording_for(workspace)
+    root_recording = RecordingStudio.create_root_recording!(workspace)
     [workspace, root_recording]
   end
 

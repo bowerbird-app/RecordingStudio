@@ -69,9 +69,9 @@ class HardeningApiTest < ActiveSupport::TestCase
   end
 
   def test_require_actor_blocks_missing_actor
+    _, root = create_workspace_root
     RecordingStudio.configuration.require_actor = true
     RecordingStudio.configuration.actor = -> {}
-    _, root = create_workspace_root
 
     assert_raises(RecordingStudio::ActorRequired) do
       RecordingStudio.record!(
@@ -85,10 +85,10 @@ class HardeningApiTest < ActiveSupport::TestCase
   end
 
   def test_writes_fail_closed_without_an_authorizer
-    RecordingStudio.configuration.allow_unauthorized_writes = false
-    RecordingStudio.configuration.authorize_write = nil
     user = User.create!(name: "Writer", email: "writer-#{SecureRandom.hex(4)}@example.com", password: "password123")
     _, root = create_workspace_root
+    RecordingStudio.configuration.allow_unauthorized_writes = false
+    RecordingStudio.configuration.authorize_write = nil
 
     error = assert_raises(RecordingStudio::AuthorizationError) do
       RecordingStudio.record!(
@@ -104,11 +104,11 @@ class HardeningApiTest < ActiveSupport::TestCase
   end
 
   def test_writes_fail_closed_without_an_actor
+    _, root = create_workspace_root
     RecordingStudio.configuration.allow_unauthorized_writes = false
     RecordingStudio.configuration.require_actor = false
     RecordingStudio.configuration.actor = -> {}
     RecordingStudio.configuration.authorize_write = ->(**) { true }
-    _, root = create_workspace_root
 
     assert_raises(RecordingStudio::ActorRequired) do
       RecordingStudio.record!(
@@ -123,9 +123,9 @@ class HardeningApiTest < ActiveSupport::TestCase
 
   def test_writes_allowed_with_configured_authorizer_and_actor
     user = User.create!(name: "Writer", email: "writer-#{SecureRandom.hex(4)}@example.com", password: "password123")
+    _, root = create_workspace_root
     RecordingStudio.configuration.allow_unauthorized_writes = false
     RecordingStudio.configuration.authorize_write = ->(actor:, **) { actor == user }
-    _, root = create_workspace_root
 
     event = RecordingStudio.record!(
       action: "created",
@@ -159,10 +159,10 @@ class HardeningApiTest < ActiveSupport::TestCase
   end
 
   def test_require_actor_blocks_missing_actor_when_unauthorized_writes_are_allowed
+    _, root = create_workspace_root
     RecordingStudio.configuration.allow_unauthorized_writes = true
     RecordingStudio.configuration.require_actor = true
     RecordingStudio.configuration.actor = -> {}
-    _, root = create_workspace_root
 
     assert_raises(RecordingStudio::ActorRequired) do
       RecordingStudio.record!(
@@ -181,8 +181,8 @@ class HardeningApiTest < ActiveSupport::TestCase
   end
 
   def test_authorize_write_can_deny
-    RecordingStudio.configuration.authorize_write = ->(**) { false }
     _, root = create_workspace_root
+    RecordingStudio.configuration.authorize_write = ->(**) { false }
 
     assert_raises(RecordingStudio::AuthorizationError) do
       RecordingStudio.record!(
@@ -223,12 +223,11 @@ class HardeningApiTest < ActiveSupport::TestCase
   end
 
   def test_record_hooks_fire
+    _, root = create_workspace_root
     before_payloads = []
     after_events = []
     RecordingStudio.configuration.hooks.before_record { |payload| before_payloads << payload }
     RecordingStudio.configuration.hooks.after_record { |event| after_events << event }
-
-    _, root = create_workspace_root
     event = RecordingStudio.record!(
       action: "created",
       recordable: RecordingStudioPage.new(title: "One"),
@@ -245,6 +244,6 @@ class HardeningApiTest < ActiveSupport::TestCase
 
   def create_workspace_root(name: "Workspace")
     workspace = Workspace.create!(name: name)
-    [workspace, RecordingStudio.root_recording_for(workspace)]
+    [workspace, RecordingStudio.create_root_recording!(workspace)]
   end
 end

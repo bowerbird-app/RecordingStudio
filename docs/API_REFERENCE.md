@@ -18,8 +18,10 @@ reverse-engineering the engine internals.
 
 Use this decision guide before calling methods:
 
-- You have a top-level persisted model like `Workspace` and need its root recording:
-  `RecordingStudio.root_recording_for(workspace)`
+- You have a top-level persisted model like `Workspace` and need its existing root recording:
+  `RecordingStudio.root_recording_for(workspace)` (`nil` when the root does not exist yet)
+- You need to create that root:
+  `RecordingStudio.create_root_recording!(workspace, actor: Current.actor)`
 - You need to create a new snapshot under a root:
   `root_recording.record(Page) { |page| ... }`
 - You need to update an existing recording by creating a new snapshot:
@@ -52,8 +54,9 @@ When an AI agent needs to create or revise data, validate the hierarchy first in
 
 1. Normalize the type with `RecordingStudio.recordable_type_name(...)`.
 2. Read the declaration with `RecordingStudio.recordable_declaration_for(...)`.
-3. For top-level writes, require a persisted recordable, confirm `RecordingStudio.root_allowed?(...)`, then call
-  `RecordingStudio.root_recording_for(...)`.
+3. For top-level writes, require a persisted recordable and confirm `RecordingStudio.root_allowed?(...)`.
+  Look up an existing root with `RecordingStudio.root_recording_for(...)` and handle `nil`. Create one with
+  `RecordingStudio.create_root_recording!(..., actor:)`.
 4. For child writes, resolve the intended `parent_recording` in the same root tree and check
   `RecordingStudio.parent_allowed?(child_type:, parent_recording:)` before writing.
 5. If the child is capability-owned and does not list all parents directly, inspect
@@ -118,7 +121,8 @@ These methods are the main addon-facing API.
 | `remove_single_child(key)` | key | `true` when removed, otherwise `false` | Drops one registered single-child rule. |
 | `single_child?(child_type, under:)` | child type, parent recording or parent type | `true` or `false` | Whether a create or move of that child under that parent is limited to one. |
 | `single_child_index_types` | nothing | `Array<String>` | Configured child types that are single under every parent. The generator writes these into the partial unique index. |
-| `root_recording_for(recordable)` | persisted top-level recordable | `RecordingStudio::Recording` | Finds or creates the root recording for a top-level object. |
+| `root_recording_for(recordable)` | persisted top-level recordable | `RecordingStudio::Recording` or `nil` | Finds the root recording for a top-level object. Returns `nil` when it does not exist. Does not write. |
+| `create_root_recording!(recordable, actor: nil, impersonator: nil, metadata: {})` | persisted top-level recordable, optional actor, impersonator, and metadata | `RecordingStudio::Recording` | Creates the root through the same write path as `record!`. Returns the existing root unchanged when one is already there. |
 | `root_recording_or_self(recording)` | recording or root recording | `RecordingStudio::Recording` or `nil` | Collapses `root_recording || self` into one public helper. |
 | `root_recording_id_for(recording)` | recording or root recording | root recording ID or `nil` | Returns the root boundary ID used by tree queries. |
 | `root_recording?(recording)` | recording | `true` or `false` | Validates that a recording is the root of its tree. |
@@ -177,8 +181,8 @@ Use `RecordingStudio.record!` when you need the event object, or when a higher-l
 Behavior summary:
 
 - When `recording:` is omitted, a new `RecordingStudio::Recording` is created.
-- New recordings under an existing root need a `parent_recording:`; use `root_recording_for(recordable)` to create
-  top-level roots.
+- New recordings under an existing root need a `parent_recording:`. Use `create_root_recording!(recordable, actor:)`
+  to create top-level roots. `root_recording_for(recordable)` only looks one up.
 - New child recordings enforce `recording_studio_recordable` parent rules before the recordable is saved.
 - When `recording:` is present, the current recordable may be replaced, but its type cannot change.
 - On success, the return value is always the new or reused `RecordingStudio::Event`.
@@ -337,8 +341,8 @@ Hierarchy errors:
 | `RecordingStudio::MissingRecordableDeclaration` | A configured ActiveRecord type has no declaration while declarations are required. |
 | `RecordingStudio::InvalidRecordableDeclaration` | A declaration has invalid arguments, references unregistered parents, uses `shared:` incorrectly, or belongs to an unregistered type while strict declarations are enabled. |
 | `RecordingStudio::TreeWalkError` | An ancestor or descendant walk repeats a recording or passes a depth of 1000. |
-| `RecordingStudio::AuthorizationError` | `record!` or `record_events!` has no `config.authorize_write` (unless `allow_unauthorized_writes` is true), or the authorizer returned a falsey value. A denial in a batch inserts nothing. |
-| `RecordingStudio::ActorRequired` | `record!` or `record_events!` has no actor (unless `allow_unauthorized_writes` is true and `require_actor` is false). |
+| `RecordingStudio::AuthorizationError` | `record!`, `create_root_recording!`, or `record_events!` has no `config.authorize_write` (unless `allow_unauthorized_writes` is true), or the authorizer returned a falsey value. A denial inserts nothing. |
+| `RecordingStudio::ActorRequired` | `record!`, `create_root_recording!`, or `record_events!` has no actor (unless `allow_unauthorized_writes` is true and `require_actor` is false). |
 
 ## Configuration: `RecordingStudio::Configuration`
 
@@ -756,7 +760,7 @@ class Page < ApplicationRecord
 end
 
 workspace = Workspace.find_or_create_by!(name: "Studio")
-root = RecordingStudio.root_recording_for(workspace)
+root = RecordingStudio.create_root_recording!(workspace, actor: Current.actor)
 
 page_recording = root.record(Page, actor: Current.actor) do |page|
   page.title = "Getting started"

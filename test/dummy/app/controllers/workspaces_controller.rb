@@ -23,7 +23,7 @@ class WorkspacesController < ApplicationController
     @workspace = Workspace.new(workspace_params)
 
     if @workspace.save
-      RecordingStudio.root_recording_for(@workspace)
+      RecordingStudio.create_root_recording!(@workspace, actor: current_actor)
       redirect_to workspaces_path, notice: "Workspace created."
     else
       flash.now[:alert] = @workspace.errors.full_messages.to_sentence

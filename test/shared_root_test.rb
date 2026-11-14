@@ -116,16 +116,19 @@ class SharedRootTest < ActiveSupport::TestCase
     assert page.shared_root_tree?
   end
 
-  def test_root_recording_for_still_creates_shared_roots
+  def test_create_root_recording_creates_shared_roots
     declare_shared_workspace!
     workspace = Workspace.create!(name: "Messages")
 
-    root = RecordingStudio.root_recording_for(workspace)
+    assert_nil RecordingStudio.root_recording_for(workspace)
+
+    root = RecordingStudio.create_root_recording!(workspace)
 
     assert_predicate root, :persisted?
     assert root.root?
     assert root.shared_root?
     assert_equal workspace, root.recordable
+    assert_equal root, RecordingStudio.root_recording_for(workspace)
   end
 
   def test_domain_children_can_be_recorded_under_a_shared_root
@@ -263,7 +266,7 @@ class SharedRootTest < ActiveSupport::TestCase
 
   def create_workspace_root(name: "Workspace")
     workspace = Workspace.create!(name: name)
-    root = RecordingStudio.root_recording_for(workspace)
+    root = RecordingStudio.create_root_recording!(workspace)
     [workspace, root]
   end
 end

@@ -102,10 +102,12 @@ class AddonFirstApiTest < ActiveSupport::TestCase
     end
   end
 
-  def test_root_recording_for_finds_or_creates_root_recording
+  def test_root_recording_for_finds_an_existing_root_recording
     workspace = Workspace.create!(name: "Workspace")
 
-    root_recording = RecordingStudio.root_recording_for(workspace)
+    assert_nil RecordingStudio.root_recording_for(workspace)
+
+    root_recording = RecordingStudio.create_root_recording!(workspace)
 
     assert_predicate root_recording, :persisted?
     assert_equal workspace, root_recording.recordable
@@ -188,7 +190,7 @@ class AddonFirstApiTest < ActiveSupport::TestCase
 
   def create_workspace_root(name: "Workspace")
     workspace = Workspace.create!(name: name)
-    root_recording = RecordingStudio.root_recording_for(workspace)
+    root_recording = RecordingStudio.create_root_recording!(workspace)
     [workspace, root_recording]
   end
 
