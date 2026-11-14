@@ -462,7 +462,8 @@ module RecordingStudio
             impersonator: resolved_impersonator,
             occurred_at: occurred_at,
             metadata: metadata,
-            idempotency_key: idempotency_key
+            idempotency_key: idempotency_key,
+            root_recording_id: recording.root_recording_id
           )
         rescue ActiveRecord::RecordNotUnique
           existing = find_idempotent_event(recording, idempotency_key)
@@ -594,7 +595,7 @@ module RecordingStudio
         schema_version: 1,
         event_id: event.id,
         recording_id: event.recording_id,
-        root_recording_id: event.recording.root_recording_id,
+        root_recording_id: event.root_recording_id,
         action: event.action,
         recordable_type: event.recordable_type,
         recordable_id: event.recordable_id,
