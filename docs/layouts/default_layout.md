@@ -16,7 +16,7 @@ right-side HTML sit on the right.
 > **Prerequisite:** `flat_pack` >= 0.1.315 is required. The layout renders
 > Flatpack components directly. `flat_pack` is not on RubyGems. The gemspec
 > declares the dependency, and the host Gemfile supplies the git source
-> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.366`).
+> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.374`).
 
 ## What it provides
 
