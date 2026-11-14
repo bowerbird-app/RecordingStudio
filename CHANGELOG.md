@@ -15,6 +15,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No migration. Hosts that copy the git pin should use tag `v0.1.366`.
 
+## [6.15.0] - 2026-11-14
+
+### Added
+
+* `RecordingStudio::Recording#kept?` reports whether one recording passes the
+  registered kept filters. With none registered it is true.
+* `register_recording_filter` accepts an optional `predicate:` callable. It
+  receives the recording and returns `true` or `false`. When every filter has
+  a predicate, `kept?` runs them in memory and does not query. Otherwise a
+  saved recording runs `self.class.kept.where(id: id).exists?`. A new record
+  uses the predicates when every filter has one, and is kept when any filter
+  has none. Re-registering a name still replaces that filter and keeps its place.
+
+### Upgrade notes
+
+- No migration.
+- `kept_sql` is for runtime queries only. Never use it in migrations, index
+  definitions, or anything evaluated once at boot or migrate time. It reflects
+  only the filters registered at that moment, and can be `1=1`.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-6150).
+
 ## [6.14.0] - 2026-11-14
 
 ### Added
