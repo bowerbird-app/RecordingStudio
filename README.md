@@ -710,6 +710,10 @@ root_recording.recordings_with_events(actions: "published", actor: current_user)
 page = root_recording.events_query
 next_cursor = RecordingStudio::Event.cursor_for(page.last) if page.size == page.limit_value
 root_recording.events_query(cursor: next_cursor)
+
+snapshots = page_recording.recordables
+page_recording.recordables(cursor: snapshots.next_cursor) if snapshots.next_cursor
+page_recording.recordables(all: true)
 ```
 
 ### Record
@@ -947,7 +951,7 @@ The quick examples below are accurate for the current code, but the exhaustive m
 
 | Query | Description |
 | --- | --- |
-| `root_recording.recordings_query` | Direct recordings for a root recording (newest first). |
+| `root_recording.recordings_query` | Direct recordings for a root recording (newest first). Preloads each row's recordable. |
 | `root_recording.recordings_query(type: "Page")` | Recordings filtered by recordable type. |
 | `root_recording.recordings_query(id: page.id)` | Recordings filtered by recordable ID. |
 | `root_recording.recordings_query(parent_id: recording.id)` | Recordings filtered by parent recording. |
@@ -977,6 +981,7 @@ The quick examples below are accurate for the current code, but the exhaustive m
 
 | Query | Description |
 | --- | --- |
+| `recording.recordables` | Distinct snapshots from the oldest 50 events, plus the current recordable. Page with `cursor:` from the array's `next_cursor`, or pass `all: true`. |
 | `recording.events` | Events for a single recording, newest first. |
 | `recording.events(actions: ["commented", "reverted"], actor: current_user)` | Events filtered by actions and actor. |
 | `recording.events(actor_type: "User", actor_id: current_user.id)` | Events filtered by actor type and ID. |

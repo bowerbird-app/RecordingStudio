@@ -783,7 +783,9 @@ class MethodsController < ApplicationController
       title: "Read Recordables for One Recording",
       subtitle: "recording.recordables",
       code: <<~'RUBY'
-        page_recording.recordables
+        page = page_recording.recordables
+        page_recording.recordables(cursor: page.next_cursor)
+        page_recording.recordables(all: true)
         # => [#<Page id: ...>, #<Page id: ...>]
       RUBY
     },
@@ -1589,7 +1591,7 @@ class MethodsController < ApplicationController
       returns_kind: "Array",
       returns: "Array<ActiveRecord::Base>",
       items: "recordable snapshots",
-      notes: "Returns distinct current and historical recordable snapshots referenced by this recording's events.",
+      notes: "Returns distinct snapshots from this recording's events, oldest first. The default page is 50 events. next_cursor pages forward with cursor:. all: true reads the full history. The current recordable is included.",
       example_response: <<~'TEXT'
         [
           #<RecordingStudioPage id: "9d1a4d5b-5f6a-4f0b-a7d4-2b4a4d0d12ef", title: "Draft">,

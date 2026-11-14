@@ -30,16 +30,8 @@ module RecordingStudio
       where(root_recording_id: root_id)
     }
     scope :timeline, -> { order(TIMELINE_ORDER) }
-    scope :older_than_cursor, lambda { |cursor|
-      next all if cursor.blank?
-
-      occurred_at, created_at, id = RecordingStudio::Event.cursor_point(cursor)
-      where(
-        "(recording_studio_events.occurred_at, recording_studio_events.created_at, recording_studio_events.id) " \
-        "< (CAST(? AS timestamp), CAST(? AS timestamp), CAST(? AS uuid))",
-        occurred_at, created_at, id
-      )
-    }
+    scope :older_than_cursor, ->(cursor) { RecordingStudio::Event.keyset_compared_with(self, cursor, "<") }
+    scope :newer_than_cursor, ->(cursor) { RecordingStudio::Event.keyset_compared_with(self, cursor, ">") }
     scope :by_actor, lambda { |actor|
       return none unless actor
 
@@ -70,6 +62,18 @@ module RecordingStudio
     end
 
     class << self
+      def keyset_compared_with(scope, cursor, operator)
+        return scope if cursor.blank?
+        raise ArgumentError, "cursor comparison is invalid" unless %w[< >].include?(operator)
+
+        occurred_at, created_at, id = cursor_point(cursor)
+        scope.where(
+          "(recording_studio_events.occurred_at, recording_studio_events.created_at, recording_studio_events.id) " \
+          "#{operator} (CAST(? AS timestamp), CAST(? AS timestamp), CAST(? AS uuid))",
+          occurred_at, created_at, id
+        )
+      end
+
       def cursor_for(event)
         raise ArgumentError, "event is required" if event.blank?
 

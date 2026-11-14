@@ -9,7 +9,7 @@ class RecordingsController < ApplicationController
 
   def show
     @events = @recording.events
-    @recordables = @recording.recordables
+    @recordables = @recording.recordables(all: true)
   end
 
   def log_event

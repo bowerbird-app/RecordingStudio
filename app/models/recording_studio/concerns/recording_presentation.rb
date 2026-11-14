@@ -29,6 +29,11 @@ module RecordingStudio
       private
 
       def presented_recordable
+        if self.class.reflect_on_association(:recordable)
+          loaded = association(:recordable)
+          return loaded.target if loaded.loaded?
+        end
+
         recordable || typed_recordable
       end
 
