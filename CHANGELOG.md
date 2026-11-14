@@ -9,11 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-* Development and dummy Gemfiles pin `flat_pack` tag `v0.1.366`. The gemspec floor stays `>= 0.1.315`.
+* Development and dummy Gemfiles pin `flat_pack` tag `v0.1.374`. The gemspec floor stays `>= 0.1.315`. The lock resolves `view_component` 4.24.0.
 
 ### Upgrade notes
 
-- No migration. Hosts that copy the git pin should use tag `v0.1.366`.
+- No migration. Hosts that copy the git pin should use tag `v0.1.374`.
 
 ## [6.14.0] - 2026-11-14
 
