@@ -83,7 +83,7 @@ module RecordingStudio
         to: to,
         limit: limit,
         offset: offset
-      )
+      ).extending(RecordingStudio::Tree::WalkGuard)
     end
 
     def latest_event
@@ -330,6 +330,12 @@ module RecordingStudio
         allow_unsafe_recordable_query: allow_unsafe_recordable_query
       )
 
+      if limit.present? && ascending_id_order?(order) &&
+         descendant_type.blank? && descendant_id.blank? && descendant_recording_id.blank? &&
+         descendant_recordable_filters.blank? && descendant_recordable_scope.blank?
+        return recordings_with_children_page(parent_scope, limit: limit, offset: offset)
+      end
+
       matching_descendants = filtered_root_recordings_query(
         include_children: true,
         type: descendant_type,
@@ -341,12 +347,14 @@ module RecordingStudio
         allow_unsafe_recordable_query: allow_unsafe_recordable_query
       )
 
+      table = self.class.connection.quote_table_name(self.class.table_name)
+      ancestor_sql = RecordingStudio::Tree.ancestor_ids_of_matches_sql(matching_descendants)
       apply_relation_window(
-        parent_scope.where(id: descendant_ancestor_ids_for(parent_scope, matching_descendants)),
+        parent_scope.where("#{table}.id IN (#{ancestor_sql})"),
         order: order,
         limit: limit,
         offset: offset
-      )
+      ).extending(RecordingStudio::Tree::WalkGuard)
     end
 
     def log_event!(action:, actor: nil, impersonator: nil, metadata: {}, occurred_at: Time.current,
@@ -365,6 +373,30 @@ module RecordingStudio
     end
 
     private
+
+    def recordings_with_children_page(parent_scope, limit:, offset:)
+      offset = offset.to_i
+      needed = limit.to_i + offset
+      ids = RecordingStudio::Tree.child_owner_ids(
+        root_recording_id: root_query_root_id,
+        parent_scope: parent_scope,
+        needed: needed
+      )
+      parent_scope.where(id: ids.drop(offset)).reorder(id: :asc).limit(limit.to_i)
+    end
+
+    def ascending_id_order?(order)
+      case order
+      when nil, ""
+        true
+      when Hash
+        order.size == 1 && order.keys.first.to_s == "id" && order.values.first.to_s.casecmp("desc") != 0
+      when String, Symbol
+        order.to_s.strip.match?(/\A"?id"?(\s+asc)?\z/i)
+      else
+        false
+      end
+    end
 
     def recordings_matching_related_presence(include_children: true, type: nil, id: nil,
                                              recording_id: nil, parent_id: nil, recordable_filters: nil,
@@ -452,18 +484,6 @@ module RecordingStudio
       )
       scope = scope.where(id: recording_id) if recording_id.present?
       scope
-    end
-
-    def descendant_ancestor_ids_for(parent_scope, matching_descendants)
-      parent_ids = parent_scope.pluck(:id)
-      return [] if parent_ids.empty?
-
-      parent_links = RecordingStudio::Tree.parent_links_for_root(root_query_root_id)
-      RecordingStudio::Tree.ancestor_ids_of_descendants(
-        parent_ids: parent_ids,
-        matching_descendant_pairs: matching_descendants.pluck(:id, :parent_recording_id),
-        parent_links: parent_links
-      )
     end
 
     def root_query_root_id

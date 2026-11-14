@@ -225,6 +225,7 @@ Hierarchy errors:
 | `RecordingStudio::OrphanRecording` | A low-level new recording is attempted under an existing root without a parent. |
 | `RecordingStudio::MissingRecordableDeclaration` | A configured ActiveRecord type has no declaration while declarations are required. |
 | `RecordingStudio::InvalidRecordableDeclaration` | A declaration has invalid arguments, references unregistered parents, uses `shared:` incorrectly, or belongs to an unregistered type while strict declarations are enabled. |
+| `RecordingStudio::TreeWalkError` | An ancestor or descendant walk repeats a recording or passes a depth of 1000. |
 | `RecordingStudio::AuthorizationError` | `record!` has no `config.authorize_write` (unless `allow_unauthorized_writes` is true), or the authorizer returned a falsey value. |
 | `RecordingStudio::ActorRequired` | `record!` has no actor (unless `allow_unauthorized_writes` is true and `require_actor` is false). |
 
@@ -506,14 +507,14 @@ This is the main object addons and host apps work with after they resolve a root
 | `orphan?` | nothing | `true` or `false` | Checks whether this recording is parentless but not a valid declared root. |
 | `leaf?` | nothing | `true` or `false` | Checks whether this recording has no children. |
 | `root_recording_or_self` | nothing | `RecordingStudio::Recording` | Returns the root recording boundary for this recording. |
-| `ancestors` | nothing | `Array<RecordingStudio::Recording>` | Returns root-to-parent ancestry for tree navigation. |
+| `ancestors` | nothing | `Array<RecordingStudio::Recording>` | Root-to-parent ancestry. The walk raises `TreeWalkError` on a cycle or a depth over 1000. |
 | `self_and_ancestors` | nothing | `Array<RecordingStudio::Recording>` | Includes the current recording after its ancestors. |
 | `descendants` | nothing | `Array<RecordingStudio::Recording>` | Returns the full descendant subtree in parent-before-child order. |
 | `self_and_descendants` | nothing | `Array<RecordingStudio::Recording>` | Includes the current recording before descendants. |
 | `depth` | nothing | `Integer` | Depth from the root recording. |
 | `level` | nothing | `Integer` | Alias for `depth`. |
-| `descendant_ids(include_self: false)` | include-self flag | `Array` of IDs | Returns descendant IDs without loading full objects in callers. |
-| `subtree_recordings(include_self: true, order: nil, scope: nil)` | include-self flag, optional order, optional scope | `ActiveRecord::Relation<RecordingStudio::Recording>` | Builds a relation for the current subtree with stable default ordering. |
+| `descendant_ids(include_self: false)` | include-self flag | `Array` of IDs | Descendant ids ordered by depth, then id. Raises `TreeWalkError` on a cycle or a walk deeper than 1000. |
+| `subtree_recordings(include_self: true, order: nil, scope: nil)` | include-self flag, optional order, optional scope | `ActiveRecord::Relation<RecordingStudio::Recording>` | Subtree relation ordered by depth, then id. A limit reads level by level and stops when the page is full. Raises `TreeWalkError` when that page reaches a cycle or a depth over 1000. |
 
 ### Event helpers on a single recording
 
@@ -560,7 +561,7 @@ Write behavior details:
 | `events_query(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, actions: nil, actor: nil, actor_type: nil, actor_id: nil, impersonator: nil, impersonator_type: nil, impersonator_id: nil, from: nil, to: nil, limit: nil, cursor: nil)` | root recording filters plus event filters | `ActiveRecord::Relation<RecordingStudio::Event>` | Reads an event timeline for a root or a filtered slice. A root-wide read defaults to 50 rows and pages with `cursor:`. |
 | `recordings_with_events(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, actions: nil, actor: nil, actor_type: nil, actor_id: nil, impersonator: nil, impersonator_type: nil, impersonator_id: nil, from: nil, to: nil, order: nil, limit: nil, offset: nil)` | root recording filters plus event filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Finds recordings whose history matches event filters. |
 | `recordings_with_children(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, child_type: nil, child_id: nil, child_recording_id: nil, child_recordable_filters: nil, child_recordable_scope: nil, order: nil, limit: nil, offset: nil)` | parent and child filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Finds recordings that have matching direct children. |
-| `recordings_with_descendants(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, descendant_type: nil, descendant_id: nil, descendant_recording_id: nil, descendant_recordable_filters: nil, descendant_recordable_scope: nil, order: nil, limit: nil, offset: nil)` | parent and descendant filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Finds recordings that have matching descendants anywhere below them. |
+| `recordings_with_descendants(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, descendant_type: nil, descendant_id: nil, descendant_recording_id: nil, descendant_recordable_filters: nil, descendant_recordable_scope: nil, order: nil, limit: nil, offset: nil)` | parent and descendant filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Recordings with matching descendants below them. A limit with no descendant filter returns recordings that have a child, ordered by id. A descendant filter still walks ancestors and raises `TreeWalkError` on a cycle or a depth over 1000. |
 | `recordings_without_children(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil, recordable_filters: nil, recordable_scope: nil, child_type: nil, child_id: nil, child_recording_id: nil, child_recordable_filters: nil, child_recordable_scope: nil, order: nil, limit: nil, offset: nil)` | parent and child filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Finds recordings that do not have matching direct children. |
 
 Query guidance:

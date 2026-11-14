@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## Upgrading To 6.10.0
+
+Tree reads stay in SQL. No migration for this change. 6.9.0 still requires the events migration.
+
+### What changed
+
+- Descendant walks filter `root_recording_id` on the first step only. Later steps follow `parent_recording_id`.
+- Ancestor and descendant walks stop when a recording repeats or the walk passes depth 1000, and raise `RecordingStudio::TreeWalkError`.
+- `subtree_recordings` stays ordered by depth, then id. With a limit, it reads one level at a time and stops when the page is full. The page raises if it reaches a cycle or depth 1000.
+- `recordings_with_descendants` with a descendant filter still walks ancestors in SQL. With a limit and no descendant filter, it returns recordings that have a child, ordered by id, and does not walk the rest of the tree.
+- `ancestor_ids` stays nearest-first, and `ancestors` stays root-first.
+
+### Upgrade steps
+
+None for a tree that is already acyclic and shallower than 1000. A cycle written outside the normal save path, or a chain deeper than 1000, now raises instead of running until the statement times out. A limited subtree page raises only when that page reaches the cycle or the depth cap.
+
 ## Upgrading To 6.9.0
 
 Breaking change for root event timelines. Run the migration before booting
