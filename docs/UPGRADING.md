@@ -61,6 +61,30 @@ RecordingStudio.record_events!(plans.map { |plan|
 Omit `occurred_at` unless a caller needs a specific time. The batch assigns
 increasing defaults.
 
+## Upgrading To 6.12.0
+
+No migration.
+
+### What changed
+
+- `recordings_query` preloads `:recordable`. `name`, `title`, `type_label`, and `summary` read that preloaded record. A list pays one query for the recordings and one query per recordable type, whether the page has 5 rows or 40.
+- `recording.recordables(limit: nil, cursor: nil, all: false)` reads `RecordingStudio::Recording::RECORDABLES_LIMIT` (50) events. Order is `occurred_at`, `created_at`, then `id`, oldest first.
+- The returned array keeps the distinct snapshots from that event window, in that order, and includes the current recordable. It responds to `next_cursor`.
+- `next_cursor` is the same `occurred_at`, `created_at`, `id` cursor as `RecordingStudio::Event.cursor_for`. Pass it as `recordables(cursor:)`. The next page is events newer than that point (`RecordingStudio::Event.newer_than_cursor`).
+- A full page can be the last page. The following call returns an empty array and `next_cursor` is `nil`.
+- `recordables(all: true)` returns the full distinct history, including the current recordable. It raises `ArgumentError` if you also pass `limit:` or `cursor:`.
+- An invalid `cursor:` raises `ArgumentError`.
+
+### Upgrade steps
+
+```ruby
+page = recording.recordables
+recording.recordables(cursor: page.next_cursor) if page.next_cursor
+recording.recordables(all: true)
+```
+
+A screen that listed every snapshot and has no pager should pass `all: true`.
+
 ## Upgrading To 6.11.0
 
 Write locks no longer serialise a whole tree. No migration.

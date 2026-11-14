@@ -602,7 +602,7 @@ This is the main object addons and host apps work with after they resolve a root
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
 | `events(actions: nil, actor: nil, actor_type: nil, actor_id: nil, from: nil, to: nil, limit: nil, offset: nil)` | event filters | `ActiveRecord::Relation<RecordingStudio::Event>` | Reads history for one recording. |
-| `recordables` | nothing | `Array<ActiveRecord::Base>` | Returns distinct recordable snapshots referenced by this recording's event history. |
+| `recordables(limit: nil, cursor: nil, all: false)` | page size, cursor, or full history | `Array<ActiveRecord::Base>` | Distinct snapshots from this recording's events, oldest first. Reads 50 events unless `limit:` is set. The array responds to `next_cursor`. Pass that as `cursor:` for the next newer page. `all: true` returns the full history and does not take `limit:` or `cursor:`. The current recordable is included. |
 | `subtree_events(include_self: true, descendant_scope: nil, actions: nil, actor: nil, actor_type: nil, actor_id: nil, from: nil, to: nil, limit: nil, offset: nil)` | subtree and event filters | `ActiveRecord::Relation<RecordingStudio::Event>` | Reads history for this recording plus its descendants. |
 | `latest_event` | nothing | `RecordingStudio::Event` or `nil` | Returns the newest event for this recording. |
 | `first_event` | nothing | `RecordingStudio::Event` or `nil` | Returns the oldest event for this recording. |
@@ -633,7 +633,7 @@ Write behavior details:
 
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
-| `recordings_query(include_children: false, type: nil, id: nil, parent_id: nil, created_after: nil, created_before: nil, updated_after: nil, updated_before: nil, order: nil, recordable_order: nil, recordable_filters: nil, recordable_scope: nil, limit: nil, offset: nil)` | recording and recordable filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Main read API for recordings under a root. |
+| `recordings_query(include_children: false, type: nil, id: nil, parent_id: nil, created_after: nil, created_before: nil, updated_after: nil, updated_before: nil, order: nil, recordable_order: nil, recordable_filters: nil, recordable_scope: nil, limit: nil, offset: nil)` | recording and recordable filters | `ActiveRecord::Relation<RecordingStudio::Recording>` | Main read API for recordings under a root. Preloads the polymorphic recordable so list labels do not query once per row. |
 | `recordings_of(recordable_class)` | class or class name | `ActiveRecord::Relation<RecordingStudio::Recording>` | Shortcut for `recordings_query(type: ...)`. |
 | `recording_for(recordable)` | persisted recordable | `RecordingStudio::Recording` or `nil` | Finds one recording wrapper for a recordable in this root. |
 | `recordings_for(recordables)` | array of persisted recordables | `Array<RecordingStudio::Recording>` | Batch version of `recording_for`, preserving input order. |
@@ -688,6 +688,7 @@ The event model is intentionally small. Most public usage is through scopes.
 | `cursor_for(event)` | event | `String` | Opaque cursor for the next older `events_query` page. |
 | `timeline` | nothing | `ActiveRecord::Relation<RecordingStudio::Event>` | Orders by `occurred_at`, `created_at`, then `id`, newest first. |
 | `older_than_cursor(cursor)` | cursor string | `ActiveRecord::Relation<RecordingStudio::Event>` | Keyset filter for rows older than the cursor. A blank cursor is a no-op. An invalid cursor raises `ArgumentError`. |
+| `newer_than_cursor(cursor)` | cursor string | `ActiveRecord::Relation<RecordingStudio::Event>` | Keyset filter for rows newer than the cursor. Used by `recording.recordables`. A blank cursor is a no-op. An invalid cursor raises `ArgumentError`. |
 | `by_actor(actor)` | persisted polymorphic actor | `ActiveRecord::Relation<RecordingStudio::Event>` | Filters by actor identity. |
 | `by_impersonator(impersonator)` | persisted polymorphic impersonator | `ActiveRecord::Relation<RecordingStudio::Event>` | Filters by impersonator identity. |
 | `with_action(action)` | action string or array | `ActiveRecord::Relation<RecordingStudio::Event>` | Filters by action name. |
