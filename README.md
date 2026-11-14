@@ -1074,7 +1074,7 @@ PostgreSQL on each boot. Rebuild with Draft off to load a new pack. See
 RubyGems. The gemspec declares it, and the Gemfile supplies the git source:
 
 ```ruby
-gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.356"
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.366"
 ```
 
 RecordingStudio ships one public layout:
