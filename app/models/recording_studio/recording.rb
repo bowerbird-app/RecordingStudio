@@ -28,6 +28,7 @@ module RecordingStudio
 
     before_create :assign_root_recording_id
     after_create :set_self_root_recording_id, if: -> { parent_recording_id.nil? && root_recording_id.nil? }
+    after_update :sync_subtree_event_root_recording_ids, if: :saved_change_to_root_recording_id?
     after_commit :increment_recordable_recordings_count, on: :create
     after_commit :decrement_recordable_recordings_count, on: :destroy
     after_commit :refresh_recordable_recordings_count, on: :update
@@ -222,22 +223,35 @@ module RecordingStudio
     def events_query(include_children: true, type: nil, id: nil, recording_id: nil, parent_id: nil,
                      recordable_filters: nil, recordable_scope: nil, allow_unsafe_recordable_query: nil,
                      actions: nil, actor: nil, actor_type: nil, actor_id: nil, impersonator: nil,
-                     impersonator_type: nil, impersonator_id: nil, from: nil, to: nil, limit: nil, offset: nil)
-      scope = RecordingStudio::Event.where(
-        recording_id: filtered_root_recordings_query(
-          include_children: include_children,
-          type: type,
-          id: id,
-          recording_id: recording_id,
-          parent_id: parent_id,
-          recordable_filters: recordable_filters,
-          recordable_scope: recordable_scope,
-          allow_unsafe_recordable_query: allow_unsafe_recordable_query
-        ).select(:id)
-      ).recent
+                     impersonator_type: nil, impersonator_id: nil, from: nil, to: nil, limit: nil, cursor: nil)
+      root_wide = root_wide_events_read?(
+        include_children: include_children,
+        type: type,
+        id: id,
+        recording_id: recording_id,
+        parent_id: parent_id,
+        recordable_filters: recordable_filters,
+        recordable_scope: recordable_scope
+      )
+      scope = if root_wide
+                RecordingStudio::Event.where(root_recording_id: root_query_root_id)
+              else
+                RecordingStudio::Event.where(
+                  recording_id: filtered_root_recordings_query(
+                    include_children: include_children,
+                    type: type,
+                    id: id,
+                    recording_id: recording_id,
+                    parent_id: parent_id,
+                    recordable_filters: recordable_filters,
+                    recordable_scope: recordable_scope,
+                    allow_unsafe_recordable_query: allow_unsafe_recordable_query
+                  ).select(:id)
+                )
+              end
 
       apply_event_filters(
-        scope,
+        scope.timeline,
         actions: actions,
         actor: actor,
         actor_type: actor_type,
@@ -247,8 +261,8 @@ module RecordingStudio
         impersonator_id: impersonator_id,
         from: from,
         to: to,
-        limit: limit,
-        offset: offset
+        limit: root_wide && limit.nil? ? RecordingStudio::Event::ROOT_TIMELINE_LIMIT : limit,
+        cursor: cursor
       )
     end
 
@@ -399,7 +413,8 @@ module RecordingStudio
       from:,
       to:,
       limit:,
-      offset:,
+      offset: nil,
+      cursor: nil,
       impersonator: nil,
       impersonator_type: nil,
       impersonator_id: nil
@@ -412,9 +427,16 @@ module RecordingStudio
       scope = scope.where(impersonator_type: impersonator_type) if impersonator_type.present?
       scope = scope.where(impersonator_id: impersonator_id) if impersonator_id.present?
       scope = scope.between(from, to)
+      scope = scope.older_than_cursor(cursor) if cursor.present?
       scope = scope.limit(limit) if limit.present?
       scope = scope.offset(offset) if offset.present?
       scope
+    end
+
+    def root_wide_events_read?(include_children:, type:, id:, recording_id:, parent_id:, recordable_filters:,
+                               recordable_scope:)
+      include_children != false &&
+        [type, id, recording_id, parent_id, recordable_filters, recordable_scope].all?(&:blank?)
     end
 
     def filtered_root_recordings_query(include_children:, type:, id:, recording_id:, parent_id:, recordable_filters:,

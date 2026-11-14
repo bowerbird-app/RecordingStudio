@@ -2,6 +2,50 @@
 
 ## Unreleased
 
+## Upgrading To 6.9.0
+
+Breaking change for root event timelines. Run the migration before booting
+app code that creates events.
+
+### What changed
+
+- `recording_studio_events.root_recording_id` is `NOT NULL` and references
+  `recording_studio_recordings`. Writes set it from the recording's root.
+- Saving a recording with a new `root_recording_id` updates `root_recording_id`
+  on events for that recording and every descendant in one statement, in the
+  same transaction. Descendant recording rows can still be updated with
+  `update_all` before that save. `update_all` on recordings does not touch
+  events by itself.
+- `events_query` with no recording filters reads events by `root_recording_id`.
+  The page size is 50 unless you pass `limit:`. Order is `occurred_at`,
+  `created_at`, then `id`, newest first.
+- `offset:` is removed from `events_query`. Pass `cursor:` with the value from
+  `RecordingStudio::Event.cursor_for(event)`.
+- A root timeline does not expose a total count. Keep paging until a page
+  comes back short.
+- Filtered `events_query` calls (a type, recording, parent, or recordable
+  filter) still select through recordings and do not apply the default limit.
+- `RecordingStudio::Event.for_root` filters `root_recording_id` and does not
+  join recordings. It stays unlimited so callers can compose it. Pass `limit:`
+  when you only need a page.
+- Indexes: `(root_recording_id, occurred_at DESC, created_at DESC, id DESC)`
+  and `(impersonator_type, impersonator_id, occurred_at)`.
+
+### Upgrade steps
+
+1. Run `bin/rails db:migrate`. Fresh installs pick this up from
+   `recording_studio:migrations`. Historical installs use `--full_history`.
+2. Replace offset paging:
+
+```ruby
+page = root.events_query
+next_cursor = RecordingStudio::Event.cursor_for(page.last) if page.size == page.limit_value
+root.events_query(cursor: next_cursor)
+```
+
+A full page can be the last page. The following request returns an empty
+relation. That empty page is how you know the timeline is finished.
+
 ## Upgrading To 6.7.1
 
 Development reload applies `extend_model` and `extend_controller` on the new class. No migration.

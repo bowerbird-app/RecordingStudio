@@ -69,6 +69,22 @@ module RecordingStudio
 
       alias level depth
 
+      # Cross-root moves update descendant recording rows with update_all, then
+      # save this recording. This statement rewrites event roots for the saved
+      # recording and every descendant in that same transaction.
+      SUBTREE_EVENT_ROOT_SQL = <<~SQL.squish.freeze
+        WITH RECURSIVE subtree AS (
+          SELECT id FROM recording_studio_recordings WHERE id = %<recording_id>s
+          UNION ALL
+          SELECT child.id
+          FROM recording_studio_recordings child
+          INNER JOIN subtree ON child.parent_recording_id = subtree.id
+        )
+        UPDATE recording_studio_events
+        SET root_recording_id = %<root_id>s
+        WHERE recording_id IN (SELECT id FROM subtree)
+      SQL
+
       private
 
       def ancestor_id_chain
@@ -89,6 +105,19 @@ module RecordingStudio
 
       def set_self_root_recording_id
         update!(root_recording_id: id)
+      end
+
+      def sync_subtree_event_root_recording_ids
+        return if root_recording_id.blank?
+
+        connection = self.class.connection
+        connection.execute(
+          format(
+            SUBTREE_EVENT_ROOT_SQL,
+            root_id: connection.quote(root_recording_id),
+            recording_id: connection.quote(id)
+          )
+        )
       end
 
       def enforce_recordings_scope(scope, root_id:, include_children:)

@@ -671,6 +671,10 @@ For root-scoped history queries, use the event and touched-recording helpers:
 ```ruby
 root_recording.events_query(actions: %w[published reviewed], type: Page)
 root_recording.recordings_with_events(actions: "published", actor: current_user)
+
+page = root_recording.events_query
+next_cursor = RecordingStudio::Event.cursor_for(page.last) if page.size == page.limit_value
+root_recording.events_query(cursor: next_cursor)
 ```
 
 ### Record
@@ -927,6 +931,7 @@ The quick examples below are accurate for the current code, but the exhaustive m
 | `root_recording.recordings_for([page, folder])` | Recording wrappers for multiple persisted recordables, preserving input order. |
 | `root_recording.recordables_of(Page, include_children: true)` | Raw current recordable models for the filtered recordings under the root. |
 | `root_recording.child_recordings_of(folder_recording, type: Page)` | Direct child recordings for a parent recording under the same root. |
+| `root_recording.events_query` | Newest 50 events in the root. Page with `cursor:` from `RecordingStudio::Event.cursor_for`. |
 | `root_recording.events_query(actions: ["published"], type: "Page")` | Root-scoped event timeline filtered by recording and event attributes. |
 | `root_recording.recordings_with_events(actions: ["published"], actor: current_user)` | Distinct recordings whose event history matches the filters. |
 | `RecordingStudio::Recording.all` | Latest recordings first. |
@@ -947,7 +952,7 @@ The quick examples below are accurate for the current code, but the exhaustive m
 | `recording.event_by_idempotency_key("publish-page-123")` | The matching event for a recording-scoped idempotency key. |
 | `recording.subtree_events` | Events for the recording and all descendants, newest first. |
 | `recording.subtree_events(descendant_scope: ->(scope) { scope.where(recordable_type: "Page") })` | Events for the recording plus selected descendant recordings. |
-| `RecordingStudio::Event.for_root(root_recording)` | Events for a root recording and all descendant recordings. |
+| `RecordingStudio::Event.for_root(root_recording)` | Events whose `root_recording_id` is that root. Pass `limit:` for a page. |
 | `RecordingStudio::Event.by_actor(current_user)` | Events performed by a specific (polymorphic) actor. |
 | `RecordingStudio::Event.by_impersonator(current_admin)` | Events performed while impersonating as a specific actor. |
 | `RecordingStudio::Event.with_action("commented")` | Events with a specific action string. |

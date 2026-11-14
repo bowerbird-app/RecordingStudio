@@ -32,6 +32,7 @@ class MigrationsGeneratorTest < Rails::Generators::TestCase
     LEGACY_ACCESS_MIGRATIONS.each do |migration_name|
       refute_includes copied_filenames, migration_name
     end
+    assert_includes copied_filenames, "add_root_recording_id_to_recording_studio_events.rb"
   end
 
   def test_skips_existing_migration_when_option_enabled
