@@ -182,7 +182,7 @@ class RecordingFiltersTest < ActiveSupport::TestCase
   private
 
   def create_workspace_root
-    RecordingStudio.root_recording_for(Workspace.create!(name: "Workspace"))
+    RecordingStudio.create_root_recording!(Workspace.create!(name: "Workspace"))
   end
 
   def record_page(root, title, parent: root)

@@ -7,7 +7,7 @@ class RecordingsControllerTest < ActionDispatch::IntegrationTest
     @user = create_user(name: "User")
     sign_in_as(@user)
     @workspace = Workspace.create!(name: "Workspace")
-    @root_recording = RecordingStudio.root_recording_for(@workspace)
+    @root_recording = RecordingStudio.create_root_recording!(@workspace)
     @recording = @root_recording.record(RecordingStudioPage, actor: @user, parent_recording: @root_recording) do |page|
       page.title = "Plan"
       page.summary = "Initial draft"
