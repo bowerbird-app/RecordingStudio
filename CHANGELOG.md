@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No migration. Hosts that copy the git pin should use tag `v0.1.366`.
 
+## [7.1.0] - 2026-11-16
+
+### Added
+
+* `RecordingStudio::Services::BaseService` subclasses can override `hook_result` and `hook_subject`. Hooks then see a redacted result, an alternate service object, or both. `call` still returns the real result. The defaults return the result and the service, so existing hooks see the same objects as 7.0.0.
+
+### Upgrade notes
+
+- No migration.
+- Override `hook_result` when a result carries a secret. Override `hook_subject` when the service object carries one. The subject must still answer `is_a?` and `kind_of?` for the real service class.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-710).
+
 ## [7.0.0] - 2026-11-14
 
 ### Added

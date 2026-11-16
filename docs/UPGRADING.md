@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## Upgrading To 7.1.0
+
+No migration. A `RecordingStudio::Services::BaseService` call returns the same result as 7.0.0 unless the subclass overrides `hook_result` or `hook_subject`.
+
+Override `hook_result` when `result.value` holds a secret and a global `after_service` or `around_service` hook must not see it. The caller still receives the real result. Override `hook_subject` when the service holds a secret in an instance variable. `around_service` then receives that object instead of the service. The object must return true for `is_a?` and `kind_of?` with the real service class, because global listeners filter by service class.
+
+Details and examples are in [the services guide](gem_template/SERVICES.md#hide-secrets-from-hooks).
+
 ## Upgrading To 7.0.0
 
 Two breaking changes. `root_recording_for` no longer creates a root recording.
