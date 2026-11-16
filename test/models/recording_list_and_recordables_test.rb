@@ -103,6 +103,56 @@ class RecordingListAndRecordablesTest < ActiveSupport::TestCase
     assert_nil fourth.next_cursor
   end
 
+  def test_recordables_keeps_first_seen_order_when_every_event_adds_a_version
+    _, root = create_workspace_root
+    recording = record_versions(root, count: 120)
+    titles = (0..120).map { |index| "v#{index}" }
+
+    assert_equal titles, recording.recordables(all: true).map(&:title)
+    assert_nil recording.recordables(all: true).next_cursor
+
+    page = recording.recordables
+    assert_equal titles.first(50) + [titles.last], page.map(&:title)
+
+    second = recording.recordables(cursor: page.next_cursor)
+    assert_equal titles[49..99] + [titles.last], second.map(&:title)
+
+    third = recording.recordables(cursor: second.next_cursor)
+    assert_equal titles[99..], third.map(&:title)
+    assert_nil third.next_cursor
+  end
+
+  def test_recordables_orders_every_new_version_by_event_id_when_timestamps_match
+    _, root = create_workspace_root
+    recording = record_versions(root, count: 12)
+    stamp = Time.utc(2026, 7, 4, 15, 0, 0)
+    RecordingStudio::Event.where(recording_id: recording.id).update_all(occurred_at: stamp, created_at: stamp)
+    events = recording.events.reorder(occurred_at: :asc, created_at: :asc, id: :asc)
+                      .preload(:recordable, :previous_recordable).to_a
+
+    assert_equal first_seen_titles(recording, events), recording.recordables(all: true).map(&:title)
+
+    page_events = events.first(4)
+    page = recording.recordables(limit: 4)
+    assert_equal first_seen_titles(recording, page_events), page.map(&:title)
+
+    cursor_events = events.drop(4).first(4)
+    assert_equal first_seen_titles(recording, cursor_events),
+                 recording.recordables(limit: 4, cursor: page.next_cursor).map(&:title)
+  end
+
+  def test_recordables_keeps_the_earlier_snapshot_when_later_events_repeat_it
+    _, root = create_workspace_root
+    recording = record_versions(root, count: 1)
+    5.times { recording.log_event!(action: "noted") }
+    root.revise(recording) { |page| page.title = "v2" }
+    5.times { recording.log_event!(action: "noted") }
+    original = RecordingStudioPage.find_by!(title: "v0")
+    root.revert(recording, to_recordable: original)
+
+    assert_equal %w[v0 v1 v2], recording.reload.recordables(all: true).map(&:title)
+  end
+
   private
 
   def create_workspace_root(name: "Workspace")
@@ -181,6 +231,12 @@ class RecordingListAndRecordablesTest < ActiveSupport::TestCase
       )
     end
     recording.reload
+  end
+
+  def first_seen_titles(recording, events)
+    snapshots = events.flat_map { |event| [event.previous_recordable, event.recordable] }
+    snapshots << recording.recordable if events.any?
+    snapshots.compact.uniq { |snapshot| [snapshot.class.base_class.name, snapshot.id] }.map(&:title)
   end
 
   def page_event_count(recording, cursor:)
