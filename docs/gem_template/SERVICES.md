@@ -104,3 +104,32 @@ end
 ```
 
 Leave both methods at their defaults and every hook sees the same objects it sees today.
+
+## Handled exceptions
+
+`handles` and `reraises` are opt-in. A service that calls neither still lets exceptions leave `call`. After hooks do not run, and an around hook sees the exception.
+
+```ruby
+class ImportFile < RecordingStudio::Services::BaseService
+  handles ImportError
+  reraises ImportError::StorageLimit
+
+  private
+
+  def perform
+    success(read_file)
+  end
+
+  def handled_failure(exception)
+    failure(exception, value: exception.partial_import)
+  end
+end
+```
+
+`handles` lists exception classes that `perform` turns into a failure. `call` returns that failure. `after_service` runs. The block passed to `around_service` returns the failure result, after `hook_result`. `reraises` lists classes that keep propagating. When an exception matches both lists, it propagates. `StorageLimit < ImportError` is the usual case.
+
+Each class stores only the classes named in its own `handles` and `reraises` calls. A subclass uses its ancestors' lists plus its own. A later `handles` on the parent is visible to subclasses that already declared their own classes. The parent and each sibling keep the classes they declared.
+
+`handled_failure` builds that failure. The default is `failure(exception)`, which stores the exception message. Override it to set `errors` or `value`. `failure` accepts `value:` for a returned failure too.
+
+An exception raised by a hook stays an exception. `handles` does not rescue `before_service`, `after_service`, `around_service`, or `hook_result`.

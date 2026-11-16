@@ -81,6 +81,122 @@ module RecordingStudio
         end
       end
 
+      class DeclaredError < StandardError; end
+      class DeclaredLimitError < DeclaredError; end
+      class SiblingOnlyError < StandardError; end
+      class SecondChildError < StandardError; end
+      class AroundHookError < StandardError; end
+
+      class UndeclaredService < BaseService
+        def initialize(error: nil)
+          @error = error
+        end
+
+        private
+
+        def perform
+          raise @error if @error
+
+          success("ok")
+        end
+      end
+
+      class HandlingService < UndeclaredService
+        handles DeclaredError
+      end
+
+      class ReraisingService < BaseService
+        handles DeclaredError
+        reraises DeclaredLimitError
+
+        def initialize(error:)
+          @error = error
+        end
+
+        private
+
+        def perform
+          raise @error
+        end
+      end
+
+      class ChildService < HandlingService
+        handles SiblingOnlyError
+        handles SecondChildError
+        reraises DeclaredLimitError
+      end
+
+      class SiblingService < HandlingService
+      end
+
+      class OtherChildService < HandlingService
+        handles AroundHookError
+      end
+
+      class LaterError < StandardError; end
+
+      class HandlingService
+        handles LaterError
+      end
+
+      class CustomFailureService < HandlingService
+        private
+
+        def handled_failure(exception)
+          failure("translated", errors: [exception.class.name], value: exception.message)
+        end
+      end
+
+      class RedactingHandledService < HandlingService
+        private
+
+        def hook_result(result)
+          failure("redacted", value: result.error)
+        end
+      end
+
+      class ValuedFailureService < BaseService
+        private
+
+        def perform
+          failure("nope", errors: ["detail"], value: { kept: true })
+        end
+      end
+
+      class AroundSensitiveService < BaseService
+        handles AroundHookError
+
+        private
+
+        def perform
+          success("ok")
+        end
+      end
+
+      class HookResultBoomService < BaseService
+        handles AroundHookError
+
+        private
+
+        def perform
+          success("ok")
+        end
+
+        def hook_result(_result)
+          raise AroundHookError, "from hook_result"
+        end
+      end
+
+      class ReraiseOnlyService < BaseService
+        reraises DeclaredError
+
+        private
+
+        def perform
+          raise DeclaredError, "still raises"
+        end
+      end
+
       def test_call_class_method_delegates_to_instance
         result = TestService.call(should_succeed: true, value: "hello")
         assert result.success?
@@ -329,6 +445,239 @@ module RecordingStudio
         assert received.kind_of?(SubjectService) # rubocop:disable Style/ClassCheck
       ensure
         hooks.clear!
+      end
+
+      def test_handled_exception_becomes_a_failure
+        seen = nil
+        result = HandlingService.call(error: DeclaredError.new("full")) do |service_result|
+          service_result.on_failure { |error, _errors| seen = error }
+        end
+
+        assert result.failure?
+        assert_equal "full", result.error
+        assert_nil result.value
+        assert_empty result.errors
+        assert_equal "full", seen
+      end
+
+      def test_unhandled_exception_raises
+        with_service_hooks do |hooks|
+          after_ran = false
+          around_saw_raise = false
+          hooks.after_service { after_ran = true }
+          hooks.around_service do |_service, block|
+            block.call
+          rescue SiblingOnlyError
+            around_saw_raise = true
+            raise
+          end
+
+          error = assert_raises(SiblingOnlyError) do
+            HandlingService.call(error: SiblingOnlyError.new("down"))
+          end
+
+          assert_equal "down", error.message
+          assert around_saw_raise
+          refute after_ran
+        end
+      end
+
+      def test_reraises_beats_handles_for_a_subclass
+        with_service_hooks do |hooks|
+          after_ran = false
+          around_saw_raise = false
+          hooks.after_service { after_ran = true }
+          hooks.around_service do |_service, block|
+            block.call
+          rescue DeclaredLimitError
+            around_saw_raise = true
+            raise
+          end
+
+          error = assert_raises(DeclaredLimitError) do
+            ReraisingService.call(error: DeclaredLimitError.new("limit"))
+          end
+
+          assert_equal "limit", error.message
+          assert around_saw_raise
+          refute after_ran
+
+          result = ReraisingService.call(error: DeclaredError.new("full"))
+          assert result.failure?
+          assert_equal "full", result.error
+        end
+      end
+
+      def test_inherited_declarations_append_without_leaking
+        assert_service_failure ChildService.call(error: DeclaredError.new("parent rule")), "parent rule"
+        assert_service_failure ChildService.call(error: SiblingOnlyError.new("own")), "own"
+        assert_service_failure ChildService.call(error: SecondChildError.new("second")), "second"
+        assert_raises(DeclaredLimitError) { ChildService.call(error: DeclaredLimitError.new("limit")) }
+        assert_raises(AroundHookError) { ChildService.call(error: AroundHookError.new("other child")) }
+
+        assert_service_failure HandlingService.call(error: DeclaredError.new("parent")), "parent"
+        assert_service_failure HandlingService.call(error: DeclaredLimitError.new("still handled")), "still handled"
+        assert_raises(SiblingOnlyError) { HandlingService.call(error: SiblingOnlyError.new("child only")) }
+        assert_raises(SecondChildError) { HandlingService.call(error: SecondChildError.new("child only")) }
+        assert_raises(AroundHookError) { HandlingService.call(error: AroundHookError.new("other child")) }
+
+        assert_service_failure SiblingService.call(error: DeclaredError.new("shared")), "shared"
+        assert_service_failure(
+          SiblingService.call(error: DeclaredLimitError.new("not reraised here")),
+          "not reraised here"
+        )
+        assert_raises(SiblingOnlyError) { SiblingService.call(error: SiblingOnlyError.new("cousin")) }
+        assert_raises(SecondChildError) { SiblingService.call(error: SecondChildError.new("cousin")) }
+        assert_raises(AroundHookError) { SiblingService.call(error: AroundHookError.new("cousin")) }
+
+        assert_service_failure OtherChildService.call(error: AroundHookError.new("mine")), "mine"
+        assert_service_failure OtherChildService.call(error: DeclaredLimitError.new("still handled")), "still handled"
+        assert_raises(SiblingOnlyError) { OtherChildService.call(error: SiblingOnlyError.new("not mine")) }
+
+        assert_service_failure ChildService.call(error: LaterError.new("added later")), "added later"
+        assert_service_failure SiblingService.call(error: LaterError.new("added later")), "added later"
+        assert_service_failure HandlingService.call(error: LaterError.new("added later")), "added later"
+        assert_raises(LaterError) { UndeclaredService.call(error: LaterError.new("above the parent")) }
+      end
+
+      def test_after_hooks_and_hook_result_run_on_a_handled_failure
+        with_service_hooks do |hooks|
+          shown = nil
+          hooks.after_service { |_service_class, result| shown = result }
+
+          returned = RedactingHandledService.call(error: DeclaredError.new("full"))
+
+          assert returned.failure?
+          assert_equal "full", returned.error
+          assert_nil returned.value
+          assert_equal "redacted", shown.error
+          assert_equal "full", shown.value
+        end
+      end
+
+      def test_around_hook_sees_the_failure_result
+        with_service_hooks do |hooks|
+          seen = nil
+          rolled_back = false
+          after_ran = false
+          hooks.after_service { after_ran = true }
+          hooks.around_service do |_service, block|
+            seen = block.call
+            seen
+          rescue StandardError
+            rolled_back = true
+            raise
+          end
+
+          returned = HandlingService.call(error: DeclaredError.new("full"))
+
+          assert_same returned, seen
+          assert returned.failure?
+          assert_equal "full", seen.error
+          refute rolled_back
+          assert after_ran
+        end
+      end
+
+      def test_around_hook_exception_is_not_converted
+        with_service_hooks do |hooks|
+          after_ran = false
+          hooks.after_service { after_ran = true }
+          hooks.around_service do |_service, block|
+            block.call
+            raise AroundHookError, "from around"
+          end
+
+          error = assert_raises(AroundHookError) { AroundSensitiveService.call }
+
+          assert_equal "from around", error.message
+          refute after_ran
+        end
+      end
+
+      def test_hook_result_exception_is_not_converted
+        with_service_hooks do |hooks|
+          after_ran = false
+          hooks.after_service { after_ran = true }
+          hooks.around_service { |_service, block| block.call }
+
+          error = assert_raises(AroundHookError) { HookResultBoomService.call }
+
+          assert_equal "from hook_result", error.message
+          refute after_ran
+        end
+
+        with_service_hooks do
+          assert_raises(AroundHookError) { HookResultBoomService.call }
+        end
+      end
+
+      def test_handled_failure_override_is_used
+        result = CustomFailureService.call(error: DeclaredError.new("full"))
+
+        assert result.failure?
+        assert_equal "translated", result.error
+        assert_equal [DeclaredError.name], result.errors
+        assert_equal "full", result.value
+      end
+
+      def test_failure_accepts_a_value
+        result = ValuedFailureService.call
+
+        assert result.failure?
+        assert_equal "nope", result.error
+        assert_equal ["detail"], result.errors
+        assert_equal({ kept: true }, result.value)
+      end
+
+      def test_service_with_no_declarations_is_unchanged
+        error = assert_raises(RuntimeError) do
+          UndeclaredService.call(error: RuntimeError.new("boom"))
+        end
+        frame = error.backtrace.find { |line| line.include?("base_service.rb") }
+
+        assert_equal "boom", error.message
+        assert_match(/in `run_with_around_hooks'/, frame)
+        refute_match(/perform_rescuing|run_handled_perform/, error.backtrace.join("\n"))
+
+        with_service_hooks do |hooks|
+          after_ran = false
+          around_saw_raise = false
+          hooks.after_service { after_ran = true }
+          hooks.around_service do |_service, block|
+            block.call
+          rescue RuntimeError
+            around_saw_raise = true
+            raise
+          end
+
+          raised = assert_raises(RuntimeError) do
+            UndeclaredService.call(error: RuntimeError.new("boom"))
+          end
+          around_frame = raised.backtrace.find { |line| line.include?("base_service.rb") }
+
+          assert around_saw_raise
+          refute after_ran
+          assert_match(/block in run_with_around_hooks'/, around_frame)
+        end
+
+        assert_raises(DeclaredError) { ReraiseOnlyService.call }
+        assert_equal "ok", UndeclaredService.call.value
+      end
+
+      private
+
+      def with_service_hooks
+        hooks = RecordingStudio.configuration.hooks
+        hooks.clear!
+        yield hooks
+      ensure
+        hooks&.clear!
+      end
+
+      def assert_service_failure(result, message)
+        assert result.failure?, "expected failure, got #{result.error.inspect}"
+        assert_equal message, result.error
       end
     end
   end
