@@ -12,6 +12,10 @@ module RecordingStudio
     # - after_service: Called after service execution (with result)
     # - around_service: Wraps service execution
     #
+    # Override `hook_result` to show hooks a redacted result, and `hook_subject`
+    # to show `around_service` something other than the service. `call` still
+    # returns the real result.
+    #
     # @example Basic usage
     #   result = MyService.call(param1: "value")
     #   if result.success?
@@ -128,23 +132,25 @@ module RecordingStudio
       end
 
       # Run after_service hooks
-      #
-      # @param result [Result] The service result
       def run_after_hooks(result)
         return unless hooks_enabled?
 
-        RecordingStudio::Hooks.run(:after_service, self.class, result)
+        RecordingStudio::Hooks.run(:after_service, self.class, hook_result(result))
       end
 
       # Run perform wrapped in around_service hooks
-      #
-      # @return [Result] The service result
       def run_with_around_hooks
-        if hooks_enabled? && RecordingStudio.configuration.hooks.registered?(:around_service)
-          RecordingStudio::Hooks.run_around(:around_service, self) { perform }
-        else
-          perform
+        return perform unless hooks_enabled? && RecordingStudio.configuration.hooks.registered?(:around_service)
+
+        real = nil
+        hook_view = nil
+        returned = RecordingStudio::Hooks.run_around(:around_service, hook_subject) do
+          real = perform
+          hook_view = hook_result(real)
         end
+        hook_returned_the_view = returned.equal?(hook_view)
+
+        hook_returned_the_view ? real : returned
       end
 
       # Check if hooks are enabled (RecordingStudio is loaded and configured)
@@ -162,6 +168,27 @@ module RecordingStudio
       # @return [Hash] Arguments passed to the service
       def service_args
         {}
+      end
+
+      # Object hooks should see for a result. The default returns `result`.
+      #
+      # `after_service` receives this value for the caller-facing result.
+      # The block passed to `around_service` returns this value for the
+      # `perform` result. When the hook returns that same object, `call`
+      # returns the real result. Any other object replaces it.
+      #
+      # @param result [Object] Result a hook is about to see
+      # @return [Object]
+      def hook_result(result)
+        result
+      end
+
+      # Object passed to `around_service` instead of the service.
+      # The default is the service.
+      #
+      # @return [Object]
+      def hook_subject
+        self
       end
     end
   end

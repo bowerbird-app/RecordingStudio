@@ -506,6 +506,22 @@ patching core classes.
 | `run_around(event_name, context, &block)` | event name, context, block | block result | Convenience proxy for around hooks. |
 | `trigger(event_name, *args)` | event name and args | `Array` of results | Alias-style convenience method for custom events. |
 
+### Service hooks from `RecordingStudio::Services::BaseService`
+
+`BaseService#call` runs `before_service`, then `around_service` when any are registered, then `after_service`. The block passed to `call`, and the return value, receive the caller result.
+
+| Method | Default | What hooks receive |
+| --- | --- | --- |
+| `hook_result(result)` | `result` | `after_service` receives `hook_result` of the caller result. The block given to `around_service` returns `hook_result` of the `perform` result. |
+| `hook_subject` | the service | `around_service` receives this object instead of the service. |
+| `service_args` | `{}` | `before_service` receives the service class and this hash. |
+
+`hook_result`, `hook_subject`, and `service_args` are private. A subclass overrides them.
+
+When the `around_service` chain returns the same object the block returned, `call` returns the `perform` result. When the chain returns any other object, `call` returns that object.
+
+`hook_subject` must return true from `is_a?` and from `kind_of?` for the real service class. Global listeners filter on the service class.
+
 ## Gates: `RecordingStudio.check_gate`
 
 Gates are named allow and deny checks. They are not hooks, and they are not `config.authorize_write`.
