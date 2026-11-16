@@ -111,9 +111,8 @@ module RecordingStudio
       assert_recordables_page!(limit: limit, cursor: cursor, all: all)
       page_limit = all ? nil : (limit || RECORDABLES_LIMIT)
       page_cursor = all ? nil : cursor
-      events = recordable_history_events(limit: page_limit, cursor: page_cursor)
-      page = distinct_recordable_snapshots(events, cursor: page_cursor)
-      next_cursor = recordables_next_cursor(events, limit: page_limit)
+      page = distinct_recordable_snapshots(limit: page_limit, cursor: page_cursor)
+      next_cursor = recordables_next_cursor(limit: page_limit, cursor: page_cursor)
       page.define_singleton_method(:next_cursor) { next_cursor }
       page
     end
@@ -388,21 +387,84 @@ module RecordingStudio
       raise ArgumentError, "cursor is not used when all: true" if cursor.present?
     end
 
-    def recordable_history_events(limit:, cursor:)
+    def recordable_event_window(limit:, cursor:)
       scope = association(:events).scope.reorder(occurred_at: :asc, created_at: :asc, id: :asc)
       scope = scope.newer_than_cursor(cursor) if cursor.present?
       scope = scope.limit(limit) if limit
-      scope.preload(:recordable, :previous_recordable).to_a
+      scope
     end
 
-    def distinct_recordable_snapshots(events, cursor:)
-      snapshots = events.flat_map { |event| [event.previous_recordable, event.recordable] }
-      snapshots << recordable if events.any? || cursor.blank?
+    def distinct_recordable_snapshots(limit:, cursor:)
+      rows = first_seen_snapshot_rows(limit: limit, cursor: cursor)
+      snapshots = snapshots_for(rows)
+      snapshots << recordable if rows.any? || cursor.blank?
       snapshots.compact.uniq { |snapshot| [snapshot.class.base_class.name, snapshot.id] }
     end
 
-    def recordables_next_cursor(events, limit:)
-      return if limit.nil? || events.size != limit || events.last.nil?
+    def first_seen_snapshot_rows(limit:, cursor:)
+      window = recordable_event_window(limit: limit, cursor: cursor).select(
+        "recording_studio_events.previous_recordable_type",
+        "recording_studio_events.previous_recordable_id",
+        "recording_studio_events.recordable_type",
+        "recording_studio_events.recordable_id",
+        "recording_studio_events.occurred_at",
+        "recording_studio_events.created_at",
+        "recording_studio_events.id"
+      )
+      sql = <<~SQL.squish
+        WITH numbered AS (
+          SELECT previous_recordable_type,
+                 previous_recordable_id,
+                 recordable_type,
+                 recordable_id,
+                 ROW_NUMBER() OVER (
+                   ORDER BY occurred_at ASC, created_at ASC, id ASC
+                 ) AS event_index
+          FROM (#{window.to_sql}) AS windowed
+        ),
+        steps AS (
+          SELECT previous_recordable_type AS recordable_type,
+                 previous_recordable_id AS recordable_id,
+                 event_index * 2 AS position
+          FROM numbered
+          WHERE previous_recordable_id IS NOT NULL
+          UNION ALL
+          SELECT recordable_type,
+                 recordable_id,
+                 event_index * 2 + 1 AS position
+          FROM numbered
+        ),
+        first_seen AS (
+          SELECT DISTINCT ON (recordable_type, recordable_id)
+                 recordable_type,
+                 recordable_id,
+                 position
+          FROM steps
+          ORDER BY recordable_type, recordable_id, position
+        )
+        SELECT recordable_type, recordable_id
+        FROM first_seen
+        ORDER BY position
+      SQL
+      self.class.connection.select_all(sql).to_a
+    end
+
+    def snapshots_for(rows)
+      found = {}
+      rows.group_by { |row| row.fetch("recordable_type") }.each do |type, typed_rows|
+        ids = typed_rows.map { |row| row.fetch("recordable_id") }
+        type.constantize.where(id: ids).each do |snapshot|
+          found[[type, snapshot.id.to_s]] = snapshot
+        end
+      end
+      rows.filter_map { |row| found[[row.fetch("recordable_type"), row.fetch("recordable_id").to_s]] }
+    end
+
+    def recordables_next_cursor(limit:, cursor:)
+      return if limit.nil?
+
+      events = recordable_event_window(limit: limit, cursor: cursor).select(:id, :occurred_at, :created_at).to_a
+      return if events.size != limit || events.last.nil?
 
       RecordingStudio::Event.cursor_for(events.last)
     end

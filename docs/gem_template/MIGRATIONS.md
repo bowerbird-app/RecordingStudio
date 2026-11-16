@@ -61,7 +61,7 @@ Use `--full_history` only when:
 The current fresh-install schema models:
 
 - `recording_studio_recordings`
-- `recording_studio_events`, including required `root_recording_id`
+- `recording_studio_events`, including required `root_recording_id` and an index on `(occurred_at, created_at, id)`, newest first, for cross-root recent events
 
 Historical tables and columns related to access control, device sessions, and older container naming are not part of the
 fresh-install path anymore.
