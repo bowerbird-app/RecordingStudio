@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No migration. Hosts that copy the git pin should use tag `v0.1.366`.
 
+## [7.3.0] - 2026-11-16
+
+### Added
+
+* `RecordingStudio::Services::BaseService.handles` and `.reraises` turn declared exceptions from `perform` into failures. Core declares none. A subclass keeps its ancestors' classes and appends its own. `reraises` wins when both lists match. `handled_failure` defaults to `failure(exception)`. `failure` accepts `value:`.
+
+### Upgrade notes
+
+- No migration. A service that declares nothing behaves as in 7.2.0.
+- Moving an outer `call` rescue into `handles` runs after hooks for those failures, and around hooks receive the Result. RecordingStudioLibrary's outer rescue is one of those.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-730).
+
 ## [7.2.0] - 2026-11-16
 
 ### Performance
