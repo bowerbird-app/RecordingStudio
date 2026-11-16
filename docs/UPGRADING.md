@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## Upgrading To 7.4.0
+
+Run the new migration. It adds `index_rs_recordings_on_root_type_created_at_id` on `recording_studio_recordings (root_recording_id, recordable_type, created_at, id)`, with `created_at` and `id` newest first. There is no `WHERE` clause.
+
+`index_rs_recordings_on_root_and_recordable` stays. Recordable lookups under a root filter `(root_recording_id, recordable_type, recordable_id)`. The new index has `created_at` in that position, so it cannot serve `recordable_id`.
+
+Fresh installs copy the same migration from `db/install_migrate`.
+
+`Recording.within`, `newest_first`, `older_than_cursor`, `newer_than_cursor`, `cursor_for`, and `cursor_point` are new. Existing calls are unchanged. `within` includes the recording. A root does not walk the tree. A nested recording joins the subtree walk, and later `of_type`, `kept`, and `order` still apply. `newest_first` is `created_at DESC, id DESC`. `older_than_cursor` is the next page in that order. A blank cursor does not filter. An invalid cursor raises `ArgumentError`.
+
 ## Upgrading To 7.3.0
 
 No migration. A `RecordingStudio::Services::BaseService` subclass that calls neither `handles` nor `reraises` still returns the same results and still lets the same exceptions leave `call`.
