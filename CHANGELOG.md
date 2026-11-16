@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 * `RecordingStudio::Services::BaseService` subclasses can override `hook_result` and `hook_subject`. Hooks then see a redacted result, an alternate service object, or both. `call` still returns the real result. The defaults return the result and the service, so existing hooks see the same objects as 7.0.0.
 
+### Security
+
+* Bump locked `msgpack` to 1.8.7 and `puma` to 8.1.1 for CVE-2026-126366 and the Puma advisories fixed in 8.0.3.
+
 ### Upgrade notes
 
 - No migration.
