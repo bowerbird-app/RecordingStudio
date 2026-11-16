@@ -15,6 +15,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No migration. Hosts that copy the development git pin should use tag `v0.1.366`.
 
+## [7.4.0] - 2026-11-16
+
+### Added
+
+* `Recording.within(recording)` returns that recording's tree, including itself. A root uses `for_root` and does not walk. A nested recording joins the subtree walk, so later `of_type`, `kept`, and `order` still apply.
+* Keyset pages on recordings: `newest_first`, `older_than_cursor`, `newer_than_cursor`, `cursor_for`, and `cursor_point`. The order is `created_at DESC`, `id DESC`. Cursors use the same url-safe Base64 JSON encoding as events.
+
+### Performance
+
+* Add `index_rs_recordings_on_root_type_created_at_id` on `recording_studio_recordings (root_recording_id, recordable_type, created_at, id)`, newest first, with no `WHERE` clause. A root plus type page can use this index instead of walking every descendant.
+
+### Upgrade notes
+
+- Run the migration. Fresh installs get the same index from `db/install_migrate`.
+- `index_rs_recordings_on_root_and_recordable` stays for `recordable_id` lookups under a root.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-740).
+
 ## [7.3.0] - 2026-11-16
 
 ### Added

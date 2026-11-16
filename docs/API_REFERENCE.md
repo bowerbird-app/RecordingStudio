@@ -614,6 +614,12 @@ This is the main object addons and host apps work with after they resolve a root
 | --- | --- | --- | --- |
 | `lock_ids!(ids)` | array-like list of IDs | locked `ActiveRecord::Relation` of recordings ordered by ID | Gives deterministic locking order to reduce deadlock risk. |
 | `kept` | nothing | `ActiveRecord::Relation<RecordingStudio::Recording>` | Applies every registered kept filter in registration order. Returns every recording when none are registered. Tree walks, locks, and event writes do not use this scope. |
+| `within(recording)` | recording or id | `ActiveRecord::Relation<RecordingStudio::Recording>` | Recordings in that tree, including the recording. A root (`parent_recording_id` nil) is `for_root` and does not walk. A nested recording joins the subtree walk. A blank, malformed, or unknown id is empty. Chains with `of_type`, `kept`, and `order`. |
+| `newest_first` | nothing | `ActiveRecord::Relation<RecordingStudio::Recording>` | Orders by `created_at DESC`, then `id DESC`. |
+| `older_than_cursor(cursor)` | cursor string | `ActiveRecord::Relation<RecordingStudio::Recording>` | Rows older than the cursor in `newest_first` order. A blank cursor is a no-op. An invalid cursor raises `ArgumentError`. |
+| `newer_than_cursor(cursor)` | cursor string | `ActiveRecord::Relation<RecordingStudio::Recording>` | Rows newer than the cursor in that order. A blank cursor is a no-op. An invalid cursor raises `ArgumentError`. |
+| `cursor_for(recording)` | saved recording | `String` | Opaque url-safe Base64 JSON cursor for `created_at` and `id`. The encoding is the same helper events use. |
+| `cursor_point(cursor)` | cursor string | `[created_at, id]` | Decodes a recording cursor. An invalid cursor raises `ArgumentError`. |
 
 ### Instance method
 

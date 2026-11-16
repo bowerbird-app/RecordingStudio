@@ -1040,9 +1040,33 @@ The quick examples below are accurate for the current code, but the exhaustive m
 | `root_recording.recordings_with_events(actions: ["published"], actor: current_user)` | Distinct recordings whose event history matches the filters. |
 | `RecordingStudio::Recording.all` | Latest recordings first. |
 | `RecordingStudio::Recording.for_root(root_recording.id)` | All recordings belonging to a root recording. |
+| `RecordingStudio::Recording.within(recording)` | That recording's tree, including itself. A root uses `for_root` and does not walk. Pass a recording or its id. |
 | `RecordingStudio::Recording.of_type(Page)` | Recordings whose current recordable is a given type. |
 | `RecordingStudio::Recording.kept` | Recordings that pass every registered kept filter, in registration order. Every recording when none are registered. |
+| `RecordingStudio::Recording.newest_first` | Orders by `created_at`, then `id`, newest first. |
+| `RecordingStudio::Recording.older_than_cursor(cursor)` | Next older page after `cursor_for`. A blank cursor does not filter. An invalid cursor raises `ArgumentError`. |
+| `RecordingStudio::Recording.cursor_for(recording)` | Opaque cursor for one recording's `created_at` and `id`. |
 | `recording.kept?` | True when this recording passes every registered kept filter. True when none are registered. |
+
+### Subtree and keyset pages
+
+`Recording.within(recording)` is the shared filter for recordings in one tree. API and Accessible listings can chain it instead of walking every descendant into an `id IN` list.
+
+The recording itself is included. Pass a `Recording` or its id. A blank, malformed, or unknown id returns an empty relation.
+
+When `parent_recording_id` is nil, `within` is `for_root(recording.id)`. That is every recording with that `root_recording_id`, and it does not walk. A nested recording joins `RecordingStudio::Tree.subtree_relation` with `include_self: true`. The join does not keep the walk's depth order or its subtree page seed, so `of_type`, `kept`, and `order` still apply. A cycle or a walk deeper than 1000 raises `TreeWalkError`.
+
+Keyset pages use `created_at` then `id`, newest first. That is the same url-safe Base64 JSON cursor encoding as events.
+
+```ruby
+page = Recording.within(root).of_type(Page).kept.newest_first.limit(50)
+cursor = Recording.cursor_for(page.last) if page.size == 50
+Recording.within(root).of_type(Page).kept.newest_first.older_than_cursor(cursor).limit(50)
+```
+
+`newest_first` orders `created_at DESC, id DESC`. `older_than_cursor` is the next page in that order. `newer_than_cursor` is the opposite direction. A blank cursor does not filter. An invalid cursor raises `ArgumentError`. `cursor_point(cursor)` returns `[created_at, id]`.
+
+`kept` is still the kept-filter registry. These scopes do not know about trash.
 
 ### Kept recordings
 

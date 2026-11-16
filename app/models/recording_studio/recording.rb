@@ -14,6 +14,8 @@ module RecordingStudio
     self.table_name = "recording_studio_recordings"
 
     RECORDABLES_LIMIT = 50
+    NEWEST_FIRST_ORDER = { created_at: :desc, id: :desc }.freeze
+    CURSOR_RECORDING_ID = /\A[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\z/i
 
     belongs_to :root_recording, class_name: "RecordingStudio::Recording", optional: true
     belongs_to :parent_recording, class_name: "RecordingStudio::Recording", optional: true,
@@ -39,6 +41,16 @@ module RecordingStudio
     scope :for_root, ->(root_id) { where(root_recording_id: root_id) }
     scope :of_type, ->(klass) { where(recordable_type: klass.to_s) }
     scope :kept, -> { RecordingStudio::RecordingFilters.apply(all) }
+    # Includes the recording. A root is for_root with no walk. A nested
+    # recording joins the subtree walk without its depth order or page seed.
+    scope :within, ->(recording) { RecordingStudio::RecordingWithin.apply(self, recording) }
+    scope :newest_first, -> { order(NEWEST_FIRST_ORDER) }
+    scope :older_than_cursor, lambda { |cursor|
+      RecordingStudio::Recording.keyset_compared_with(self, cursor, "<")
+    }
+    scope :newer_than_cursor, lambda { |cursor|
+      RecordingStudio::Recording.keyset_compared_with(self, cursor, ">")
+    }
 
     def kept?
       RecordingStudio::RecordingFilters.kept?(self) { self.class.kept.where(id: id).exists? }
@@ -53,6 +65,40 @@ module RecordingStudio
         end.uniq.sort
 
         unscoped.where(id: normalized_ids).reorder(id: :asc).lock
+      end
+
+      def cursor_for(recording)
+        raise ArgumentError, "recording is required" if recording.blank?
+        raise ArgumentError, "recording must be saved" if recording.id.blank? || recording.created_at.blank?
+
+        RecordingStudio::KeysetCursor.encode(
+          "created_at" => recording.created_at.iso8601(6),
+          "id" => recording.id
+        )
+      end
+
+      def cursor_point(cursor)
+        decoded = RecordingStudio::KeysetCursor.decode(cursor)
+        created_at = Time.iso8601(decoded.fetch("created_at"))
+        id = decoded.fetch("id").to_s
+        raise ArgumentError if created_at.nil? || !id.match?(CURSOR_RECORDING_ID)
+
+        [created_at, id]
+      rescue ArgumentError, JSON::ParserError, KeyError, TypeError
+        raise ArgumentError, "cursor is invalid"
+      end
+
+      def keyset_compared_with(scope, cursor, operator)
+        return scope if cursor.blank?
+        raise ArgumentError, "cursor comparison is invalid" unless %w[< >].include?(operator)
+
+        created_at, id = cursor_point(cursor)
+        scope.where(
+          "(recording_studio_recordings.created_at, recording_studio_recordings.id) " \
+          "#{operator} (CAST(? AS timestamp), CAST(? AS uuid))",
+          created_at,
+          id
+        )
       end
     end
 

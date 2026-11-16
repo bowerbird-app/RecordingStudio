@@ -77,16 +77,15 @@ module RecordingStudio
       def cursor_for(event)
         raise ArgumentError, "event is required" if event.blank?
 
-        payload = {
+        RecordingStudio::KeysetCursor.encode(
           "occurred_at" => event.occurred_at.iso8601(6),
           "created_at" => event.created_at.iso8601(6),
           "id" => event.id
-        }
-        Base64.urlsafe_encode64(JSON.generate(payload), padding: false)
+        )
       end
 
       def cursor_point(cursor)
-        decoded = JSON.parse(Base64.urlsafe_decode64(cursor.to_s))
+        decoded = RecordingStudio::KeysetCursor.decode(cursor)
         occurred_at = Time.iso8601(decoded.fetch("occurred_at"))
         created_at = Time.iso8601(decoded.fetch("created_at"))
         id = decoded.fetch("id").to_s
