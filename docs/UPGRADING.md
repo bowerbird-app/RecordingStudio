@@ -2,6 +2,31 @@
 
 ## Unreleased
 
+## Upgrading To 7.3.0
+
+No migration. A `RecordingStudio::Services::BaseService` subclass that calls neither `handles` nor `reraises` still returns the same results and still lets the same exceptions leave `call`.
+
+`handles` names exception classes that `perform` turns into a failure. `failure` accepts `value:`. `handled_failure` builds the failure for a handled exception and defaults to `failure(exception)`. `reraises` names exception classes that keep propagating. A match on `reraises` wins, including a subclass of a handled class. A subclass adds its own classes to the lists it inherits from ancestors. The parent and other subclasses keep the classes they declared.
+
+```ruby
+class ImportFile < RecordingStudio::Services::BaseService
+  handles ImportError
+  reraises ImportError::StorageLimit
+
+  private
+
+  def perform
+    success(read_file)
+  end
+
+  def handled_failure(exception)
+    failure(exception, value: exception.partial_import)
+  end
+end
+```
+
+A gem that moves an outer rescue around `call` into `handles` changes hook timing for those failures. `after_service` runs. `around_service` receives the Result. RecordingStudioLibrary's outer `call` rescue is one of those. A transaction `around_service` hook commits that failure unless the hook rolls the transaction back itself.
+
 ## Upgrading To 7.2.0
 
 Run the new migration. It adds `index_rs_events_on_timeline` on `recording_studio_events (occurred_at, created_at, id)`, newest first. That is the order `RecordingStudio::Event.recent` and `RecordingStudio::Event.timeline` use when the read is not limited to one root.
