@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## Upgrading To 7.2.0
+
+Run the new migration. It adds `index_rs_events_on_timeline` on `recording_studio_events (occurred_at, created_at, id)`, newest first. That is the order `RecordingStudio::Event.recent` and `RecordingStudio::Event.timeline` use when the read is not limited to one root.
+
+`Recording#recordables` returns the same snapshots in the same order as 7.1.0. `all: true` reads that distinct list in SQL.
+
+Fresh installs copy the same migration from `db/install_migrate`.
+
 ## Upgrading To 7.1.0
 
 No migration. A `RecordingStudio::Services::BaseService` call returns the same result as 7.0.0 unless the subclass overrides `hook_result` or `hook_subject`.

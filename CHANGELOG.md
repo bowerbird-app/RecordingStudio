@@ -15,6 +15,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - No migration. Hosts that copy the git pin should use tag `v0.1.366`.
 
+## [7.2.0] - 2026-11-16
+
+### Performance
+
+* `Recording#recordables` keeps the first-seen version list in SQL. On one recording with 50,031 events and 13 versions, `recordables(all: true)` went from 1,469 ms to 1.5 ms (median of 5 runs).
+* Add `index_rs_events_on_timeline` on `recording_studio_events (occurred_at, created_at, id)`, newest first, for cross-root recent events.
+
+### Upgrade notes
+
+- Run the migration. Fresh installs get the same index from `db/install_migrate`.
+- Callers of `recordables` do not change.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-720).
+
 ## [7.1.0] - 2026-11-16
 
 ### Added
