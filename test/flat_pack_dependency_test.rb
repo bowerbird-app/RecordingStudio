@@ -11,12 +11,11 @@ class FlatPackDependencyTest < ActiveSupport::TestCase
     refute requirement.satisfied_by?(Gem::Version.new("0.1.314"))
   end
 
-  test "development gemfiles pin flat_pack tag v0.1.366" do
+  test "development gemfiles pin flat_pack release tags" do
     root = RecordingStudio::Engine.root
 
-    [root.join("Gemfile"), root.join("test/dummy/Gemfile")].each do |gemfile|
-      assert_includes File.read(gemfile), 'tag: "v0.1.366"'
-    end
+    assert_includes File.read(root.join("Gemfile")), 'tag: "v0.1.366"'
+    assert_includes File.read(root.join("test/dummy/Gemfile")), 'tag: "v0.1.377"'
   end
 
   test "resolved flat_pack and view_component match this checkout" do
