@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.6.0] - 2026-11-17
+
+### Added
+
+* `GateDecision.deny` accepts optional `code:` and `details:`. Both default to nil. `GateDecision.allow` leaves both nil. `check_gate` copies them onto the decision it returns.
+* `RecordingStudio::Denial` is a marker a gem includes on a raised error. `denial(code:, details:)` sets the same fields. `details` defaults to a frozen empty hash.
+
+### Upgrade notes
+
+- No migration. A gate that omits `code:` and `details:` still denies the same way.
+- Check `is_a?(RecordingStudio::Denial)` before reading `code`. Do not use `respond_to?(:code)`. `Stripe::StripeError` defines `#code`.
+- Core stores the fields and does not interpret them. It defines no codes. A consumer such as the API gem owns its registry and allowlist.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-760).
+
 ## [7.5.0] - 2026-11-17
 
 ### Added

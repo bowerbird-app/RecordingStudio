@@ -68,11 +68,18 @@ module RecordingStudio
     def deny_from(value)
       return if value.allowed?
 
-      deny(redirect_to: value.redirect_to, reason: value.reason)
+      deny(redirect_to: value.redirect_to, reason: value.reason, code: value.code, details: value.details)
     end
 
-    def deny(redirect_to: nil, reason: nil)
-      GateDecision.deny(redirect_to: redirect_to, reason: reason, gate: @item[:gate], check: @item[:name])
+    def deny(redirect_to: nil, reason: nil, code: nil, details: nil)
+      GateDecision.deny(
+        redirect_to: redirect_to,
+        reason: reason,
+        gate: @item[:gate],
+        check: @item[:name],
+        code: code,
+        details: details
+      )
     end
 
     def fail_closed(detail, error)

@@ -23,6 +23,7 @@ stable mixin surface for capabilities like comments, attachments, and reactions.
 - [Registering shipped English for addon engines](#registering-shipped-english-for-addon-engines)
 - [Full API Reference for AI Agents](#full-api-reference-for-ai-agents)
 - [Configuration](#configuration)
+- [Denial codes](#denial-codes)
 - [Upgrade Guide](#upgrade-guide)
 - [Root Recording API](#root-recording-api)
 - [Root Selection and Authorization](#root-selection-and-authorization)
@@ -475,7 +476,7 @@ RecordingStudio::Labels.register_formatter(
 ### Public vs internal boundaries
 
 - **Public/stable for addons:** `RecordingStudio` helper methods above, `RecordingStudio::Labels`,
-  `RecordingStudio::GateDecision`, `RecordingStudio.kept_sql`, `RecordingStudio::Recording.kept`,
+  `RecordingStudio::GateDecision`, `RecordingStudio::Denial`, `RecordingStudio.kept_sql`, `RecordingStudio::Recording.kept`,
   `RecordingStudio::Recording#kept?`, and `RecordingStudio::Recording` identity/presentation helpers.
 - **Trusted extension points only:** `config.register_recordable_dup_strategy`, `RecordingStudio::Labels.register_formatter`,
   `recordable_scope`, the private `extend_recordings_query` hook, `RecordingStudio.register_gate`,
@@ -607,6 +608,39 @@ end
   clears this map and the registered checks. Name a gate `<gem>.<gate>`
   (`downloadable.stats`). Any other non-blank name warns once and still runs. Gates are a separate
   registry from hooks and from `authorize_write`. Core returns the decision and does not redirect.
+  A deny can carry `code` and `details`. See [Denial codes](#denial-codes).
+
+## Denial codes
+
+`code` and `details` tell a caller why a gate or a gem refused something. They are generic machine fields.
+Core defines no codes and does not interpret them. A consumer such as the API gem owns its registry and allowlist.
+
+`GateDecision.deny` takes optional `code:` and `details:`. Both default to nil, so existing gates stay the same.
+`GateDecision.allow` leaves both nil. `code` is a symbol. Pass a string and it is stored with `to_sym`.
+Any other type raises `ArgumentError`. `details` is a hash or nil. Keys become symbols. Values must be
+JSON-safe: String, Symbol, Integer, Float, `true`, `false`, `nil`, and nested arrays and hashes of those.
+The hash is deep-frozen. A non-finite float or any other value raises `ArgumentError`.
+
+`check_gate` copies `code` and `details` from the first denied `GateDecision` and still sets `gate` and `check`.
+`false`, an unexpected return, and a raised error deny with both fields nil.
+
+A gem that raises, instead of returning a decision, includes `RecordingStudio::Denial`:
+
+```ruby
+class ExportDenied < StandardError
+  include RecordingStudio::Denial
+
+  def initialize(message = "Export denied", code:, details: nil)
+    super(message)
+    denial(code: code, details: details)
+  end
+end
+```
+
+`denial` uses the same checks as `GateDecision.deny`. On the error, `details` defaults to a frozen empty hash.
+
+Consumers must check `is_a?(RecordingStudio::Denial)` before reading `code`. Do not duck-type
+`respond_to?(:code)`. `Stripe::StripeError` already defines `#code`.
 
 ## Upgrade Guide
 
