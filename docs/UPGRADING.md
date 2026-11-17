@@ -1,5 +1,17 @@
 # Upgrade Guide
 
+## Upgrading To 7.7.0
+
+Host apps must run the migration. It replaces `index_rs_recordings_on_root_recording` (`root_recording_id`) with `index_rs_recordings_on_root_created_at_id` on `recording_studio_recordings (root_recording_id, created_at, id)`, with `created_at` and `id` newest first. There is no `WHERE` clause and no `recordable_type`.
+
+`Recording.for_root(root).newest_first` and `Recording.within(root).newest_first` on a root can use this index and stop at `LIMIT`. A root plus type page still uses `index_rs_recordings_on_root_type_created_at_id`. `index_rs_recordings_on_root_and_recordable` stays for `recordable_id` lookups under a root.
+
+The new index leads with `root_recording_id`, so the foreign key on `root_recording_id` keeps an index. `index_rs_recordings_on_id_and_root` on `(id, root_recording_id)` and `fk_rs_recordings_on_parent_and_root` are unchanged. The composite foreign key's referencing columns still have `index_recording_studio_recordings_on_parent_recording_id`.
+
+Fresh installs copy the same migration from `db/install_migrate`.
+
+No public API change.
+
 ## Upgrading To 7.6.0
 
 No migration. `RecordingStudio::GateDecision.deny` takes optional `code:` and `details:`. Both default to nil, so a gate that omits them still denies the same way. `GateDecision.allow` keeps `code` nil and `details` nil.

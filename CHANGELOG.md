@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.7.0] - 2026-11-17
+
+### Performance
+
+* Replace `index_rs_recordings_on_root_recording` with `index_rs_recordings_on_root_created_at_id` on `recording_studio_recordings (root_recording_id, created_at, id)`, newest first, with no `WHERE` clause and no `recordable_type`. On a workspace of 100,000 recordings, `Recording.for_root(root).newest_first.limit(50)` went from 15.8 ms to 0.070 ms (median of 5 runs, PostgreSQL 16). The old plan sorted the whole root (1,684 buffer hits). The new plan is an index scan that stops at 50 rows and does not sort (5 buffer hits). The new index is 5,776 kB; the single-column index was 704 kB. `index_rs_recordings_on_root_type_created_at_id` stays for a root plus type page.
+
+### Upgrade notes
+
+- Host apps must run the migration. Fresh installs get the same change from `db/install_migrate`.
+- The new index leads with `root_recording_id`, so that foreign key keeps an index. `index_rs_recordings_on_id_and_root` and `fk_rs_recordings_on_parent_and_root` are unchanged.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-770).
+
 ## [7.6.0] - 2026-11-17
 
 ### Added
