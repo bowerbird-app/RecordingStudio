@@ -1106,6 +1106,8 @@ Recording.within(root).of_type(Page).kept.newest_first.older_than_cursor(cursor)
 
 `newest_first` orders `created_at DESC, id DESC`. `older_than_cursor` is the next page in that order. `newer_than_cursor` is the opposite direction. A blank cursor does not filter. An invalid cursor raises `ArgumentError`. `cursor_point(cursor)` returns `[created_at, id]`.
 
+A root page with no type uses `index_rs_recordings_on_root_created_at_id` on `(root_recording_id, created_at, id)`, newest first. A root plus type page uses `index_rs_recordings_on_root_type_created_at_id`. Neither index has a `WHERE` clause.
+
 `kept` is still the kept-filter registry. These scopes do not know about trash.
 
 ### Kept recordings

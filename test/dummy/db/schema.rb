@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_17_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -78,10 +78,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_17_120000) do
     t.index ["parent_recording_id"], name: "index_recording_studio_recordings_on_parent_recording_id"
     t.index ["recordable_type", "recordable_id"], name: "index_recording_studio_recordings_on_recordable"
     t.index ["recordable_type", "recordable_id"], name: "index_rs_unique_root_recording_per_recordable", unique: true, where: "(parent_recording_id IS NULL)"
+    t.index ["root_recording_id", "created_at", "id"], name: "index_rs_recordings_on_root_created_at_id", order: { created_at: :desc, id: :desc }
     t.index ["root_recording_id", "parent_recording_id"], name: "index_rs_recordings_on_root_and_parent"
     t.index ["root_recording_id", "recordable_type", "created_at", "id"], name: "index_rs_recordings_on_root_type_created_at_id", order: { created_at: :desc, id: :desc }
     t.index ["root_recording_id", "recordable_type", "recordable_id"], name: "index_rs_recordings_on_root_and_recordable"
-    t.index ["root_recording_id"], name: "index_rs_recordings_on_root_recording"
     t.check_constraint "parent_recording_id IS NOT NULL OR root_recording_id = id", name: "chk_rs_recordings_parentless_own_root"
   end
 
