@@ -5,15 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [7.5.0] - 2026-11-17
+
+### Added
+
+* From 7.5.0 `root_recording_id` is DB-enforced: every child's root equals its parent's root; parentless rows are their own root. Readers may trust it.
+* `RecordingStudio::TestHelpers#assert_root_invariant!` reports rows that break that rule. Require `recording_studio/test_helpers` and include the module.
 
 ### Changed
 
+* A root insert assigns `id` with `SecureRandom.uuid` when `id` is blank, then sets `root_recording_id = id` before the INSERT. The after-create update is gone. Children still copy the parent's root. A missing parent does not make a root. `root: true` and `create_root_recording!` still decide that.
 * Development Gemfile pins `flat_pack` tag `v0.1.366`. The dummy Gemfile pins tag `v0.1.377`. The gemspec floor stays `>= 0.1.315`.
 
 ### Upgrade notes
 
-- No migration. Hosts that copy the development git pin should use tag `v0.1.366`.
+- Host apps must run the migration. It repairs existing rows from the parent chain, then sets `root_recording_id` `NOT NULL`, adds a unique index on `(id, root_recording_id)`, a deferred foreign key `(parent_recording_id, root_recording_id)`, and a check that a parentless row is its own root. No triggers.
+- Fresh installs get the same migration from `db/install_migrate`.
+- A cross-root move still uses `lock_for_move!`, `update_all` on `descendant_ids`, then `update!`. Forgetting the descendants fails at commit.
+- No public API change. Hosts that copy the development git pin should use tag `v0.1.366`.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-750).
 
 ## [7.4.0] - 2026-11-16
 

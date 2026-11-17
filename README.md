@@ -241,6 +241,10 @@ means the type cannot currently be recorded under any parent. `RecordingStudio.r
 accepts recordables that declare `root: true` and returns the existing root or `nil`. `RecordingStudio.create_root_recording!`
 creates that root. Child creation checks `allowed_parent_types` before saving.
 
+From 7.5.0 `root_recording_id` is DB-enforced: every child's root equals its parent's root; parentless rows are their own root. Readers may trust it.
+
+A recording is a root only when its type declares `root: true` and it is created with `create_root_recording!`. A missing parent does not make a root. The insert for a parentless row still sets `root_recording_id` to that row's `id`, which is what the check requires. Host apps must run the 7.5.0 migration. Fresh installs get the same constraints from `db/install_migrate`.
+
 A root type may also declare `shared: true`. Shared roots are still roots and still provide the write/query boundary,
 but they mark a domain forest that nobody owns through the root node itself. Domain children declare the shared root in
 `allowed_parent_types:`. Capability-owned children (for example Access grants) cannot attach directly under a shared
@@ -667,6 +671,8 @@ rescue RecordingStudio::MoveConflict
   raise
 end
 ```
+
+The database checks that write at commit. `fk_rs_recordings_on_parent_and_root` is `DEFERRABLE INITIALLY DEFERRED` and `MATCH SIMPLE`. A child with a parent must store the same `root_recording_id` as that parent. A parentless row must store its own `id`. Update `descendant_ids` and the moved recording in the same transaction. A move that changes the recording and forgets the descendants rolls back at commit. There is no trigger.
 
 `RecordingStudio::MoveConflict` means the tree changed while the locks were taken. The
 rescue has to sit outside the transaction so the row locks are released before the retry.

@@ -63,6 +63,7 @@ The current fresh-install schema models:
 - `recording_studio_recordings`
 - `recording_studio_events`, including required `root_recording_id` and an index on `(occurred_at, created_at, id)`, newest first, for cross-root recent events
 - `recording_studio_recordings` index `index_rs_recordings_on_root_type_created_at_id` on `(root_recording_id, recordable_type, created_at, id)`, newest first, with no `WHERE` clause, for a root plus type page. `index_rs_recordings_on_root_and_recordable` remains for `recordable_id` lookups under a root
+- `recording_studio_recordings.root_recording_id` is `NOT NULL`. From 7.5.0 it is DB-enforced: every child's root equals its parent's root; parentless rows are their own root. Readers may trust it. The unique index is `index_rs_recordings_on_id_and_root` on `(id, root_recording_id)`. `fk_rs_recordings_on_parent_and_root` references that pair and is `DEFERRABLE INITIALLY DEFERRED`. `chk_rs_recordings_parentless_own_root` requires `parent_recording_id IS NOT NULL OR root_recording_id = id`. There is no trigger.
 
 Historical tables and columns related to access control, device sessions, and older container naming are not part of the
 fresh-install path anymore.

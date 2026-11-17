@@ -1,6 +1,27 @@
 # Upgrade Guide
 
-## Unreleased
+## Upgrading To 7.5.0
+
+Run the migration before trusting `root_recording_id`. From 7.5.0 `root_recording_id` is DB-enforced: every child's root equals its parent's root; parentless rows are their own root. Readers may trust it.
+
+No public API changed. A root is still a recordable declared `root: true`, created with `create_root_recording!`. A missing parent does not make a root.
+
+### What changed
+
+- The root INSERT assigns `id` in Ruby when it is blank (`SecureRandom.uuid`) and writes `root_recording_id = id` in that same INSERT. The old `after_create` update is gone.
+- Children still copy `root_recording_id` from the parent before insert.
+- The migration repairs existing rows first. A parentless row gets `root_recording_id = id`. Every other row takes the root of the parentless recording at the top of its parent chain. A cycle with no parentless row is not given a made-up root; the migration stops.
+- Then `recording_studio_recordings.root_recording_id` is `NOT NULL`.
+- Unique index `index_rs_recordings_on_id_and_root` on `(id, root_recording_id)`.
+- Foreign key `fk_rs_recordings_on_parent_and_root` on `(parent_recording_id, root_recording_id)` references `(id, root_recording_id)`. It is `DEFERRABLE INITIALLY DEFERRED` and `MATCH SIMPLE`. A null parent skips it. `ON DELETE` and `ON UPDATE` stay `NO ACTION`, so a move that forgets its descendants fails at commit instead of cascading.
+- Check `chk_rs_recordings_parentless_own_root`: `parent_recording_id IS NOT NULL OR root_recording_id = id`.
+- No triggers.
+
+### Upgrade steps
+
+1. Run `bin/rails db:migrate`. Fresh installs copy the same migration from `db/install_migrate` via `rails g recording_studio:migrations`.
+2. Keep cross-root moves in one transaction: `lock_for_move!`, `update_all` the returned `descendant_ids`, then `update!` the recording. The deferred foreign key is what makes that order commit.
+3. Test suites can `require "recording_studio/test_helpers"`, include `RecordingStudio::TestHelpers`, and call `assert_root_invariant!`.
 
 ## Upgrading To 7.4.0
 

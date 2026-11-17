@@ -47,6 +47,7 @@ end
 require File.expand_path("dummy/config/environment", __dir__)
 require "rails/test_help"
 require "recording_studio"
+require "recording_studio/test_helpers"
 require "devise/test/integration_helpers"
 require File.expand_path("support/recording_studio_authorized_writes", __dir__)
 
@@ -54,6 +55,7 @@ RecordingStudioAuthorizedWrites.install!
 
 ActiveSupport::TestCase.class_eval do
   include RecordingStudioTestDataHelpers
+  include RecordingStudio::TestHelpers
 
   def assert_not(value, message = nil)
     assert_equal false, !!value, message

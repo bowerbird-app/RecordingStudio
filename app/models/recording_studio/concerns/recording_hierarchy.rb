@@ -88,15 +88,25 @@ module RecordingStudio
         RecordingStudio::Tree.ancestor_ids(parent_recording_id)
       end
 
+      # Parentless inserts write root_recording_id = id in the INSERT so the
+      # database check passes. That column value is not a root declaration.
+      # A root still requires root: true and create_root_recording!.
       def assign_root_recording_id
-        return if parent_recording_id.nil?
-
-        parent_root_id = self.class.unscoped.where(id: parent_recording_id).pick(:root_recording_id)
-        self.root_recording_id = parent_root_id || parent_recording_id
+        if parent_recording_id.nil?
+          assign_parentless_root_recording_id
+        else
+          assign_parent_root_recording_id
+        end
       end
 
-      def set_self_root_recording_id
-        update!(root_recording_id: id)
+      def assign_parentless_root_recording_id
+        self.id = SecureRandom.uuid if id.blank?
+        self.root_recording_id = id
+      end
+
+      def assign_parent_root_recording_id
+        parent_root_id = self.class.unscoped.where(id: parent_recording_id).pick(:root_recording_id)
+        self.root_recording_id = parent_root_id || parent_recording_id
       end
 
       def sync_subtree_event_root_recording_ids
