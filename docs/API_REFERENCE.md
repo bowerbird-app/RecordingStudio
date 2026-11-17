@@ -81,7 +81,7 @@ These methods are the main addon-facing API.
 | `unregister_gate(gate_name, check_name)` | gate name, check name | `true` when removed, otherwise `false` | Removes one named check. |
 | `gate_registered?(gate_name)` | gate name | `true` or `false` | Reports whether any check is registered for that gate, including checks a host has disabled. |
 | `gate_checks(gate_name)` | gate name | array of frozen hashes `{ name:, priority:, enabled: }` | Lists the gate's checks in the order `check_gate` runs them. |
-| `check_gate(gate_name, actor:, recording: nil, **context)` | gate name, required `actor:`, optional `recording:`, extra keywords | `RecordingStudio::GateDecision` | Runs enabled checks. Returns allow, or the first deny. |
+| `check_gate(gate_name, actor:, recording: nil, **context)` | gate name, required `actor:`, optional `recording:`, extra keywords | `RecordingStudio::GateDecision` | Runs enabled checks. Returns allow, or the first deny. A deny keeps that check's `code` and `details`. |
 | `register_recording_filter(name, sql:, predicate: nil, &block)` | symbol or string name, required `sql:` callable, optional `predicate:` callable, required block | symbol name | Stores one kept filter. The same name replaces the previous filter and keeps its place in registration order. The block takes a relation and returns a relation. `sql:` takes a quoted table name or alias and returns a SQL fragment. `predicate:` takes a recording and returns `true` or `false`. |
 | `unregister_recording_filter(name)` | symbol or string name | `true` when removed, otherwise `false` | Removes one kept filter. Tests use this to clear a name they registered. |
 | `kept_sql(table = "recording_studio_recordings")` | SQL table name or alias | `String` | Joins every registered SQL fragment with `AND`, each wrapped in parentheses. Returns `1=1` when none are registered. The table argument must be a plain identifier. Core quotes it before calling `sql:`. For runtime queries only. Never use it in migrations, index definitions, or anything evaluated once at boot or migrate time. It reflects only the filters registered at that moment. |
@@ -541,16 +541,18 @@ A name outside that pattern warns once and is still accepted. The check runs.
 
 | Method | Takes | Returns | Why it exists |
 | --- | --- | --- | --- |
-| `allow` | nothing | frozen decision | An allow. `gate` and `check` are `nil`. |
-| `deny(redirect_to: nil, reason: nil, gate: nil, check: nil)` | optional redirect, reason, gate, and check | frozen decision | A deny. `check_gate` fills `gate` and `check` with the check that produced it. |
+| `allow` | nothing | frozen decision | An allow. `gate`, `check`, `code`, and `details` are `nil`. |
+| `deny(redirect_to: nil, reason: nil, gate: nil, check: nil, code: nil, details: nil)` | optional redirect, reason, gate, check, code, and details | frozen decision | A deny. `check_gate` fills `gate` and `check` and copies `code` and `details`. |
 | `allowed?` | nothing | `true` or `false` | The check passed. |
 | `denied?` | nothing | `true` or `false` | The check did not pass. |
 | `redirect_to` | nothing | stored redirect or `nil` | Where the caller may send the actor. Core never redirects. |
 | `reason` | nothing | stored reason or `nil` | Why the check denied. |
 | `gate` | nothing | gate name or `nil` | Which gate produced a deny. `nil` on allow. |
 | `check` | nothing | check name or `nil` | Which check produced a deny. `nil` on allow. |
+| `code` | nothing | symbol or `nil` | Machine code stored on a deny. `nil` when the check did not set one. Core does not interpret it. |
+| `details` | nothing | frozen hash or `nil` | Machine details stored on a deny. Keys are symbols. `nil` when the check did not set any. |
 
-String `redirect_to` and `reason` values are frozen copies. Two decisions with the same fields are equal.
+String `redirect_to` and `reason` values are frozen copies. `code` accepts a symbol or a string and is stored as a symbol. Any other type raises `ArgumentError`. `details` accepts a hash or `nil`. Keys become symbols. A repeated key after that conversion raises `ArgumentError`. Values must be JSON-safe: String, Symbol, Integer, Float, `true`, `false`, `nil`, and nested Array or Hash of those. A non-finite float or any other value raises `ArgumentError`. The hash is deep-frozen. Two decisions with the same fields, including `code` and `details`, are equal.
 
 ### Registration
 
@@ -577,9 +579,9 @@ RecordingStudio.check_gate("downloadable.stats", actor: actor, recording: record
 
 Each check is called as `call(actor:, recording:, **context)`. A block can ignore those keywords. A lambda must accept them. A lambda that accepts nothing raises, and that raise denies.
 
-The result is `GateDecision.allow` when no checks are registered, or when every enabled check allows. An allow from a check does not stop later checks. `gate` and `check` on that allow are `nil`.
+The result is `GateDecision.allow` when no checks are registered, or when every enabled check allows. An allow from a check does not stop later checks. `gate`, `check`, `code`, and `details` on that allow are `nil`.
 
-The first deny stops the run. `false` denies with no redirect and no reason. `GateDecision.deny` keeps that decision's `redirect_to` and `reason`, and `check_gate` sets `gate` and `check` to the check that returned it. Any other return value denies with no redirect and no reason. A raised error does the same. Both log a warning with the gate name and the check name. The original error does not propagate.
+The first deny stops the run. `false` denies with no redirect, no reason, no code, and no details. `GateDecision.deny` keeps that decision's `redirect_to`, `reason`, `code`, and `details`. `check_gate` sets `gate` and `check` to the check that produced the deny. Any other return value denies with no redirect, no reason, no code, and no details, and `check_gate` still sets `gate` and `check`. A raised error does the same. Both log a warning with the gate name and the check name. The original error does not propagate.
 
 When `Rails.error` responds to `report`, that same failure is also reported:
 
@@ -605,6 +607,27 @@ end
 `priority` is an integer. `enabled` is `true` or `false`. Any other setting raises `ArgumentError`. The assignment replaces the whole map. `nil` stores `{}`. `merge!` accepts the same key, including string keys from `config/recording_studio.yml`.
 
 An override for a check that is not registered is ignored. When a logger is present the ignore is logged at debug. Otherwise it is a warning. It is not an error. A disabled check is not called. If every check is disabled, `check_gate` allows. Removing the override restores the priority stored at registration.
+
+### Denial codes
+
+`code` and `details` are generic. Core defines no codes and does not read them. A consumer such as the API gem owns its registry and allowlist.
+
+A gate sets them on `GateDecision.deny`. `check_gate` copies them onto the returned deny. A gem that raises includes `RecordingStudio::Denial` and calls `denial(code:, details:)`:
+
+```ruby
+class ExportDenied < StandardError
+  include RecordingStudio::Denial
+
+  def initialize(message = "Export denied", code:, details: nil)
+    super(message)
+    denial(code: code, details: details)
+  end
+end
+```
+
+`denial` uses the same checks as `GateDecision.deny`. `code` is a symbol. A string is converted. On the error, `details` defaults to a frozen `{}`. On a `GateDecision`, omitted details stay `nil`.
+
+Consumers must check `is_a?(RecordingStudio::Denial)` before reading `code`. Do not duck-type `respond_to?(:code)`. `Stripe::StripeError` already defines `#code`.
 
 ## Recording API: `RecordingStudio::Recording`
 

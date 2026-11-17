@@ -19,7 +19,7 @@ class FlatPackDependencyTest < ActiveSupport::TestCase
   end
 
   test "resolved flat_pack and view_component match this checkout" do
-    assert_equal "7.5.0", RecordingStudio::VERSION
+    assert_equal "7.6.0", RecordingStudio::VERSION
     assert_equal "0.1.366", FlatPack::VERSION
     assert_equal "4.19.0", ViewComponent::VERSION::STRING
 

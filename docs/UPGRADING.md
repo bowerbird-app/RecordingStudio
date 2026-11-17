@@ -1,5 +1,17 @@
 # Upgrade Guide
 
+## Upgrading To 7.6.0
+
+No migration. `RecordingStudio::GateDecision.deny` takes optional `code:` and `details:`. Both default to nil, so a gate that omits them still denies the same way. `GateDecision.allow` keeps `code` nil and `details` nil.
+
+`RecordingStudio.check_gate` copies `code` and `details` from a denied `GateDecision` and still sets `gate` and `check`. A check that returns `false`, returns anything else, or raises still denies with both fields nil.
+
+`code` is a symbol. A string is converted with `to_sym`. Any other type raises `ArgumentError`. `details` is a hash or nil. Keys become symbols. Values must be JSON-safe: String, Symbol, Integer, Float, `true`, `false`, `nil`, and nested Array or Hash of those. Non-finite floats raise `ArgumentError`. The hash is deep-frozen.
+
+A gem error can include `RecordingStudio::Denial` and call `denial(code:, details:)`. `details` then defaults to a frozen empty hash. Callers must use `is_a?(RecordingStudio::Denial)`. `respond_to?(:code)` is the wrong check, because `Stripe::StripeError` defines `#code`.
+
+Core stores the fields and does not interpret them. It defines no codes. A consumer such as the API gem owns its registry and allowlist.
+
 ## Upgrading To 7.5.0
 
 Run the migration before trusting `root_recording_id`. From 7.5.0 `root_recording_id` is DB-enforced: every child's root equals its parent's root; parentless rows are their own root. Readers may trust it.
