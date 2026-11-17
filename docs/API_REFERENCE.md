@@ -273,6 +273,8 @@ Return value, frozen:
 The save rewrites event `root_recording_id` values for the subtree. `update_all` does not.
 Do not query descendants again after `update_all`; that query still filters on the old root.
 
+From 7.5.0 `root_recording_id` is DB-enforced: every child's root equals its parent's root; parentless rows are their own root. Readers may trust it. The foreign key on `(parent_recording_id, root_recording_id)` is `DEFERRABLE INITIALLY DEFERRED`, so this `update_all` plus `update!` commits, and a move that forgets `descendant_ids` fails at commit. A parentless row's check is `root_recording_id = id`. A missing parent does not make a root.
+
 `RecordingStudio::MoveConflict` means a new row appeared out of lock order, or a root changed
 before its row was locked. Roll back the whole transaction and retry. Rescuing inside the
 transaction keeps the old locks.

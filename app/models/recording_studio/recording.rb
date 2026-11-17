@@ -31,7 +31,6 @@ module RecordingStudio
     validate :recordable_declaration_allows_hierarchy
 
     before_create :assign_root_recording_id
-    after_create :set_self_root_recording_id, if: -> { parent_recording_id.nil? && root_recording_id.nil? }
     after_update :sync_subtree_event_root_recording_ids, if: :saved_change_to_root_recording_id?
     after_commit :increment_recordable_recordings_count, on: :create
     after_commit :decrement_recordable_recordings_count, on: :destroy
