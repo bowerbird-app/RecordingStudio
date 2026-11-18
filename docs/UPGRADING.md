@@ -6,7 +6,7 @@ No migration. No public API change.
 
 The development Gemfile pins `flat_pack` tag `v0.1.377`. The dummy app was already on that tag. The gemspec floor stays `>= 0.1.315`.
 
-`flat_pack` 0.1.377 requires `tailwind_merge` `>= 1.5.2, < 2`. Hosts that copied an older development lock (0.16) need that bump. Rendered class strings and component arguments are unchanged. Do not rebuild Tailwind for this pin.
+The lock now resolves `tailwind_merge` 1.5.x via `flat_pack` 0.1.377. The engine does not call `tailwind_merge` directly. Hosts should rebuild Tailwind and spot-check flat_pack-rendered pages after upgrading.
 
 ## Upgrading To 7.7.0
 
