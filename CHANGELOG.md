@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.7.2] - 2026-11-18
+
+### Changed
+
+* The default layout backdrop `image_tag` sets `decoding="async"` and `fetchpriority="low"`. It does not set `loading`. The image is decorative and stays on screen. Flatpack pins `.fp-backdrop` to the viewport with `position: fixed` and `inset: 0`.
+
+### Upgrade notes
+
+- No migration. No public API change.
+- `recording_studio_background_image`, `content_for :background_image`, and `configuration.default_background_image` are unchanged.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-772).
+
 ## [7.7.1] - 2026-11-18
 
 ### Changed

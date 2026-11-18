@@ -1,5 +1,14 @@
 # Upgrade Guide
 
+## Upgrading To 7.7.2
+
+No migration. No public API change.
+
+The default layout backdrop image no longer sets `loading="lazy"`.
+The `image_tag` sets `decoding="async"` and `fetchpriority="low"`.
+`recording_studio_background_image`, `content_for :background_image`, and `configuration.default_background_image` are unchanged.
+A host that replaces the default layout and copied the old tag can drop `loading: "lazy"` and pass those two options.
+
 ## Upgrading To 7.7.1
 
 No migration. No public API change.
