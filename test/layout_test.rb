@@ -313,7 +313,8 @@ class LayoutBackgroundRenderTest < ActionDispatch::IntegrationTest
 
   def assert_background_src(src)
     assert_select "[data-flat-pack-layout-background='true'].fp-layout-main .fp-backdrop[aria-hidden='true']", count: 1
-    assert_select ".fp-backdrop-media img[alt=''][loading='lazy'][src='#{src}']", count: 1
+    assert_select ".fp-backdrop-media img[alt=''][decoding='async'][fetchpriority='low'][src='#{src}']", count: 1
+    assert_select ".fp-backdrop-media img[loading]", count: 0
   end
 
   def assert_no_background
