@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.7.1] - 2026-11-18
+
+### Changed
+
+* Bump flat_pack to v0.1.377 (dependency update only).
+
+### Upgrade notes
+
+- No migration. The gemspec floor stays `>= 0.1.315`.
+- The development Gemfile now pins tag `v0.1.377`, the same tag the dummy app already used. Hosts that copy that git pin should use `v0.1.377`.
+- `flat_pack` 0.1.377 requires `tailwind_merge` `>= 1.5.2, < 2`. A lock still on 0.16 needs that bump. Component arguments are unchanged.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-771).
+
 ## [7.7.0] - 2026-11-17
 
 ### Performance

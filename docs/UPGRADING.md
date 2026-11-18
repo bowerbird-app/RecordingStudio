@@ -1,5 +1,13 @@
 # Upgrade Guide
 
+## Upgrading To 7.7.1
+
+No migration. No public API change.
+
+The development Gemfile pins `flat_pack` tag `v0.1.377`. The dummy app was already on that tag. The gemspec floor stays `>= 0.1.315`.
+
+`flat_pack` 0.1.377 requires `tailwind_merge` `>= 1.5.2, < 2`. Hosts that copied an older development lock (0.16) need that bump. Rendered class strings and component arguments are unchanged. Do not rebuild Tailwind for this pin.
+
 ## Upgrading To 7.7.0
 
 Host apps must run the migration. It replaces `index_rs_recordings_on_root_recording` (`root_recording_id`) with `index_rs_recordings_on_root_created_at_id` on `recording_studio_recordings (root_recording_id, created_at, id)`, with `created_at` and `id` newest first. There is no `WHERE` clause and no `recordable_type`.
@@ -1832,7 +1840,7 @@ the right. The bar shares the column and sits above the title. `<html>` is
 `data-theme="rounded"`.
 
 `flat_pack` >= 0.1.315 is required. It is not on RubyGems. Pin
-`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.366`.
+`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.377`.
 
 ```erb
 <% content_for :title, "Workspaces" %>
