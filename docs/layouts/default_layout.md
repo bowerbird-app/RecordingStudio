@@ -197,7 +197,7 @@ and close. `recording_studio_page_nav_left` is the custom left-side slot.
 | Visible title | `FlatPack::PageTitle` when `:title` is present. `:subtitle` is optional. |
 | Theme | `data-theme="rounded"` |
 | Description | Omitted when blank |
-| Background | Omitted when `:background_image` is blank or `"false"`. `"true"` and `"default"` use `configuration.default_background_image`. Any other value is one lazy image in `layout.background`. |
+| Background | Omitted when `:background_image` is blank or `"false"`. `"true"` and `"default"` use `configuration.default_background_image`. Any other value is one decorative image in `layout.background` (`decoding="async"`, `fetchpriority="low"`, no `loading`). |
 | Page width | `:default` when `:page_width` is blank. Otherwise `:narrow`, `:default`, `:wide`, or `:full`. |
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
@@ -271,8 +271,15 @@ for that page only:
 `content_for :background_image, "default"` opts in without the helper.
 `content_for :background_image, "/photos/cover.png"` sets a custom path.
 `"false"`, `nil`, `false`, and `""` leave the slot empty.
-The layout renders one `image_tag` with `alt=""` and `loading="lazy"` inside
-`layout.background`. Flatpack blurs the image and lays a tint over it.
+The layout renders one decorative `image_tag` inside `layout.background`.
+The tag sets `alt=""`, `decoding="async"`, and `fetchpriority="low"`.
+It does not set `loading`.
+The image stays on screen.
+`FlatPack::PageLayout` pins `[data-flat-pack-layout-background] > .fp-backdrop` to the viewport with `position: fixed` and `inset: 0`.
+The image uses `object-fit: cover`.
+`decoding="async"` decodes the image off the main thread.
+`fetchpriority="low"` fetches the backdrop after text and controls.
+Flatpack blurs the image and lays a tint over it.
 A blank slot skips the backdrop.
 
 ## Page width

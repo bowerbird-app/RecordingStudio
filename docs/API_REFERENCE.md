@@ -895,7 +895,7 @@ Flatpack owns the back row and the button group. Recording Studio adds custom le
 The layout is `FlatPack::PageLayout`. `width` comes from `:page_width` and defaults to `:default`. `top_nav_width`
 and `content_scroll` stay at their defaults (`:content` and `:below`). When
 `content_for(:background_image)` is present, the layout fills
-`layout.background` with one decorative `image_tag` (`alt=""`, `loading="lazy"`).
+`layout.background` with one decorative `image_tag` (`alt=""`, `decoding="async"`, `fetchpriority="low"`, no `loading` attribute).
 Flatpack paints that image as the page backdrop. A blank slot skips it.
 `"false"` skips it. `"true"` and `"default"` use
 `recording_studio_default_background_image`. Any other non-blank string is

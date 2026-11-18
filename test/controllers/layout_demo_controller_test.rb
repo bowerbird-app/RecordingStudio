@@ -82,7 +82,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
       "collapse: :menu", "padding: :none", "size: :lg",
       "variant: :outlined", "style: :ghost",
       "FlatPack::PageLayout::Component", "width: page_width", "layout.background",
-      'alt: ""', 'loading: "lazy"',
+      'alt: ""', 'decoding: "async"', 'fetchpriority: "low"',
       "FlatPack::TopNav::Component", "FlatPack::PageTitle::Component", "FlatPack::Alert::Component",
       "flat_pack/variables", "flat_pack/application", "flat_pack/rich_text",
       "<html data-theme=\"rounded\">"
@@ -275,7 +275,8 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
 
   def assert_background_image(src)
     assert_select "[data-flat-pack-layout-background='true'].fp-layout-main .fp-backdrop[aria-hidden='true']", count: 1
-    assert_select ".fp-backdrop-media img[alt=''][loading='lazy'][src='#{src}']", count: 1
+    assert_select ".fp-backdrop-media img[alt=''][decoding='async'][fetchpriority='low'][src='#{src}']", count: 1
+    assert_select ".fp-backdrop-media img[loading]", count: 0
     assert_select ".fp-backdrop-tint", count: 1
   end
 

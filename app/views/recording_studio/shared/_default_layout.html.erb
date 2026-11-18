@@ -61,7 +61,7 @@
     <%= render FlatPack::PageLayout::Component.new(width: page_width) do |layout| %>
       <% if background_image.present? %>
         <% layout.background do %>
-          <%= image_tag background_image, alt: "", loading: "lazy" %>
+          <%= image_tag background_image, alt: "", decoding: "async", fetchpriority: "low" %>
         <% end %>
       <% end %>
 
