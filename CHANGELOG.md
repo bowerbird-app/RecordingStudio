@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.8.0] - 2026-11-19
+
+### Changed
+
+* Development and dummy Gemfiles pin `flat_pack` tag `v0.2.0`. The gemspec still allows `>= 0.1.315`.
+
+### Upgrade notes
+
+- No migration. The gemspec floor stays `>= 0.1.315`.
+- flat_pack 0.2.0 is allowed; hosts moving to 0.2 must remove the manual `flat_pack/heroicons` importmap pin and any `flat-pack--icon` controller registration.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-780).
+
 ## [7.7.2] - 2026-11-18
 
 ### Changed
@@ -1129,6 +1141,7 @@ fetch at Build.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
+[7.8.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v7.7.2...v7.8.0
 [Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.7.0...HEAD
 [4.7.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.1...v4.7.0
 [4.6.1]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.0...v4.6.1

@@ -9,7 +9,7 @@ gem "puma"
 gem "sprockets-rails"
 
 # flat_pack is not published on RubyGems. The gemspec depends on it; this line is the git source.
-gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.377"
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.2.0"
 
 group :development, :test do
   gem "bootsnap", require: false

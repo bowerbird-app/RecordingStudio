@@ -1293,8 +1293,12 @@ PostgreSQL on each boot. Rebuild with Draft off to load a new pack. See
 RubyGems. The gemspec declares it, and the Gemfile supplies the git source:
 
 ```ruby
-gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.1.377"
+gem "flat_pack", git: "https://github.com/bowerbird-app/flatpack.git", tag: "v0.2.0"
 ```
+
+The gemspec still allows `flat_pack` `>= 0.1.315`. Hosts moving to 0.2 remove
+the manual `flat_pack/heroicons` importmap pin and any `flat-pack--icon`
+controller registration.
 
 RecordingStudio ships one public layout:
 
