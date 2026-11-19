@@ -1,5 +1,13 @@
 # Upgrade Guide
 
+## Upgrading To 7.8.0
+
+No migration. The gemspec floor stays `>= 0.1.315`.
+
+Development and dummy Gemfiles pin `flat_pack` tag `v0.2.0`. Hosts may stay on a 0.1.x tag that satisfies `>= 0.1.315`.
+
+flat_pack 0.2.0 is allowed; hosts moving to 0.2 must remove the manual `flat_pack/heroicons` importmap pin and any `flat-pack--icon` controller registration. Icons render on the server. There is no alias for the removed controller, and `data-flat-pack--icon-name-value` is no longer emitted. Select and picker items that draw an icon need `icon_svg`.
+
 ## Upgrading To 7.7.2
 
 No migration. No public API change.
@@ -1848,8 +1856,10 @@ the left as two round buttons. One outlined page-action button group sits on
 the right. The bar shares the column and sits above the title. `<html>` is
 `data-theme="rounded"`.
 
-`flat_pack` >= 0.1.315 is required. It is not on RubyGems. Pin
-`https://github.com/bowerbird-app/flatpack.git` tag `v0.1.377`.
+`flat_pack` >= 0.1.315 is required. It is not on RubyGems. The development
+Gemfile pins `https://github.com/bowerbird-app/flatpack.git` tag `v0.2.0`.
+Hosts moving to 0.2 must remove the manual `flat_pack/heroicons` importmap
+pin and any `flat-pack--icon` controller registration.
 
 ```erb
 <% content_for :title, "Workspaces" %>

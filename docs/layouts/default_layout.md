@@ -16,7 +16,9 @@ right-side HTML sit on the right.
 > **Prerequisite:** `flat_pack` >= 0.1.315 is required. The layout renders
 > Flatpack components directly. `flat_pack` is not on RubyGems. The gemspec
 > declares the dependency, and the host Gemfile supplies the git source
-> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.1.377`).
+> (`https://github.com/bowerbird-app/flatpack.git`, tag `v0.2.0`). Hosts
+> moving to 0.2 remove the manual `flat_pack/heroicons` importmap pin and
+> any `flat-pack--icon` controller registration.
 
 ## What it provides
 
@@ -129,7 +131,9 @@ Do not fork `--color-fp-*`, and do not copy `--font-*` or `--radius-*`
 into the host file. Those tokens live on unlayered `:root` in
 `flat_pack/variables`, which wins over Tailwind's `@layer theme`. The
 viewport meta includes `viewport-fit=cover`. `app/javascript/application.js`
-calls `initLocalTimes` on `DOMContentLoaded` and `turbo:load`.
+calls `initLocalTimes` on `DOMContentLoaded` and `turbo:load`. The dummy
+importmap does not pin `flat_pack/heroicons`, and it does not register
+`flat-pack--icon`. Icons render on the server.
 
 ## Host layout contract
 
