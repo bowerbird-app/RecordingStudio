@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.5.0](https://github.com/bowerbird-app/RecordingStudio/compare/v7.4.0...v7.5.0) (2026-11-20)
+
+
+### Features
+
+* **layout:** render default-layout flash as toasts ([#103](https://github.com/bowerbird-app/RecordingStudio/issues/103)) ([dc98a63](https://github.com/bowerbird-app/RecordingStudio/commit/dc98a63a59f7be20d282895b4121599823987747))
+* **recordings:** enforce root_recording_id in the database ([#97](https://github.com/bowerbird-app/RecordingStudio/issues/97)) ([3a62cb2](https://github.com/bowerbird-app/RecordingStudio/commit/3a62cb2dc6b2596d73da968f67be1787a841aab2))
+
+
+### Bug Fixes
+
+* **layout:** drop lazy loading on the default backdrop ([#101](https://github.com/bowerbird-app/RecordingStudio/issues/101)) ([d43513d](https://github.com/bowerbird-app/RecordingStudio/commit/d43513de19c18ee20a3fe0cfb64cf5992feec991))
+
+
+### Performance Improvements
+
+* **recordings:** index a root page by created_at and id (7.7.0) ([#99](https://github.com/bowerbird-app/RecordingStudio/issues/99)) ([1356e86](https://github.com/bowerbird-app/RecordingStudio/commit/1356e860355e98e48062f409c3fb0111a3f93164))
+
 ## [7.9.0] - 2026-11-20
 
 ### Changed
