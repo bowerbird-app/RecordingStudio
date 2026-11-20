@@ -1,5 +1,44 @@
 # Upgrade Guide
 
+## Upgrading To 7.9.0
+
+No migration.
+
+The default layout now renders `flash` as toasts. `FlatPack::Flash` with
+`as: :toast` puts notice and alert in a toast region. Each toast dismisses
+after 5 seconds. Pages that used to show those messages above the title
+will show them at the top right instead.
+
+To keep inline alerts on one page:
+
+```erb
+<% content_for :flash_style, "inline" %>
+```
+
+`recording_studio_flash_style(:inline)` sets the same slot. `"toast"` forces
+toasts on that page. The slot wins over the config. An unknown slot value
+uses the config.
+
+To keep inline alerts for the whole host:
+
+```ruby
+RecordingStudio.configure do |config|
+  config.layout_flash_style = :inline
+end
+```
+
+The default is `:toast`. `:inline` is the other accepted value. Anything
+else raises `ArgumentError`.
+
+Use inline on sign-in and other auth pages. A toast can dismiss before the
+person reads it, and it is not next to the form. Inline mode still stacks
+the messages above the title. A notice is a success Notice. The box matches
+the old success alert. An alert is still a danger alert.
+
+A host layout that replaces `recording_studio/default_layout` is unchanged.
+Copy `FlatPack::Flash::Component.new(flash: flash, as: :toast)` there when
+that shell should match.
+
 ## Upgrading To 7.8.0
 
 No migration. The gemspec floor stays `>= 0.1.315`.

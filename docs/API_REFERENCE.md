@@ -378,6 +378,7 @@ Use `RecordingStudio.configure` to access these settings.
 | `app_name` / `app_name=` | `String` | `String` | Application name used for `<title>` and `og:site_name` fallbacks in the default layout. Defaults to `"RecordingStudio"`. |
 | `default_background_image` / `default_background_image=` | `String` | `String` | Logical path or URL of the shared page backdrop. Defaults to `RecordingStudio::DEFAULT_BACKGROUND_IMAGE` (`"recording_studio/default_background.svg"`). `merge!` accepts the same key from `config/recording_studio.yml` and `config.x.recording_studio`. |
 | `layout` / `layout=` | `nil`, `false`, layout name `String`, or a callable | the stored value | Host layout used when a gem's `recording_studio_layout` block returns `nil`. A callable is invoked as `call(controller:)`. `nil` means `RecordingStudio::DEFAULT_LAYOUT`. `false` means no layout. A blank string, a positional callable, or any other value raises `ArgumentError`. |
+| `layout_flash_style` / `layout_flash_style=` | `:toast` or `:inline` | symbol | Default flash treatment in the core layout. `:toast` renders `FlatPack::Flash` as toasts. `:inline` renders in-page notices and alerts. Default `:toast`. A string of either name is stripped and accepted. Anything else raises `ArgumentError`. A page slot `content_for :flash_style` wins. `merge!` accepts the same key. |
 | `resolved_layout(controller:, default:)` | `controller:` keyword; optional `default:` | layout name or `false` | Resolves `configuration.layout` for one controller. `nil` (including a callable that returns `nil`) returns `default`, which defaults to `RecordingStudio::DEFAULT_LAYOUT`. `false` is returned as `false`. A positional call raises `ArgumentError`. |
 
 Important behavior:
@@ -879,6 +880,13 @@ Public layout:
 | --- | --- | --- | --- |
 | `recording_studio_page_width(width)` | `:narrow`, `:default`, `:wide`, or `:full` | `nil` | Sets `content_for :page_width`. The default layout passes it to `FlatPack::PageLayout`. |
 | `content_for :page_width, width` | the same names |  | Same slot, without the helper. A blank value stays `:default`. |
+
+### Flash
+
+| Method | Takes | Returns | Why it exists |
+| --- | --- | --- | --- |
+| `recording_studio_flash_style(style)` | `:toast`, `:inline`, or the same strings | `nil` | Sets `content_for :flash_style`. A blank value stores nothing. |
+| `content_for :flash_style, style` | `"toast"` or `"inline"` |  | Same slot, without the helper. The page slot wins over `configuration.layout_flash_style`. Any other value uses that config. |
 
 ### Page nav
 

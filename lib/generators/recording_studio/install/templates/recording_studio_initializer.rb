@@ -43,6 +43,10 @@ RecordingStudio.configure do |config|
 
   # Application name used as title fallback in default layout (defaults to "RecordingStudio")
   # config.app_name = "My App"
+
+  # Default flash in the core layout. :toast or :inline.
+  # A page overrides this with content_for :flash_style, "inline".
+  # config.layout_flash_style = :toast
 end
 
 # Example recordable registration, after the model declarations below exist:

@@ -7,6 +7,7 @@ module RecordingStudio
   class Configuration
     REMOVED_CONFIGURATION_KEYS = %w[features].freeze
     DEFAULT_MAX_METADATA_BYTES = 16_384
+    LAYOUT_FLASH_STYLES = %i[toast inline].freeze
 
     attr_accessor(
       :actor,
@@ -28,7 +29,8 @@ module RecordingStudio
                 :max_metadata_bytes,
                 :allow_unsafe_recordable_queries,
                 :configured_type_names,
-                :gate_overrides
+                :gate_overrides,
+                :layout_flash_style
 
     def initialize # rubocop:disable Metrics/AbcSize
       @recordable_types = []
@@ -51,7 +53,15 @@ module RecordingStudio
       @gate_overrides = {}.freeze
       @app_name = "RecordingStudio"
       @layout = nil
+      @layout_flash_style = :toast
       @default_background_image = RecordingStudio::DEFAULT_BACKGROUND_IMAGE
+    end
+
+    def layout_flash_style=(value)
+      style = value.to_s.strip.to_sym
+      raise ArgumentError, "layout_flash_style must be :toast or :inline" unless LAYOUT_FLASH_STYLES.include?(style)
+
+      @layout_flash_style = style
     end
 
     def layout=(value)

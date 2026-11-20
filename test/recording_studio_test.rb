@@ -34,6 +34,23 @@ class RecordingStudioTest < Minitest::Test
     assert_equal "RecordingStudio", RecordingStudio.configuration.app_name
   end
 
+  def test_layout_flash_style_defaults_to_toast_and_rejects_unknown_values
+    configuration = RecordingStudio::Configuration.new
+
+    assert_equal :toast, configuration.layout_flash_style
+    assert_equal :toast, RecordingStudio.configuration.layout_flash_style
+
+    configuration.layout_flash_style = " inline "
+    assert_equal :inline, configuration.layout_flash_style
+
+    configuration.merge!("layout_flash_style" => "toast")
+    assert_equal :toast, configuration.layout_flash_style
+
+    error = assert_raises(ArgumentError) { configuration.layout_flash_style = :banner }
+    assert_match(/:toast or :inline/, error.message)
+    assert_equal :toast, configuration.layout_flash_style
+  end
+
   def test_layout_configuration_rejects_a_blank_name_and_a_non_callable
     assert_nil RecordingStudio.configuration.layout
 

@@ -44,6 +44,11 @@ module RecordingStudio
       nil
     end
 
+    def recording_studio_flash_style(style)
+      content_for(:flash_style, style.to_s) if style.present?
+      nil
+    end
+
     private
 
     def background_image_source(url)

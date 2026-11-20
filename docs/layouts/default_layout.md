@@ -54,9 +54,13 @@ right-side HTML sit on the right.
   `flat_pack/rich_text`, then the host Tailwind sheet, plus the importmap
   when the host defines `javascript_importmap_tags`.
 - Viewport meta `width=device-width,initial-scale=1,viewport-fit=cover`.
-- Flash notice and alert are plain `FlatPack::Alert` calls. When a flash
-  is present, `Grid` `gap: :lg` separates the flash, the title, and the
-  page. Alert has no spacing prop.
+- Flash uses `FlatPack::Flash`. The default is toasts. A toast region
+  holds the notice and the alert, and each toast dismisses after 5 seconds.
+  `content_for :flash_style, "inline"` or
+  `RecordingStudio.configuration.layout_flash_style = :inline` keeps the
+  messages in the page. Inline mode stacks them with `FlatPack::Flash`
+  `as: :alert` above the title. A `Grid` `gap: :lg` separates that stack,
+  the title, and the page. An empty flash renders neither.
 - `data-theme="rounded"` on `<html>`.
 - Document title and site-name fallback from
   `RecordingStudio.configuration.app_name`.
@@ -149,6 +153,7 @@ provide the same surroundings.
 | `:seo_description` | `recording_studio_seo_description` | Description and `og:description` |
 | `:background_image` | `recording_studio_background_image` or `content_for :background_image` | Decorative image in `layout.background`. No argument, `true`, `:default`, `"true"`, or `"default"` uses the shared image. A path uses that image. `false`, `nil`, `""`, and `"false"` skip it. |
 | `:page_width` | `recording_studio_page_width` or `content_for :page_width, width` | `FlatPack::PageLayout` `width:` (`:narrow`, `:default`, `:wide`, `:full`) |
+| `:flash_style` | `recording_studio_flash_style` or `content_for :flash_style, "inline"` | `"toast"` or `"inline"`. The page slot wins over `configuration.layout_flash_style`. Any other value uses that config, which defaults to `:toast`. |
 | `:page_nav_left` | `recording_studio_page_nav_left` or `content_for :page_nav_left` | Before the back row in `nav.left` |
 | `:page_nav_right` | `recording_studio_page_nav_right` or `content_for :page_nav_right` | Before the button group in `nav.right` |
 
@@ -165,8 +170,8 @@ Also required:
 
 - Stylesheets `flat_pack/variables`, `flat_pack/application`, and
   `flat_pack/rich_text`, plus the importmap.
-- `flash[:notice]` and `flash[:alert]` rendered with
-  `FlatPack::Alert::Component`.
+- `flash` rendered with `FlatPack::Flash::Component`. `:toast` uses a toast
+  region. `:inline` uses in-page notices and alerts.
 
 `FlatPack::SidebarLayout` is the application shell when a host wants a
 sidebar. This default layout is the page shell without one.
@@ -182,6 +187,7 @@ Recording Studio still provides:
 - `recording_studio_default_background_image`
 - `recording_studio_background_image(url = :default)`
 - `recording_studio_page_width(width)`
+- `recording_studio_flash_style(style)`
 
 Flatpack provides the page nav:
 
@@ -203,6 +209,7 @@ and close. `recording_studio_page_nav_left` is the custom left-side slot.
 | Description | Omitted when blank |
 | Background | Omitted when `:background_image` is blank or `"false"`. `"true"` and `"default"` use `configuration.default_background_image`. Any other value is one decorative image in `layout.background` (`decoding="async"`, `fetchpriority="low"`, no `loading`). |
 | Page width | `:default` when `:page_width` is blank. Otherwise `:narrow`, `:default`, `:wide`, or `:full`. |
+| Flash | Toasts when `:flash_style` is blank or `"toast"`, and when `configuration.layout_flash_style` is `:toast`. Inline alerts when the slot or the config is `inline`. An unknown slot value uses the config. An empty flash renders nothing. |
 | `og:title` | Same as `<title>` |
 | `og:site_name` | `RecordingStudio.configuration.app_name` → page title |
 | Back and close | Whatever `flat_pack_page_nav` stored. No call and no `return_to` means no row. Flatpack's own labels apply unless the view passes a tooltip. `:page_nav_left` renders before that row when the slot is set. |
@@ -295,6 +302,47 @@ A blank slot skips the backdrop.
 `content_for :page_width, :wide` sets the same slot. `:narrow` and `:full`
 work the same way. A blank value stays `:default`. Flatpack rejects any
 other name.
+
+## Flash
+
+The layout calls `FlatPack::Flash::Component` with the controller `flash`.
+`:toast` passes `as: :toast`. `:inline` passes `as: :alert`.
+
+Toasts render in `.fp-toast-region`, fixed at the top right, under the top
+nav. Flatpack's toast timeout is 5000 ms, so each toast dismisses after 5
+seconds. A Turbo visit that includes the region connects the same toast
+controller. There is no separate flash controller.
+
+Inline mode keeps the message on the page, above the title. A notice is a
+success Notice. The box matches a success alert, and the role is `status`.
+An alert is a danger alert. Use inline on sign-in and other auth pages so
+the message stays with the form.
+
+```erb
+<% content_for :flash_style, "inline" %>
+```
+
+```erb
+<% recording_studio_flash_style(:inline) %>
+```
+
+`"toast"` forces toasts on that page. A blank slot uses
+`RecordingStudio.configuration.layout_flash_style`, which starts as `:toast`.
+Any other slot value uses that config too.
+
+```ruby
+RecordingStudio.configure do |config|
+  config.layout_flash_style = :inline
+end
+```
+
+`:toast` and `:inline` are the only config values. A string of either name
+is accepted. Anything else raises `ArgumentError`. `merge!` accepts
+`layout_flash_style` from `config/recording_studio.yml`.
+
+The title and the page body render once. They do not move when the flash
+is empty. Inline messages sit in a `Grid` `gap: :lg` with the title and the
+page. Toast messages do not, because the region is fixed.
 
 ## SEO
 
