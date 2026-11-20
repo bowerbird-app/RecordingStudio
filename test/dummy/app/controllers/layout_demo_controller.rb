@@ -11,6 +11,7 @@ class LayoutDemoController < ApplicationController
   def contract
     flash.now[:notice] = "Saved the page"
     flash.now[:alert] = "Could not save the page"
+    @layout_flash_style = params[:flash_style]
     render :show
   end
 

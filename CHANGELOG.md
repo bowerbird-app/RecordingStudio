@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.9.0] - 2026-11-20
+
+### Changed
+
+* The default layout renders flash with `FlatPack::Flash` as toasts. Each toast dismisses after 5 seconds. `content_for :flash_style, "inline"` or `config.layout_flash_style = :inline` keeps inline alerts above the title.
+
+### Upgrade notes
+
+- Visible change on every page that uses the default layout and sets a notice or an alert.
+- No migration. `:toast` and `:inline` are the only values. An unknown config value raises `ArgumentError`.
+- Use inline on sign-in and other auth pages.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-790).
+
 ## [7.8.0] - 2026-11-19
 
 ### Changed
@@ -1141,6 +1154,7 @@ fetch at Build.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
+[7.9.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v7.8.0...v7.9.0
 [7.8.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v7.7.2...v7.8.0
 [Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.7.0...HEAD
 [4.7.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.6.1...v4.7.0

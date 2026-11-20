@@ -66,4 +66,18 @@ class LayoutHelperTest < ActionView::TestCase
     assert_nil result
     assert_predicate content_for(:page_width), :blank?
   end
+
+  def test_recording_studio_flash_style_sets_slot_and_returns_nil
+    result = recording_studio_flash_style(:inline)
+
+    assert_nil result
+    assert_equal "inline", content_for(:flash_style)
+  end
+
+  def test_recording_studio_flash_style_skips_a_blank_style
+    result = recording_studio_flash_style(" ")
+
+    assert_nil result
+    assert_predicate content_for(:flash_style), :blank?
+  end
 end

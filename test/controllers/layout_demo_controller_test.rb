@@ -77,13 +77,13 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     removed.each { |snippet| refute_includes source, snippet }
     kept = [
       "flat_pack_page_nav_tag", "page_nav_button_group",
-      "content_for(:page_nav_left)", "content_for(:page_nav_right)",
+      "content_for(:page_nav_left)", "content_for(:page_nav_right)", "content_for(:flash_style)",
       "safe_join([page_nav_left, back_row].compact)", "safe_join([page_nav_right, page_buttons].compact)",
       "collapse: :menu", "padding: :none", "size: :lg",
       "variant: :outlined", "style: :ghost",
       "FlatPack::PageLayout::Component", "width: page_width", "layout.background",
       'alt: ""', 'decoding: "async"', 'fetchpriority: "low"',
-      "FlatPack::TopNav::Component", "FlatPack::PageTitle::Component", "FlatPack::Alert::Component",
+      "FlatPack::TopNav::Component", "FlatPack::PageTitle::Component", "FlatPack::Flash::Component",
       "flat_pack/variables", "flat_pack/application", "flat_pack/rich_text",
       "<html data-theme=\"rounded\">"
     ]
@@ -236,7 +236,7 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "[data-fp-page-layout-width=full]", count: 1
   end
 
-  test "default layout renders flatpack assets, alerts, and content_for slots" do
+  test "default layout renders flatpack assets, toasts, and content_for slots" do
     get layout_demo_contract_path, headers: modern_headers
 
     assert_response :success
@@ -244,14 +244,62 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select "link[rel=stylesheet][href*='flat_pack/variables']", minimum: 1
     assert_select "link[rel=stylesheet][href*='flat_pack/application']", minimum: 1
     assert_select "link[rel=stylesheet][href*='flat_pack/rich_text']", minimum: 1
-    assert_includes @response.body, "Saved the page"
-    assert_includes @response.body, "Could not save the page"
+    assert_toast_flash
     assert_select ".mb-4", text: /Saved the page/, count: 0
     assert_select ".mb-4", text: /Could not save the page/, count: 0
-    assert_select ".grid[class*='gap-[var(--stack-gap-lg)]']", minimum: 1
     assert_select "title", text: "Default Layout Demo"
     assert_select "meta[name='recording-studio-demo'][content='default-layout']", count: 1
     assert_not_includes @response.body, "flat-pack--sidebar-layout"
+  end
+
+  test "content_for flash_style inline renders alerts and no toast region" do
+    get layout_demo_contract_path(flash_style: "inline"), headers: modern_headers
+
+    assert_response :success
+    assert_inline_flash
+    assert_select ".grid[class*='gap-[var(--stack-gap-lg)]']", minimum: 1
+  end
+
+  test "layout_flash_style inline renders alerts when the page sets no slot" do
+    original = RecordingStudio.configuration.layout_flash_style
+    RecordingStudio.configuration.layout_flash_style = :inline
+
+    get layout_demo_contract_path, headers: modern_headers
+
+    assert_response :success
+    assert_inline_flash
+  ensure
+    RecordingStudio.configuration.layout_flash_style = original
+  end
+
+  test "content_for flash_style wins over layout_flash_style" do
+    original = RecordingStudio.configuration.layout_flash_style
+    RecordingStudio.configuration.layout_flash_style = :inline
+
+    get layout_demo_contract_path(flash_style: "toast"), headers: modern_headers
+
+    assert_response :success
+    assert_toast_flash
+  ensure
+    RecordingStudio.configuration.layout_flash_style = original
+  end
+
+  test "an unknown flash_style falls back to the configured default" do
+    get layout_demo_contract_path(flash_style: "banner"), headers: modern_headers
+
+    assert_response :success
+    assert_toast_flash
+  end
+
+  test "an empty flash renders neither toasts nor inline alerts" do
+    get layout_demo_path, headers: modern_headers
+
+    assert_response :success
+    assert_select ".fp-toast-region", count: 0
+    assert_select "main [role=alert]", count: 0
+    assert_select "[data-controller='flat-pack--toast']", count: 0
+    assert_not_includes @response.body, "Saved the page"
+    assert_not_includes @response.body, "Could not save the page"
   end
 
   private
@@ -278,6 +326,26 @@ class LayoutDemoControllerTest < ActionDispatch::IntegrationTest
     assert_select ".fp-backdrop-media img[alt=''][decoding='async'][fetchpriority='low'][src='#{src}']", count: 1
     assert_select ".fp-backdrop-media img[loading]", count: 0
     assert_select ".fp-backdrop-tint", count: 1
+  end
+
+  def assert_toast_flash
+    assert_select ".fp-toast-region", count: 1
+    assert_select ".fp-toast-region [role=status]", text: /Saved the page/, count: 1
+    assert_select ".fp-toast-region [role=status]", text: /Could not save the page/, count: 1
+    assert_select ".fp-toast-region [data-flat-pack--toast-timeout-value='5000']", count: 2
+    assert_select "main [role=alert]", count: 0
+  end
+
+  def assert_inline_flash
+    assert_select ".fp-toast-region", count: 0
+    assert_select "[data-controller='flat-pack--toast']", count: 0
+    notice = css_select("main [role=status]").find { |node| node.text.include?("Saved the page") }
+    alert = css_select("main [role=alert]").find { |node| node.text.include?("Could not save the page") }
+
+    assert notice
+    assert alert
+    assert_includes notice["class"], "bg-[var(--alert-success-background-color)]"
+    assert_includes alert["class"], "bg-[var(--alert-danger-background-color)]"
   end
 
   def assert_round_default(selector)
