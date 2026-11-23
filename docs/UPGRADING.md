@@ -1,5 +1,13 @@
 # Upgrade Guide
 
+## Upgrading To 7.9.1
+
+No migration.
+
+`RecordingStudio.configuration.enabled_recordable_types_for` loads configured recordable classes before it returns the types that enable that capability. A call from `to_prepare`, before eager load, includes those types.
+
+Capability gems can remove their own `RecordingStudio::RecordableDeclarations.ensure_loaded!` call. The method signature is unchanged.
+
 ## Upgrading To 7.9.0
 
 No migration.

@@ -133,6 +133,7 @@ module RecordingStudio
     end
 
     def enabled_recordable_types_for(capability)
+      RecordingStudio::RecordableDeclarations.ensure_loaded!
       capability_name = capability.to_sym
       RecordingStudio.synchronize_capabilities do
         @capabilities.each_with_object([]) do |(type_name, capabilities), types|
