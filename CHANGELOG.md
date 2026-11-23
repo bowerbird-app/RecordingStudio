@@ -5,6 +5,64 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [8.0.0](https://github.com/bowerbird-app/RecordingStudio/compare/v7.9.1...v8.0.0) (2026-11-23)
+
+
+### ⚠ BREAKING CHANGES
+
+* harden capability-owned child recordables
+* remove built-in access control from core
+
+### Features
+
+* add Capabilities.include_for enablement factory ([#43](https://github.com/bowerbird-app/RecordingStudio/issues/43)) ([fce33c6](https://github.com/bowerbird-app/RecordingStudio/commit/fce33c603f8e57a2c0dd278ab901651f6d78c5d4))
+* add capability framework and release automation ([bc1bc5f](https://github.com/bowerbird-app/RecordingStudio/commit/bc1bc5fb182f0dd23bfe7ed0d992647ec06e6526))
+* add configurable default background image and opt-in helper ([#71](https://github.com/bowerbird-app/RecordingStudio/issues/71)) ([6acc037](https://github.com/bowerbird-app/RecordingStudio/commit/6acc0377fa4c940a2ff7222bbcbdc3ee6d59c591))
+* add feature toggles for legacy move/copyable/device sessions ([7a8f02f](https://github.com/bowerbird-app/RecordingStudio/commit/7a8f02f5c09a30f27c318ec93133b99dae98dba9))
+* add page_nav_left slot to default layout ([#77](https://github.com/bowerbird-app/RecordingStudio/issues/77)) ([be7bca4](https://github.com/bowerbird-app/RecordingStudio/commit/be7bca4d0ddeff297ebdf27ea5d542f59431a7a9))
+* add recording studio default layout contract ([14045cf](https://github.com/bowerbird-app/RecordingStudio/commit/14045cf18ef3378b11f114825eb169fc6c433958))
+* add Recording.kept filter registry (6.14.0) ([#87](https://github.com/bowerbird-app/RecordingStudio/issues/87)) ([0584bd1](https://github.com/bowerbird-app/RecordingStudio/commit/0584bd1dabf8836a6da1b3cb6dc91d6b3f0ff7bc))
+* add Recording#kept? with in-memory predicates (6.15.0) ([#89](https://github.com/bowerbird-app/RecordingStudio/issues/89)) ([051ce91](https://github.com/bowerbird-app/RecordingStudio/commit/051ce918b9c0474561af37e9a36350d9b4473fdf))
+* add RecordingStudio.record_events! (6.13.0) ([#86](https://github.com/bowerbird-app/RecordingStudio/issues/86)) ([45dfef2](https://github.com/bowerbird-app/RecordingStudio/commit/45dfef20c181d84abdf3eb41315a3beaef5fdcab))
+* add shared gate API for allow/deny checks with redirects ([#78](https://github.com/bowerbird-app/RecordingStudio/issues/78)) ([14e171c](https://github.com/bowerbird-app/RecordingStudio/commit/14e171cb60df6a74426b19c8eec8be121e77c9b6))
+* align default layout nav contract and workspaces page nav ([369496d](https://github.com/bowerbird-app/RecordingStudio/commit/369496de38869bdf185beb8da4b697b7653314ab))
+* **cloud-agent:** add Billing 0.9.13 boot hooks ([#46](https://github.com/bowerbird-app/RecordingStudio/issues/46)) ([0d11c15](https://github.com/bowerbird-app/RecordingStudio/commit/0d11c15ea74cc61207bcd3bdb56058b6ee1fc990))
+* create root recordings through the write path (7.0.0) ([#91](https://github.com/bowerbird-app/RecordingStudio/issues/91)) ([c8d09b2](https://github.com/bowerbird-app/RecordingStudio/commit/c8d09b294321f814567b3ad3fe516b9e3f6ce163))
+* declare one recording per parent (7.0.0) ([#90](https://github.com/bowerbird-app/RecordingStudio/issues/90)) ([b388876](https://github.com/bowerbird-app/RecordingStudio/commit/b388876a7aa6497bad17975e901046aecdc92057))
+* formalize addon capability contract in docs and registration lifecycle ([b47e733](https://github.com/bowerbird-app/RecordingStudio/commit/b47e733358784018f169ae8eb4d7bbcc6cc74e37))
+* harden capability-owned child recordables ([a475b91](https://github.com/bowerbird-app/RecordingStudio/commit/a475b91d74924cc9b648b8f2bf7df3291919d5e0))
+* hook-facing result and subject on BaseService ([#92](https://github.com/bowerbird-app/RecordingStudio/issues/92)) ([67104ab](https://github.com/bowerbird-app/RecordingStudio/commit/67104abd3fc13789a3f048334edc2a54bdb5bb35))
+* **layout:** render default-layout flash as toasts ([#103](https://github.com/bowerbird-app/RecordingStudio/issues/103)) ([dc98a63](https://github.com/bowerbird-app/RecordingStudio/commit/dc98a63a59f7be20d282895b4121599823987747))
+* page root event timelines from root_recording_id ([#82](https://github.com/bowerbird-app/RecordingStudio/issues/82)) ([9210c5e](https://github.com/bowerbird-app/RecordingStudio/commit/9210c5eeffac9b4f1c238f249cb362194b649867))
+* **recordings:** enforce root_recording_id in the database ([#97](https://github.com/bowerbird-app/RecordingStudio/issues/97)) ([3a62cb2](https://github.com/bowerbird-app/RecordingStudio/commit/3a62cb2dc6b2596d73da968f67be1787a841aab2))
+* remove built-in access control from core ([c6d7f00](https://github.com/bowerbird-app/RecordingStudio/commit/c6d7f0038fb44bb6928e1831545f18c9cf7f2242))
+* remove legacy moveable support ([7383c5e](https://github.com/bowerbird-app/RecordingStudio/commit/7383c5ef0c92358368710b27771b6b512cbdd004))
+* **services:** opt-in handles/reraises on BaseService ([#94](https://github.com/bowerbird-app/RecordingStudio/issues/94)) ([baefc69](https://github.com/bowerbird-app/RecordingStudio/commit/baefc69cf19f2827c716eb400964b4dc858ac8ce))
+* shared root declarations (4.1.0) ([#41](https://github.com/bowerbird-app/RecordingStudio/issues/41)) ([8d00bdc](https://github.com/bowerbird-app/RecordingStudio/commit/8d00bdc840a06a7ed5b5cc692fce00bb66916fbf))
+* support background_image and page_width in default layout ([#70](https://github.com/bowerbird-app/RecordingStudio/issues/70)) ([9848462](https://github.com/bowerbird-app/RecordingStudio/commit/984846214265c44efd505eab32d02ae3f3ffeac7))
+* support page_nav_right slot alongside page_nav_button_group in default layout ([#69](https://github.com/bowerbird-app/RecordingStudio/issues/69)) ([403521d](https://github.com/bowerbird-app/RecordingStudio/commit/403521dddc141ddb12d1ed8d8b30bd4105a9d6f8))
+* use page nav on new workspace view ([1b838e2](https://github.com/bowerbird-app/RecordingStudio/commit/1b838e2de29506f1c0b925e6597d55fef0c5def6))
+* use page nav on new workspace view ([b2a633d](https://github.com/bowerbird-app/RecordingStudio/commit/b2a633dbca9f84d77029250902277c73f32fe733))
+
+
+### Bug Fixes
+
+* **ci:** force postgres user in health check ([1b6dbad](https://github.com/bowerbird-app/RecordingStudio/commit/1b6dbad50c83ae383f5e180cfd59e1191eeba4d8))
+* **layout:** drop lazy loading on the default backdrop ([#101](https://github.com/bowerbird-app/RecordingStudio/issues/101)) ([d43513d](https://github.com/bowerbird-app/RecordingStudio/commit/d43513de19c18ee20a3fe0cfb64cf5992feec991))
+* **layout:** port page nav and honor a host layout ([#57](https://github.com/bowerbird-app/RecordingStudio/issues/57)) ([75ce048](https://github.com/bowerbird-app/RecordingStudio/commit/75ce048ab028bef6519cf205efde7cc1594f6d5e))
+* load recordable declarations before listing enabled types ([#104](https://github.com/bowerbird-app/RecordingStudio/issues/104)) ([67ca37d](https://github.com/bowerbird-app/RecordingStudio/commit/67ca37db6670c9c9925f3501da56e58893fc6d61))
+* reapply model and controller extensions after reload ([#80](https://github.com/bowerbird-app/RecordingStudio/issues/80)) ([301a07c](https://github.com/bowerbird-app/RecordingStudio/commit/301a07c5710fd224eb62ec5eefda8ed37c902768))
+* require flat_pack 0.1.315 and update default layout top nav ([#67](https://github.com/bowerbird-app/RecordingStudio/issues/67)) ([ed830e2](https://github.com/bowerbird-app/RecordingStudio/commit/ed830e247fcb91b32a58da0fd6a6bac2e1c3dd75))
+* take write locks in one order and stop serialising on the root ([#84](https://github.com/bowerbird-app/RecordingStudio/issues/84)) ([0c69b35](https://github.com/bowerbird-app/RecordingStudio/commit/0c69b3535a17629932f010e4b0b607cf1529c08b))
+* **test:** stabilize device session cleanup and ordering assertion ([1ef35d1](https://github.com/bowerbird-app/RecordingStudio/commit/1ef35d1bd4c0055b17eae24ca2acb0b039fc06d8))
+
+
+### Performance Improvements
+
+* **recordables:** dedupe version history in SQL ([#93](https://github.com/bowerbird-app/RecordingStudio/issues/93)) ([ee406ef](https://github.com/bowerbird-app/RecordingStudio/commit/ee406efcdf251628cbb68483632f15c46545f52a))
+* **recordings:** index a root page by created_at and id (7.7.0) ([#99](https://github.com/bowerbird-app/RecordingStudio/issues/99)) ([1356e86](https://github.com/bowerbird-app/RecordingStudio/commit/1356e860355e98e48062f409c3fb0111a3f93164))
+* **recordings:** page a subtree without an id IN list ([#96](https://github.com/bowerbird-app/RecordingStudio/issues/96)) ([e8fcb57](https://github.com/bowerbird-app/RecordingStudio/commit/e8fcb575619271ac3561a77544894da7fa2f1071))
+
 ## [7.9.1] - 2026-11-23
 
 ### Fixed
