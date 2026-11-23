@@ -8,6 +8,8 @@ No migration.
 
 Capability gems can remove their own `RecordingStudio::RecordableDeclarations.ensure_loaded!` call. The method signature is unchanged.
 
+Development and the dummy app pin Ruby `3.3.14`. The gemspec still allows `>= 3.3.0`. The dummy lockfile updates `brakeman` to 8.1.1, `puma` to 8.1.2, and `net-ssh` to 7.3.10.
+
 ## Upgrading To 7.9.0
 
 No migration.

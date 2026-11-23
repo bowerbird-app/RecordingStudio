@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 * `RecordingStudio.configuration.enabled_recordable_types_for` loads configured recordable declarations before it returns enabled types. A call from `to_prepare`, before eager load, includes types whose classes were not loaded yet.
+* The dummy app lockfile updates `brakeman` to 8.1.1, `puma` to 8.1.2, and `net-ssh` to 7.3.10. `.ruby-version` is `ruby-3.3.14`.
 
 ### Upgrade notes
 
