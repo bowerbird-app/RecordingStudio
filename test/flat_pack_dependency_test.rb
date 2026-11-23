@@ -19,7 +19,11 @@ class FlatPackDependencyTest < ActiveSupport::TestCase
   end
 
   test "resolved flat_pack and view_component match this checkout" do
-    assert_equal "7.9.0", RecordingStudio::VERSION
+    root = RecordingStudio::Engine.root
+
+    assert_equal "7.9.1", RecordingStudio::VERSION
+    assert_includes File.read(root.join("Gemfile.lock")), "recording_studio (#{RecordingStudio::VERSION})"
+    assert_includes File.read(root.join("test/dummy/Gemfile.lock")), "recording_studio (#{RecordingStudio::VERSION})"
     assert_equal "0.2.0", FlatPack::VERSION
     assert_equal "4.19.0", ViewComponent::VERSION::STRING
 

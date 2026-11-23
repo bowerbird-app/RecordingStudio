@@ -1,5 +1,15 @@
 # Upgrade Guide
 
+## Upgrading To 7.9.1
+
+No migration.
+
+`RecordingStudio.configuration.enabled_recordable_types_for` loads configured recordable classes before it returns the types that enable that capability. A call from `to_prepare`, before eager load, includes those types.
+
+Capability gems can remove their own `RecordingStudio::RecordableDeclarations.ensure_loaded!` call. The method signature is unchanged.
+
+Development and the dummy app pin Ruby `3.3.14`. The gemspec still allows `>= 3.3.0`. The dummy lockfile updates `brakeman` to 8.1.1, `puma` to 8.1.2, and `net-ssh` to 7.3.10.
+
 ## Upgrading To 7.9.0
 
 No migration.

@@ -367,6 +367,7 @@ Use `RecordingStudio.configure` to access these settings.
 | `hooks` | nothing | `RecordingStudio::Hooks` | Global hook registry for extension points. |
 | `gate_overrides` / `gate_overrides=` | hash or `nil` | frozen hash | Host `priority` and `enabled` flags for named gate checks. `nil` clears the map. Default `{}`. Unknown check names are kept and ignored when the gate runs. |
 | `enable_capability(capability, on:)` | capability name, recordable type | internal set mutation | Enables a capability for one type. |
+| `enabled_recordable_types_for(capability)` | capability name | sorted `Array<String>` | Type names with that capability enabled. Loads configured recordable declarations first, so types whose classes were not loaded yet are included. |
 | `capability_enabled?(capability, for_type:)` | capability name, recordable type | `true` or `false` | Reads type-specific capability enablement. |
 | `capabilities_for(recordable_or_type)` | instance, class, or class name | sorted `Array<Symbol>` | Returns enabled capabilities for a type. |
 | `set_capability_options(capability, on:, **options)` | capability name, recordable type, options | stored options hash | Stores per-type addon options. |

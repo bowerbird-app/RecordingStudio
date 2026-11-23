@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [7.9.1] - 2026-11-23
+
+### Fixed
+
+* `RecordingStudio.configuration.enabled_recordable_types_for` loads configured recordable declarations before it returns enabled types. A call from `to_prepare`, before eager load, includes types whose classes were not loaded yet.
+* The dummy app lockfile updates `brakeman` to 8.1.1, `puma` to 8.1.2, and `net-ssh` to 7.3.10. `.ruby-version` is `ruby-3.3.14`.
+
+### Upgrade notes
+
+- No migration.
+- Capability gems can drop their own `RecordableDeclarations.ensure_loaded!` call.
+- See [docs/UPGRADING.md](docs/UPGRADING.md#upgrading-to-791).
+
 ## [7.9.0] - 2026-11-20
 
 ### Changed
@@ -1154,6 +1167,7 @@ fetch at Build.
 - Comprehensive README and documentation
 - Basic test suite with Minitest
 
+[7.9.1]: https://github.com/bowerbird-app/RecordingStudio/compare/v7.9.0...v7.9.1
 [7.9.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v7.8.0...v7.9.0
 [7.8.0]: https://github.com/bowerbird-app/RecordingStudio/compare/v7.7.2...v7.8.0
 [Unreleased]: https://github.com/bowerbird-app/RecordingStudio/compare/v4.7.0...HEAD
